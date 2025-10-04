@@ -105,6 +105,9 @@ def step3():
 
 @app.route('/preview')
 def preview():
+    idioma = session.get('idioma') or 'es'
+    estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+
     config = {
         'tipo_web': session.get('tipo_web'),
         'color': session.get('color'),
@@ -112,10 +115,10 @@ def preview():
         'estilo': session.get('estilo'),
         'bordes': session.get('bordes'),
         'botones': session.get('botones'),
-        'idioma': session.get('idioma'),
+        'idioma': idioma,
         'vista_imagenes': session.get('vista_imagenes'),
         'logo': session.get('logo'),
-        'estilo_visual': session.get('estilo_visual'),
+        'estilo_visual': estilo_visual,
         'titulo': 'Mi sitio personalizado',
         'descripcion': 'Este sitio fue generado automáticamente.',
         'productos': session.get('bloques') if session.get('tipo_web') in ['catálogo', 'menú'] else [],
@@ -128,7 +131,7 @@ def preview():
         'pt': {'contacto': 'Contato via WhatsApp', 'precio': 'Preço'}
     }
 
-    estilo = estilos.get(config['estilo_visual'], estilos['claro_moderno'])
+    estilo = estilos.get(estilo_visual, estilos['claro_moderno'])
 
     return render_template('preview.html', config=config, textos=textos, estilo=estilo)
 
