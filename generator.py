@@ -51,3 +51,15 @@ estilos = {
     "vibrante_multicolor": {"fondo": "linear-gradient(45deg, #ff5722, #ffeb3b, #4caf50, #2196f3)", "fuente": "Titan One", "color_primario": "#ffffff", "boton_whatsapp": "animado", "cards": "sombra-colores"},
     "vibrante_rojo_azul": {"fondo": "linear-gradient(to right, #f44336, #2196f3)", "fuente": "Luckiest Guy", "color_primario": "#ffffff", "boton_whatsapp": "glow", "cards": "curvas-divertidas"},
     "vibrante_amarillo_purpura": {"fondo": "linear-gradient(to bottom right, #ffeb3b, #9c27b0)", "fuente": "Shrikhand", "color_primario": "#ffffff", "boton_whatsapp": "bounce", "cards": "sombra-colores"},
+
+    # CREATIVOS
+    "creativo_divertido": {"fondo": "#fef3bd", "fuente": "Comic Neue", "color_primario": "#ff9800", "boton_whatsapp": "animado", "cards": "curvas-divertidas"},
+    "creativo_comic": {"fondo": "#fff8dc", "fuente": "Bangers", "color_primario": "#ff5722", "boton_whatsapp": "bounce", "cards": "curvas-divertidas"},
+    "creativo_chalkboard": {"fondo": "#2e2e2e", "fuente": "Gloria Hallelujah", "color_primario": "#ffffff", "boton_whatsapp": "simple", "cards": "sin-borde"},
+    "creativo_ondas": {"fondo": "linear-gradient(to right, #00c9ff, #92fe9d)", "fuente": "Indie Flower", "color_primario": "#00c9ff", "boton_whatsapp": "animado", "cards": "curvas-divertidas"},
+    "creativo_pinceladas": {"fondo": "#fff0f5", "fuente": "Caveat", "color_primario": "#ff69b4", "boton_whatsapp": "sombra", "cards": "sombra-colores"},
+    "creativo_doodle": {"fondo": "#f0fff0", "fuente": "Patrick Hand", "color_primario": "#4caf50", "boton_whatsapp": "bounce", "cards": "curvas-divertidas"},
+    "creativo_animado": {"fondo": "#ffe4e1", "fuente": "Permanent Marker", "color_primario": "#ff4081", "boton_whatsapp": "animado", "cards": "sombra-colores"},
+    "creativo_abstracto": {"fondo": "linear-gradient(to bottom right, #ffccbc, #d1c4e9)", "fuente": "Architects Daughter", "color_primario": "#7e57c2", "boton_whatsapp": "sombra", "cards": "curvas-divertidas"},
+    "creativo_infancia": {"fondo": "#fff9c4", "fuente": "Schoolbell", "color_primario": "#fbc02d", "boton_whatsapp": "bounce", "cards": "curvas-divertidas"},
+    "creativo_explosivo": {"fondo": "linear-gradient(to right, #ff6f00, #ffeb3b)", "fuente": "Rock Salt", "color_primario": "#ff6f00", "boton_whatsapp": "glow", "cards": "sombra-colores"},
