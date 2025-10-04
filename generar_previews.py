@@ -26,7 +26,13 @@ def crear_preview(nombre, fondo):
     img = Image.new("RGB", (400, 300), color)
     draw = ImageDraw.Draw(img)
     texto = nombre.replace("_", " ").title()
-    text_width, text_height = draw.textsize(texto, font=font)
+
+    # Medir texto con textbbox (Pillow moderno)
+    bbox = draw.textbbox((0, 0), texto, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    # Centrar texto
     x = (400 - text_width) // 2
     y = (300 - text_height) // 2
     draw.text((x, y), texto, fill="white", font=font)
@@ -39,3 +45,4 @@ def crear_preview(nombre, fondo):
 # Recorrer todos los estilos
 for nombre, config in estilos.items():
     crear_preview(nombre, config["fondo"])
+
