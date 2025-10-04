@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Paso 2: Diseño visual</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>🎨 Paso 2: Elegí el diseño visual</h1>
+    <form method="POST">
+        <label>Color principal:</label><br>
+        <input type="color" name="color" value="#0077cc"><br><br>
+
+        <label>Fuente:</label><br>
+        <select name="fuente">
+            <option value="Arial">Arial</option>
+            <option value="Roboto">Roboto</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Comic Sans MS">Comic Sans MS</option>
+        </select><br><br>
+
+        <label>Estilo de botones:</label><br>
+        <select name="botones">
+            <option value="redondeado">Redondeado</option>
+            <option value="cuadrado">Cuadrado</option>
+            <option value="sombra">Con sombra</option>
+        </select><br><br>
+
+        <button type="submit">Siguiente ➡️</button>
+    </form>
+</body>
+</html>
