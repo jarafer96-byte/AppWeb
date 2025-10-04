@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Vista previa</title>
+    <style>
+        body {
+            background-color: #f4f4f4;
+            font-family: {{ config.fuente }};
+            color: #333;
+        }
+        h1 {
+            color: {{ config.color }};
+        }
+        button {
+            background-color: {{ config.color }};
+            color: white;
+            padding: 10px;
+            border-radius: {% if config.botones == 'redondeado' %}10px{% else %}0px{% endif %};
+            box-shadow: {% if config.botones == 'sombra' %}2px 2px 5px gray{% else %}none{% endif %};
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ config.titulo }}</h1>
+    <img src="{{ url_for('static', filename='img/' + config.imagen) }}" alt="Imagen destacada" width="300"><br>
+    <p>{{ config.descripcion }}</p>
+
+    {% if config.contacto == 'sí' %}
+        <form>
+            <input type="text" placeholder="Tu mensaje">
+            <button>Enviar</button>
+        </form>
+    {% endif %}
+
+    {% if config.whatsapp == 'sí' %}
+        <p><a href="https://wa.me/549XXXXXXXXXX">WhatsApp</a></p>
+    {% endif %}
+
+    {% if config.pago != 'ninguno' %}
+        <p>Medio de pago: {{ config.pago }}</p>
+    {% endif %}
+
+    <br><br>
+    <a href="{{ url_for('step5') }}"><button>📦 Descargar sitio</button></a>
+</body>
+</html>
