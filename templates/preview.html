@@ -9,8 +9,9 @@
     body {
       font-family: '{{ estilo.fuente }}', sans-serif;
       background: {{ estilo.fondo }};
-      color: #fff;
+      color: {% if estilo.fondo.startswith('#f') or estilo.fondo.startswith('#e') %}#000{% else %}#fff{% endif %};
     }
+
     .btn-whatsapp {
       background-color: #25D366;
       border: none;
@@ -21,20 +22,40 @@
       box-shadow: 0 0 10px #25D366;
       {% elif estilo.boton_whatsapp == 'bounce' %}
       animation: bounce 1s infinite;
+      {% elif estilo.boton_whatsapp == 'borde-dorado' %}
+      border: 2px solid gold;
       {% endif %}
     }
+
     .card {
       {% if estilo.cards == 'borde-neon' %}
       border: 2px solid {{ estilo.color_primario }};
       box-shadow: 0 0 10px {{ estilo.color_primario }};
       {% elif estilo.cards == 'sombra-suave' %}
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      {% elif estilo.cards == 'borde-elegante' %}
+      border: 1px solid #ccc;
       {% endif %}
     }
+
+    .card-body {
+      {% if estilo.cards == 'borde-neon' %}
+      background-color: #111;
+      color: #fff;
+      {% elif estilo.fondo.startswith('#f') or estilo.fondo.startswith('#e') %}
+      background-color: #fff;
+      color: #000;
+      {% else %}
+      background-color: #222;
+      color: #fff;
+      {% endif %}
+    }
+
     .btn-primary {
       background-color: {{ estilo.color_primario }};
       border: none;
     }
+
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-5px); }
@@ -46,21 +67,49 @@
   <p class="text-center">{{ config.descripcion }}</p>
 
   <div class="row">
-    {% for producto in config.productos %}
-    <div class="col-md-4 mb-4">
-      <div class="card p-3 text-dark bg-light">
-        <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}">
-        <div class="card-body">
-          <h5 class="card-title">{{ producto.nombre }}</h5>
-          <p class="card-text">{{ producto.descripcion }}</p>
-          <p><strong>{{ textos[config.idioma]['precio'] }}:</strong> $ {{ producto.precio }}</p>
-          <a href="https://wa.me/549XXXXXXXXXX" class="btn btn-whatsapp">
-            {{ textos[config.idioma]['contacto'] }}
-          </a>
+    {% if config.tipo_web in ['catálogo', 'menú'] %}
+      {% for producto in config.productos %}
+      <div class="col-md-4 mb-4">
+        <div class="card p-3">
+          <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}">
+          <div class="card-body">
+            <h5 class="card-title">{{ producto.nombre }}</h5>
+            <p class="card-text">{{ producto.descripcion }}</p>
+            <p><strong>{{ textos[config.idioma]['precio'] }}:</strong> $ {{ producto.precio }}</p>
+            <a href="https://wa.me/549XXXXXXXXXX" class="btn btn-whatsapp">
+              {{ textos[config.idioma]['contacto'] }}
+            </a>
+          </div>
         </div>
       </div>
-    </div>
-    {% endfor %}
+      {% endfor %}
+    {% elif config.tipo_web == 'presentación' %}
+      {% for bloque in config.bloques %}
+      <div class="col-md-6 mb-4">
+        <div class="card p-3">
+          <img src="/static/img/{{ bloque.foto }}" class="card-img-top" alt="{{ bloque.titulo }}">
+          <div class="card-body">
+            <h5 class="card-title">{{ bloque.titulo }}</h5>
+            <p class="card-text">{{ bloque.texto }}</p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% elif config.tipo_web == 'evento' %}
+      {% for bloque in config.bloques %}
+      <div class="col-md-6 mb-4">
+        <div class="card p-3">
+          <img src="/static/img/{{ bloque.imagen_evento }}" class="card-img-top" alt="{{ bloque.nombre_evento }}">
+          <div class="card-body">
+            <h5 class="card-title">{{ bloque.nombre_evento }}</h5>
+            <p class="card-text">{{ bloque.descripcion_evento }}</p>
+            <p><strong>Fecha:</strong> {{ bloque.fecha }}</p>
+            <p><strong>Ubicación:</strong> {{ bloque.ubicacion }}</p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% endif %}
   </div>
 
   <div class="text-center mt-5">
