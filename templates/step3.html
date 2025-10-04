@@ -3,21 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <title>Paso 3: Contenido</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>📝 Paso 3: Agregá tu contenido</h1>
-    <form method="POST" enctype="multipart/form-data">
-        <label>Título principal:</label><br>
-        <input type="text" name="titulo" required><br><br>
+    <h1>Paso 3: Agregá tu contenido</h1>
 
-        <label>Descripción:</label><br>
-        <textarea name="descripcion" rows="5" cols="40" required></textarea><br><br>
-
-        <label>Imagen destacada (opcional):</label><br>
-        <input type="file" name="imagen" accept="image/*"><br><br>
-
-        <button type="submit">Siguiente ➡️</button>
-    </form>
+    {% if session.tipo_web == 'catálogo' %}
+        <form method="POST" enctype="multipart/form-data">
+            {% for i in range(1,6) %}
+            <fieldset>
+                <legend>Producto {{ i }}</legend>
+                <input type="text" name="nombre_{{ i }}" placeholder="Nombre del producto"><br>
+                <textarea name="desc_{{ i }}" placeholder="Descripción"></textarea><br>
+                <input type="file" name="img_{{ i }}" accept="image/*"><br>
+                <input type="text" name="precio_{{ i }}" placeholder="Precio (opcional)"><br>
+            </fieldset>
+            <br>
+            {% endfor %}
+            <button type="submit">Continuar</button>
+        </form>
+    {% else %}
+        <form method="POST" enctype="multipart/form-data">
+            <input type="text" name="titulo" placeholder="Título principal"><br>
+            <textarea name="descripcion" placeholder="Descripción del sitio"></textarea><br>
+            <input type="file" name="imagen" accept="image/*"><br>
+            <button type="submit">Continuar</button>
+        </form>
+    {% endif %}
 </body>
 </html>
