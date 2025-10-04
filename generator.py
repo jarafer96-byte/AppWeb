@@ -75,6 +75,7 @@ estilos = {
     "minimalista_tipografico": {"fondo": "#ffffff", "fuente": "Noto Sans", "color_primario": "#000000", "boton_whatsapp": "simple", "cards": "sin-borde"},
     "minimalista_sin_bordes": {"fondo": "#f0f0f0", "fuente": "Assistant", "color_primario": "#444444", "boton_whatsapp": "simple", "cards": "sin-borde"},
     "minimalista_sombra_suave": {"fondo": "#ffffff", "fuente": "Manrope", "color_primario": "#666666", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
+}
 
 def generar_sitio(session):
     estilo = estilos.get(session.get('estilo_visual'), estilos['claro_moderno'])
