@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Paso 1: Tipo de sitio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>🧱 Paso 1: Elegí el tipo de sitio</h1>
+    <form method="POST">
+        <label><input type="radio" name="tipo_web" value="catálogo"> Catálogo de productos</label><br>
+        <label><input type="radio" name="tipo_web" value="servicios"> Página de servicios</label><br>
+        <label><input type="radio" name="tipo_web" value="portfolio"> Portfolio personal</label><br>
+        <label><input type="radio" name="tipo_web" value="blog"> Blog simple</label><br><br>
+        <button type="submit">Siguiente ➡️</button>
+    </form>
+</body>
+</html>
