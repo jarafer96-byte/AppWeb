@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Paso 3: Contenido</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>📝 Paso 3: Agregá tu contenido</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Título principal:</label><br>
+        <input type="text" name="titulo" required><br><br>
+
+        <label>Descripción:</label><br>
+        <textarea name="descripcion" rows="5" cols="40" required></textarea><br><br>
+
+        <label>Imagen destacada (opcional):</label><br>
+        <input type="file" name="imagen" accept="image/*"><br><br>
+
+        <button type="submit">Siguiente ➡️</button>
+    </form>
+</body>
+</html>
