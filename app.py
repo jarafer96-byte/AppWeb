@@ -6,9 +6,10 @@ from generator import estilos
 
 app = Flask(__name__)
 app.secret_key = 'clave-secreta'
+
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/', methods=['GET', 'POST'])
 def step1():
@@ -27,7 +28,7 @@ def step2():
         session['botones'] = request.form.get('botones')
         session['idioma'] = request.form.get('idioma')
         session['vista_imagenes'] = request.form.get('vista_imagenes')
-        session['estilo_visual'] = request.form.get('estilo_visual')  # ✅ Nuevo campo
+        session['estilo_visual'] = request.form.get('estilo_visual')
 
         logo = request.files.get('logo')
         if logo:
@@ -114,7 +115,7 @@ def preview():
         'idioma': session.get('idioma'),
         'vista_imagenes': session.get('vista_imagenes'),
         'logo': session.get('logo'),
-        'estilo_visual': session.get('estilo_visual'),  # ✅ Nuevo campo
+        'estilo_visual': session.get('estilo_visual'),
         'titulo': 'Mi sitio personalizado',
         'descripcion': 'Este sitio fue generado automáticamente.',
         'productos': session.get('bloques') if session.get('tipo_web') in ['catálogo', 'menú'] else [],
@@ -127,7 +128,9 @@ def preview():
         'pt': {'contacto': 'Contato via WhatsApp', 'precio': 'Preço'}
     }
 
-    return render_template('preview.html', config=config, textos=textos)
+    estilo = estilos.get(config['estilo_visual'], estilos['claro_moderno'])
+
+    return render_template('preview.html', config=config, textos=textos, estilo=estilo)
 
 @app.route('/descargar')
 def descargar():
