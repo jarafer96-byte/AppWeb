@@ -63,3 +63,15 @@ estilos = {
     "creativo_abstracto": {"fondo": "linear-gradient(to bottom right, #ffccbc, #d1c4e9)", "fuente": "Architects Daughter", "color_primario": "#7e57c2", "boton_whatsapp": "sombra", "cards": "curvas-divertidas"},
     "creativo_infancia": {"fondo": "#fff9c4", "fuente": "Schoolbell", "color_primario": "#fbc02d", "boton_whatsapp": "bounce", "cards": "curvas-divertidas"},
     "creativo_explosivo": {"fondo": "linear-gradient(to right, #ff6f00, #ffeb3b)", "fuente": "Rock Salt", "color_primario": "#ff6f00", "boton_whatsapp": "glow", "cards": "sombra-colores"},
+
+    # MINIMALISTAS
+    "minimalista_blanco": {"fondo": "#f9f9f9", "fuente": "Inter", "color_primario": "#333333", "boton_whatsapp": "simple", "cards": "sin-borde"},
+    "minimalista_gris": {"fondo": "#eeeeee", "fuente": "Roboto", "color_primario": "#757575", "boton_whatsapp": "simple", "cards": "sin-borde"},
+    "minimalista_beige": {"fondo": "#f5f5dc", "fuente": "Lato", "color_primario": "#8d6e63", "boton_whatsapp": "simple", "cards": "sombra-suave"},
+    "minimalista_negro": {"fondo": "#000000", "fuente": "IBM Plex Sans", "color_primario": "#ffffff", "boton_whatsapp": "simple", "cards": "sin-borde"},
+    "minimalista_azul": {"fondo": "#e3f2fd", "fuente": "Open Sans", "color_primario": "#1976d2", "boton_whatsapp": "simple", "cards": "sombra-suave"},
+    "minimalista_luz": {"fondo": "#ffffff", "fuente": "Work Sans", "color_primario": "#90a4ae", "boton_whatsapp": "simple", "cards": "sin-borde"},
+    "minimalista_lineal": {"fondo": "#fafafa", "fuente": "Source Sans Pro", "color_primario": "#212121", "boton_whatsapp": "simple", "cards": "sin-borde"},
+    "minimalista_tipografico": {"fondo": "#ffffff", "fuente": "Noto Sans", "color_primario": "#000000", "boton_whatsapp": "simple", "cards": "sin-borde"},
+    "minimalista_sin_bordes": {"fondo": "#f0f0f0", "fuente": "Assistant", "color_primario": "#444444", "boton_whatsapp": "simple", "cards": "sin-borde"},
+    "minimalista_sombra_suave": {"fondo": "#ffffff", "fuente": "Manrope", "color_primario": "#666666", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
