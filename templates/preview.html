@@ -23,7 +23,7 @@
 </head>
 <body>
     <h1>{{ config.titulo }}</h1>
-    <img src="{{ url_for('static', filename='img/' + config.imagen) }}" alt="Imagen destacada" width="300"><br>
+    <img src="{{ url_for('static', filename='img/' + (config.imagen or 'default.jpg')) }}" alt="Imagen destacada" width="300"><br>
     <p>{{ config.descripcion }}</p>
 
     {% if config.contacto == 'sí' %}
