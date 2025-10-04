@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file, url_for
+from flask import Flask, render_template, request, redirect, session, send_file
 import os
 from werkzeug.utils import secure_filename
 from generator import generar_sitio
@@ -25,6 +25,7 @@ def step2():
         session['botones'] = request.form.get('botones')
         session['idioma'] = request.form.get('idioma')
         session['vista_imagenes'] = request.form.get('vista_imagenes')
+        session['estilo_visual'] = request.form.get('estilo_visual')  # ✅ Nuevo campo
 
         logo = request.files.get('logo')
         if logo:
@@ -111,6 +112,7 @@ def preview():
         'idioma': session.get('idioma'),
         'vista_imagenes': session.get('vista_imagenes'),
         'logo': session.get('logo'),
+        'estilo_visual': session.get('estilo_visual'),  # ✅ Nuevo campo
         'titulo': 'Mi sitio personalizado',
         'descripcion': 'Este sitio fue generado automáticamente.',
         'productos': session.get('bloques') if session.get('tipo_web') in ['catálogo', 'menú'] else [],
@@ -130,7 +132,6 @@ def descargar():
     archivo = generar_sitio(session)
     return send_file(archivo, as_attachment=True)
 
-# Compatible con local y Render
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
