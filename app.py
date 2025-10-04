@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session, send_file
 import os
 from werkzeug.utils import secure_filename
 from generator import generar_sitio
+from generator import estilos
 
 app = Flask(__name__)
 app.secret_key = 'clave-secreta'
