@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Paso 4: Funciones extra</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>🔧 Paso 4: Activá funciones extra</h1>
+    <form method="POST">
+        <label>¿Querés formulario de contacto?</label><br>
+        <select name="contacto">
+            <option value="sí">Sí</option>
+            <option value="no">No</option>
+        </select><br><br>
+
+        <label>¿Querés botón de WhatsApp?</label><br>
+        <select name="whatsapp">
+            <option value="sí">Sí</option>
+            <option value="no">No</option>
+        </select><br><br>
+
+        <label>¿Querés agregar medio de pago?</label><br>
+        <select name="pago">
+            <option value="MercadoPago">MercadoPago</option>
+            <option value="PayPal">PayPal</option>
+            <option value="ninguno">Ninguno</option>
+        </select><br><br>
+
+        <button type="submit">Siguiente ➡️</button>
+    </form>
+</body>
+</html>
