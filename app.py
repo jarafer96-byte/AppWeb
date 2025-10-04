@@ -37,7 +37,7 @@ def step2():
             session['logo'] = None
 
         return redirect('/contenido')
-        return render_template('step2.html', estilos=estilos, config=session)
+    return render_template('step2.html', estilos=estilos, config=session)
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
