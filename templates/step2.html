@@ -28,7 +28,7 @@
 </head>
 <body class="container py-5">
   <h1 class="text-center mb-4">Elegí el estilo visual de tu sitio</h1>
-  <form method="post" action="/preview">
+  <form method="post" action="/estilo">
     {% for grupo in ['claro', 'oscuro', 'elegante', 'vibrante', 'creativo', 'minimalista'] %}
     <h2>Estilos {{ grupo | capitalize }}s</h2>
     <div class="row">
