@@ -75,3 +75,26 @@ estilos = {
     "minimalista_tipografico": {"fondo": "#ffffff", "fuente": "Noto Sans", "color_primario": "#000000", "boton_whatsapp": "simple", "cards": "sin-borde"},
     "minimalista_sin_bordes": {"fondo": "#f0f0f0", "fuente": "Assistant", "color_primario": "#444444", "boton_whatsapp": "simple", "cards": "sin-borde"},
     "minimalista_sombra_suave": {"fondo": "#ffffff", "fuente": "Manrope", "color_primario": "#666666", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
+
+def generar_sitio(session):
+    estilo = estilos.get(session.get('estilo_visual'), estilos['claro_moderno'])
+
+    env = Environment(loader=FileSystemLoader('templates'))
+    template = env.get_template('base.html')
+
+    html = template.render(
+        config=session,
+        estilo=estilo,
+        productos=session.get('bloques', [])
+    )
+
+    os.makedirs('sitio_generado', exist_ok=True)
+    with open('sitio_generado/index.html', 'w', encoding='utf-8') as f:
+        f.write(html)
+
+    zip_path = 'sitio.zip'
+    with ZipFile(zip_path, 'w') as zipf:
+        zipf.write('sitio_generado/index.html', arcname='index.html')
+
+    return zip_path
+    
