@@ -42,13 +42,12 @@ def step3():
     tipo = session.get('tipo_web')
     if request.method == 'POST':
         bloques = []
-        files = request.files.to_dict()
 
         if tipo in ['catálogo', 'menú']:
             nombres = request.form.getlist('nombre')
             descripciones = request.form.getlist('descripcion')
             precios = request.form.getlist('precio')
-            imagenes = [files.getlist('imagen')[i] for i in range(len(nombres))]
+            imagenes = request.files.getlist('imagen')
 
             for i in range(len(nombres)):
                 img = imagenes[i]
@@ -64,7 +63,7 @@ def step3():
         elif tipo == 'presentación':
             titulos = request.form.getlist('titulo')
             textos = request.form.getlist('texto')
-            fotos = [files.getlist('foto')[i] for i in range(len(titulos))]
+            fotos = request.files.getlist('foto')
 
             for i in range(len(titulos)):
                 img = fotos[i]
@@ -81,7 +80,7 @@ def step3():
             descripciones = request.form.getlist('descripcion_evento')
             fechas = request.form.getlist('fecha')
             ubicaciones = request.form.getlist('ubicacion')
-            imagenes = [files.getlist('imagen_evento')[i] for i in range(len(nombres))]
+            imagenes = request.files.getlist('imagen_evento')
 
             for i in range(len(nombres)):
                 img = imagenes[i]
@@ -131,7 +130,7 @@ def descargar():
     archivo = generar_sitio(session)
     return send_file(archivo, as_attachment=True)
 
+# Compatible con local y Render
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
-
