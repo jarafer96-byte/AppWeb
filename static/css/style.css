@@ -1,21 +1,87 @@
 body {
-    font-family: Arial, sans-serif;
-    padding: 20px;
-    background-color: #f4f4f4;
+  font-family: 'Montserrat', sans-serif;
+  background-image: url('../img/fondo_black_diagonales.jpg');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+  color: white;
+  margin: 0;
+  padding: 0;
 }
-h1 {
-    color: #333;
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 60px 20px;
+  text-align: center;
 }
-form {
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
+
+h1, h2, h5, p {
+  color: white;
 }
+
 button {
-    padding: 10px 20px;
-    background-color: #0077cc;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+  background-color: black;
+  border: 2px solid white;
+  color: white;
+  padding: 12px 24px;
+  font-size: 1em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background-color: #222;
+  transform: scale(1.03);
+}
+
+.card {
+  background-color: black;
+  border: 2px solid white;
+  border-radius: 6px;
+  margin: 15px;
+  overflow: hidden;
+  color: white;
+}
+
+.card-body {
+  padding: 10px;
+  text-align: center;
+}
+
+.form-control {
+  background-color: black;
+  border: 1px solid white;
+  color: white;
+}
+
+.form-control::placeholder {
+  color: #ccc;
+}
+
+.navbar {
+  background-color: black;
+  border-bottom: 2px solid white;
+}
+
+.navbar-brand {
+  font-weight: bold;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  button {
+    width: 100%;
+    font-size: 1em;
+    margin: 8px 0;
+  }
+
+  .container {
+    padding: 30px 10px;
+  }
+
+  h1, h2 {
+    font-size: 1.5em;
+  }
 }
