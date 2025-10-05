@@ -2,58 +2,24 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Seleccionar estilo visual</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #f8f9fa;
-    }
-    .preview-card {
-      border: 2px solid transparent;
-      transition: border-color 0.3s;
-    }
-    input[type="radio"]:checked + .preview-card {
-      border-color: #007bff;
-    }
-    .preview-card img {
-      border-radius: 8px;
-    }
-    h2 {
-      margin-top: 40px;
-      font-size: 1.5rem;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 5px;
-    }
-  </style>
+  <title>Elegí tu estilo visual</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-<body class="container py-5">
-  <h1 class="text-center mb-4">Elegí el estilo visual de tu sitio</h1>
-  <form method="post" action="/estilo" enctype="multipart/form-data">
-    <div class="mb-4 text-center">
-      <label for="logo" class="form-label">Subí tu logo (opcional):</label>
-      <input type="file" name="logo" id="logo" class="form-control w-50 mx-auto">
-    </div>
-
-    {% for grupo in ['claro', 'oscuro', 'elegante', 'vibrante', 'creativo', 'minimalista'] %}
-    <h2>Estilos {{ grupo | capitalize }}s</h2>
+<body>
+  <div class="container">
+    <h1>Elegí tu estilo visual</h1>
     <div class="row">
-      {% for clave, estilo in estilos.items() if clave.startswith(grupo + '_') %}
-      <div class="col-md-4 mb-4">
-        <label class="d-block">
-          <input type="radio" name="estilo_visual" value="{{ clave }}" {% if config.estilo_visual == clave %}checked{% endif %} hidden>
-          <div class="preview-card p-2 shadow-sm">
-            <img src="/static/img/preview_{{ clave }}.jpg" class="img-fluid" alt="{{ clave }}">
-            <p class="text-center mt-2">{{ clave.replace(grupo + '_', '').replace('_', ' ') | title }}</p>
+      {% for nombre, config in estilos.items() %}
+        <div class="col-md-4">
+          <div class="card">
+            <img src="{{ url_for('static', filename='img/preview_' + nombre + '.jpg') }}" alt="{{ nombre }}">
+            <div class="card-body">
+              <h5>{{ nombre.replace('_', ' ').title() }}</h5>
+            </div>
           </div>
-        </label>
-      </div>
+        </div>
       {% endfor %}
     </div>
-    {% endfor %}
-
-    <div class="text-center mt-5">
-      <button type="submit" class="btn btn-primary px-5">Continuar</button>
-    </div>
-  </form>
+  </div>
 </body>
 </html>
