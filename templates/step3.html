@@ -2,84 +2,165 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Contenido</title>
+  <title>Contenido del sitio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <script>
-    function agregarBloque() {
-      const tipo = "{{ tipo_web }}";
-      const contenedor = document.getElementById('bloques');
-      const bloque = document.createElement('div');
-      bloque.className = 'card p-4 mb-4';
-
-      if (tipo === 'catálogo' || tipo === 'menú') {
-        bloque.innerHTML = `
-          <input type="text" name="nombre" class="form-control mb-2" placeholder="Nombre">
-          <textarea name="descripcion" class="form-control mb-2" placeholder="Descripción"></textarea>
-          <input type="text" name="precio" class="form-control mb-2" placeholder="Precio">
-          <input type="file" name="imagen" class="form-control mb-2" accept="image/*">
-        `;
-      } else if (tipo === 'presentación') {
-        bloque.innerHTML = `
-          <input type="text" name="titulo" class="form-control mb-2" placeholder="Título">
-          <textarea name="texto" class="form-control mb-2" placeholder="Texto de presentación"></textarea>
-          <input type="file" name="foto" class="form-control mb-2" accept="image/*">
-        `;
-      } else if (tipo === 'evento') {
-        bloque.innerHTML = `
-          <input type="text" name="nombre_evento" class="form-control mb-2" placeholder="Nombre del evento">
-          <textarea name="descripcion_evento" class="form-control mb-2" placeholder="Descripción"></textarea>
-          <input type="date" name="fecha" class="form-control mb-2">
-          <input type="text" name="ubicacion" class="form-control mb-2" placeholder="Ubicación">
-          <input type="file" name="imagen_evento" class="form-control mb-2" accept="image/*">
-        `;
-      }
-
-      contenedor.appendChild(bloque);
+  <style>
+    body {
+      background-image: url("/static/img/fondo_black_diagonales.jpg");
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-position: center;
+      font-family: sans-serif;
+      color: white;
     }
-  </script>
+
+    .btn-custom {
+      background-color: black;
+      color: white;
+      border: 2px solid white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(255,255,255,0.3);
+    }
+
+    .btn-custom:hover {
+      background-color: #222;
+    }
+
+    .form-control {
+      background-color: rgba(255,255,255,0.9);
+      color: black;
+    }
+
+    .form-control::placeholder {
+      color: #666;
+    }
+
+    .modo-selector {
+      margin-bottom: 20px;
+    }
+
+    .tabla-productos th, .tabla-productos td {
+      background-color: rgba(0,0,0,0.6);
+      color: white;
+      border: 1px solid white;
+    }
+
+    .tabla-productos input {
+      background-color: rgba(255,255,255,0.9);
+      color: black;
+      width: 100%;
+      border: none;
+      padding: 5px;
+    }
+
+    .mensaje-final {
+      margin-top: 30px;
+      font-style: italic;
+      text-align: center;
+      color: #ccc;
+    }
+  </style>
 </head>
 <body>
-  <nav class="navbar shadow-sm">
-    <div class="container">
-      <span class="navbar-brand">Generador de Sitios</span>
-    </div>
-  </nav>
-
   <div class="container py-5">
-    <h2 class="mb-4">Agregá tu contenido</h2>
-    <form method="post" enctype="multipart/form-data">
-      <div id="bloques">
-        <div class="card p-4 mb-4">
-          {% if tipo_web == 'catálogo' or tipo_web == 'menú' %}
-            <input type="text" name="nombre" class="form-control mb-2" placeholder="Nombre">
-            <textarea name="descripcion" class="form-control mb-2" placeholder="Descripción"></textarea>
-            <input type="text" name="precio" class="form-control mb-2" placeholder="Precio">
-            <input type="file" name="imagen" class="form-control mb-2" accept="image/*">
-          {% elif tipo_web == 'presentación' %}
-            <input type="text" name="titulo" class="form-control mb-2" placeholder="Título">
-            <textarea name="texto" class="form-control mb-2" placeholder="Texto de presentación"></textarea>
-            <input type="file" name="foto" class="form-control mb-2" accept="image/*">
-          {% elif tipo_web == 'evento' %}
-            <input type="text" name="nombre_evento" class="form-control mb-2" placeholder="Nombre del evento">
-            <textarea name="descripcion_evento" class="form-control mb-2" placeholder="Descripción"></textarea>
-            <input type="date" name="fecha" class="form-control mb-2">
-            <input type="text" name="ubicacion" class="form-control mb-2" placeholder="Ubicación">
-            <input type="file" name="imagen_evento" class="form-control mb-2" accept="image/*">
-          {% endif %}
-        </div>
-      </div>
+    <h2 class="mb-4 text-center">CargÃ¡ el contenido de tu sitio</h2>
 
-      <div class="text-center">
-        <button type="button" onclick="agregarBloque()" class="btn btn-outline-secondary mb-3 rounded-pill">+ Agregar otro</button><br>
-        <button class="btn btn-success px-5 rounded-pill shadow">Generar sitio</button>
-      </div>
+    <div class="modo-selector text-center">
+      <button class="btn-custom me-2" onclick="mostrarModo('bloques')">Visual por bloques</button>
+      <button class="btn-custom" onclick="mostrarModo('tabla')">Tabla editable</button>
+    </div>
 
-      <div class="text-center mt-4 text-muted">
-        <p>¿Tenés mucho contenido? <a href="/contacto" class="text-decoration-none">Contactanos para ayudarte</a></p>
+    <div id="modo_bloques" class="d-none">
+      <div class="card p-4 mb-3" style="background-color: rgba(0,0,0,0.6);">
+        <h5>Bloque 1</h5>
+        <input type="text" class="form-control mb-2" placeholder="TÃ­tulo">
+        <textarea class="form-control" rows="3" placeholder="DescripciÃ³n"></textarea>
       </div>
-    </form>
+      <div class="card p-4 mb-3" style="background-color: rgba(0,0,0,0.6);">
+        <h5>Bloque 2</h5>
+        <input type="text" class="form-control mb-2" placeholder="TÃ­tulo">
+        <textarea class="form-control" rows="3" placeholder="DescripciÃ³n"></textarea>
+      </div>
+    </div>
+
+    <div id="modo_tabla">
+      <table class="table tabla-productos">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>DescripciÃ³n</th>
+            <th>Precio</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tabla_body">
+          <tr>
+            <td><input type="text" placeholder="Nombre"></td>
+            <td><input type="text" placeholder="DescripciÃ³n"></td>
+            <td><input type="text" placeholder="$0.00"></td>
+            <td>
+              <button class="btn-custom btn-sm" onclick="duplicarFila(this)">Duplicar</button>
+              <button class="btn-custom btn-sm" onclick="eliminarFila(this)">Eliminar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="text-end text-white">Productos cargados: <span id="contador">1</span></div>
+    </div>
+
+    <div class="text-center mt-4">
+      <button class="btn-custom px-5 py-2" onclick="validarYEnviar()">Continuar</button>
+    </div>
+
+    <div class="mensaje-final">
+      Â¿TenÃ©s mucho contenido? <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
+    </div>
   </div>
+
+  <script>
+    function mostrarModo(modo) {
+      document.getElementById('modo_bloques').classList.add('d-none');
+      document.getElementById('modo_tabla').classList.add('d-none');
+      document.getElementById('modo_' + modo).classList.remove('d-none');
+    }
+
+    function duplicarFila(btn) {
+      const fila = btn.closest('tr');
+      const nueva = fila.cloneNode(true);
+      document.getElementById('tabla_body').appendChild(nueva);
+      actualizarContador();
+    }
+
+    function eliminarFila(btn) {
+      const fila = btn.closest('tr');
+      fila.remove();
+      actualizarContador();
+    }
+
+    function actualizarContador() {
+      const filas = document.querySelectorAll('#tabla_body tr');
+      document.getElementById('contador').textContent = filas.length;
+    }
+
+    function validarYEnviar() {
+      let validos = true;
+      document.querySelectorAll('#tabla_body input').forEach(input => {
+        if (input.value.trim() === '') {
+          input.style.border = '2px solid red';
+          validos = false;
+        } else {
+          input.style.border = 'none';
+        }
+      });
+      if (validos) {
+        alert('Contenido validado y listo para enviar');
+      } else {
+        alert('CompletÃ¡ todos los campos antes de continuar');
+      }
+    }
+  </script>
 </body>
 </html>
