@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Seleccionar estilo</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <title>Seleccionar estilo visual</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
     body {
       background-image: url("/static/img/fondo_black_diagonales.jpg");
@@ -17,8 +17,11 @@
     }
 
     .grupo-selector {
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 10px;
+      background-color: rgba(0,0,0,0.5);
       text-align: center;
-      margin-top: 20px;
     }
 
     .grupo-selector button {
@@ -29,34 +32,24 @@
       background-color: #444;
       color: white;
       cursor: pointer;
+      display: inline-block;
     }
 
-    .grupo-estilos {
-      display: none;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-      padding: 20px;
-    }
-
-    .grupo-estilos img {
-      width: 120px;
-      height: 120px;
+    .preview-img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
       object-fit: cover;
       border-radius: 8px;
       cursor: pointer;
       transition: transform 0.2s;
     }
 
-    .grupo-estilos img:hover {
+    .preview-img:hover {
       transform: scale(1.05);
     }
 
-    @media (max-width: 600px) {
-      .grupo-estilos img {
-        width: 90px;
-        height: 90px;
-      }
+    .continuar-btn {
+      margin-top: 30px;
     }
   </style>
 </head>
@@ -70,25 +63,38 @@
     <button onclick="mostrarGrupo('5')">Rojizo</button>
   </div>
 
-  {% for grupo in ['1', '2', '3', '4', '5'] %}
-    <div id="grupo_{{ grupo }}" class="grupo-estilos">
-      {% for imagen in imagenes %}
-        {% if imagen.endswith('.png') and imagen.startswith(grupo + '_') %}
-          <img src="{{ url_for('static', filename='img/' + imagen) }}"
-               onclick="seleccionarFondo('{{ imagen.replace('.png', '.jpeg') }}')">
-        {% endif %}
-      {% endfor %}
-    </div>
-  {% endfor %}
+  <div class="container-fluid mt-3">
+    {% for grupo in ['1', '2', '3', '4', '5'] %}
+      <div id="grupo_{{ grupo }}" class="row g-3 d-none">
+        {% for imagen in imagenes %}
+          {% if imagen.endswith('.png') and imagen.startswith(grupo + '_') %}
+            <div class="col-4 col-sm-3 col-md-2">
+              <img src="{{ url_for('static', filename='img/' + imagen) }}"
+                   class="preview-img"
+                   onclick="seleccionarFondo('{{ imagen.replace('.png', '.jpeg') }}')">
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <form method="POST" class="text-center continuar-btn">
+    <input type="hidden" name="estilo_visual" id="estilo_visual_input" value="{{ config.estilo_visual }}">
+    <button type="submit" class="btn btn-primary px-5 py-2">
+      Continuar
+    </button>
+  </form>
 
   <script>
     function mostrarGrupo(grupo) {
-      document.querySelectorAll('.grupo-estilos').forEach(div => div.style.display = 'none');
-      document.getElementById('grupo_' + grupo).style.display = 'flex';
+      document.querySelectorAll('.row').forEach(div => div.classList.add('d-none'));
+      document.getElementById('grupo_' + grupo).classList.remove('d-none');
     }
 
     function seleccionarFondo(nombre) {
       document.body.style.backgroundImage = "url('/static/img/" + nombre + "')";
+      document.getElementById('estilo_visual_input').value = nombre.replace('.jpeg', '');
     }
   </script>
 
