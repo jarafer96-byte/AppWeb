@@ -2,24 +2,95 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Elegí tu estilo visual</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <title>Seleccionar estilo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body {
+      background-image: url("/static/img/fondo_black_diagonales.jpg");
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-position: center;
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+
+    .grupo-selector {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .grupo-selector button {
+      margin: 5px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+    }
+
+    .grupo-estilos {
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      padding: 20px;
+    }
+
+    .grupo-estilos img {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .grupo-estilos img:hover {
+      transform: scale(1.05);
+    }
+
+    @media (max-width: 600px) {
+      .grupo-estilos img {
+        width: 90px;
+        height: 90px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Elegí tu estilo visual</h1>
-    <div class="row">
-      {% for nombre, config in estilos.items() %}
-        <div class="col-md-4">
-          <div class="card">
-            <img src="{{ url_for('static', filename='img/preview_' + nombre + '.jpg') }}" alt="{{ nombre }}">
-            <div class="card-body">
-              <h5>{{ nombre.replace('_', ' ').title() }}</h5>
-            </div>
-          </div>
-        </div>
+
+  <div class="grupo-selector">
+    <button onclick="mostrarGrupo('1')">Oscuro</button>
+    <button onclick="mostrarGrupo('2')">Natural</button>
+    <button onclick="mostrarGrupo('3')">Claro</button>
+    <button onclick="mostrarGrupo('4')">Varios</button>
+    <button onclick="mostrarGrupo('5')">Rojizo</button>
+  </div>
+
+  {% for grupo in ['1', '2', '3', '4', '5'] %}
+    <div id="grupo_{{ grupo }}" class="grupo-estilos">
+      {% for imagen in imagenes %}
+        {% if imagen.endswith('.png') and imagen.startswith(grupo + '_') %}
+          <img src="{{ url_for('static', filename='img/' + imagen) }}"
+               onclick="seleccionarFondo('{{ imagen.replace('.png', '.jpeg') }}')">
+        {% endif %}
       {% endfor %}
     </div>
-  </div>
+  {% endfor %}
+
+  <script>
+    function mostrarGrupo(grupo) {
+      document.querySelectorAll('.grupo-estilos').forEach(div => div.style.display = 'none');
+      document.getElementById('grupo_' + grupo).style.display = 'flex';
+    }
+
+    function seleccionarFondo(nombre) {
+      document.body.style.backgroundImage = "url('/static/img/" + nombre + "')";
+    }
+  </script>
+
 </body>
 </html>
