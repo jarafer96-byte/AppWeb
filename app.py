@@ -13,6 +13,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def step1():
     if request.method == 'POST':
         session['tipo_web'] = request.form['tipo_web']
+        session['facebook'] = request.form.get('facebook')
+        session['whatsapp'] = request.form.get('whatsapp')
+        session['instagram'] = request.form.get('instagram')
         return redirect('/estilo')
     return render_template('step1.html')
 
@@ -121,6 +124,9 @@ def preview():
         'estilo_visual': estilo_visual,
         'titulo': 'Mi sitio personalizado',
         'descripcion': 'Este sitio fue generado automáticamente.',
+        'facebook': session.get('facebook'),
+        'whatsapp': session.get('whatsapp'),
+        'instagram': session.get('instagram'),
         'productos': session.get('bloques') if session.get('tipo_web') in ['catálogo', 'menú'] else [],
         'bloques': session.get('bloques') if session.get('tipo_web') not in ['catálogo', 'menú'] else []
     }
