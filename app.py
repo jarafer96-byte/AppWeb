@@ -38,9 +38,8 @@ def step2():
 
         return redirect('/contenido')
 
-    # ✅ Cargar lista de imágenes para el selector visual
     imagenes = os.listdir(app.config['UPLOAD_FOLDER'])
-    return render_template('step2.html', estilos=estilos, config=session, imagenes=imagenes)
+    return render_template('step2.html', config=session, imagenes=imagenes)
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
@@ -132,14 +131,12 @@ def preview():
         'pt': {'contacto': 'Contato via WhatsApp', 'precio': 'Preço'}
     }
 
-    estilo = estilos.get(estilo_visual, estilos['claro_moderno'])
-
-    return render_template('preview.html', config=config, textos=textos, estilo=estilo)
+    return render_template('preview.html', config=config, textos=textos)
 
 @app.route('/descargar')
 def descargar():
-    archivo = generar_sitio(session)
-    return send_file(archivo, as_attachment=True)
+    # Placeholder: deberías implementar la generación del sitio como archivo ZIP o HTML
+    return "Función de descarga aún no implementada"
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
