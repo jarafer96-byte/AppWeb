@@ -20,7 +20,7 @@
       background-color: black;
       color: white;
       border: 2px solid white;
-      padding: 10px 20px;
+      padding: 8px 16px;
       border-radius: 6px;
       box-shadow: 0 0 5px rgba(255,255,255,0.3);
     }
@@ -38,17 +38,14 @@
       color: #666;
     }
 
-    .modo-selector {
-      margin-bottom: 20px;
-    }
-
     .tabla-productos th, .tabla-productos td {
       background-color: rgba(0,0,0,0.6);
       color: white;
       border: 1px solid white;
+      vertical-align: middle;
     }
 
-    .tabla-productos input {
+    .tabla-productos input, .tabla-productos textarea {
       background-color: rgba(255,255,255,0.9);
       color: black;
       width: 100%;
@@ -62,92 +59,121 @@
       text-align: center;
       color: #ccc;
     }
+
+    .grupo {
+      margin-bottom: 40px;
+    }
+
+    .grupo h4 {
+      border-bottom: 1px solid white;
+      padding-bottom: 5px;
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 <body>
   <div class="container py-5">
-    <h2 class="mb-4 text-center">CargÃ¡ el contenido de tu sitio</h2>
+    <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
 
-    <div class="modo-selector text-center">
-      <button class="btn-custom me-2" onclick="mostrarModo('bloques')">Visual por bloques</button>
-      <button class="btn-custom" onclick="mostrarModo('tabla')">Tabla editable</button>
+    <div class="mb-4 text-center">
+      <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" placeholder="Nombre del grupo (ej: Platos)">
+      <button class="btn-custom" onclick="crearGrupo()">Crear grupo</button>
     </div>
 
-    <div id="modo_bloques" class="d-none">
-      <div class="card p-4 mb-3" style="background-color: rgba(0,0,0,0.6);">
-        <h5>Bloque 1</h5>
-        <input type="text" class="form-control mb-2" placeholder="TÃ­tulo">
-        <textarea class="form-control" rows="3" placeholder="DescripciÃ³n"></textarea>
+    <form id="formulario">
+      <div id="grupos"></div>
+
+      <div class="text-center mt-4">
+        <button type="button" class="btn-custom px-5 py-2" onclick="validarYEnviar()">Continuar</button>
       </div>
-      <div class="card p-4 mb-3" style="background-color: rgba(0,0,0,0.6);">
-        <h5>Bloque 2</h5>
-        <input type="text" class="form-control mb-2" placeholder="TÃ­tulo">
-        <textarea class="form-control" rows="3" placeholder="DescripciÃ³n"></textarea>
-      </div>
-    </div>
-
-    <div id="modo_tabla">
-      <table class="table tabla-productos">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>DescripciÃ³n</th>
-            <th>Precio</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="tabla_body">
-          <tr>
-            <td><input type="text" placeholder="Nombre"></td>
-            <td><input type="text" placeholder="DescripciÃ³n"></td>
-            <td><input type="text" placeholder="$0.00"></td>
-            <td>
-              <button class="btn-custom btn-sm" onclick="duplicarFila(this)">Duplicar</button>
-              <button class="btn-custom btn-sm" onclick="eliminarFila(this)">Eliminar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="text-end text-white">Productos cargados: <span id="contador">1</span></div>
-    </div>
-
-    <div class="text-center mt-4">
-      <button class="btn-custom px-5 py-2" onclick="validarYEnviar()">Continuar</button>
-    </div>
+    </form>
 
     <div class="mensaje-final">
-      Â¿TenÃ©s mucho contenido? <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
+      ¿Tenés mucho contenido? <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
     </div>
   </div>
 
   <script>
-    function mostrarModo(modo) {
-      document.getElementById('modo_bloques').classList.add('d-none');
-      document.getElementById('modo_tabla').classList.add('d-none');
-      document.getElementById('modo_' + modo).classList.remove('d-none');
+    let grupoId = 0;
+
+    function crearGrupo() {
+      const nombre = document.getElementById('nombreGrupo').value.trim();
+      if (!nombre) return alert("Ingresá un nombre para el grupo");
+
+      grupoId++;
+      const grupo = document.createElement('div');
+      grupo.className = 'grupo';
+      grupo.id = 'grupo_' + grupoId;
+      grupo.innerHTML = `
+        <h4>${nombre}</h4>
+        <table class="table tabla-productos">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Descripción</th>
+              <th>Precio</th>
+              <th>Imagen</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" name="nombre"></td>
+              <td><textarea name="descripcion" rows="2"></textarea></td>
+              <td><input type="text" name="precio"></td>
+              <td><input type="file" name="imagen" accept="image/*"></td>
+              <td>
+                <button class="btn-custom btn-sm" onclick="duplicarFila(this)">Duplicar</button>
+                <button class="btn-custom btn-sm" onclick="eliminarFila(this)">Eliminar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
+        <div class="text-center mt-2">
+          <button class="btn-custom btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+        </div>
+      `;
+      document.getElementById('grupos').appendChild(grupo);
+      document.getElementById('nombreGrupo').value = '';
+    }
+
+    function agregarFila(btn) {
+      const tbody = btn.closest('.grupo').querySelector('tbody');
+      const fila = tbody.querySelector('tr').cloneNode(true);
+      fila.querySelectorAll('input, textarea').forEach(el => {
+        if (el.type === 'file') el.value = '';
+        else el.value = '';
+      });
+      tbody.appendChild(fila);
+      actualizarContador(tbody);
     }
 
     function duplicarFila(btn) {
       const fila = btn.closest('tr');
       const nueva = fila.cloneNode(true);
-      document.getElementById('tabla_body').appendChild(nueva);
-      actualizarContador();
+      fila.parentNode.appendChild(nueva);
+      actualizarContador(fila.parentNode);
     }
 
     function eliminarFila(btn) {
-      const fila = btn.closest('tr');
-      fila.remove();
-      actualizarContador();
+      const tbody = btn.closest('tbody');
+      if (tbody.querySelectorAll('tr').length > 1) {
+        btn.closest('tr').remove();
+        actualizarContador(tbody);
+      } else {
+        alert("No se puede eliminar la última fila");
+      }
     }
 
-    function actualizarContador() {
-      const filas = document.querySelectorAll('#tabla_body tr');
-      document.getElementById('contador').textContent = filas.length;
+    function actualizarContador(tbody) {
+      const contador = tbody.closest('.grupo').querySelector('.contador');
+      contador.textContent = tbody.querySelectorAll('tr').length;
     }
 
     function validarYEnviar() {
       let validos = true;
-      document.querySelectorAll('#tabla_body input').forEach(input => {
+      document.querySelectorAll('input[type="text"], textarea').forEach(input => {
         if (input.value.trim() === '') {
           input.style.border = '2px solid red';
           validos = false;
@@ -156,9 +182,9 @@
         }
       });
       if (validos) {
-        alert('Contenido validado y listo para enviar');
+        document.getElementById('formulario').submit();
       } else {
-        alert('CompletÃ¡ todos los campos antes de continuar');
+        alert('Completá todos los campos antes de continuar');
       }
     }
   </script>
