@@ -1,101 +1,68 @@
+from PIL import Image, ImageDraw
 import os
-from zipfile import ZipFile
-from jinja2 import Environment, FileSystemLoader
 
-# Diccionario de estilos visuales
-estilos = {
-    # CLAROS
-    "claro_moderno": {"fondo": "#ffffff", "fuente": "Poppins", "color_primario": "#007bff", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
-    "claro_pastel": {"fondo": "#fefefe", "fuente": "Quicksand", "color_primario": "#ffb6c1", "boton_whatsapp": "simple", "cards": "sombra-suave"},
-    "claro_blanco_azul": {"fondo": "#f0f8ff", "fuente": "Nunito", "color_primario": "#1e90ff", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
-    "claro_crema": {"fondo": "#fffaf0", "fuente": "Lato", "color_primario": "#ff8c00", "boton_whatsapp": "simple", "cards": "sombra-suave"},
-    "claro_lila": {"fondo": "#f3e5f5", "fuente": "Raleway", "color_primario": "#ba68c8", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
-    "claro_verde_menta": {"fondo": "#e0f2f1", "fuente": "Montserrat", "color_primario": "#26a69a", "boton_whatsapp": "simple", "cards": "sombra-suave"},
-    "claro_naranja": {"fondo": "#fff3e0", "fuente": "Open Sans", "color_primario": "#ff9800", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
-    "claro_celeste": {"fondo": "#e3f2fd", "fuente": "Ubuntu", "color_primario": "#2196f3", "boton_whatsapp": "simple", "cards": "sombra-suave"},
-    "claro_rosado": {"fondo": "#fce4ec", "fuente": "Comfortaa", "color_primario": "#ec407a", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
-    "claro_gris_suave": {"fondo": "#f5f5f5", "fuente": "Inter", "color_primario": "#616161", "boton_whatsapp": "simple", "cards": "sombra-suave"},
+def fondo_black_rizos(nombre):
+    img = Image.new("RGB", (1024, 768), "#0a0a0a")
+    draw = ImageDraw.Draw(img)
+    for i in range(6):
+        x = 100 + i * 120
+        y = 80 + i * 60
+        draw.arc([x, y, x+300, y+300], start=0, end=270, fill="#ffd700", width=3)
+    img.save(f"static/img/fondo_" + nombre + ".jpg")
 
-    # OSCUROS
-    "oscuro_neon": {"fondo": "#000000", "fuente": "Orbitron", "color_primario": "#00f0ff", "boton_whatsapp": "glow", "cards": "borde-neon"},
-    "oscuro_minimal": {"fondo": "#121212", "fuente": "Inter", "color_primario": "#ffffff", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "oscuro_dorado": {"fondo": "#1c1c1c", "fuente": "Playfair Display", "color_primario": "#ffd700", "boton_whatsapp": "borde-dorado", "cards": "borde-elegante"},
-    "oscuro_purpura": {"fondo": "#2c003e", "fuente": "Rubik", "color_primario": "#9c27b0", "boton_whatsapp": "glow", "cards": "borde-neon"},
-    "oscuro_azul_noche": {"fondo": "#0d1b2a", "fuente": "Roboto", "color_primario": "#1e88e5", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
-    "oscuro_verde_glow": {"fondo": "#002b1f", "fuente": "Fira Sans", "color_primario": "#00e676", "boton_whatsapp": "glow", "cards": "borde-neon"},
-    "oscuro_negro_total": {"fondo": "#000000", "fuente": "IBM Plex Sans", "color_primario": "#ffffff", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "oscuro_grafito": {"fondo": "#1a1a1a", "fuente": "Work Sans", "color_primario": "#9e9e9e", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
-    "oscuro_aurora": {"fondo": "linear-gradient(to bottom, #0f2027, #203a43, #2c5364)", "fuente": "Exo", "color_primario": "#00bcd4", "boton_whatsapp": "glow", "cards": "borde-neon"},
-    "oscuro_luz_sutil": {"fondo": "#1e1e1e", "fuente": "Source Sans Pro", "color_primario": "#cfd8dc", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
+def fondo_claro_cuadros(nombre):
+    img = Image.new("RGB", (1024, 768), "#e0f7fa")
+    draw = ImageDraw.Draw(img)
+    for x in range(0, 1024, 64):
+        for y in range(0, 768, 64):
+            draw.rectangle([x, y, x+60, y+60], outline="#ffffff", width=1)
+    img.save(f"static/img/fondo_" + nombre + ".jpg")
 
-    # ELEGANTES
-    "elegante_gradiente": {"fondo": "linear-gradient(to bottom right, #e0f7fa, #fce4ec)", "fuente": "Playfair Display", "color_primario": "#6a1b9a", "boton_whatsapp": "borde-dorado", "cards": "borde-elegante"},
-    "elegante_serif": {"fondo": "#fdf6e3", "fuente": "Merriweather", "color_primario": "#795548", "boton_whatsapp": "simple", "cards": "borde-elegante"},
-    "elegante_dorado": {"fondo": "#fff8e1", "fuente": "Cormorant Garamond", "color_primario": "#d4af37", "boton_whatsapp": "borde-dorado", "cards": "borde-elegante"},
-    "elegante_plateado": {"fondo": "#eceff1", "fuente": "Lora", "color_primario": "#90a4ae", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
-    "elegante_azul_marino": {"fondo": "#001f3f", "fuente": "Libre Baskerville", "color_primario": "#0074D9", "boton_whatsapp": "sombra", "cards": "borde-elegante"},
-    "elegante_lavanda": {"fondo": "#e6e6fa", "fuente": "Crimson Text", "color_primario": "#9370db", "boton_whatsapp": "simple", "cards": "sombra-suave"},
-    "elegante_crema": {"fondo": "#fffdd0", "fuente": "Georgia", "color_primario": "#8b4513", "boton_whatsapp": "simple", "cards": "borde-elegante"},
-    "elegante_negro_oro": {"fondo": "#212121", "fuente": "Tinos", "color_primario": "#ffcc00", "boton_whatsapp": "borde-dorado", "cards": "borde-elegante"},
-    "elegante_rosa_palo": {"fondo": "#f8bbd0", "fuente": "Vollkorn", "color_primario": "#ad1457", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
-    "elegante_azul_real": {"fondo": "#e3f2fd", "fuente": "PT Serif", "color_primario": "#0d47a1", "boton_whatsapp": "sombra", "cards": "borde-elegante"},
+def fondo_vibrante_ondas(nombre):
+    img = Image.new("RGB", (1024, 768), "#ff4081")
+    draw = ImageDraw.Draw(img)
+    for i in range(0, 1024, 40):
+        draw.arc([i, 100, i+200, 600], start=0, end=180, fill="#ffeb3b", width=4)
+    img.save(f"static/img/fondo_" + nombre + ".jpg")
 
-    # VIBRANTES
-    "vibrante_fiesta": {"fondo": "linear-gradient(to bottom right, #ff4081, #ffff00)", "fuente": "Fredoka", "color_primario": "#ff4081", "boton_whatsapp": "bounce", "cards": "sombra-colores"},
-    "vibrante_arcoiris": {"fondo": "linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet)", "fuente": "Baloo 2", "color_primario": "#ff00cc", "boton_whatsapp": "animado", "cards": "curvas-divertidas"},
-    "vibrante_magenta": {"fondo": "#f50057", "fuente": "Bangers", "color_primario": "#ffffff", "boton_whatsapp": "glow", "cards": "sombra-colores"},
-    "vibrante_naranja_amarillo": {"fondo": "linear-gradient(to bottom right, #ff9800, #ffff00)", "fuente": "Chewy", "color_primario": "#ff9800", "boton_whatsapp": "bounce", "cards": "curvas-divertidas"},
-    "vibrante_turquesa": {"fondo": "#00bcd4", "fuente": "Kanit", "color_primario": "#ffffff", "boton_whatsapp": "sombra", "cards": "sombra-colores"},
-    "vibrante_rosa_fluor": {"fondo": "#ff1493", "fuente": "Lilita One", "color_primario": "#ffffff", "boton_whatsapp": "animado", "cards": "sombra-colores"},
-    "vibrante_verde_lima": {"fondo": "#cddc39", "fuente": "Concert One", "color_primario": "#33691e", "boton_whatsapp": "bounce", "cards": "curvas-divertidas"},
-    "vibrante_multicolor": {"fondo": "linear-gradient(45deg, #ff5722, #ffeb3b, #4caf50, #2196f3)", "fuente": "Titan One", "color_primario": "#ffffff", "boton_whatsapp": "animado", "cards": "sombra-colores"},
-    "vibrante_rojo_azul": {"fondo": "linear-gradient(to right, #f44336, #2196f3)", "fuente": "Luckiest Guy", "color_primario": "#ffffff", "boton_whatsapp": "glow", "cards": "curvas-divertidas"},
-    "vibrante_amarillo_purpura": {"fondo": "linear-gradient(to bottom right, #ffeb3b, #9c27b0)", "fuente": "Shrikhand", "color_primario": "#ffffff", "boton_whatsapp": "bounce", "cards": "sombra-colores"},
+def fondo_elegante_textura(nombre):
+    img = Image.new("RGB", (1024, 768), "#2c2c2c")
+    draw = ImageDraw.Draw(img)
+    for x in range(0, 1024, 20):
+        draw.line([(x, 0), (x, 768)], fill="#444444", width=1)
+    for y in range(0, 768, 20):
+        draw.line([(0, y), (1024, y)], fill="#444444", width=1)
+    img.save(f"static/img/fondo_" + nombre + ".jpg")
 
-    # CREATIVOS
-    "creativo_divertido": {"fondo": "#fef3bd", "fuente": "Comic Neue", "color_primario": "#ff9800", "boton_whatsapp": "animado", "cards": "curvas-divertidas"},
-    "creativo_comic": {"fondo": "#fff8dc", "fuente": "Bangers", "color_primario": "#ff5722", "boton_whatsapp": "bounce", "cards": "curvas-divertidas"},
-    "creativo_chalkboard": {"fondo": "#2e2e2e", "fuente": "Gloria Hallelujah", "color_primario": "#ffffff", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "creativo_ondas": {"fondo": "linear-gradient(to right, #00c9ff, #92fe9d)", "fuente": "Indie Flower", "color_primario": "#00c9ff", "boton_whatsapp": "animado", "cards": "curvas-divertidas"},
-    "creativo_pinceladas": {"fondo": "#fff0f5", "fuente": "Caveat", "color_primario": "#ff69b4", "boton_whatsapp": "sombra", "cards": "sombra-colores"},
-    "creativo_doodle": {"fondo": "#f0fff0", "fuente": "Patrick Hand", "color_primario": "#4caf50", "boton_whatsapp": "bounce", "cards": "curvas-divertidas"},
-    "creativo_animado": {"fondo": "#ffe4e1", "fuente": "Permanent Marker", "color_primario": "#ff4081", "boton_whatsapp": "animado", "cards": "sombra-colores"},
-    "creativo_abstracto": {"fondo": "linear-gradient(to bottom right, #ffccbc, #d1c4e9)", "fuente": "Architects Daughter", "color_primario": "#7e57c2", "boton_whatsapp": "sombra", "cards": "curvas-divertidas"},
-    "creativo_infancia": {"fondo": "#fff9c4", "fuente": "Schoolbell", "color_primario": "#fbc02d", "boton_whatsapp": "bounce", "cards": "curvas-divertidas"},
-    "creativo_explosivo": {"fondo": "linear-gradient(to right, #ff6f00, #ffeb3b)", "fuente": "Rock Salt", "color_primario": "#ff6f00", "boton_whatsapp": "glow", "cards": "sombra-colores"},
+def fondo_geom_hexagonos(nombre):
+    img = Image.new("RGB", (1024, 768), "#e0f2f1")
+    draw = ImageDraw.Draw(img)
+    for x in range(0, 1024, 60):
+        for y in range(0, 768, 52):
+            draw.polygon([
+                (x+30, y), (x+60, y+15), (x+60, y+45),
+                (x+30, y+60), (x, y+45), (x, y+15)
+            ], outline="#b2dfdb", fill=None)
+    img.save(f"static/img/fondo_" + nombre + ".jpg")
 
-    # MINIMALISTAS
-    "minimalista_blanco": {"fondo": "#f9f9f9", "fuente": "Inter", "color_primario": "#333333", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "minimalista_gris": {"fondo": "#eeeeee", "fuente": "Roboto", "color_primario": "#757575", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "minimalista_beige": {"fondo": "#f5f5dc", "fuente": "Lato", "color_primario": "#8d6e63", "boton_whatsapp": "simple", "cards": "sombra-suave"},
-    "minimalista_negro": {"fondo": "#000000", "fuente": "IBM Plex Sans", "color_primario": "#ffffff", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "minimalista_azul": {"fondo": "#e3f2fd", "fuente": "Open Sans", "color_primario": "#1976d2", "boton_whatsapp": "simple", "cards": "sombra-suave"},
-    "minimalista_luz": {"fondo": "#ffffff", "fuente": "Work Sans", "color_primario": "#90a4ae", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "minimalista_lineal": {"fondo": "#fafafa", "fuente": "Source Sans Pro", "color_primario": "#212121", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "minimalista_tipografico": {"fondo": "#ffffff", "fuente": "Noto Sans", "color_primario": "#000000", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "minimalista_sin_bordes": {"fondo": "#f0f0f0", "fuente": "Assistant", "color_primario": "#444444", "boton_whatsapp": "simple", "cards": "sin-borde"},
-    "minimalista_sombra_suave": {"fondo": "#ffffff", "fuente": "Manrope", "color_primario": "#666666", "boton_whatsapp": "sombra", "cards": "sombra-suave"},
+def fondo_organico_curvas(nombre):
+    img = Image.new("RGB", (1024, 768), "#80deea")
+    draw = ImageDraw.Draw(img)
+    for i in range(5):
+        draw.pieslice([i*200, 100, i*200+400, 600], start=0, end=180, fill="#4dd0e1")
+    img.save(f"static/img/fondo_" + nombre + ".jpg")
+
+# Diccionario de estilos
+fondos = {
+    "black_rizos": fondo_black_rizos,
+    "claro_cuadros": fondo_claro_cuadros,
+    "vibrante_ondas": fondo_vibrante_ondas,
+    "elegante_textura": fondo_elegante_textura,
+    "geom_hexagonos": fondo_geom_hexagonos,
+    "organico_curvas": fondo_organico_curvas
 }
 
-def generar_sitio(session):
-    estilo = estilos.get(session.get('estilo_visual'), estilos['claro_moderno'])
+# Generar todos los fondos
+for nombre, funcion in fondos.items():
+    funcion(nombre)
 
-    env = Environment(loader=FileSystemLoader('templates'))
-    template = env.get_template('base.html')
-
-    html = template.render(
-        config=session,
-        estilo=estilo,
-        productos=session.get('bloques', [])
-    )
-
-    os.makedirs('sitio_generado', exist_ok=True)
-    with open('sitio_generado/index.html', 'w', encoding='utf-8') as f:
-        f.write(html)
-
-    zip_path = 'sitio.zip'
-    with ZipFile(zip_path, 'w') as zipf:
-        zipf.write('sitio_generado/index.html', arcname='index.html')
-
-    return zip_path
-    
