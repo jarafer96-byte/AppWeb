@@ -39,7 +39,10 @@ def step2():
             session['logo'] = None
 
         return redirect('/contenido')
-    return render_template('step2.html', estilos=estilos, config=session)
+
+    # ✅ Cargar lista de imágenes para el selector visual
+    imagenes = os.listdir(app.config['UPLOAD_FOLDER'])
+    return render_template('step2.html', estilos=estilos, config=session, imagenes=imagenes)
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
