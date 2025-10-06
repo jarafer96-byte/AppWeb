@@ -3,18 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <title>Generador de Sitios</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-  <div class="container">
-    <h1>Generador de Sitios</h1>
-    <p>¿Qué tipo de sitio querés crear?</p>
+  <div class="container py-5">
+    <h1 class="mb-4">Generador de Sitios</h1>
+    <p class="mb-5">¿Qué tipo de sitio querés crear?</p>
 
     <form method="POST" action="/">
-      <button type="submit" name="tipo_web" value="catalogo">CATÁLOGO</button>
-      <button type="submit" name="tipo_web" value="presentacion">PRESENTACIÓN</button>
-      <button type="submit" name="tipo_web" value="menu">MENÚ</button>
-      <button type="submit" name="tipo_web" value="evento">EVENTO</button>
+      <div class="row justify-content-center">
+        <div class="col-md-6 d-grid gap-3">
+          <button type="submit" name="tipo_web" value="catálogo" class="btn btn-dark border-white">CATÁLOGO</button>
+          <button type="submit" name="tipo_web" value="presentación" class="btn btn-dark border-white">PRESENTACIÓN</button>
+          <button type="submit" name="tipo_web" value="menú" class="btn btn-dark border-white">MENÚ</button>
+          <button type="submit" name="tipo_web" value="evento" class="btn btn-dark border-white">EVENTO</button>
+        </div>
+      </div>
     </form>
   </div>
 </body>
