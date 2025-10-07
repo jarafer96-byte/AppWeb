@@ -76,6 +76,28 @@
       transform: scale(1.1);
       filter: drop-shadow(0 0 6px {{ config.color }});
     }
+
+    #carrito {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: rgba(0,0,0,0.85);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      width: 300px;
+      z-index: 999;
+    }
+
+    #carrito ul {
+      list-style: none;
+      padding-left: 0;
+      margin-bottom: 10px;
+    }
+
+    #carrito li {
+      margin-bottom: 5px;
+    }
   </style>
 </head>
 <body class="container py-5">
@@ -111,6 +133,9 @@
             <a href="https://wa.me/549XXXXXXXXXX" class="btn btn-whatsapp">
               {{ textos[config.idioma]['contacto'] }}
             </a>
+            <button type="button" class="btn btn-secondary mt-2" onclick="agregarAlCarrito('{{ producto.nombre }}', '{{ producto.precio }}')">
+              Agregar al carrito
+            </button>
           </div>
         </div>
       </div>
@@ -143,6 +168,17 @@
     {% endif %}
   </div>
 
+  <!-- Carrito flotante -->
+  <div id="carrito">
+    <h5>🛒 Tu carrito</h5>
+    <ul id="listaCarrito"></ul>
+    <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+    <div class="d-grid gap-2">
+      <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+      <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+    </div>
+  </div>
+
   <script>
     function mostrarGrupo(nombre, event) {
       document.querySelectorAll('.grupo-section').forEach(div => {
@@ -163,6 +199,40 @@
       const primerBtn = document.querySelector('.btn-grupo');
       if (primerBtn) primerBtn.classList.add('active');
     };
+
+    let carrito = [];
+
+    function agregarAlCarrito(nombre, precio) {
+      carrito.push({ nombre, precio: parseFloat(precio) });
+      actualizarCarrito();
+    }
+
+    function vaciarCarrito() {
+      carrito = [];
+      actualizarCarrito();
+    }
+
+    function actualizarCarrito() {
+      const lista = document.getElementById('listaCarrito');
+      const total = document.getElementById('totalCarrito');
+      lista.innerHTML = '';
+      let suma = 0;
+
+      carrito.forEach(item => {
+        lista.innerHTML += `<li>${item.nombre} - $${item.precio.toFixed(2)}</li>`;
+        suma += item.precio;
+      });
+
+      total.textContent = suma.toFixed(2);
+
+      const mensaje = encodeURIComponent(
+        `Hola, quiero consultar por:\n` +
+        carrito.map(i => `- ${i.nombre}: $${i.precio.toFixed(2)}`).join('\n') +
+        `\nTotal estimado: $${suma.toFixed(2)}`
+      );
+
+      document.getElementById('enviarCarrito').href = `https://wa.me/549XXXXXXXXXX?text=${mensaje}`;
+    }
   </script>
 </body>
 </html>
