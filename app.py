@@ -54,6 +54,7 @@ def step3():
             nombres = request.form.getlist('nombre')
             descripciones = request.form.getlist('descripcion')
             precios = request.form.getlist('precio')
+            grupos = request.form.getlist('grupo')
             imagenes = request.files.getlist('imagen')
 
             for i in range(len(nombres)):
@@ -64,7 +65,8 @@ def step3():
                     'nombre': nombres[i],
                     'descripcion': descripciones[i],
                     'precio': precios[i],
-                    'imagen': filename
+                    'imagen': filename,
+                    'grupo': grupos[i]
                 })
 
         elif tipo == 'presentación':
@@ -141,7 +143,6 @@ def preview():
 
 @app.route('/descargar')
 def descargar():
-    # Placeholder: deberías implementar la generación del sitio como archivo ZIP o HTML
     return "Función de descarga aún no implementada"
 
 if __name__ == '__main__':
