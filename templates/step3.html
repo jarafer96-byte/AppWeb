@@ -201,6 +201,12 @@
 
       document.getElementById('formulario').submit();
     }
+
+    window.onpageshow = function(event) {
+      if (event.persisted) {
+        alert("Estás volviendo desde la vista previa. Si continuás sin recargar, podrías perder el contenido cargado.");
+      }
+    };
   </script>
 </body>
 </html>
