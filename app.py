@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, session, send_file
 import os
 from werkzeug.utils import secure_filename
+from zipfile import ZipFile
+from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = 'clave-secreta'
@@ -34,8 +36,9 @@ def step2():
         logo = request.files.get('logo')
         if logo:
             filename = secure_filename(logo.filename)
-            logo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            session['logo'] = filename
+            if filename:
+                logo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                session['logo'] = filename
         else:
             session['logo'] = None
 
@@ -60,6 +63,8 @@ def step3():
             for i in range(len(nombres)):
                 img = imagenes[i]
                 filename = secure_filename(img.filename)
+                if not filename:
+                    continue
                 img.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 bloques.append({
                     'nombre': nombres[i],
@@ -77,6 +82,8 @@ def step3():
             for i in range(len(titulos)):
                 img = fotos[i]
                 filename = secure_filename(img.filename)
+                if not filename:
+                    continue
                 img.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 bloques.append({
                     'titulo': titulos[i],
@@ -94,6 +101,8 @@ def step3():
             for i in range(len(nombres)):
                 img = imagenes[i]
                 filename = secure_filename(img.filename)
+                if not filename:
+                    continue
                 img.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 bloques.append({
                     'nombre_evento': nombres[i],
@@ -143,7 +152,48 @@ def preview():
 
 @app.route('/descargar')
 def descargar():
-    return "Función de descarga aún no implementada"
+    idioma = session.get('idioma') or 'es'
+    estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+
+    config = {
+        'tipo_web': session.get('tipo_web'),
+        'color': session.get('color'),
+        'fuente': session.get('fuente'),
+        'estilo': session.get('estilo'),
+        'bordes': session.get('bordes'),
+        'botones': session.get('botones'),
+        'idioma': idioma,
+        'vista_imagenes': session.get('vista_imagenes'),
+        'logo': session.get('logo'),
+        'estilo_visual': estilo_visual,
+        'titulo': 'Mi sitio personalizado',
+        'descripcion': 'Este sitio fue generado automáticamente.',
+        'facebook': session.get('facebook'),
+        'whatsapp': session.get('whatsapp'),
+        'instagram': session.get('instagram'),
+        'productos': session.get('bloques') if session.get('tipo_web') in ['catálogo', 'menú'] else [],
+        'bloques': session.get('bloques') if session.get('tipo_web') not in ['catálogo', 'menú'] else []
+    }
+
+    textos = {
+        'es': {'contacto': 'Contactar por WhatsApp', 'precio': 'Precio'},
+        'en': {'contacto': 'Contact via WhatsApp', 'precio': 'Price'},
+        'pt': {'contacto': 'Contato via WhatsApp', 'precio': 'Preço'}
+    }
+
+    html = render_template('preview.html', config=config, textos=textos)
+
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        zip_file.writestr('index.html', html)
+
+        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            if os.path.isfile(filepath):
+                zip_file.write(filepath, arcname='img/' + filename)
+
+    zip_buffer.seek(0)
+    return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
