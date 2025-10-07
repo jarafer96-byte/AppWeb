@@ -17,39 +17,30 @@
       color: #fff;
     }
 
-    body.fondo-claro {
-      color: #000;
-    }
-
     .btn-grupo {
+      padding: 8px 16px;
       margin: 5px;
       border-radius: 20px;
-      padding: 8px 16px;
-      border: 1px solid white;
-      background-color: rgba(255,255,255,0.2);
-      color: white;
+      font-weight: bold;
+      border: 2px solid {{ config.color }};
+      background-color: {{ config.color }};
+      color: black;
+      transition: background-color 0.3s ease;
     }
 
-    body.fondo-claro .btn-grupo {
-      background-color: rgba(0,0,0,0.1);
-      color: black;
-      border: 1px solid black;
+    .btn-grupo:hover {
+      background-color: #fff;
+      color: {{ config.color }};
     }
 
     .btn-grupo.active {
-      background-color: {{ config.color }};
-      color: black;
+      box-shadow: 0 0 5px {{ config.color }};
     }
 
     .card {
       border: 1px solid rgba(255,255,255,0.2);
       background-color: rgba(0,0,0,0.6);
       color: white;
-    }
-
-    body.fondo-claro .card {
-      background-color: rgba(255,255,255,0.8);
-      color: black;
     }
 
     .btn-whatsapp {
@@ -87,7 +78,7 @@
     }
   </style>
 </head>
-<body class="container py-5 {% if config.estilo_visual in ['claro_moderno', 'blanco_minimal'] %}fondo-claro{% endif %}">
+<body class="container py-5">
   <h1 class="text-center mb-4">{{ config.titulo }}</h1>
   <p class="text-center">{{ config.descripcion }}</p>
 
