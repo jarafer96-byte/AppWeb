@@ -231,7 +231,7 @@
         `\nTotal estimado: $${suma.toFixed(2)}`
       );
 
-      document.getElementById('enviarCarrito').href = `https://wa.me/549XXXXXXXXXX?text=${mensaje}`;
+      document.getElementById('enviarCarrito').href = `{{ config.whatsapp }}?text=${mensaje}`;
     }
   </script>
 </body>
