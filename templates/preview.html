@@ -136,7 +136,10 @@
   {% if config.tipo_web in ['catálogo', 'menú'] %}
     {% set grupos = {} %}
     {% for producto in config.productos %}
-      {% set nombre_grupo = producto.get('grupo', 'General') %}
+      {% set nombre_grupo = producto.get('grupo') %}
+      {% if not nombre_grupo or not nombre_grupo.strip() %}
+        {% set nombre_grupo = 'General' %}
+      {% endif %}
       {% if nombre_grupo not in grupos %}
         {% set _ = grupos.update({nombre_grupo: []}) %}
       {% endif %}
@@ -145,7 +148,9 @@
 
     <div class="text-center mb-4">
       {% for grupo in grupos %}
-        <button type="button" class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">{{ grupo }}</button>
+        {% if grupo.strip() %}
+          <button type="button" class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">{{ grupo }}</button>
+        {% endif %}
       {% endfor %}
     </div>
 
@@ -210,6 +215,8 @@
   </div>
 
   <script>
+    const configWhatsApp = "{{ config.whatsapp }}";
+
     function mostrarGrupo(nombre, event) {
       document.querySelectorAll('.grupo-section').forEach(div => {
         div.classList.remove('active');
@@ -247,7 +254,7 @@
       const total = document.getElementById('totalCarrito');
       lista.innerHTML = '';
       let suma = 0;
-      
+
       carrito.forEach(item => {
         lista.innerHTML += `<li>${item.nombre} - $${item.precio.toFixed(2)}</li>`;
         suma += item.precio;
@@ -261,7 +268,7 @@
         `\nTotal estimado: $${suma.toFixed(2)}`
       );
 
-      document.getElementById('enviarCarrito').href = `${config.whatsapp}?text=${mensaje}`;
+      document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
     }
 
     document.getElementById('toggleCarrito').onclick = function() {
