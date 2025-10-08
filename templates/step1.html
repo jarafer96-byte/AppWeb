@@ -16,28 +16,6 @@
       color: white;
     }
 
-    .tipo-btn {
-      width: 100%;
-      padding: 15px;
-      margin-bottom: 10px;
-      font-size: 1.2rem;
-      background-color: rgba(0,0,0,0.6);
-      color: white;
-      border: 1px solid white;
-      transition: all 0.2s ease-in-out;
-    }
-
-    .tipo-btn:hover {
-      background-color: rgba(255,255,255,0.2);
-    }
-
-    .btn-check:checked + .tipo-btn {
-      background-color: #00c853;
-      color: white;
-      border: 2px solid white;
-      box-shadow: 0 0 10px rgba(0, 200, 83, 0.6);
-    }
-
     .icono {
       height: 24px;
       margin-right: 8px;
@@ -61,26 +39,28 @@
 </head>
 <body>
   <div class="container py-5">
-    <h2 class="mb-4 text-center">¿Qué tipo de sitio querés crear?</h2>
+    <h2 class="mb-4 text-center">Creá tu sitio tipo catálogo</h2>
 
-    <form method="POST">
-      <div class="row mb-4">
-        <div class="col-6 col-md-3">
-          <input type="radio" class="btn-check" name="tipo_web" id="catálogo" value="catálogo" autocomplete="off">
-          <label class="btn tipo-btn" for="catálogo">Catálogo</label>
-        </div>
-        <div class="col-6 col-md-3">
-          <input type="radio" class="btn-check" name="tipo_web" id="menú" value="menú" autocomplete="off">
-          <label class="btn tipo-btn" for="menú">Menú</label>
-        </div>
-        <div class="col-6 col-md-3">
-          <input type="radio" class="btn-check" name="tipo_web" id="presentación" value="presentación" autocomplete="off">
-          <label class="btn tipo-btn" for="presentación">Presentación</label>
-        </div>
-        <div class="col-6 col-md-3">
-          <input type="radio" class="btn-check" name="tipo_web" id="evento" value="evento" autocomplete="off">
-          <label class="btn tipo-btn" for="evento">Evento</label>
-        </div>
+    <form method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="tipo_web" value="catálogo">
+
+      <div class="mb-4">
+        <label class="form-label text-white">Sobre mí (opcional)</label>
+        <textarea name="sobre_mi" class="form-control" rows="3" placeholder="Contanos quién sos, qué hacés, o qué ofrece tu emprendimiento..."></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label text-white">Logo (opcional)</label>
+        <input type="file" name="logo" accept="image/*" class="form-control">
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label text-white">Estilo de fuente</label>
+        <select name="fuente" class="form-control">
+          <option value="sans-serif">Moderna</option>
+          <option value="serif">Elegante</option>
+          <option value="monospace">Técnica</option>
+        </select>
       </div>
 
       <div class="card p-4 shadow-sm">
