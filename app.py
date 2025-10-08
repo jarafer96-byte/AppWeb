@@ -16,11 +16,38 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def convertir_y_comprimir(imagen, destino, calidad=50, max_size=(400, 400)):
     img = Image.open(imagen)
     img = img.convert('RGB')
-    img.thumbnail(max_size)  # Redimensiona si es muy grande
+    img.thumbnail(max_size)
     img.save(destino, format='WEBP', quality=calidad)
+
+# ✅ Redimensiona automáticamente los fondos .webp al iniciar
+def redimensionar_webp_en_static():
+    carpeta = 'static/img/webp'
+    for nombre in os.listdir(carpeta):
+        if nombre.endswith('.webp'):
+            ruta = os.path.join(carpeta, nombre)
+            try:
+                img = Image.open(ruta)
+                img = img.convert('RGB')
+                img.thumbnail((400, 400))
+                img.save(ruta, format='WEBP', quality=80)
+            except Exception as e:
+                print(f"Error al redimensionar {nombre}: {e}")
+
+# ✅ Limpia imágenes subidas por el usuario si el flujo se abandona o después de descargar
+def limpiar_imagenes_usuario():
+    carpeta = 'static/img/uploads'
+    for nombre in os.listdir(carpeta):
+        ruta = os.path.join(carpeta, nombre)
+        try:
+            if os.path.isfile(ruta):
+                os.remove(ruta)
+                print(f"Imagen eliminada: {nombre}")
+        except Exception as e:
+            print(f"Error al eliminar {nombre}: {e}")
 
 @app.route('/', methods=['GET', 'POST'])
 def step1():
+    limpiar_imagenes_usuario()  # ✅ Limpieza si el usuario reinicia desde "/"
     if request.method == 'POST':
         session['tipo_web'] = 'catálogo'
         session['facebook'] = request.form.get('facebook')
@@ -146,9 +173,13 @@ def descargar():
             if os.path.isfile(filepath):
                 zip_file.write(filepath, arcname='img/' + filename)
 
+    limpiar_imagenes_usuario()  # ✅ Limpieza post-descarga
+
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
 
 if __name__ == '__main__':
+    redimensionar_webp_en_static()
+    limpiar_imagenes_usuario()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
