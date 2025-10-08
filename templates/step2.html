@@ -67,15 +67,12 @@
     {% for grupo in ['1', '2', '3', '4', '5'] %}
       <div id="grupo_{{ grupo }}" class="row g-3 d-none">
         {% for imagen in imagenes %}
-          {% if imagen.endswith('.png') and imagen.startswith(grupo + '_') %}
+          {% if imagen.endswith('.webp') and imagen.startswith('mini_' + grupo + '_') %}
             <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-              <picture>
-                <source srcset="{{ url_for('static', filename='img/webp/' + imagen.replace('.png', '.webp')) }}" type="image/webp">
-                <img src="{{ url_for('static', filename='img/' + imagen) }}"
-                     class="preview-img img-fluid"
-                     loading="lazy"
-                     onclick="seleccionarFondo('{{ imagen.replace('.png', '.jpeg') }}')">
-              </picture>
+              <img src="{{ url_for('static', filename='img/webp/' + imagen) }}"
+                   class="preview-img img-fluid"
+                   loading="lazy"
+                   onclick="seleccionarFondo('{{ imagen.replace('.webp', '.jpeg') }}')">
             </div>
           {% endif %}
         {% endfor %}
