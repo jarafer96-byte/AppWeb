@@ -36,6 +36,7 @@ def redimensionar_webp_en_static():
 # ✅ Limpia imágenes subidas por el usuario si el flujo se abandona o después de descargar
 def limpiar_imagenes_usuario():
     carpeta = 'static/img/uploads'
+    os.makedirs(carpeta, exist_ok=True)
     for nombre in os.listdir(carpeta):
         ruta = os.path.join(carpeta, nombre)
         try:
