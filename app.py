@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file
+from flask import Flask, render_template, request, redirect, session, send_file, url_for
 import os
 from werkzeug.utils import secure_filename
 from zipfile import ZipFile
@@ -22,6 +22,7 @@ def convertir_y_comprimir(imagen, destino, calidad=50, max_size=(400, 400)):
 # ✅ Redimensiona automáticamente los fondos .webp al iniciar
 def redimensionar_webp_en_static():
     carpeta = 'static/img/webp'
+    os.makedirs(carpeta, exist_ok=True)
     for nombre in os.listdir(carpeta):
         if nombre.endswith('.webp'):
             ruta = os.path.join(carpeta, nombre)
@@ -81,7 +82,7 @@ def step2():
 
         return redirect('/contenido')
 
-    imagenes = os.listdir(app.config['UPLOAD_FOLDER'])
+    imagenes = os.listdir('static/img/webp')  # ✅ Corrección aquí
     return render_template('step2.html', config=session, imagenes=imagenes)
 
 @app.route('/contenido', methods=['GET', 'POST'])
