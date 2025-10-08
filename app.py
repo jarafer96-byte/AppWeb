@@ -16,7 +16,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def convertir_y_comprimir(imagen, destino, calidad=50, max_size=(1000, 1000)):
     img = Image.open(imagen)
     img = img.convert('RGB')
-    img.thumbnail(max_size)  # Redimensiona si es muy grande
+    img.thumbnail((400, 400))  # Redimensiona si es muy grande
     img.save(destino, format='WEBP', quality=calidad)
 
 @app.route('/', methods=['GET', 'POST'])
