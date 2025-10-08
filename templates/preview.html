@@ -17,6 +17,15 @@
       color: #fff;
     }
 
+    .card-img-top {
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
     .btn-grupo {
       padding: 8px 16px;
       margin: 5px;
@@ -159,7 +168,7 @@
       {% for producto in productos %}
       <div class="col-md-4 mb-4">
         <div class="card p-3">
-          <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}">
+          <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
           <div class="card-body">
             <h5 class="card-title">{{ producto.nombre }}</h5>
             <p class="card-text">{{ producto.descripcion }}</p>
@@ -237,44 +246,42 @@
       if (primerBtn) primerBtn.classList.add('active');
     };
 
-    let carrito = [];
+  let carrito = [];
 
-    function agregarAlCarrito(nombre, precio) {
-      carrito.push({ nombre, precio: parseFloat(precio) });
-      actualizarCarrito();
-    }
+  function agregarAlCarrito(nombre, precio) {
+    carrito.push({ nombre, precio: parseFloat(precio) });
+    actualizarCarrito();
+  }
 
-    function vaciarCarrito() {
-      carrito = [];
-      actualizarCarrito();
-    }
+  function vaciarCarrito() {
+    carrito = [];
+    actualizarCarrito();
+  }
 
-    function actualizarCarrito() {
-      const lista = document.getElementById('listaCarrito');
-      const total = document.getElementById('totalCarrito');
-      lista.innerHTML = '';
-      let suma = 0;
+  function actualizarCarrito() {
+    const lista = document.getElementById('listaCarrito');
+    const total = document.getElementById('totalCarrito');
+    lista.innerHTML = '';
+    let suma = 0;
 
-      carrito.forEach(item => {
-        lista.innerHTML += `<li>${item.nombre} - $${item.precio.toFixed(2)}</li>`;
-        suma += item.precio;
-      });
+    carrito.forEach(item => {
+      lista.innerHTML += `<li>${item.nombre} - $${item.precio.toFixed(2)}</li>`;
+      suma += item.precio;
+    });
 
-      total.textContent = suma.toFixed(2);
+    total.textContent = suma.toFixed(2);
 
-      const mensaje = encodeURIComponent(
-        `Hola, quiero consultar por:\n` +
-        carrito.map(i => `- ${i.nombre}: $${i.precio.toFixed(2)}`).join('\n') +
-        `\nTotal estimado: $${suma.toFixed(2)}`
-      );
+    const mensaje = encodeURIComponent(
+      `Hola, quiero consultar por:\n` +
+      carrito.map(i => `- ${i.nombre}: $${i.precio.toFixed(2)}`).join('\n') +
+      `\nTotal estimado: $${suma.toFixed(2)}`
+    );
 
-      document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
-    }
+    document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
+  }
 
-    document.getElementById('toggleCarrito').onclick = function() {
-      const carrito = document.getElementById('carrito');
-      carrito.style.display = carrito.style.display === 'none' ? 'block' : 'none';
-    };
-  </script>
-</body>
-</html>
+  document.getElementById('toggleCarrito').onclick = function() {
+    const carritoDiv = document.getElementById('carrito');
+    carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+  };
+</script>
