@@ -88,6 +88,8 @@
       width: 300px;
       z-index: 999;
       display: none;
+      border: 1px solid white;
+      box-shadow: 0 0 10px white;
     }
 
     #carrito ul {
@@ -117,27 +119,12 @@
 </head>
 <body class="container py-5">
 
-  <!-- Selector de idioma -->
-  <form method="POST" action="/cambiar_idioma" class="text-end mb-4">
-    <select name="idioma" onchange="this.form.submit()" style="background-color: black; color: white; border: 1px solid white;">
-      <option value="es" {% if config.idioma == 'es' %}selected{% endif %}>Español</option>
-      <option value="en" {% if config.idioma == 'en' %}selected{% endif %}>English</option>
-      <option value="pt" {% if config.idioma == 'pt' %}selected{% endif %}>Português</option>
-    </select>
-  </form>
-
-  <!-- Logo -->
   {% if config.logo %}
     <div class="text-center my-3">
       <img src="{{ url_for('static', filename='img/' + config.logo) }}" alt="Logo" style="max-height: 80px;">
     </div>
   {% endif %}
 
-  <!-- Título y descripción -->
-  <h1 class="text-center mb-4">{{ config.titulo }}</h1>
-  <p class="text-center">{{ config.descripcion }}</p>
-
-  <!-- Sobre mí -->
   {% if config.sobre_mi %}
     <div class="text-center mb-4">
       <div style="background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px; display: inline-block; max-width: 800px;">
@@ -146,7 +133,6 @@
     </div>
   {% endif %}
 
-  <!-- Catálogo -->
   {% if config.tipo_web in ['catálogo', 'menú'] %}
     {% set grupos = {} %}
     {% for producto in config.productos %}
@@ -172,9 +158,9 @@
           <div class="card-body">
             <h5 class="card-title">{{ producto.nombre }}</h5>
             <p class="card-text">{{ producto.descripcion }}</p>
-            <p><strong>{{ textos[config.idioma]['precio'] }}:</strong> $ {{ producto.precio }}</p>
+            <p><strong>Precio:</strong> $ {{ producto.precio }}</p>
             <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">
-              {{ textos[config.idioma]['contacto'] }}
+              Contactar por WhatsApp
             </a>
             <button type="button" class="btn btn-secondary mt-2" onclick="agregarAlCarrito('{{ producto.nombre }}', '{{ producto.precio }}')">
               Agregar al carrito
@@ -187,14 +173,12 @@
     {% endfor %}
   {% endif %}
 
-  <!-- Descargar -->
   <div class="text-center mt-5">
     <a href="/descargar" class="btn btn-primary px-5">
       Descargar sitio
     </a>
   </div>
 
-  <!-- Redes sociales -->
   <div class="social-icons">
     {% if config.facebook %}
       <a href="{{ config.facebook }}" target="_blank">
@@ -213,10 +197,8 @@
     {% endif %}
   </div>
 
-  <!-- Botón flotante para abrir carrito -->
   <button id="toggleCarrito">🛒</button>
 
-  <!-- Carrito flotante -->
   <div id="carrito">
     <h5>🛒 Tu carrito</h5>
     <ul id="listaCarrito"></ul>
@@ -265,7 +247,7 @@
       const total = document.getElementById('totalCarrito');
       lista.innerHTML = '';
       let suma = 0;
-
+      
       carrito.forEach(item => {
         lista.innerHTML += `<li>${item.nombre} - $${item.precio.toFixed(2)}</li>`;
         suma += item.precio;
@@ -279,7 +261,7 @@
         `\nTotal estimado: $${suma.toFixed(2)}`
       );
 
-      document.getElementById('enviarCarrito').href = `{{ config.whatsapp }}?text=${mensaje}`;
+      document.getElementById('enviarCarrito').href = `${config.whatsapp}?text=${mensaje}`;
     }
 
     document.getElementById('toggleCarrito').onclick = function() {
