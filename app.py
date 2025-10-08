@@ -40,7 +40,6 @@ def step2():
         session['estilo'] = request.form.get('estilo')
         session['bordes'] = request.form.get('bordes')
         session['botones'] = request.form.get('botones')
-        session['idioma'] = request.form.get('idioma')
         session['vista_imagenes'] = request.form.get('vista_imagenes')
         session['estilo_visual'] = request.form.get('estilo_visual')
 
@@ -82,7 +81,6 @@ def step3():
 
 @app.route('/preview')
 def preview():
-    idioma = session.get('idioma') or 'es'
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
     config = {
@@ -92,12 +90,9 @@ def preview():
         'estilo': session.get('estilo'),
         'bordes': session.get('bordes'),
         'botones': session.get('botones'),
-        'idioma': idioma,
         'vista_imagenes': session.get('vista_imagenes'),
         'logo': session.get('logo'),
         'estilo_visual': estilo_visual,
-        'titulo': 'Mi sitio personalizado',
-        'descripcion': 'Este sitio fue generado automáticamente.',
         'facebook': session.get('facebook'),
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
@@ -106,22 +101,10 @@ def preview():
         'bloques': []
     }
 
-    textos = {
-        'es': {'contacto': 'Contactar por WhatsApp', 'precio': 'Precio'},
-        'en': {'contacto': 'Contact via WhatsApp', 'precio': 'Price'},
-        'pt': {'contacto': 'Contato via WhatsApp', 'precio': 'Preço'}
-    }
-
-    return render_template('preview.html', config=config, textos=textos)
-
-@app.route('/cambiar_idioma', methods=['POST'])
-def cambiar_idioma():
-    session['idioma'] = request.form.get('idioma')
-    return redirect('/preview')
+    return render_template('preview.html', config=config)
 
 @app.route('/descargar')
 def descargar():
-    idioma = session.get('idioma') or 'es'
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
     config = {
@@ -131,12 +114,9 @@ def descargar():
         'estilo': session.get('estilo'),
         'bordes': session.get('bordes'),
         'botones': session.get('botones'),
-        'idioma': idioma,
         'vista_imagenes': session.get('vista_imagenes'),
         'logo': session.get('logo'),
         'estilo_visual': estilo_visual,
-        'titulo': 'Mi sitio personalizado',
-        'descripcion': 'Este sitio fue generado automáticamente.',
         'facebook': session.get('facebook'),
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
@@ -145,13 +125,7 @@ def descargar():
         'bloques': []
     }
 
-    textos = {
-        'es': {'contacto': 'Contactar por WhatsApp', 'precio': 'Precio'},
-        'en': {'contacto': 'Contact via WhatsApp', 'precio': 'Price'},
-        'pt': {'contacto': 'Contato via WhatsApp', 'precio': 'Preço'}
-    }
-
-    html = render_template('preview.html', config=config, textos=textos)
+    html = render_template('preview.html', config=config)
 
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w') as zip_file:
