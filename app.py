@@ -14,24 +14,12 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 @app.route('/', methods=['GET', 'POST'])
 def step1():
     if request.method == 'POST':
-        session['tipo_web'] = request.form['tipo_web']
+        session['tipo_web'] = 'catálogo'
         session['facebook'] = request.form.get('facebook')
         session['whatsapp'] = request.form.get('whatsapp')
         session['instagram'] = request.form.get('instagram')
-        return redirect('/estilo')
-    return render_template('step1.html')
-
-@app.route('/estilo', methods=['GET', 'POST'])
-def step2():
-    if request.method == 'POST':
-        session['color'] = request.form.get('color')
+        session['sobre_mi'] = request.form.get('sobre_mi')
         session['fuente'] = request.form.get('fuente')
-        session['estilo'] = request.form.get('estilo')
-        session['bordes'] = request.form.get('bordes')
-        session['botones'] = request.form.get('botones')
-        session['idioma'] = request.form.get('idioma')
-        session['vista_imagenes'] = request.form.get('vista_imagenes')
-        session['estilo_visual'] = request.form.get('estilo_visual')
 
         logo = request.files.get('logo')
         if logo:
@@ -41,6 +29,20 @@ def step2():
                 session['logo'] = filename
         else:
             session['logo'] = None
+
+        return redirect('/estilo')
+    return render_template('step1.html')
+
+@app.route('/estilo', methods=['GET', 'POST'])
+def step2():
+    if request.method == 'POST':
+        session['color'] = request.form.get('color')
+        session['estilo'] = request.form.get('estilo')
+        session['bordes'] = request.form.get('bordes')
+        session['botones'] = request.form.get('botones')
+        session['idioma'] = request.form.get('idioma')
+        session['vista_imagenes'] = request.form.get('vista_imagenes')
+        session['estilo_visual'] = request.form.get('estilo_visual')
 
         return redirect('/contenido')
 
@@ -53,64 +55,25 @@ def step3():
     if request.method == 'POST':
         bloques = []
 
-        if tipo in ['catálogo', 'menú']:
-            nombres = request.form.getlist('nombre')
-            descripciones = request.form.getlist('descripcion')
-            precios = request.form.getlist('precio')
-            grupos = request.form.getlist('grupo')
-            imagenes = request.files.getlist('imagen')
+        nombres = request.form.getlist('nombre')
+        descripciones = request.form.getlist('descripcion')
+        precios = request.form.getlist('precio')
+        grupos = request.form.getlist('grupo')
+        imagenes = request.files.getlist('imagen')
 
-            for i in range(len(nombres)):
-                img = imagenes[i]
-                filename = secure_filename(img.filename)
-                if not filename:
-                    continue
-                img.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                bloques.append({
-                    'nombre': nombres[i],
-                    'descripcion': descripciones[i],
-                    'precio': precios[i],
-                    'imagen': filename,
-                    'grupo': grupos[i]
-                })
-
-        elif tipo == 'presentación':
-            titulos = request.form.getlist('titulo')
-            textos = request.form.getlist('texto')
-            fotos = request.files.getlist('foto')
-
-            for i in range(len(titulos)):
-                img = fotos[i]
-                filename = secure_filename(img.filename)
-                if not filename:
-                    continue
-                img.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                bloques.append({
-                    'titulo': titulos[i],
-                    'texto': textos[i],
-                    'foto': filename
-                })
-
-        elif tipo == 'evento':
-            nombres = request.form.getlist('nombre_evento')
-            descripciones = request.form.getlist('descripcion_evento')
-            fechas = request.form.getlist('fecha')
-            ubicaciones = request.form.getlist('ubicacion')
-            imagenes = request.files.getlist('imagen_evento')
-
-            for i in range(len(nombres)):
-                img = imagenes[i]
-                filename = secure_filename(img.filename)
-                if not filename:
-                    continue
-                img.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                bloques.append({
-                    'nombre_evento': nombres[i],
-                    'descripcion_evento': descripciones[i],
-                    'fecha': fechas[i],
-                    'ubicacion': ubicaciones[i],
-                    'imagen_evento': filename
-                })
+        for i in range(len(nombres)):
+            img = imagenes[i]
+            filename = secure_filename(img.filename)
+            if not filename:
+                continue
+            img.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            bloques.append({
+                'nombre': nombres[i],
+                'descripcion': descripciones[i],
+                'precio': precios[i],
+                'imagen': filename,
+                'grupo': grupos[i]
+            })
 
         session['bloques'] = bloques
         return redirect('/preview')
@@ -138,8 +101,9 @@ def preview():
         'facebook': session.get('facebook'),
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
-        'productos': session.get('bloques') if session.get('tipo_web') in ['catálogo', 'menú'] else [],
-        'bloques': session.get('bloques') if session.get('tipo_web') not in ['catálogo', 'menú'] else []
+        'sobre_mi': session.get('sobre_mi'),
+        'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
+        'bloques': []
     }
 
     textos = {
@@ -149,6 +113,11 @@ def preview():
     }
 
     return render_template('preview.html', config=config, textos=textos)
+
+@app.route('/cambiar_idioma', methods=['POST'])
+def cambiar_idioma():
+    session['idioma'] = request.form.get('idioma')
+    return redirect('/preview')
 
 @app.route('/descargar')
 def descargar():
@@ -171,8 +140,9 @@ def descargar():
         'facebook': session.get('facebook'),
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
-        'productos': session.get('bloques') if session.get('tipo_web') in ['catálogo', 'menú'] else [],
-        'bloques': session.get('bloques') if session.get('tipo_web') not in ['catálogo', 'menú'] else []
+        'sobre_mi': session.get('sobre_mi'),
+        'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
+        'bloques': []
     }
 
     textos = {
