@@ -116,9 +116,37 @@
   </style>
 </head>
 <body class="container py-5">
+
+  <!-- Selector de idioma -->
+  <form method="POST" action="/cambiar_idioma" class="text-end mb-4">
+    <select name="idioma" onchange="this.form.submit()" style="background-color: black; color: white; border: 1px solid white;">
+      <option value="es" {% if config.idioma == 'es' %}selected{% endif %}>Español</option>
+      <option value="en" {% if config.idioma == 'en' %}selected{% endif %}>English</option>
+      <option value="pt" {% if config.idioma == 'pt' %}selected{% endif %}>Português</option>
+    </select>
+  </form>
+
+  <!-- Logo -->
+  {% if config.logo %}
+    <div class="text-center my-3">
+      <img src="{{ url_for('static', filename='img/' + config.logo) }}" alt="Logo" style="max-height: 80px;">
+    </div>
+  {% endif %}
+
+  <!-- Título y descripción -->
   <h1 class="text-center mb-4">{{ config.titulo }}</h1>
   <p class="text-center">{{ config.descripcion }}</p>
 
+  <!-- Sobre mí -->
+  {% if config.sobre_mi %}
+    <div class="text-center mb-4">
+      <div style="background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px; display: inline-block; max-width: 800px;">
+        <p style="color: white; margin: 0;">{{ config.sobre_mi }}</p>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Catálogo -->
   {% if config.tipo_web in ['catálogo', 'menú'] %}
     {% set grupos = {} %}
     {% for producto in config.productos %}
@@ -159,12 +187,14 @@
     {% endfor %}
   {% endif %}
 
+  <!-- Descargar -->
   <div class="text-center mt-5">
     <a href="/descargar" class="btn btn-primary px-5">
       Descargar sitio
     </a>
   </div>
 
+  <!-- Redes sociales -->
   <div class="social-icons">
     {% if config.facebook %}
       <a href="{{ config.facebook }}" target="_blank">
