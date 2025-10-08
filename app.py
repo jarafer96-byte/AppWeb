@@ -3,34 +3,24 @@ import os
 from werkzeug.utils import secure_filename
 from zipfile import ZipFile
 from io import BytesIO
-from PIL import Image  # ✅ Compresión de imágenes
+from PIL import Image
 
 app = Flask(__name__)
 app.secret_key = 'clave-secreta'
 
 UPLOAD_FOLDER = 'static/img'
-ZIP_FOLDER = '.'  # ✅ Carpeta raíz donde se guardan los .zip si se guardan
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ Función para comprimir imágenes
-def convertir_y_comprimir(imagen, destino, calidad=80):
+# ✅ Compresión y redimensionado
+def convertir_y_comprimir(imagen, destino, calidad=50, max_size=(1000, 1000)):
     img = Image.open(imagen)
     img = img.convert('RGB')
+    img.thumbnail(max_size)  # Redimensiona si es muy grande
     img.save(destino, format='WEBP', quality=calidad)
-
-# ✅ Función para limpiar imágenes y zips viejos
-def limpiar_archivos():
-    for archivo in os.listdir(app.config['UPLOAD_FOLDER']):
-        if archivo.endswith(('.webp', '.jpg', '.jpeg', '.png')):
-            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], archivo))
-    for archivo in os.listdir(ZIP_FOLDER):
-        if archivo.endswith('.zip'):
-            os.remove(os.path.join(ZIP_FOLDER, archivo))
 
 @app.route('/', methods=['GET', 'POST'])
 def step1():
-    limpiar_archivos()  # ✅ Limpieza automática al iniciar
     if request.method == 'POST':
         session['tipo_web'] = 'catálogo'
         session['facebook'] = request.form.get('facebook')
@@ -43,10 +33,8 @@ def step1():
         if logo:
             filename = secure_filename(logo.filename)
             if filename:
-                webp_name = os.path.splitext(filename)[0] + '.webp'
-                destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
-                convertir_y_comprimir(logo, destino)
-                session['logo'] = webp_name
+                logo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                session['logo'] = filename
         else:
             session['logo'] = None
 
