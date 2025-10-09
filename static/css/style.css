@@ -1,3 +1,4 @@
+/* === Base === */
 body {
   font-family: 'Montserrat', sans-serif;
   background-image: url('../img/fondo_black_diagonales.jpg');
@@ -20,7 +21,10 @@ h1, h2, h5, p {
   color: white;
 }
 
-button {
+/* === Botones === */
+button,
+.btn,
+.btn-custom {
   background-color: black;
   border: 2px solid white;
   color: white;
@@ -31,11 +35,21 @@ button {
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-button:hover {
+button:hover,
+.btn:hover,
+.btn-custom:hover {
   background-color: #222;
   transform: scale(1.03);
 }
 
+button:active,
+.btn:active,
+.btn-custom:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 8px white;
+}
+
+/* === Tarjetas === */
 .card {
   background-color: black;
   border: 2px solid white;
@@ -50,6 +64,13 @@ button:hover {
   text-align: center;
 }
 
+.card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* === Formularios === */
 .form-control {
   background-color: black;
   border: 1px solid white;
@@ -60,6 +81,16 @@ button:hover {
   color: #ccc;
 }
 
+/* === Imagen seleccionada === */
+.nombre-imagen {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85em;
+  color: #ccc;
+  font-style: italic;
+}
+
+/* === Navbar === */
 .navbar {
   background-color: black;
   border-bottom: 2px solid white;
@@ -70,8 +101,11 @@ button:hover {
   color: white;
 }
 
+/* === Responsive === */
 @media (max-width: 768px) {
-  button {
+  button,
+  .btn,
+  .btn-custom {
     width: 100%;
     font-size: 1em;
     margin: 8px 0;
