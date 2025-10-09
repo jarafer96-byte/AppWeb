@@ -27,24 +27,11 @@
       color: #aaa;
     }
 
-    .grupo {
-      margin-bottom: 40px;
+    .card {
       background-color: rgba(255,255,255,0.05);
-      padding: 20px;
-      border-radius: 12px;
-    }
-
-    .grupo h4 {
-      border-bottom: 1px solid rgba(255,255,255,0.2);
-      padding-bottom: 5px;
-      margin-bottom: 15px;
       color: white;
-    }
-
-    .btn-sm {
-      font-size: 0.85em;
-      padding: 6px 12px;
-      border-radius: 30px;
+      border: none;
+      border-radius: 12px;
     }
 
     .btn-gradient {
@@ -63,24 +50,10 @@
       box-shadow: 0 0 15px rgba(255,255,255,0.5);
     }
 
-    .mensaje-final {
-      margin-top: 30px;
-      font-style: italic;
-      text-align: center;
-      color: #ccc;
-    }
-
-    .mensaje-final span {
-      display: block;
-      margin-top: 10px;
-      color: #ffcc00;
-      font-weight: bold;
-    }
-
     label.btn-imagen {
       display: block;
       width: 100%;
-      background-color: rgba(255,255,255,0.08);
+      background-color: rgba(255,255,255,0.05);
       color: white;
       border: 1px dashed #888;
       border-radius: 8px;
@@ -111,6 +84,20 @@
 
     textarea {
       resize: none;
+    }
+
+    .mensaje-final {
+      margin-top: 30px;
+      font-style: italic;
+      text-align: center;
+      color: #ccc;
+    }
+
+    .mensaje-final span {
+      display: block;
+      margin-top: 10px;
+      color: #ffcc00;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -146,10 +133,10 @@
 
       grupoId++;
       const grupo = document.createElement('div');
-      grupo.className = 'grupo';
+      grupo.className = 'card p-3 mb-4';
       grupo.id = 'grupo_' + grupoId;
       grupo.innerHTML = `
-        <h4>${nombre}</h4>
+        <h4 class="mb-3">${nombre}</h4>
         <table class="table">
           <tbody>
             ${crearFilaHTML(nombre)}
@@ -195,7 +182,7 @@
     }
 
     function agregarFila(btn) {
-      const grupo = btn.closest('.grupo');
+      const grupo = btn.closest('.card');
       const tbody = grupo.querySelector('tbody');
       const nombreGrupo = grupo.querySelector('h4').textContent;
       const filaHTML = crearFilaHTML(nombreGrupo);
@@ -217,7 +204,7 @@
     }
 
     function actualizarContador(tbody) {
-      const contador = tbody.closest('.grupo').querySelector('.contador');
+      const contador = tbody.closest('.card').querySelector('.contador');
       contador.textContent = tbody.querySelectorAll('tr').length;
     }
 
@@ -233,7 +220,7 @@
     }
 
     function validarYEnviar() {
-      const grupos = document.querySelectorAll('.grupo');
+      const grupos = document.querySelectorAll('.card');
       if (grupos.length === 0) {
         alert('Agregá al menos un grupo antes de continuar');
         return;
@@ -261,5 +248,4 @@
   </script>
 </body>
 </html>
-
-              
+        
