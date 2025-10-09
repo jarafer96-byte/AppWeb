@@ -232,13 +232,45 @@
       contador.textContent = contenedor.querySelectorAll('.row').length;
     }
 
-    function activarSelectorImagen(label) {
+        function activarSelectorImagen(label) {
       const input = label.querySelector('input[type="file"]');
       input.addEventListener('change', function() {
-        if (this.files.length > 0)
+        if (this.files.length > 0) {
           label.classList.add('cargado');
         } else {
           label.classList.remove('cargado');
         }
       });
     }
+
+    function validarYEnviar() {
+      const grupos = document.querySelectorAll('.card');
+      if (grupos.length === 0) {
+        alert('Agregá al menos un grupo antes de continuar');
+        return;
+      }
+
+      let hayContenidoValido = false;
+      grupos.forEach(grupo => {
+        const filas = grupo.querySelectorAll('.row');
+        filas.forEach(fila => {
+          const nombre = fila.querySelector('input[name="nombre"]');
+          const precio = fila.querySelector('input[name="precio"]');
+          if (nombre && precio && nombre.value.trim() && precio.value.trim()) {
+            hayContenidoValido = true;
+          }
+        });
+      });
+
+      if (!hayContenidoValido) {
+        alert('Completá al menos una fila con nombre y precio antes de continuar');
+        return;
+      }
+
+      // ✅ Mostrar spinner antes de enviar
+      document.getElementById('spinner').style.display = 'flex';
+      document.getElementById('formulario').submit();
+    }
+  </script>
+</body>
+</html>
