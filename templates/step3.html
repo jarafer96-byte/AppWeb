@@ -137,11 +137,7 @@
       grupo.id = 'grupo_' + grupoId;
       grupo.innerHTML = `
         <h4 class="mb-3">${nombre}</h4>
-        <table class="table">
-          <tbody>
-            ${crearFilaHTML(nombre)}
-          </tbody>
-        </table>
+        <div class="productos"></div>
         <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
         <div class="text-center mt-2">
           <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
@@ -150,62 +146,60 @@
       document.getElementById('grupos').appendChild(grupo);
       document.getElementById('nombreGrupo').value = '';
 
-      activarSelectorImagen(grupo.querySelector('label.btn-imagen'));
+      const contenedor = grupo.querySelector('.productos');
+      contenedor.appendChild(crearFila(nombre));
     }
 
-    function crearFilaHTML(nombreGrupo) {
-      return `
-        <tr>
-          <td colspan="5">
-            <div class="row g-2 align-items-center">
-              <div class="col-md-3">
-                <input type="text" name="nombre" class="form-control" placeholder="Ej: Milanesa">
-              </div>
-              <div class="col-md-5">
-                <textarea name="descripcion" class="form-control" rows="1" placeholder="Ej: Con papas fritas"></textarea>
-              </div>
-              <div class="col-md-2">
-                <input type="text" name="precio" class="form-control" placeholder="$">
-              </div>
-              <div class="col-md-2 text-end">
-                <input type="hidden" name="grupo" value="${nombreGrupo}">
-                <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
-                <label class="btn-imagen mt-2">
-                  Seleccionar imagen
-                  <input type="file" name="imagen" accept="image/*" class="d-none">
-                </label>
-              </div>
-            </div>
-          </td>
-        </tr>
+    function crearFila(nombreGrupo) {
+      const fila = document.createElement('div');
+      fila.className = 'row g-2 align-items-center mb-2';
+
+      fila.innerHTML = `
+        <div class="col-md-3">
+          <input type="text" name="nombre" class="form-control" placeholder="Ej: Milanesa">
+        </div>
+        <div class="col-md-5">
+          <textarea name="descripcion" class="form-control" rows="1" placeholder="Ej: Con papas fritas"></textarea>
+        </div>
+        <div class="col-md-2">
+          <input type="text" name="precio" class="form-control" placeholder="$">
+        </div>
+        <div class="col-md-2 text-end">
+          <input type="hidden" name="grupo" value="${nombreGrupo}">
+          <button type="button" class="btn btn-sm btn-danger px-2 py-1 mb-2" onclick="eliminarFila(this)">✕</button>
+          <label class="btn-imagen">
+            Seleccionar imagen
+            <input type="file" name="imagen" accept="image/*" class="d-none">
+          </label>
+        </div>
       `;
+
+      activarSelectorImagen(fila.querySelector('label.btn-imagen'));
+      return fila;
     }
 
     function agregarFila(btn) {
       const grupo = btn.closest('.card');
-      const tbody = grupo.querySelector('tbody');
+      const contenedor = grupo.querySelector('.productos');
       const nombreGrupo = grupo.querySelector('h4').textContent;
-      const filaHTML = crearFilaHTML(nombreGrupo);
-      tbody.insertAdjacentHTML('beforeend', filaHTML);
-      actualizarContador(tbody);
-
-      const nuevaLabel = tbody.lastElementChild.querySelector('label.btn-imagen');
-      if (nuevaLabel) activarSelectorImagen(nuevaLabel);
+      contenedor.appendChild(crearFila(nombreGrupo));
+      actualizarContador(contenedor);
     }
 
     function eliminarFila(btn) {
-      const tbody = btn.closest('tbody');
-      if (tbody.querySelectorAll('tr').length > 1) {
-        btn.closest('tr').remove();
-        actualizarContador(tbody);
+      const fila = btn.closest('.row');
+      const contenedor = btn.closest('.card').querySelector('.productos');
+      if (contenedor.querySelectorAll('.row').length > 1) {
+        fila.remove();
+        actualizarContador(contenedor);
       } else {
         alert("No se puede eliminar la última fila");
       }
     }
 
-    function actualizarContador(tbody) {
-      const contador = tbody.closest('.card').querySelector('.contador');
-      contador.textContent = tbody.querySelectorAll('tr').length;
+    function actualizarContador(contenedor) {
+      const contador = contenedor.closest('.card').querySelector('.contador');
+      contador.textContent = contenedor.querySelectorAll('.row').length;
     }
 
     function activarSelectorImagen(label) {
@@ -228,7 +222,7 @@
 
       let hayContenidoValido = false;
       grupos.forEach(grupo => {
-        const filas = grupo.querySelectorAll('tbody tr');
+        const filas = grupo.querySelectorAll('.row');
         filas.forEach(fila => {
           const nombre = fila.querySelector('input[name="nombre"]');
           const precio = fila.querySelector('input[name="precio"]');
