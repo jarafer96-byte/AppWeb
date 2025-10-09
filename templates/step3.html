@@ -5,22 +5,121 @@
   <title>Contenido del sitio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    body {
+      background-color: #000;
+      font-family: sans-serif;
+      color: white;
+    }
+
+    h2 {
+      color: white;
+    }
+
+    .form-control {
+      background-color: rgba(255,255,255,0.05);
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+
+    .form-control::placeholder {
+      color: #aaa;
+    }
+
+    .tabla-productos th, .tabla-productos td {
+      background-color: rgba(255,255,255,0.05);
+      color: white;
+      border: none;
+      vertical-align: middle;
+    }
+
+    .tabla-productos input, .tabla-productos textarea {
+      background-color: rgba(255,255,255,0.05);
+      color: white;
+      width: 100%;
+      border: none;
+      padding: 5px;
+      border-radius: 6px;
+    }
+
+    .tabla-productos input::placeholder,
+    .tabla-productos textarea::placeholder {
+      color: #aaa;
+    }
+
+    .tabla-productos input[type="file"] {
+      max-width: 300px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .btn-gradient {
+      background: linear-gradient(135deg, #8e2de2, #ff6f61);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-gradient:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    }
+
+    .mensaje-final {
+      margin-top: 30px;
+      font-style: italic;
+      text-align: center;
+      color: #ccc;
+    }
+
+    .mensaje-final span {
+      display: block;
+      margin-top: 10px;
+      color: #ffcc00;
+      font-weight: bold;
+    }
+
+    .grupo {
+      margin-bottom: 40px;
+      background-color: rgba(255,255,255,0.05);
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    .grupo h4 {
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 5px;
+      margin-bottom: 15px;
+      color: white;
+    }
+
+    .btn-sm {
+      font-size: 0.85em;
+      padding: 6px 12px;
+      border-radius: 30px;
+    }
+  </style>
 </head>
-<body style="background-image: url('/static/img/fondo_black_diagonales.jpg'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed; background-position: center; font-family: sans-serif; color: white;">
+<body>
   <div class="container py-5">
     <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
 
     <div class="mb-4 text-center">
       <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" placeholder="Nombre del grupo (ej: Platos)">
-      <button type="button" class="btn-custom" onclick="crearGrupo()">Crear grupo</button>
+      <button type="button" class="btn-gradient btn-sm" onclick="crearGrupo()">Crear grupo</button>
     </div>
 
     <form id="formulario" method="POST" enctype="multipart/form-data">
       <div id="grupos"></div>
 
       <div class="text-center mt-4">
-        <button type="button" class="btn-custom px-5 py-2" onclick="validarYEnviar()">Continuar</button>
+        <button type="button" class="btn-gradient px-5 py-2" onclick="validarYEnviar()">Continuar</button>
       </div>
     </form>
 
@@ -55,24 +154,21 @@
           </thead>
           <tbody>
             <tr>
-              <td><input type="text" name="nombre"></td>
-              <td><textarea name="descripcion" rows="2"></textarea></td>
-              <td><input type="text" name="precio"></td>
-              <td>
-                <input type="file" name="imagen" accept="image/*" onchange="mostrarNombreImagen(this)">
-                <span class="nombre-imagen"></span>
-              </td>
+              <td><input type="text" name="nombre" placeholder="Ej: Milanesa"></td>
+              <td><textarea name="descripcion" rows="2" placeholder="Ej: Con papas fritas"></textarea></td>
+              <td><input type="text" name="precio" placeholder="$"></td>
+              <td><input type="file" name="imagen" accept="image/*"></td>
               <td>
                 <input type="hidden" name="grupo" value="${nombre}">
-                <button type="button" class="btn-custom btn-sm" onclick="duplicarFila(this)">Duplicar</button>
-                <button type="button" class="btn-custom btn-sm" onclick="eliminarFila(this)">Eliminar</button>
+                <button type="button" class="btn-gradient btn-sm" onclick="duplicarFila(this)">Duplicar</button>
+                <button type="button" class="btn-gradient btn-sm" onclick="eliminarFila(this)">Eliminar</button>
               </td>
             </tr>
           </tbody>
         </table>
         <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
         <div class="text-center mt-2">
-          <button type="button" class="btn-custom btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+          <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
         </div>
       `;
       document.getElementById('grupos').appendChild(grupo);
@@ -83,10 +179,8 @@
       const tbody = btn.closest('.grupo').querySelector('tbody');
       const fila = tbody.querySelector('tr').cloneNode(true);
       fila.querySelectorAll('input, textarea').forEach(el => {
-        if (el.type === 'file') el.value = '';
-        else el.value = '';
+        el.value = '';
       });
-      fila.querySelector('.nombre-imagen').textContent = '';
       tbody.appendChild(fila);
       actualizarContador(tbody);
     }
@@ -95,10 +189,8 @@
       const fila = btn.closest('tr');
       const nueva = fila.cloneNode(true);
       nueva.querySelectorAll('input, textarea').forEach(el => {
-        if (el.type === 'file') el.value = '';
-        else el.value = '';
+        el.value = '';
       });
-      nueva.querySelector('.nombre-imagen').textContent = '';
       fila.parentNode.appendChild(nueva);
       actualizarContador(fila.parentNode);
     }
@@ -116,15 +208,6 @@
     function actualizarContador(tbody) {
       const contador = tbody.closest('.grupo').querySelector('.contador');
       contador.textContent = tbody.querySelectorAll('tr').length;
-    }
-
-    function mostrarNombreImagen(input) {
-      const span = input.nextElementSibling;
-      if (input.files.length > 0) {
-        span.textContent = input.files[0].name;
-      } else {
-        span.textContent = '';
-      }
     }
 
     function validarYEnviar() {
