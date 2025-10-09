@@ -27,44 +27,24 @@
       color: #aaa;
     }
 
-    .tabla-productos th, .tabla-productos td {
+    .grupo {
+      margin-bottom: 40px;
       background-color: rgba(255,255,255,0.05);
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    .grupo h4 {
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 5px;
+      margin-bottom: 15px;
       color: white;
-      border: none;
-      vertical-align: middle;
     }
 
-    .tabla-productos input, .tabla-productos textarea {
-      background-color: rgba(255,255,255,0.05);
-      color: white;
-      width: 100%;
-      border: none;
-      padding: 5px;
-      border-radius: 6px;
-    }
-
-    .tabla-productos input::placeholder,
-    .tabla-productos textarea::placeholder {
-      color: #aaa;
-    }
-
-    .tabla-productos input[type="file"] {
-      max-width: 300px;
-      height: auto;
-      display: block;
-      margin: 0 auto;
-      padding: 8px;
-      border: 2px dashed #888;
-      border-radius: 8px;
-      background-color: rgba(255,255,255,0.08);
-      color: white;
-      transition: border-color 0.3s ease, background-color 0.3s ease;
-      box-sizing: border-box;
-    }
-
-    .tabla-productos input[type="file"].cargado {
-      border-color: #28a745;
-      background-color: rgba(40,167,69,0.2);
+    .btn-sm {
+      font-size: 0.85em;
+      padding: 6px 12px;
+      border-radius: 30px;
     }
 
     .btn-gradient {
@@ -97,24 +77,38 @@
       font-weight: bold;
     }
 
-    .grupo {
-      margin-bottom: 40px;
-      background-color: rgba(255,255,255,0.05);
-      padding: 20px;
-      border-radius: 12px;
-    }
-
-    .grupo h4 {
-      border-bottom: 1px solid rgba(255,255,255,0.2);
-      padding-bottom: 5px;
-      margin-bottom: 15px;
-      color: white;
-    }
-
-    .btn-sm {
+    .imagen-label {
+      display: block;
+      text-align: center;
       font-size: 0.85em;
-      padding: 6px 12px;
-      border-radius: 30px;
+      color: #333;
+    }
+
+    label.btn-light {
+      background-color: rgba(255,255,255,0.9);
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+      width: 100%;
+    }
+
+    label.btn-light:hover {
+      background-color: #e0e0e0;
+    }
+
+    label.btn-light.cargado {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    label.btn-light.cargado .imagen-label::after {
+      content: " ✓";
+      color: #28a745;
+    }
+
+    textarea {
+      resize: none;
     }
   </style>
 </head>
@@ -154,27 +148,9 @@
       grupo.id = 'grupo_' + grupoId;
       grupo.innerHTML = `
         <h4>${nombre}</h4>
-        <table class="table tabla-productos">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>Descripción</th>
-              <th>Precio</th>
-              <th>Imagen</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
+        <table class="table">
           <tbody>
-            <tr>
-              <td><input type="text" name="nombre" placeholder="Ej: Milanesa"></td>
-              <td><textarea name="descripcion" rows="2" placeholder="Ej: Con papas fritas"></textarea></td>
-              <td><input type="text" name="precio" placeholder="$"></td>
-              <td><input type="file" name="imagen" accept="image/*"></td>
-              <td>
-                <input type="hidden" name="grupo" value="${nombre}">
-                <button type="button" class="btn-gradient btn-sm" onclick="eliminarFila(this)">Eliminar</button>
-              </td>
-            </tr>
+            ${crearFilaHTML(nombre)}
           </tbody>
         </table>
         <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
@@ -185,28 +161,47 @@
       document.getElementById('grupos').appendChild(grupo);
       document.getElementById('nombreGrupo').value = '';
 
-      const nuevoInput = grupo.querySelector('input[type="file"]');
-      if (nuevoInput) activarSelectorImagen(nuevoInput);
+      activarSelectorImagen(grupo.querySelector('label.btn-light'));
+    }
+
+    function crearFilaHTML(nombreGrupo) {
+      return `
+        <tr>
+          <td colspan="5">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-3">
+                <input type="text" name="nombre" class="form-control" placeholder="Ej: Milanesa">
+              </div>
+              <div class="col-md-5">
+                <textarea name="descripcion" class="form-control" rows="1" placeholder="Ej: Con papas fritas"></textarea>
+              </div>
+              <div class="col-md-2">
+                <input type="text" name="precio" class="form-control" placeholder="$">
+              </div>
+              <div class="col-md-2 text-end">
+                <input type="hidden" name="grupo" value="${nombreGrupo}">
+                <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
+                <label class="btn btn-sm btn-light mt-2">
+                  <span class="imagen-label">Seleccionar imagen</span>
+                  <input type="file" name="imagen" accept="image/*" class="form-control form-control-sm d-none">
+                </label>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
     }
 
     function agregarFila(btn) {
       const grupo = btn.closest('.grupo');
       const tbody = grupo.querySelector('tbody');
-      const fila = tbody.querySelector('tr').cloneNode(true);
-
-      fila.querySelectorAll('input, textarea').forEach(el => {
-        el.value = '';
-      });
-
-      const grupoNombre = grupo.querySelector('h4').textContent;
-      const grupoInput = fila.querySelector('input[name="grupo"]');
-      if (grupoInput) grupoInput.value = grupoNombre;
-
-      tbody.appendChild(fila);
+      const nombreGrupo = grupo.querySelector('h4').textContent;
+      const filaHTML = crearFilaHTML(nombreGrupo);
+      tbody.insertAdjacentHTML('beforeend', filaHTML);
       actualizarContador(tbody);
 
-      const nuevoInput = fila.querySelector('input[type="file"]');
-      if (nuevoInput) activarSelectorImagen(nuevoInput);
+      const nuevaLabel = tbody.lastElementChild.querySelector('label.btn-light');
+      if (nuevaLabel) activarSelectorImagen(nuevaLabel);
     }
 
     function eliminarFila(btn) {
@@ -224,12 +219,13 @@
       contador.textContent = tbody.querySelectorAll('tr').length;
     }
 
-    function activarSelectorImagen(input) {
+    function activarSelectorImagen(label) {
+      const input = label.querySelector('input[type="file"]');
       input.addEventListener('change', function() {
         if (this.files.length > 0) {
-          this.classList.add('cargado');
+          label.classList.add('cargado');
         } else {
-          this.classList.remove('cargado');
+          label.classList.remove('cargado');
         }
       });
     }
@@ -254,8 +250,8 @@
       });
 
       if (!hayContenidoValido) {
-        alert('Completá al menos una fila con nombre y precio antes de continuar');
-        return;
+      alert('Completá al menos una fila con nombre y precio antes de continuar');
+      return;
       }
 
       document.getElementById('formulario').submit();
@@ -263,4 +259,3 @@
   </script>
 </body>
 </html>
-                                      
