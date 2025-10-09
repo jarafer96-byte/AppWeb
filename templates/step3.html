@@ -77,34 +77,36 @@
       font-weight: bold;
     }
 
-    .imagen-label {
+    label.btn-imagen {
       display: block;
+      width: 100%;
+      background-color: rgba(255,255,255,0.08);
+      color: white;
+      border: 1px dashed #888;
+      border-radius: 8px;
+      padding: 6px 12px;
       text-align: center;
       font-size: 0.85em;
-      color: #333;
-    }
-
-    label.btn-light {
-      background-color: rgba(255,255,255,0.9);
-      border-radius: 6px;
-      cursor: pointer;
       font-weight: bold;
-      transition: background-color 0.3s ease;
-      width: 100%;
+      cursor: pointer;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
-    label.btn-light:hover {
-      background-color: #e0e0e0;
+    label.btn-imagen:hover {
+      background-color: rgba(255,255,255,0.15);
+      border-color: #ccc;
     }
 
-    label.btn-light.cargado {
-      background-color: #d4edda;
-      color: #155724;
+    label.btn-imagen.cargado {
+      background-color: rgba(40,167,69,0.2);
+      border-color: #28a745;
+      color: #28a745;
     }
 
-    label.btn-light.cargado .imagen-label::after {
+    label.btn-imagen.cargado::after {
       content: " ✓";
       color: #28a745;
+      margin-left: 4px;
     }
 
     textarea {
@@ -161,7 +163,7 @@
       document.getElementById('grupos').appendChild(grupo);
       document.getElementById('nombreGrupo').value = '';
 
-      activarSelectorImagen(grupo.querySelector('label.btn-light'));
+      activarSelectorImagen(grupo.querySelector('label.btn-imagen'));
     }
 
     function crearFilaHTML(nombreGrupo) {
@@ -181,9 +183,9 @@
               <div class="col-md-2 text-end">
                 <input type="hidden" name="grupo" value="${nombreGrupo}">
                 <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
-                <label class="btn btn-sm btn-light mt-2">
-                  <span class="imagen-label">Seleccionar imagen</span>
-                  <input type="file" name="imagen" accept="image/*" class="form-control form-control-sm d-none">
+                <label class="btn-imagen mt-2">
+                  Seleccionar imagen
+                  <input type="file" name="imagen" accept="image/*" class="d-none">
                 </label>
               </div>
             </div>
@@ -200,7 +202,7 @@
       tbody.insertAdjacentHTML('beforeend', filaHTML);
       actualizarContador(tbody);
 
-      const nuevaLabel = tbody.lastElementChild.querySelector('label.btn-light');
+      const nuevaLabel = tbody.lastElementChild.querySelector('label.btn-imagen');
       if (nuevaLabel) activarSelectorImagen(nuevaLabel);
     }
 
@@ -259,3 +261,5 @@
   </script>
 </body>
 </html>
+
+              
