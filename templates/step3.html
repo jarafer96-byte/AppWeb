@@ -176,11 +176,19 @@
     }
 
     function agregarFila(btn) {
-      const tbody = btn.closest('.grupo').querySelector('tbody');
+      const grupo = btn.closest('.grupo');
+      const tbody = grupo.querySelector('tbody');
       const fila = tbody.querySelector('tr').cloneNode(true);
+
       fila.querySelectorAll('input, textarea').forEach(el => {
         el.value = '';
       });
+
+      // Reasignar el grupo correctamente
+      const grupoNombre = grupo.querySelector('h4').textContent;
+      const grupoInput = fila.querySelector('input[name="grupo"]');
+      if (grupoInput) grupoInput.value = grupoNombre;
+
       tbody.appendChild(fila);
       actualizarContador(tbody);
     }
