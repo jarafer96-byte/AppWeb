@@ -113,6 +113,54 @@
       transform: scale(1.1);
       filter: drop-shadow(0 0 6px {{ config.color }});
     }
+
+    #carrito {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      width: 300px;
+      z-index: 999;
+      display: none;
+    }
+
+    .modo-oscuro #carrito {
+      background-color: rgba(0,0,0,0.85);
+      color: white;
+      border: 1px solid white;
+      box-shadow: 0 0 10px white;
+    }
+
+    .modo-claro #carrito {
+      background-color: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    #toggleCarrito {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      padding: 10px 14px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 5px white;
+    }
+
+    .modo-oscuro #toggleCarrito {
+      background-color: {{ config.color }};
+      color: black;
+      border: none;
+    }
+
+    .modo-claro #toggleCarrito {
+      background-color: {{ config.color }};
+      color: white;
+      border: none;
+    }
   </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
@@ -131,7 +179,7 @@
     </div>
   {% endif %}
 
-    {% if config.tipo_web in ['catálogo', 'menú'] %}
+  {% if config.tipo_web in ['catálogo', 'menú'] %}
     {% set grupos = {} %}
     {% for producto in config.productos %}
       {% set nombre_grupo = producto.get('grupo') %}
@@ -276,4 +324,4 @@
   </script>
 </body>
 </html>
-
+  
