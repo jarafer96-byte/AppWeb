@@ -25,19 +25,21 @@
     }
 
     .card {
-      background-color: rgba(0, 0, 0, 0.5);
+      background-color: rgba(255, 255, 255, 0.05);
       color: white;
-      border: 1px solid white;
+      border: none;
+      border-radius: 12px;
     }
 
     .form-control {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.05);
       color: white;
-      border: 1px solid white;
+      border: none;
+      border-radius: 8px;
     }
 
     .form-control::placeholder {
-      color: #ccc;
+      color: #aaa;
     }
 
     .btn-gradient {
@@ -64,17 +66,17 @@
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="tipo_web" value="catálogo">
 
-      <div class="mb-4">
+      <div class="mb-4 card p-3">
         <label class="form-label text-white">Sobre mí (opcional)</label>
         <textarea name="sobre_mi" class="form-control" rows="3" placeholder="Contanos quién sos, qué hacés, o qué ofrece tu emprendimiento..."></textarea>
       </div>
 
-      <div class="mb-4">
+      <div class="mb-4 card p-3">
         <label class="form-label text-white">Logo (opcional)</label>
         <input type="file" name="logo" accept="image/*" class="form-control">
       </div>
 
-      <div class="mb-4">
+      <div class="mb-4 card p-3">
         <label class="form-label text-white">Estilo de fuente</label>
         <select name="fuente" class="form-control">
           <option value="sans-serif">Moderna</option>
