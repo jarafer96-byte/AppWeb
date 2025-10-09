@@ -93,7 +93,10 @@ button:active,
 /* === Íconos sociales === */
 .icono {
   height: 20px;
-  margin-right: 8px;
+  width: auto;
+  max-width: 24px;
+  object-fit: contain;
+  margin-right: 6px;
   vertical-align: middle;
 }
 
