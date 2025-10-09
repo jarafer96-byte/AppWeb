@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Contenido del sitio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body style="background-image: url('/static/img/fondo_black_diagonales.jpg'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed; background-position: center; font-family: sans-serif; color: white;">
+  <div class="container py-5">
+    <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
+
+    <div class="mb-4 text-center">
+      <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" placeholder="Nombre del grupo (ej: Platos)">
+      <button type="button" class="btn-custom" onclick="crearGrupo()">Crear grupo</button>
+    </div>
+
+    <form id="formulario" method="POST" enctype="multipart/form-data">
+      <div id="grupos"></div>
+
+      <div class="text-center mt-4">
+        <button type="button" class="btn-custom px-5 py-2" onclick="validarYEnviar()">Continuar</button>
+      </div>
+    </form>
+
+    <div class="mensaje-final">
+      ¿Tenés mucho contenido? <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
+      <span>⚠️ Si continuás, perderás todo el contenido si intentás volver a esta página.</span>
+    </div>
+  </div>
+
+  <script>
+    let grupoId = 0;
+
+    function crearGrupo() {
+      const nombre = document.getElementById('nombreGrupo').value.trim();
+      if (!nombre) return alert("Ingresá un nombre para el grupo");
+
+      grupoId++;
+      const grupo = document.createElement('div');
+      grupo.className = 'grupo';
+      grupo.id = 'grupo_' + grupoId;
+      grupo.innerHTML = `
+        <h4>${nombre}</h4>
+        <table class="table tabla-productos">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Descripción</th>
+              <th>Precio</th>
+              <th>Imagen</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" name="nombre"></td>
+              <td><textarea name="descripcion" rows="2"></textarea></td>
+              <td><input type="text" name="precio"></td>
+              <td>
+                <input type="file" name="imagen" accept="image/*" onchange="mostrarNombreImagen(this)">
+                <span class="nombre-imagen"></span>
+              </td>
+              <td>
+                <input type="hidden" name="grupo" value="${nombre}">
+                <button type="button" class="btn-custom btn-sm" onclick="duplicarFila(this)">Duplicar</button>
+                <button type="button" class="btn-custom btn-sm" onclick="eliminarFila(this)">Eliminar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
+        <div class="text-center mt-2">
+          <button type="button" class="btn-custom btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+        </div>
+      `;
+      document.getElementById('grupos').appendChild(grupo);
+      document.getElementById('nombreGrupo').value = '';
+    }
+
+    function agregarFila(btn) {
+      const tbody = btn.closest('.grupo').querySelector('tbody');
+      const fila = tbody.querySelector('tr').cloneNode(true);
+      fila.querySelectorAll('input, textarea').forEach(el => {
+        if (el.type === 'file') el.value = '';
+        else el.value = '';
+      });
+      fila.querySelector('.nombre-imagen').textContent = '';
+      tbody.appendChild(fila);
+      actualizarContador(tbody);
+    }
+
+    function duplicarFila(btn) {
+      const fila = btn.closest('tr');
+      const nueva = fila.cloneNode(true);
+      nueva.querySelectorAll('input, textarea').forEach(el => {
+        if (el.type === 'file') el.value = '';
+        else el.value = '';
+      });
+      nueva.querySelector('.nombre-imagen').textContent = '';
+      fila.parentNode.appendChild(nueva);
+      actualizarContador(fila.parentNode);
+    }
+
+    function eliminarFila(btn) {
+      const tbody = btn.closest('tbody');
+      if (tbody.querySelectorAll('tr').length > 1) {
+        btn.closest('tr').remove();
+        actualizarContador(tbody);
+      } else {
+        alert("No se puede eliminar la última fila");
+      }
+    }
+
+    function actualizarContador(tbody) {
+      const contador = tbody.closest('.grupo').querySelector('.contador');
+      contador.textContent = tbody.querySelectorAll('tr').length;
+    }
+
+    function mostrarNombreImagen(input) {
+      const span = input.nextElementSibling;
+      if (input.files.length > 0) {
+        span.textContent = input.files[0].name;
+      } else {
+        span.textContent = '';
+      }
+    }
+
+    function validarYEnviar() {
+      const grupos = document.querySelectorAll('.grupo');
+      if (grupos.length === 0) {
+        alert('Agregá al menos un grupo antes de continuar');
+        return;
+      }
+
+      let hayContenidoValido = false;
+      grupos.forEach(grupo => {
+        const filas = grupo.querySelectorAll('tbody tr');
+        filas.forEach(fila => {
+          const nombre = fila.querySelector('input[name="nombre"]');
+          const precio = fila.querySelector('input[name="precio"]');
+          if (nombre && precio && nombre.value.trim() && precio.value.trim()) {
+            hayContenidoValido = true;
+          }
+        });
+      });
+
+      if (!hayContenidoValido) {
+        alert('Completá al menos una fila con nombre y precio antes de continuar');
+        return;
+      }
+
+      document.getElementById('formulario').submit();
+    }
+  </script>
+</body>
+</html>
