@@ -1,13 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <!-- Vista previa enriquecida para redes -->
-  <meta property="og:title" content="Creá tu sitio tipo catálogo">
-  <meta property="og:description" content="Armá tu sitio visual sin código. Elegí fondo, estilo y contenido personalizado.">
-  <meta property="og:image" content="https://appweb-t6jr.onrender.com/static/img/preview.jpg">
-  <meta property="og:url" content="https://appweb-t6jr.onrender.com">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
   <meta charset="UTF-8">
   <title>Tipo de sitio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -70,6 +63,18 @@
       transform: scale(1.05);
       box-shadow: 0 0 15px rgba(255,255,255,0.5);
     }
+
+    .fuente-opcion {
+      display: inline-block;
+      margin-right: 20px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .fuente-opcion input[type="radio"] {
+      margin-right: 6px;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
@@ -91,15 +96,29 @@
 
       <div class="mb-4 card p-3">
         <label class="form-label text-white">Estilo de fuente</label>
-        <select name="fuente" class="form-control">
-          <option value="'Roboto', sans-serif" style="font-family: 'Roboto', sans-serif;">Ejemplo (Roboto)</option>
-          <option value="'Playfair Display', serif" style="font-family: 'Playfair Display', serif;">Ejemplo (Playfair Display)</option>
-          <option value="'Fira Code', monospace" style="font-family: 'Fira Code', monospace;">Ejemplo (Fira Code)</option>
-          <option value="'Raleway', sans-serif" style="font-family: 'Raleway', sans-serif;">Ejemplo (Raleway)</option>
-          <option value="'Quicksand', sans-serif" style="font-family: 'Quicksand', sans-serif;">Ejemplo (Quicksand)</option>
-          <option value="'Pacifico', cursive" style="font-family: 'Pacifico', cursive;">Ejemplo (Pacifico)</option>
-          <option value="'Source Serif 4', serif" style="font-family: 'Source Serif 4', serif;">Ejemplo (Source Serif 4)</option>
-        </select>
+        <div class="d-flex flex-wrap">
+          <label class="fuente-opcion text-white" style="font-family: 'Roboto', sans-serif;">
+            <input type="radio" name="fuente" value="'Roboto', sans-serif"> Roboto
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Playfair Display', serif;">
+            <input type="radio" name="fuente" value="'Playfair Display', serif"> Playfair Display
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Fira Code', monospace;">
+            <input type="radio" name="fuente" value="'Fira Code', monospace"> Fira Code
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Raleway', sans-serif;">
+            <input type="radio" name="fuente" value="'Raleway', sans-serif"> Raleway
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Quicksand', sans-serif;">
+            <input type="radio" name="fuente" value="'Quicksand', sans-serif"> Quicksand
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Pacifico', cursive;">
+            <input type="radio" name="fuente" value="'Pacifico', cursive"> Pacifico
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Source Serif 4', serif;">
+            <input type="radio" name="fuente" value="'Source Serif 4', serif"> Source Serif 4
+          </label>
+        </div>
       </div>
 
       <div class="card p-4 shadow-sm">
