@@ -327,13 +327,12 @@
     };
   </script>
   {% if config.ubicacion %}
-  <div class="text-center mt-5">
-    <h5 class="mb-3">Dirección</h5>
-    <p>
-      📍 {{ config.ubicacion }}<br>
+  <div id="ubicacion fija">
+    <p style="margin: 0;">
+      📍 {{ config.ubicacion }}
       {% if config.link_mapa %}
         <a href="{{ config.link_mapa }}" target="_blank">
-          <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 40px; margin-top: 10px;">
+          <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px; margin-left: 6px;">
         </a>
       {% endif %}
     </p>
