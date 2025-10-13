@@ -331,12 +331,15 @@
     <h5 class="mb-3">Dirección</h5>
     <p>
       📍 {{ config.ubicacion }}<br>
-      <a href="https://www.google.com/maps/search/?api=1&query={{ config.ubicacion | urlencode }}" target="_blank" class="btn btn-primary mt-2">
-        Ver en Google Maps
-      </a>
+      {% if config.link_mapa %}
+        <a href="{{ config.link_mapa }}" target="_blank">
+          <img src="/static/img/mapa-icono.png" alt="Ver en Google Maps" style="width: 40px; margin-top: 10px;">
+        </a>
+      {% endif %}
     </p>
   </div>
 {% endif %}
+
 
 </body>
 </html>
