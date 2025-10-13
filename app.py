@@ -61,8 +61,6 @@ def step1():
         session['whatsapp'] = request.form.get('whatsapp')
         session['instagram'] = request.form.get('instagram')
         session['sobre_mi'] = request.form.get('sobre_mi')
-        session['ubicacion'] = request.form.get('ubicacion')
-        session['link_mapa'] = request.form.get('link_mapa')
         session['fuente'] = request.form.get('fuente')
 
         logo = request.files.get('logo')
