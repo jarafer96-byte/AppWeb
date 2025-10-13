@@ -260,14 +260,91 @@
   </div>
 
   {% if config.ubicacion %}
-  <div class="bloque-ubicacion text-center mt-4">
-    <p style="margin-bottom: 6px;">
-      📍 {{ config.ubicacion }}
-    </p>
-    {% if config.link_mapa %}
-      <a href="{{ config.link_mapa }}" target="_blank">
-        <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
-      </a>
-    {% endif %}
+    <div class="bloque-ubicacion text-center mt-4">
+      <p style="margin-bottom: 6px;">
+        📍 {{ config.ubicacion }}
+      </p>
+      {% if config.link_mapa %}
+        <a href="{{ config.link_mapa }}" target="_blank">
+          <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <button id="toggleCarrito">🛒</button>
+
+  <div id="carrito">
+    <h5>🛒 Tu carrito</h5>
+    <ul id="listaCarrito"></ul>
+    <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+    <div class="d-grid gap-2">
+      <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+      <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+    </div>
   </div>
-{% endif %}
+
+  <script>
+    const configWhatsApp = "{{ config.whatsapp }}";
+
+    function mostrarGrupo(nombre, event) {
+      document.querySelectorAll('.grupo-section').forEach(div => {
+        div.classList.remove('active');
+      });
+      const grupoActivo = document.getElementById('grupo_' + nombre);
+      if (grupoActivo) grupoActivo.classList.add('active');
+
+      document.querySelectorAll('.btn-grupo').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+    }
+
+    window.onload = function() {
+      const primero = document.querySelector('.grupo-section');
+      if (primero) primero.classList.add('active');
+      const primerBtn = document.querySelector('.btn-grupo');
+      if (primerBtn) primerBtn.classList.add('active');
+    };
+
+    let carrito = [];
+
+    function agregarAlCarrito(nombre, precio) {
+      carrito.push({ nombre, precio: parseFloat(precio) });
+      actualizarCarrito();
+    }
+
+    function vaciarCarrito() {
+      carrito = [];
+      actualizarCarrito();
+    }
+
+    function actualizarCarrito() {
+      const lista = document.getElementById('listaCarrito');
+      const total = document.getElementById('totalCarrito');
+      lista.innerHTML = '';
+      let suma = 0;
+
+      carrito.forEach(item => {
+        lista.innerHTML += `<li>${item.nombre} - $${item.precio.toFixed(2)}</li>`;
+        suma += item.precio;
+      });
+
+      total.textContent = suma.toFixed(2);
+
+      const mensaje = encodeURIComponent(
+        `Hola, quiero consultar por:\n` +
+        carrito.map(i => `- ${i.nombre}: $${i.precio.toFixed(2)}`).join('\n') +
+        `\nTotal estimado: $${suma.toFixed(2)}`
+      );
+
+      document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
+    }
+
+    document.getElementById('toggleCarrito').onclick = function() {
+      const carritoDiv = document.getElementById('carrito');
+      carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+    };
+  </script>
+</body>
+</html>
