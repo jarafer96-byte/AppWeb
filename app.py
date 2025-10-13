@@ -141,6 +141,7 @@ def preview():
 
     config = {
         'tipo_web': session.get('tipo_web'),
+        'ubicacion': session.get('ubicacion'),
         'color': session.get('color'),
         'fuente': session.get('fuente'),
         'estilo': session.get('estilo'),
@@ -165,6 +166,7 @@ def descargar():
 
     config = {
         'tipo_web': session.get('tipo_web'),
+        'ubicacion': session.get('ubicacion'),
         'color': session.get('color'),
         'fuente': session.get('fuente'),
         'estilo': session.get('estilo'),
