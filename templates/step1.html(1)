@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Tipo de sitio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Fira+Code&family=Raleway&family=Quicksand&family=Pacifico&family=Source+Serif+4&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #000;
+      font-family: sans-serif;
+      color: white;
+    }
+
+    h2 {
+      color: white;
+    }
+
+    .icono {
+      height: 20px;
+      width: auto;
+      object-fit: contain;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .card {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: none;
+      border-radius: 12px;
+    }
+
+    .form-control {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+
+    .form-control::placeholder {
+      color: #aaa;
+    }
+
+    .btn-gradient {
+      background: linear-gradient(135deg, #8e2de2, #ff6f61);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-gradient:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    }
+
+    .fuente-opcion {
+      display: inline-block;
+      margin-right: 20px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .fuente-opcion input[type="radio"] {
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-5">
+    <h2 class="mb-4 text-center">Creá tu sitio tipo catálogo</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="tipo_web" value="catálogo">
+
+      <div class="mb-4 card p-3">
+        <label class="form-label text-white">Cuenta sobre ti, o tu emprendimiento/productos...</label>
+        <textarea name="sobre_mi" class="form-control" rows="3" placeholder="Contanos quién sos, qué hacés, o qué ofrece tu emprendimiento..."></textarea>
+      </div>
+
+      <div class="mb-4 card p-3">
+        <label class="form-label text-white">Logo (opcional)</label>
+        <input type="file" name="logo" accept="image/*" class="form-control">
+      </div>
+
+      <div class="mb-4 card p-3">
+        <label class="form-label text-white">Estilo de fuente</label>
+        <div class="d-flex flex-wrap">
+          <label class="fuente-opcion text-white" style="font-family: 'Roboto', sans-serif;">
+            <input type="radio" name="fuente" value="'Roboto', sans-serif"> Roboto
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Playfair Display', serif;">
+            <input type="radio" name="fuente" value="'Playfair Display', serif"> Playfair Display
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Fira Code', monospace;">
+            <input type="radio" name="fuente" value="'Fira Code', monospace"> Fira Code
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Raleway', sans-serif;">
+            <input type="radio" name="fuente" value="'Raleway', sans-serif"> Raleway
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Quicksand', sans-serif;">
+            <input type="radio" name="fuente" value="'Quicksand', sans-serif"> Quicksand
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Pacifico', cursive;">
+            <input type="radio" name="fuente" value="'Pacifico', cursive"> Pacifico
+          </label>
+          <label class="fuente-opcion text-white" style="font-family: 'Source Serif 4', serif;">
+            <input type="radio" name="fuente" value="'Source Serif 4', serif"> Source Serif 4
+          </label>
+        </div>
+      </div>
+
+      <div class="card p-4 shadow-sm">
+        <h5 class="mb-3 text-white">Agregá tus redes y links de contacto (opcional)</h5>
+        <div class="d-flex flex-column gap-3">
+          <div>
+            <label class="form-label text-white">
+              <img src="/static/img/facebook.png" class="icono" alt="Facebook"> Facebook
+            </label>
+            <input type="url" name="facebook" class="form-control" placeholder="https://facebook.com/tu_pagina">
+          </div>
+          <div>
+            <label class="form-label text-white">
+              <img src="/static/img/whatsapp.png" class="icono" alt="WhatsApp"> WhatsApp
+            </label>
+            <input type="url" name="whatsapp" class="form-control" value="https://wa.me/549" placeholder="Ej: https://wa.me/5491123456789">
+          </div>
+          <div>
+            <label class="form-label text-white">
+              <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Instagram
+            </label>
+            <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/tu_usuario">
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <button type="submit" class="btn-gradient">Continuar</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
