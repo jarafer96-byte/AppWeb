@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Vista previa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Google Fonts disponibles -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Fira+Code&family=Raleway&family=Quicksand&family=Pacifico&family=Source+Serif+4&display=swap" rel="stylesheet">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  {% set estilo = config.estilo_visual.lower() %}
+  {% if 'claro' in estilo or 'esferas' in estilo or 'blanco' in estilo %}
+    {% set modo_visual = 'modo-claro' %}
+  {% else %}
+    {% set modo_visual = 'modo-oscuro' %}
+  {% endif %}
+
+  <style>
+    body {
+      font-family: {{ config.fuente | safe }};
+      background-image: url('/static/img/{{ config.estilo_visual }}.jpeg');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-position: center;
+    }
+
+    .modo-claro {
+      color: #333;
+    }
+
+    .modo-claro .card {
+      background-color: #fff;
+      color: #333;
+      border: none;
+    }
+
+    .modo-claro .btn-grupo {
+      background-color: {{ config.color }};
+      color: white;
+      border: none;
+    }
+
+    .modo-oscuro {
+      color: white;
+    }
+
+    .modo-oscuro .card {
+      background-color: rgba(0,0,0,0.6);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .modo-oscuro .btn-grupo {
+      background-color: {{ config.color }};
+      color: black;
+      border: 2px solid {{ config.color }};
+    }
+
+    .card-img-top {
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .btn-grupo {
+      padding: 8px 16px;
+      margin: 5px;
+      border-radius: 20px;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-grupo:hover {
+      background-color: #fff;
+      color: {{ config.color }};
+    }
+
+    .btn-grupo.active {
+      box-shadow: 0 0 5px {{ config.color }};
+    }
+
+    .btn-whatsapp {
+      background-color: #25D366;
+      border: none;
+      padding: 8px 16px;
+      color: white;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .grupo-section {
+      display: none;
+    }
+
+    .grupo-section.active {
+      display: block;
+    }
+
+    .social-icons {
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    .social-icons img {
+      width: 40px;
+      margin: 0 10px;
+      transition: transform 0.3s ease;
+      filter: drop-shadow(0 0 3px white);
+    }
+
+    .social-icons img:hover {
+      transform: scale(1.1);
+      filter: drop-shadow(0 0 6px {{ config.color }});
+    }
+
+    .bloque-ubicacion {
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+
+    #carrito {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      width: 300px;
+      z-index: 999;
+      display: none;
+    }
+
+    .modo-oscuro #carrito {
+      background-color: rgba(0,0,0,0.85);
+      color: white;
+      border: 1px solid white;
+      box-shadow: 0 0 10px white;
+    }
+
+    .modo-claro #carrito {
+      background-color: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    #toggleCarrito {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      padding: 10px 14px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 5px white;
+    }
+
+    .modo-oscuro #toggleCarrito {
+      background-color: {{ config.color }};
+      color: black;
+      border: none;
+    }
+
+    .modo-claro #toggleCarrito {
+      background-color: {{ config.color }};
+      color: white;
+      border: none;
+    }
+  </style>
+</head>
+<body class="container py-5 {{ modo_visual }}">
+
+  {% if config.logo %}
+    <div class="text-center my-3">
+      <img src="{{ url_for('static', filename='img/' + config.logo) }}" alt="Logo" style="max-height: 80px;">
+    </div>
+  {% endif %}
+
+  {% if config.sobre_mi %}
+    <div class="text-center mb-4">
+      <div style="background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px; display: inline-block; max-width: 800px;">
+        <p style="margin: 0;">{{ config.sobre_mi }}</p>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if config.tipo_web in ['catálogo', 'menú'] %}
+    {% set grupos = {} %}
+    {% for producto in config.productos %}
+      {% set nombre_grupo = producto.get('grupo') %}
+      {% if not nombre_grupo or not nombre_grupo.strip() %}
+        {% set nombre_grupo = 'General' %}
+      {% endif %}
+      {% if nombre_grupo not in grupos %}
+        {% set _ = grupos.update({nombre_grupo: []}) %}
+      {% endif %}
+      {% set _ = grupos[nombre_grupo].append(producto) %}
+    {% endfor %}
+
+    <div class="text-center mb-4">
+      {% for grupo in grupos %}
+        {% if grupo.strip() %}
+          <button type="button" class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">{{ grupo }}</button>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {% for grupo, productos in grupos.items() %}
+    <div class="row grupo-section" id="grupo_{{ grupo }}">
+      {% for producto in productos %}
+      <div class="col-md-4 mb-4">
+        <div class="card p-3">
+          <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+          <div class="card-body">
+            <h5 class="card-title">{{ producto.nombre }}</h5>
+            <p class="card-text">{{ producto.descripcion }}</p>
+            <p><strong>Precio:</strong> $ {{ producto.precio }}</p>
+            <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">
+              Contactar por WhatsApp
+            </a>
+            <button type="button" class="btn btn-secondary mt-2" onclick="agregarAlCarrito('{{ producto.nombre }}', '{{ producto.precio }}')">
+              Agregar al carrito
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="text-center mt-5">
+    <a href="/descargar" class="btn btn-primary px-5">
+      Descargar sitio
+    </a>
+  </div>
+
+  <div class="social-icons">
+    {% if config.facebook %}
+      <a href="{{ config.facebook }}" target="_blank">
+        <img src="/static/img/facebook.png" alt="Facebook">
+      </a>
+    {% endif %}
+    {% if config.instagram %}
+      <a href="{{ config.instagram }}" target="_blank">
+        <img src="/static/img/instagram.png" alt="Instagram">
+      </a>
+    {% endif %}
+    {% if config.whatsapp %}
+      <a href="{{ config.whatsapp }}" target="_blank">
+        <img src="/static/img/whatsapp.png" alt="WhatsApp">
+      </a>
+    {% endif %}
+  </div>
+
+  {% if config.ubicacion %}
+  <div class="bloque-ubicacion text-center mt-4">
+    <p style="margin-bottom: 6px;">
+      📍 {{ config.ubicacion }}
+    </p>
+    {% if config.link_mapa %}
+      <a href="{{ config.link_mapa }}" target="_blank">
+        <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
+      </a>
+    {% endif %}
+  </div>
+{% endif %}
