@@ -62,6 +62,7 @@ def step1():
         session['instagram'] = request.form.get('instagram')
         session['sobre_mi'] = request.form.get('sobre_mi')
         session['ubicacion'] = request.form.get('ubicacion')
+        session['link_mapa'] = request.form.get('link_mapa')a
         session['fuente'] = request.form.get('fuente')
 
         logo = request.files.get('logo')
@@ -142,6 +143,7 @@ def preview():
     config = {
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
+        'link_mapa': session.get('link_mapa'),
         'color': session.get('color'),
         'fuente': session.get('fuente'),
         'estilo': session.get('estilo'),
@@ -167,6 +169,7 @@ def descargar():
     config = {
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
+        'link_mapa': session.get('link_mapa'),
         'color': session.get('color'),
         'fuente': session.get('fuente'),
         'estilo': session.get('estilo'),
