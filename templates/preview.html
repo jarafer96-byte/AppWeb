@@ -326,5 +326,17 @@
       carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
     };
   </script>
+  {% if config.ubicacion %}
+  <div class="text-center mt-5">
+    <h5 class="mb-3">Dirección</h5>
+    <p>
+      📍 {{ config.ubicacion }}<br>
+      <a href="https://www.google.com/maps/search/?api=1&query={{ config.ubicacion | urlencode }}" target="_blank" class="btn btn-primary mt-2">
+        Ver en Google Maps
+      </a>
+    </p>
+  </div>
+{% endif %}
+
 </body>
 </html>
