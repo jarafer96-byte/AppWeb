@@ -13,8 +13,8 @@ app = Flask(__name__)
 app.secret_key = 'clave-secreta'
 
 # 🔥 Configuración de Firestore 
-FIREBASE_PROJECT_ID = "tu-proyecto-id" 
-FIREBASE_API_KEY = "tu-api-key" 
+FIREBASE_PROJECT_ID = "appweb-2167a" 
+FIREBASE_API_KEY = "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM" 
 FIREBASE_COLLECTION = "productos"
 
 def subir_a_firestore(producto):
