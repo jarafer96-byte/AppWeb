@@ -365,27 +365,26 @@
   
   <div id="contenedor-productos" class="contenedor-productos"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-  <script>
   const firebaseConfig = {
-  apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
-  authDomain: "appweb-2167a.firebaseapp.com",
-  projectId: "appweb-2167a",
-  storageBucket: "appweb-2167a.firebasestorage.app",
-  messagingSenderId: "681717342631",
-  appId: "1:681717342631:web:388935feb3cabc1525d682"
-};
+    apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
+    authDomain: "appweb-2167a.firebaseapp.com",
+    projectId: "appweb-2167a",
+    storageBucket: "appweb-2167a.firebasestorage.app",
+    messagingSenderId: "681717342631",
+    appId: "1:681717342631:web:388935feb3cabc1525d682"
+  };
 
-  const app = firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-</script>
-<script>
-  db.collection("productos").onSnapshot(snapshot => {
-    const contenedor = document.getElementById("contenedor-productos");
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const contenedor = document.getElementById("contenedor-productos");
+
+  onSnapshot(collection(db, "productos"), snapshot => {
     contenedor.innerHTML = "";
-
     snapshot.forEach(doc => {
       const p = doc.data();
       contenedor.innerHTML += `
@@ -402,5 +401,6 @@
     });
   });
 </script>
+
 </body>
 </html>
