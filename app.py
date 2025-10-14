@@ -6,9 +6,35 @@ from io import BytesIO
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
 import time
+import requests
+import json
 
 app = Flask(__name__)
 app.secret_key = 'clave-secreta'
+
+# 🔥 Configuración de Firestore 
+FIREBASE_PROJECT_ID = "tu-proyecto-id" 
+FIREBASE_API_KEY = "tu-api-key" 
+FIREBASE_COLLECTION = "productos"
+
+def subir_a_firestore(producto):
+    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}?key={FIREBASE_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+
+    data = {
+        "fields": {
+            "nombre": {"stringValue": producto["nombre"]},
+            "precio": {"integerValue": int(producto["precio"])},
+            "grupo": {"stringValue": producto["grupo"]},
+            "descripcion": {"stringValue": producto.get("descripcion", "")},
+            "imagen": {"stringValue": producto["imagen"]},
+            "oferta": {"booleanValue": producto.get("oferta", False)}
+        }
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    return response.status_code == 200 or response.status_code == 202
+
 
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -132,6 +158,9 @@ def step3():
                 })
 
         session['bloques'] = bloques
+        for producto in bloques:
+            subir_a_firestore(producto)
+
         return redirect('/preview')
 
     return render_template('step3.html', tipo_web=tipo)
