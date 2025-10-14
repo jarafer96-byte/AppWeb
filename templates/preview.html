@@ -202,44 +202,90 @@
   </script>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
-      authDomain: "appweb-2167a.firebaseapp.com",
-      projectId: "appweb-2167a",
-      storageBucket: "appweb-2167a.firebasestorage.app",
-      messagingSenderId: "681717342631",
-      appId: "1:681717342631:web:388935feb3cabc1525d682"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
+    authDomain: "appweb-2167a.firebaseapp.com",
+    projectId: "appweb-2167a",
+    storageBucket: "appweb-2167a.firebasestorage.app",
+    messagingSenderId: "681717342631",
+    appId: "1:681717342631:web:388935feb3cabc1525d682"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const contenedor = document.getElementById("contenedor-productos");
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    onSnapshot(collection(db, "productos"), snapshot => {
-  contenedor.innerHTML = "";
-  snapshot.forEach(doc => {
-    const p = doc.data();
-    contenedor.innerHTML += `
-      <div class="col-md-4 mb-4">
-        <div class="card p-3" data-id="${doc.id}">
-          <img src="/static/img/${p.imagen}" class="card-img-top" alt="${p.nombre}" loading="lazy">
-          <div class="card-body">
-            <h5 class="card-title">${p.nombre}</h5>
-            <p class="card-text">${p.descripcion}</p>
-            <p><strong>Precio:</strong> $${p.precio}</p>
-            <div class="mt-2 d-flex justify-content-between align-items-center">
-              <label for="cantidad_${doc.id}" class="me-2 mb-0" style="font-size: 14px;">Cantidad:</label>
-              <input type="number" min="1" max="10" value="1" class="form-control form-control-sm me-2" style="width: 70px;" id="cantidad_${doc.id}">
-              <button type="button" class="btn btn-auto" onclick="agregarAlCarrito('${p.nombre}', '${p.precio}', 'cantidad_${doc.id}')">
-                🛒
-              </button>
+  const contenedor = document.getElementById("contenedor-productos");
+
+  // Botones dinámicos
+  const botonera = document.createElement("div");
+  botonera.className = "text-center mb-4";
+  contenedor.before(botonera);
+
+  onSnapshot(collection(db, "productos"), snapshot => {
+    contenedor.innerHTML = "";
+    botonera.innerHTML = "";
+
+    const grupos = {};
+
+    snapshot.forEach(doc => {
+      const p = doc.data();
+      const grupo = p.grupo?.trim() || "General";
+      if (!grupos[grupo]) grupos[grupo] = [];
+      grupos[grupo].push({ id: doc.id, ...p });
+    });
+
+    // Crear botones
+    Object.keys(grupos).forEach((grupo, index) => {
+      const btn = document.createElement("button");
+      btn.className = "btn-grupo";
+      btn.textContent = grupo;
+      btn.onclick = (event) => mostrarGrupo(grupo, event);
+      botonera.appendChild(btn);
+      if (index === 0) btn.classList.add("active");
+    });
+
+    // Renderizar grupos
+    Object.entries(grupos).forEach(([grupo, productos], index) => {
+      const grupoDiv = document.createElement("div");
+      grupoDiv.className = "row grupo-section";
+      grupoDiv.id = "grupo_" + grupo;
+      if (index === 0) grupoDiv.classList.add("active");
+
+      productos.forEach(p => {
+        grupoDiv.innerHTML += `
+          <div class="col-md-4 mb-4">
+            <div class="card p-3" data-id="${p.id}">
+              <img src="/static/img/${p.imagen}" class="card-img-top" alt="${p.nombre}" loading="lazy">
+              <div class="card-body">
+                <h5 class="card-title">${p.nombre}</h5>
+                <p class="card-text">${p.descripcion}</p>
+                <p><strong>Precio:</strong> $${p.precio}</p>
+                <div class="mt-2 d-flex justify-content-between align-items-center">
+                  <label for="cantidad_${p.id}" class="me-2 mb-0" style="font-size: 14px;">Cantidad:</label>
+                  <input type="number" min="1" max="10" value="1" class="form-control form-control-sm me-2" style="width: 70px;" id="cantidad_${p.id}">
+                  <button type="button" class="btn btn-auto" onclick="agregarAlCarrito('${p.nombre}', '${p.precio}', 'cantidad_${p.id}')">🛒</button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    `;
+        `;
+      });
+
+      contenedor.appendChild(grupoDiv);
+    });
   });
-});
+
+  // Función para mostrar grupo
+  window.mostrarGrupo = function(nombre, event) {
+    document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active'));
+    const grupoActivo = document.getElementById('grupo_' + nombre);
+    if (grupoActivo) grupoActivo.classList.add('active');
+
+    document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+  };
+</script>
+
