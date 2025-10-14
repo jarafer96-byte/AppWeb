@@ -389,7 +389,7 @@
     snapshot.forEach(doc => {
       const p = doc.data();
       contenedor.innerHTML += `
-        <div class="card">
+        <div class="card" data-id="${doc.id}">
           <img src="/static/img/${p.imagen}" class="card-img-top" alt="${p.nombre}">
           <div class="card-body">
             <h5 class="card-title">${p.nombre}</h5>
