@@ -379,6 +379,26 @@
   const app = firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 </script>
+<script>
+  db.collection("productos").onSnapshot(snapshot => {
+    const contenedor = document.getElementById("contenedor-productos");
+    contenedor.innerHTML = "";
 
+    snapshot.forEach(doc => {
+      const p = doc.data();
+      contenedor.innerHTML += `
+        <div class="card">
+          <img src="/static/img/${p.imagen}" class="card-img-top" alt="${p.nombre}">
+          <div class="card-body">
+            <h5 class="card-title">${p.nombre}</h5>
+            <p class="card-text">${p.descripcion}</p>
+            <p class="card-price"><strong>$${p.precio}</strong></p>
+            <button class="btn-auto" onclick="agregarAlCarrito('${p.nombre}', '${p.precio}', 'cantidad_${doc.id}')">🛒</button>
+          </div>
+        </div>
+      `;
+    });
+  });
+</script>
 </body>
 </html>
