@@ -387,7 +387,8 @@
   onSnapshot(productosRef, (snapshot) => {
     snapshot.forEach(doc => {
       const data = doc.data();
-      const precioSpan = document.getElementById("precio_" + doc.id);
+      const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
+      const precioSpan = document.getElementById(nombreId);
       if (precioSpan && data.precio) {
       precioSpan.textContent = data.precio;
       }
