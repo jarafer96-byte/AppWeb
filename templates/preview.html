@@ -317,12 +317,15 @@
     let carrito = [];
 
     function agregarAlCarrito(nombre, precio, idCantidad) {
-      const cantidadInput = document.getElementById(idCantidad);
-      const cantidad = parseInt(cantidadInput.value) || 1;
+      const cantidadInput = document.getElementById(idCantidad); 
+      const precioSpan = document.getElementById(idPrecioSpan);
 
-      carrito.push({
+      const cantidad = parseInt(cantidadInput?.value) || 1; 
+      const precio = parseFloat(precioSpan?.textContent) || 0;
+
+     carrito.push({
         nombre,
-        precio: parseFloat(precio),
+        precio,
         cantidad
       });
 
