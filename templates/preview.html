@@ -224,7 +224,7 @@
           <div class="card-body">
             <h5 class="card-title">{{ producto.nombre }}</h5>
             <p class="card-text">{{ producto.descripcion }}</p>
-            <p><strong>Precio:</strong> $ <span id="precio_{{ producto.id }}">{{ producto.precio }}</span></p>
+            <p><strong>Precio:</strong> $ <span id="precio_{{ producto.nombre | replace(' ', '_') }}">{{ producto.precio }}</span></p>
             <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">
               Contactar por WhatsApp
             </a>
