@@ -336,8 +336,23 @@
       carrito = [];
       actualizarCarrito();
     }
+    
+    function sincronizarPreciosDelCarrito() {
+  carrito.forEach(item => {
+    const idPrecio = "precio_" + item.nombre.replace(/ /g, "_");
+    const precioSpan = document.getElementById(idPrecio);
+    if (precioSpan) {
+      const precioActual = parseFloat(precioSpan.textContent);
+      if (!isNaN(precioActual)) {
+        item.precio = precioActual;
+      }
+    }
+  });
+}
 
     function actualizarCarrito() {
+      sincronizarPreciosDelCarrito();
+
       const lista = document.getElementById('listaCarrito');
       const total = document.getElementById('totalCarrito');
       lista.innerHTML = '';
