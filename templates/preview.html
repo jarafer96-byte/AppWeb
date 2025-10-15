@@ -231,7 +231,7 @@
             <div class="mt-2 d-flex justify-content-between align-items-center">
               <label for="cantidad_{{ loop.index }}" class="me-2 mb-0" style="font-size: 14px;">Cantidad:</label>
               <input type="number" min="1" max="10" value="1" class="form-control form-control-sm me-2" style="width: 70px;" id="cantidad_{{ loop.index }}">
-              <button type="button" class="btn btn-secondary" onclick="agregarAlCarrito('{{ producto.nombre }}', '{{ producto.precio }}', 'cantidad_{{ loop.index }}')">
+              <button type="button" class="btn btn-secondary" onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.nombre | replace(' ', '_') }}', 'cantidad_{{ loop.index }}')">
                 Agregar al carrito
               </button>
             </div>
