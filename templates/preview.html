@@ -382,16 +382,18 @@
   const db = getFirestore(app);
 
   const productosRef = collection(db, "productos");
-  const snapshot = await getDocs(productosRef);
+  import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
-    const precioSpan = document.getElementById(nombreId);
-
-    if (precioSpan && data.precio) {
+  onSnapshot(productosRef, (snapshot) => {
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const precioSpan = document.getElementById("precio_" + doc.id);
+      if (precioSpan && data.precio) {
       precioSpan.textContent = data.precio;
-    }
+      }
+    });
+  });
+
   });
 </script>
 
