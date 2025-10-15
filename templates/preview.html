@@ -366,55 +366,52 @@
     };
   </script>
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+  import {
+    initializeApp
+  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
   const firebaseConfig = {
-  apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM", 
-  authDomain: "appweb-2167a.firebaseapp.com",
-  projectId: "appweb-2167a",
-  storageBucket: "appweb-2167a.firebasestorage.app",
-  messagingSenderId: "681717342631",
-  appId: "1:681717342631:web:388935feb3cabc1525d682"
-};
+    apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM", 
+    authDomain: "appweb-2167a.firebaseapp.com",
+    projectId: "appweb-2167a",
+    storageBucket: "appweb-2167a.firebasestorage.app",
+    messagingSenderId: "681717342631",
+    appId: "1:681717342631:web:388935feb3cabc1525d682"
+  };
 
-  import {
-  getFirestore,
-  collection,
-  getDocs,
-  onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const productosRef = collection(db, "productos");
 
-const db = getFirestore();
-const productosRef = collection(db, "productos");
-
-// ✅ Carga inicial
-getDocs(productosRef).then(snapshot => {
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
-    const precioSpan = document.getElementById(nombreId);
-    if (precioSpan && data.precio) {
-      precioSpan.textContent = data.precio;
-    }
+  // ✅ Carga inicial
+  getDocs(productosRef).then(snapshot => {
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
+      const precioSpan = document.getElementById(nombreId);
+      if (precioSpan && data.precio) {
+        precioSpan.textContent = data.precio;
+      }
+    });
   });
-});
 
-// ✅ Actualización en vivo
-onSnapshot(productosRef, snapshot => {
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
-    const precioSpan = document.getElementById(nombreId);
-    if (precioSpan && data.precio) {
-      precioSpan.textContent = data.precio;
-    }
-  });
-});
-
-
+  // ✅ Actualización en vivo
+  onSnapshot(productosRef, snapshot => {
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
+      const precioSpan = document.getElementById(nombreId);
+      if (precioSpan && data.precio) {
+        precioSpan.textContent = data.precio;
+      }
+    });
   });
 </script>
-
 </body>
 </html>
