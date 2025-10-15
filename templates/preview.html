@@ -185,6 +185,53 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
   import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+
+// Cargar configuración visual desde Firestore
+const configRef = doc(db, "configuracion", "visual");
+const configSnap = await getDoc(configRef);
+
+if (configSnap.exists()) {
+  const config = configSnap.data();
+
+  // Fondo visual
+  if (config.estilo_visual) {
+    document.body.style.backgroundImage = `url('/static/img/${config.estilo_visual}.jpeg')`;
+  }
+
+  // Logo
+  if (config.logo) {
+    const logoContainer = document.querySelector("#logo-container");
+    if (logoContainer) {
+      logoContainer.innerHTML = `<img src="/static/img/${config.logo}" alt="Logo" style="max-height: 80px;">`;
+    }
+  }
+
+  // Redes sociales
+  const socialContainer = document.querySelector(".social-icons");
+  socialContainer.innerHTML = "";
+
+  if (config.facebook?.trim()) {
+    socialContainer.innerHTML += `
+      <a href="${config.facebook}" target="_blank">
+        <img src="/static/img/facebook.png" alt="Facebook" style="width: 30px;">
+      </a>`;
+  }
+
+  if (config.instagram?.trim()) {
+    socialContainer.innerHTML += `
+      <a href="${config.instagram}" target="_blank">
+        <img src="/static/img/instagram.png" alt="Instagram" style="width: 30px;">
+      </a>`;
+  }
+
+  if (config.whatsapp?.trim()) {
+    socialContainer.innerHTML += `
+      <a href="${config.whatsapp}" target="_blank">
+        <img src="/static/img/whatsapp.png" alt="WhatsApp" style="width: 30px;">
+      </a>`;
+  }
+}
 
   const firebaseConfig = {
     apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
