@@ -378,22 +378,40 @@
   appId: "1:681717342631:web:388935feb3cabc1525d682"
 };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  import {
+  getFirestore,
+  collection,
+  getDocs,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-  const productosRef = collection(db, "productos");
-  import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+const db = getFirestore();
+const productosRef = collection(db, "productos");
 
-  onSnapshot(productosRef, (snapshot) => {
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
-      const precioSpan = document.getElementById(nombreId);
-      if (precioSpan && data.precio) {
+// ✅ Carga inicial
+getDocs(productosRef).then(snapshot => {
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
+    const precioSpan = document.getElementById(nombreId);
+    if (precioSpan && data.precio) {
       precioSpan.textContent = data.precio;
-      }
-    });
+    }
   });
+});
+
+// ✅ Actualización en vivo
+onSnapshot(productosRef, snapshot => {
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
+    const precioSpan = document.getElementById(nombreId);
+    if (precioSpan && data.precio) {
+      precioSpan.textContent = data.precio;
+    }
+  });
+});
+
 
   });
 </script>
