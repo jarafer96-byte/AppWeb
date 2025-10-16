@@ -220,7 +220,7 @@
       {% for producto in productos %}
       <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
         <div class="card p-3">
-          <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+          <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen|hash }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
           <div class="card-body">
             <h5 class="card-title">{{ producto.nombre }}</h5>
             <p class="card-text">{{ producto.descripcion }}</p>
