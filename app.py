@@ -156,7 +156,7 @@ def step3():
                 if not nombre or not precio or not grupo or not filename:
                     continue
 
-                webp_name = f"{os.path.splitext(secure_filename(img.filename))[0]}_{uuid()[:4]}.webp"
+                webp_name = f"{os.path.splitext(secure_filename(img.filename))[0]}_{shortuuid.uuid()[:4]}.webp"
                 destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
                 src_temp = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 img.save(src_temp)  # guardar temporalmente para comparar fechas
