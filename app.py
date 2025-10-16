@@ -63,19 +63,19 @@ def redimensionar_webp_en_static():
     os.makedirs(carpeta, exist_ok=True)
     for nombre in os.listdir(carpeta):
         if nombre.endswith('.webp'):
-            src = os.path.join(carpeta, nombre)
-            dst = src  # en este caso, sobrescribís el mismo archivo
-
-            if necesita_redimension(src, dst):
-                try:
-                    img = Image.open(src)
-                    img = img.convert('RGB')
+            ruta = os.path.join(carpeta, nombre)
+            try:
+                img = Image.open(ruta)
+                img = img.convert('RGB')
+                # Solo redimensionar si es mayor a 400x400
+                if img.width > 400 or img.height > 400:
                     img.thumbnail((400, 400))
-                    img.save(dst, format='WEBP', quality=80)
+                    img.save(ruta, format='WEBP', quality=80)
                     print(f"Redimensionado: {nombre}")
-                except Exception as e:
-                    print(f"Error al redimensionar {nombre}: {e}")
-
+                else:
+                    print(f"Sin cambios: {nombre}")
+            except Exception as e:
+                print(f"Error al redimensionar {nombre}: {e}")
 
 # ✅ Limpia imágenes subidas por el usuario si el flujo se abandona o después de descargar
 def limpiar_imagenes_usuario():
