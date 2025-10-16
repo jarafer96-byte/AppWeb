@@ -165,6 +165,8 @@ def step3():
                     tareas.append(executor.submit(convertir_y_comprimir, img, destino))
                 else:
                     print(f"Usando caché existente: {webp_name}")
+                if os.path.exists(src_temp):
+                    os.remove(src_temp)
 
 
                 bloques.append({
