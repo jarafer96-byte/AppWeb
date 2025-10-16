@@ -251,6 +251,13 @@ def descargar():
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
 
+@app.template_filter('imgver')
+def imgver_filter(name):
+    try:
+        return int(os.path.getmtime(os.path.join(app.config['UPLOAD_FOLDER'], name))) % 10_000
+    except Exception:
+        return 0
+        
 @app.after_request
 def cache(response):
     if request.path.startswith("/static/img"):
