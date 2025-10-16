@@ -10,6 +10,7 @@ import requests
 import json
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
 app.secret_key = 'clave-secreta'
 
 # 🔥 Configuración de Firestore 
