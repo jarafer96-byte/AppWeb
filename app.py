@@ -13,6 +13,10 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
 app.secret_key = 'clave-secreta'
 
+@app.errorhandler(413)
+def too_large(e):
+    return "Archivo demasiado grande (máx. 4 MB)", 413
+
 # 🔥 Configuración de Firestore 
 FIREBASE_PROJECT_ID = "appweb-2167a" 
 FIREBASE_API_KEY = "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM" 
