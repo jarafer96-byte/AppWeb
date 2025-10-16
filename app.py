@@ -162,9 +162,9 @@ def step3():
                 img.save(src_temp)  # guardar temporalmente para comparar fechas
 
                 if necesita_redimension(src_temp, destino):
-                tareas.append(executor.submit(convertir_y_comprimir, img, destino))
+                    tareas.append(executor.submit(convertir_y_comprimir, img, destino))
                 else:
-                     print(f"Usando caché existente: {webp_name}")
+                    print(f"Usando caché existente: {webp_name}")
 
 
                 bloques.append({
