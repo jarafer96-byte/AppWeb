@@ -158,8 +158,14 @@ def step3():
                 webp_name = os.path.splitext(filename)[0] + '.webp'
                 destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
 
-                if not os.path.exists(destino):
-                    tareas.append(executor.submit(convertir_y_comprimir, img, destino))
+                src_temp = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                img.save(src_temp)  # guardar temporalmente para comparar fechas
+
+                if necesita_redimension(src_temp, destino):
+                tareas.append(executor.submit(convertir_y_comprimir, img, destino))
+                else:
+                     print(f"Usando caché existente: {webp_name}")
+
 
                 bloques.append({
                     'nombre': nombre,
