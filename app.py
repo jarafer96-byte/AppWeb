@@ -55,20 +55,27 @@ def convertir_y_comprimir(imagen, destino, calidad=70, max_size=(300, 300)):
     except Exception as e:
         print(f"Error al comprimir imagen: {e}")
 
-# ✅ Redimensiona automáticamente los fondos .webp al iniciar
+def necesita_redimension(src, dst):
+    return not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst)
+
 def redimensionar_webp_en_static():
     carpeta = 'static/img/webp'
     os.makedirs(carpeta, exist_ok=True)
     for nombre in os.listdir(carpeta):
         if nombre.endswith('.webp'):
-            ruta = os.path.join(carpeta, nombre)
-            try:
-                img = Image.open(ruta)
-                img = img.convert('RGB')
-                img.thumbnail((400, 400))
-                img.save(ruta, format='WEBP', quality=80)
-            except Exception as e:
-                print(f"Error al redimensionar {nombre}: {e}")
+            src = os.path.join(carpeta, nombre)
+            dst = src  # en este caso, sobrescribís el mismo archivo
+
+            if necesita_redimension(src, dst):
+                try:
+                    img = Image.open(src)
+                    img = img.convert('RGB')
+                    img.thumbnail((400, 400))
+                    img.save(dst, format='WEBP', quality=80)
+                    print(f"Redimensionado: {nombre}")
+                except Exception as e:
+                    print(f"Error al redimensionar {nombre}: {e}")
+
 
 # ✅ Limpia imágenes subidas por el usuario si el flujo se abandona o después de descargar
 def limpiar_imagenes_usuario():
