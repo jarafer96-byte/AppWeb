@@ -228,7 +228,8 @@ def preview():
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
-        'bloques': []
+        'bloques': [],
+        'visual_config': visual_config
     }
 
     return render_template('preview.html', config=config)
