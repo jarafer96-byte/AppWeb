@@ -194,7 +194,7 @@
     </div>
   {% endif %}
   
-  {% if config.tipo_web in ['catálogo', 'menú'] %}
+{% if config.tipo_web in ['catálogo', 'menú'] %}
   {% set ns = namespace(grupos={}) %}
   {% for producto in config.productos %}
     {% set nombre_grupo = producto.get('grupo') %}
@@ -207,66 +207,45 @@
     {% set _ = ns.grupos[nombre_grupo].append(producto) %}
   {% endfor %}
 
+  <div class="text-center mb-4">
+    {% for grupo in ns.grupos.keys() %}
+      {% if grupo.strip() %}
+        <button type="button" class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
+          {{ grupo }}
+        </button>
+      {% endif %}
+    {% endfor %}
+  </div>
+
   {% for grupo, productos in ns.grupos.items() %}
-    <h3 class="text-light mt-5 mb-3">{{ grupo }}</h3>
-    <div class="row">
+    <div class="row grupo-section" id="grupo_{{ grupo }}">
       {% for producto in productos %}
-        <div class="col-md-4 mb-4">
-          <div class="card card-{{ config.visual_config.tarjeta }} borde-{{ config.visual_config.borde }} sombra-{{ config.visual_config.sombra }}">
-            <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen|imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+          <div class="card p-3 card-{{ config.visual_config.tarjeta }} borde-{{ config.visual_config.borde }} sombra-{{ config.visual_config.sombra }}">
+            <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen | imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
             <div class="card-body">
               <h5 class="card-title">{{ producto.nombre }}</h5>
               <p class="card-text">{{ producto.descripcion }}</p>
-              <p class="card-text fw-bold">${{ producto.precio }}</p>
-              <button class="btn btn-{{ config.visual_config.boton }}">Comprar</button>
+              <p><strong>Precio:</strong> $ <span id="precio_{{ producto.nombre | replace(' ', '_') }}">{{ producto.precio }}</span></p>
+              <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                <label for="cantidad_{{ loop.index }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                <input type="number" min="1" max="10" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ loop.index }}">
+                <button type="button" class="btn btn-secondary" onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.nombre | replace(' ', '_') }}', 'cantidad_{{ loop.index }}')">
+                  Agregar al carrito
+                </button>
+              </div>
             </div>
           </div>
         </div>
       {% endfor %}
     </div>
   {% endfor %}
+{% endif %}
 
-    <div class="text-center mb-4">
-      {% for grupo in grupos %}
-        {% if grupo.strip() %}
-          <button type="button" class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">{{ grupo }}</button>
-        {% endif %}
-      {% endfor %}
-    </div>
-
-    {% for grupo, productos in ns.grupos.items() %}
-    <div class="row grupo-section" id="grupo_{{ grupo }}">
-      {% for producto in productos %}
-      <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-        <div class="card p-3">
-          <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen | imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
-          <div class="card-body">
-            <h5 class="card-title">{{ producto.nombre }}</h5>
-            <p class="card-text">{{ producto.descripcion }}</p>
-            <p><strong>Precio:</strong> $ <span id="precio_{{ producto.nombre | replace(' ', '_') }}">{{ producto.precio }}</span></p>
-            <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">
-              Contactar por WhatsApp
-            </a>
-            <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-  <label for="cantidad_{{ loop.index }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-  <input type="number" min="1" max="10" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ loop.index }}">
-  <button type="button" class="btn btn-secondary" onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.nombre | replace(' ', '_') }}', 'cantidad_{{ loop.index }}')">
-    Agregar al carrito
-  </button>
+<div class="text-center mt-5">
+  <a href="/descargar" class="btn btn-primary px-5">Descargar sitio</a>
 </div>
-
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    {% endfor %}
-
-  <div class="text-center mt-5">
-    <a href="/descargar" class="btn btn-primary px-5">
-      Descargar sitio
-    </a>
-  </div>
 
   <div class="social-icons">
     {% if config.facebook %}
