@@ -210,7 +210,7 @@
   <div class="text-center mb-4">
     {% for grupo in ns.grupos.keys() %}
       {% if grupo.strip() %}
-        <button type="button" class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
+        <button type="button" class="btn btn-{{ config.visual_config_bootstrap.boton }} me-2 mb-2" onclick="mostrarGrupo('{{ grupo }}', event)">
           {{ grupo }}
         </button>
       {% endif %}
