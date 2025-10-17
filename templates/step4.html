@@ -49,56 +49,80 @@
       transform: scale(1.05);
       box-shadow: 0 0 15px rgba(255,255,255,0.5);
     }
+
+    iframe {
+      border: 1px solid #444;
+      border-radius: 12px;
+    }
   </style>
 </head>
 <body>
   <div class="container py-5">
     <h2 class="mb-4 text-center">Ajustes visuales del sitio</h2>
+    <div class="row">
+      <!-- Panel de controles -->
+      <div class="col-lg-4">
+        <form id="estiloForm" method="POST" action="/step4">
+          <!-- Estilo de botones -->
+          <div class="mb-4">
+            <h5>Estilo de botones</h5>
+            <div class="opcion" onclick="seleccionar(this, 'boton', 'gradient')">Redondeado degradado (actual)</div>
+            <div class="opcion" onclick="seleccionar(this, 'boton', 'cuadrado')">Cuadrado moderno</div>
+            <div class="opcion" onclick="seleccionar(this, 'boton', 'pastel')">Pastel suave</div>
+            <div class="opcion" onclick="seleccionar(this, 'boton', 'neon')">Neón oscuro</div>
+          </div>
 
-    <form method="POST" action="/step4">
-      <!-- Estilo de botones -->
-      <div class="mb-4">
-        <h5>Estilo de botones</h5>
-        <div class="opcion" onclick="seleccionar(this, 'boton', 'gradient')">Redondeado degradado (actual)</div>
-        <div class="opcion" onclick="seleccionar(this, 'boton', 'cuadrado')">Cuadrado moderno</div>
-        <div class="opcion" onclick="seleccionar(this, 'boton', 'pastel')">Pastel suave</div>
-        <div class="opcion" onclick="seleccionar(this, 'boton', 'neon')">Neón oscuro</div>
+          <!-- Estilo de tarjetas -->
+          <div class="mb-4">
+            <h5>Estilo de tarjetas</h5>
+            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'mate')">Mate redondeado</div>
+            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'clear')">Transparente elegante</div>
+            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'pastel')">Pastel con sombra</div>
+            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'flat')">Minimal sin borde</div>
+          </div>
+
+          <!-- Bordes y sombras -->
+          <div class="mb-4">
+            <h5>Extras visuales</h5>
+            <div class="opcion" onclick="seleccionar(this, 'borde', 'claro')">Borde claro</div>
+            <div class="opcion" onclick="seleccionar(this, 'borde', 'oscuro')">Borde oscuro</div>
+            <div class="opcion" onclick="seleccionar(this, 'sombra', 'suave')">Sombra suave</div>
+            <div class="opcion" onclick="seleccionar(this, 'sombra', 'intensa')">Sombra intensa</div>
+          </div>
+
+          <input type="hidden" name="boton" id="boton">
+          <input type="hidden" name="tarjeta" id="tarjeta">
+          <input type="hidden" name="borde" id="borde">
+          <input type="hidden" name="sombra" id="sombra">
+
+          <div class="text-center mt-4">
+            <button type="submit" class="btn-gradient px-5 py-2">Guardar y volver</button>
+            <a href="/preview" class="btn btn-link text-white d-block mt-2">Saltar y ver preview</a>
+          </div>
+        </form>
       </div>
 
-      <!-- Estilo de tarjetas -->
-      <div class="mb-4">
-        <h5>Estilo de tarjetas</h5>
-        <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'mate')">Mate redondeado</div>
-        <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'clear')">Transparente elegante</div>
-        <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'pastel')">Pastel con sombra</div>
-        <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'flat')">Minimal sin borde</div>
+      <!-- Vista previa en vivo -->
+      <div class="col-lg-8">
+        <iframe id="previewFrame" src="/preview?t={{ now() }}" class="w-100" style="height: 80vh;"></iframe>
       </div>
-
-      <!-- Bordes y sombras -->
-      <div class="mb-4">
-        <h5>Extras visuales</h5>
-        <div class="opcion" onclick="seleccionar(this, 'borde', 'claro')">Borde claro</div>
-        <div class="opcion" onclick="seleccionar(this, 'borde', 'oscuro')">Borde oscuro</div>
-        <div class="opcion" onclick="seleccionar(this, 'sombra', 'suave')">Sombra suave</div>
-        <div class="opcion" onclick="seleccionar(this, 'sombra', 'intensa')">Sombra intensa</div>
-      </div>
-
-      <input type="hidden" name="boton" id="boton">
-      <input type="hidden" name="tarjeta" id="tarjeta">
-      <input type="hidden" name="borde" id="borde">
-      <input type="hidden" name="sombra" id="sombra">
-
-      <div class="text-center mt-4">
-        <button type="submit" class="btn-gradient px-5 py-2">Continuar al preview</button>
-      </div>
-    </form>
+    </div>
   </div>
 
   <script>
     function seleccionar(elemento, campo, valor) {
-      document.querySelectorAll('.opcion').forEach(op => op.classList.remove('seleccionada'));
+      document.querySelectorAll('.opcion').forEach(op => {
+        if (op.textContent.includes(campo)) op.classList.remove('seleccionada');
+      });
       elemento.classList.add('seleccionada');
       document.getElementById(campo).value = valor;
+      actualizarPreview();
+    }
+
+    function actualizarPreview() {
+      const form = document.getElementById('estiloForm');
+      const params = new URLSearchParams(new FormData(form)).toString();
+      document.getElementById('previewFrame').src = `/preview?t=${Date.now()}&` + params;
     }
   </script>
 </body>
