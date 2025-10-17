@@ -189,11 +189,11 @@ def step3():
     def step4():
         if request.method == 'POST':
         # Guardar configuración visual en sesión
-        session['visual_config'] = {
-            'boton': request.form.get('boton', 'gradient'),
-            'tarjeta': request.form.get('tarjeta', 'mate'),
-            'borde': request.form.get('borde', 'claro'),
-            'sombra': request.form.get('sombra', 'suave')
+            session['visual_config'] = {
+                'boton': request.form.get('boton', 'gradient'),
+                'tarjeta': request.form.get('tarjeta', 'mate'),
+                'borde': request.form.get('borde', 'claro'),
+                'sombra': request.form.get('sombra', 'suave')
         }
         return redirect('/preview')  # Ir al preview final
 
