@@ -185,20 +185,31 @@ def step3():
 
     return render_template('step3.html', tipo_web=tipo)
 
-    @app.route('/step4', methods=['GET', 'POST'])
-    def step4():
-        if request.method == 'POST':
-        # Guardar configuración visual en sesión
-            session['visual_config'] = {
-                'boton': request.form.get('boton', 'gradient'),
-                'tarjeta': request.form.get('tarjeta', 'mate'),
-                'borde': request.form.get('borde', 'claro'),
-                'sombra': request.form.get('sombra', 'suave')
+@app.route('/step4', methods=['GET', 'POST'])
+def step4():
+    if request.method == 'POST':
+        # Valores permitidos
+        estilos_validos = {
+            'boton': ['gradient', 'cuadrado', 'pastel', 'neon'],
+            'tarjeta': ['mate', 'clear', 'pastel', 'flat'],
+            'borde': ['claro', 'oscuro'],
+            'sombra': ['suave', 'intensa']
         }
+
+        # Obtener y validar cada campo
+        visual_config = {}
+        for campo, opciones in estilos_validos.items():
+            valor = request.form.get(campo)
+            visual_config[campo] = valor if valor in opciones else opciones[0]
+
+        # Guardar en sesión
+        session['visual_config'] = visual_config
+
         return redirect('/preview')  # Ir al preview final
 
     # Mostrar formulario visual
     return render_template('step4.html')
+
 
 @app.route('/preview')
 def preview():
