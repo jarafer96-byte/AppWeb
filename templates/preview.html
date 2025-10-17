@@ -17,6 +17,33 @@
   {% endif %}
 
   <style>
+  :root {
+    --btn-bg: {{ config.btn_bg }};
+    --btn-text: {{ config.btn_text }};
+    --btn-radius: {{ config.btn_radius }};
+    --btn-shadow: {{ config.btn_shadow }};
+    --card-bg: {{ config.card_bg }};
+    --card-border: {{ config.card_border }};
+    --card-radius: {{ config.card_radius }};
+    --card-shadow: {{ config.card_shadow }};
+    --space-y: {{ config.space_y }};
+  }
+  .card {
+    background: var(--card-bg);
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    margin-bottom: var(--space-y);
+  }
+  .btn-whatsapp {
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border-radius: var(--btn-radius);
+    box-shadow: var(--btn-shadow);
+  }
+  </style>
+
+  <style>
     body {
       font-family: {{ config.fuente | safe }};
       background-image: url('/static/img/{{ config.estilo_visual }}.jpeg');
@@ -444,5 +471,10 @@
     });
   });
 </script>
+  
+<div class="text-center mt-4">
+  <a href="/taller" class="btn btn-sm btn-outline-secondary">Personalizar estilos ▶</a>
+</div>  
+  
 </body>
 </html>
