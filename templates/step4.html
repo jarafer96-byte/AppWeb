@@ -20,7 +20,7 @@
       background-color: rgba(255,255,255,0.05);
       border-radius: 12px;
       padding: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       cursor: pointer;
       transition: background-color 0.3s ease;
     }
@@ -66,28 +66,38 @@
           <!-- Estilo de botones -->
           <div class="mb-4">
             <h5>Estilo de botones</h5>
-            <div class="opcion" onclick="seleccionar(this, 'boton', 'gradient')">Redondeado degradado (actual)</div>
-            <div class="opcion" onclick="seleccionar(this, 'boton', 'cuadrado')">Cuadrado moderno</div>
-            <div class="opcion" onclick="seleccionar(this, 'boton', 'pastel')">Pastel suave</div>
-            <div class="opcion" onclick="seleccionar(this, 'boton', 'neon')">Neón oscuro</div>
+            <div class="opcion" onclick="seleccionar(this, 'boton', 'primary')">Azul clásico</div>
+            <div class="opcion" onclick="seleccionar(this, 'boton', 'danger')">Rojo intenso</div>
+            <div class="opcion" onclick="seleccionar(this, 'boton', 'warning')">Amarillo neón</div>
+            <div class="opcion" onclick="seleccionar(this, 'boton', 'outline-dark')">Contorno oscuro</div>
+            <div class="opcion" onclick="seleccionar(this, 'boton', 'success')">Verde positivo</div>
           </div>
 
           <!-- Estilo de tarjetas -->
           <div class="mb-4">
             <h5>Estilo de tarjetas</h5>
-            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'mate')">Mate redondeado</div>
-            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'clear')">Transparente elegante</div>
-            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'pastel')">Pastel con sombra</div>
-            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'flat')">Minimal sin borde</div>
+            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'white')">Fondo blanco</div>
+            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'dark')">Fondo oscuro</div>
+            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'info')">Celeste suave</div>
+            <div class="opcion" onclick="seleccionar(this, 'tarjeta', 'transparent')">Transparente</div>
           </div>
 
-          <!-- Bordes y sombras -->
+          <!-- Bordes -->
           <div class="mb-4">
-            <h5>Extras visuales</h5>
-            <div class="opcion" onclick="seleccionar(this, 'borde', 'claro')">Borde claro</div>
-            <div class="opcion" onclick="seleccionar(this, 'borde', 'oscuro')">Borde oscuro</div>
-            <div class="opcion" onclick="seleccionar(this, 'sombra', 'suave')">Sombra suave</div>
-            <div class="opcion" onclick="seleccionar(this, 'sombra', 'intensa')">Sombra intensa</div>
+            <h5>Bordes</h5>
+            <div class="opcion" onclick="seleccionar(this, 'borde', 'none')">Sin borde</div>
+            <div class="opcion" onclick="seleccionar(this, 'borde', 'rounded')">Redondeado</div>
+            <div class="opcion" onclick="seleccionar(this, 'borde', 'danger')">Borde rojo</div>
+            <div class="opcion" onclick="seleccionar(this, 'borde', 'primary')">Borde azul</div>
+          </div>
+
+          <!-- Sombras -->
+          <div class="mb-4">
+            <h5>Sombras</h5>
+            <div class="opcion" onclick="seleccionar(this, 'sombra', 'none')">Sin sombra</div>
+            <div class="opcion" onclick="seleccionar(this, 'sombra', 'sm')">Sombra suave</div>
+            <div class="opcion" onclick="seleccionar(this, 'sombra', 'md')">Sombra media</div>
+            <div class="opcion" onclick="seleccionar(this, 'sombra', 'lg')">Sombra intensa</div>
           </div>
 
           <input type="hidden" name="boton" id="boton">
@@ -112,7 +122,9 @@
   <script>
     function seleccionar(elemento, campo, valor) {
       document.querySelectorAll('.opcion').forEach(op => {
-        if (op.textContent.includes(campo)) op.classList.remove('seleccionada');
+        if (op.onclick && op.onclick.toString().includes(campo)) {
+          op.classList.remove('seleccionada');
+        }
       });
       elemento.classList.add('seleccionada');
       document.getElementById(campo).value = valor;
