@@ -203,6 +203,13 @@ def step3():
 @app.route('/preview')
 def preview():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+    visual_config = session.get('visual_config', {
+        'boton':  'gradient', 
+        'tarjeta':  'mate', 
+        'borde': 'claro', 
+        'sombra': 'suave'
+    })
+    productos = session.get('productos', [])
 
     config = {
         'tipo_web': session.get('tipo_web'),
