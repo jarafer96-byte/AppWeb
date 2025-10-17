@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h2 class="text-center mb-4">Taller de estilos</h2>
+
+  <div class="row">
+    <!-- Panel de controles -->
+    <div class="col-lg-4">
+      <form id="styleForm" class="card p-3">
+        <!-- Botones -->
+        <h5>Botones</h5>
+        <label>Fondo</label>
+        <input type="color" name="btn_bg" value="{{ session.btn_bg }}">
+        <label>Texto</label>
+        <input type="color" name="btn_text" value="{{ session.btn_text }}">
+        <label>Redondeo</label>
+        <input type="range" name="btn_radius" min="0" max="50" value="{{ session.btn_radius.replace('px','') }}">
+        <label>Sombra</label>
+        <select name="btn_shadow">
+          <option value="none">Ninguna</option>
+          <option value="0 2px 4px rgba(0,0,0,.15)">Suave</option>
+          <option value="0 0 10px rgba(0,0,0,.25)">Intensa</option>
+        </select>
+
+        <!-- Tarjetas -->
+        <h5 class="mt-3">Tarjetas</h5>
+        <label>Fondo</label>
+        <select name="card_bg">
+          <option value="transparent">Transparente</option>
+          <option value="rgba(255,255,255,.85)">Blanco translúcido</option>
+          <option value="rgba(0,0,0,.6)">Negro translúcido</option>
+          <option value="#fdfcfd">Pastel mate</option>
+        </select>
+        <label>Borde</label>
+        <select name="card_border">
+          <option value="none">Sin borde</option>
+          <option value="1px solid rgba(255,255,255,.3)">Claro fino</option>
+          <option value="2px solid rgba(255,255,255,.5)">Claro grueso</option>
+          <option value="1px solid rgba(0,0,0,.2)">Oscuro fino</option>
+        </select>
+        <label>Esquinas</label>
+        <input type="range" name="card_radius" min="0" max="40" value="{{ session.card_radius.replace('px','') }}">
+        <label>Espaciado vertical</label>
+        <input type="range" name="space_y" min="0" max="40" value="{{ session.space_y.replace('rem','').replace('px','') }}">
+
+        <!-- Botón de guardar / cerrar -->
+        <button type="submit" class="btn btn-primary w-100 mt-3">Guardar y volver</button>
+        <a href="/preview" class="btn btn-link w-100">Saltar y ver preview</a>
+      </form>
+    </div>
+
+    <!-- Vista previa en vivo -->
+    <div class="col-lg-8">
+      <iframe id="livePreview" src="/preview?t={{ now() }}" class="w-100" style="height: 80vh; border: 1px solid #ccc; border-radius: 8px;"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+const form = document.getElementById('styleForm');
+form.addEventListener('input', () => {
+  const params = new URLSearchParams(new FormData(form)).toString();
+  document.getElementById('livePreview').src = `/preview?t=${Date.now()}&` + params;
+});
+</script>
+{% endblock %}
