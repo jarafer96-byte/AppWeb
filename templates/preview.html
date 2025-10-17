@@ -193,8 +193,7 @@
       </div>
     </div>
   {% endif %}
-
-  {% if config.tipo_web in ['catálogo', 'menú'] %}
+  
   {% if config.tipo_web in ['catálogo', 'menú'] %}
   {% set ns = namespace(grupos={}) %}
   {% for producto in config.productos %}
@@ -227,18 +226,6 @@
     </div>
   {% endfor %}
 {% endif %}
-
-  
-    <div class="card card-{{ config.visual_config.tarjeta }} borde-{{ config.visual_config.borde }} sombra-{{ config.visual_config.sombra }} mb-4">
-  <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen|imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
-  <div class="card-body">
-    <h5 class="card-title">{{ producto.nombre }}</h5>
-    <p class="card-text">{{ producto.descripcion }}</p>
-    <p class="card-text fw-bold">${{ producto.precio }}</p>
-    <button class="btn btn-{{ config.visual_config.boton }}">Comprar</button>
-  </div>
-</div>
-
 
     <div class="text-center mb-4">
       {% for grupo in grupos %}
