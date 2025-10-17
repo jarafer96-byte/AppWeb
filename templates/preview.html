@@ -234,7 +234,7 @@
       {% endfor %}
     </div>
 
-    {% for grupo, productos in grupos.items() %}
+    {% for grupo, productos in ns.grupos.items() %}
     <div class="row grupo-section" id="grupo_{{ grupo }}">
       {% for producto in productos %}
       <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
