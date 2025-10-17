@@ -202,15 +202,37 @@ def step3():
 
 @app.route('/preview')
 def preview():
+    # Estilo visual base
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+
+    # Configuración visual por defecto
     visual_config = session.get('visual_config', {
         'boton':  'gradient', 
         'tarjeta':  'mate', 
         'borde': 'claro', 
         'sombra': 'suave'
     })
-    productos = session.get('productos', [])
 
+    # Parámetros visuales en vivo desde la URL
+    boton = request.args.get('boton')
+    tarjeta = request.args.get('tarjeta')
+    borde = request.args.get('borde')
+    sombra = request.args.get('sombra')
+
+    # Aplicar si están presentes
+    if boton:
+        visual_config['boton'] = boton
+    if tarjeta:
+        visual_config['tarjeta'] = tarjeta
+    if borde:
+        visual_config['borde'] = borde
+    if sombra:
+        visual_config['sombra'] = sombra
+
+    # Productos según tipo_web
+    productos = session.get('bloques') if session.get('tipo_web') == 'catálogo' else []
+
+    # Configuración completa
     config = {
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
@@ -227,7 +249,7 @@ def preview():
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
-        'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
+        'productos': productos,
         'bloques': [],
         'visual_config': visual_config
     }
