@@ -41,9 +41,24 @@
     border-radius: var(--btn-radius);
     box-shadow: var(--btn-shadow);
   }
-  </style>
+  /* ==========  Variables del taller (alto priority)  ========== */
+.btn-whatsapp {
+  background: var(--btn-bg) !important;
+  color: var(--btn-text) !important;
+  border-radius: var(--btn-radius) !important;
+  box-shadow: var(--btn-shadow) !important;
+  border: none !important;
+}
 
+.card {
+  background: var(--card-bg) !important;
+  border: var(--card-border) !important;
+  border-radius: var(--card-radius) !important;
+  box-shadow: var(--card-shadow) !important;
+  margin-bottom: var(--space-y) !important;
+  }
   <style>
+    
     body {
       font-family: {{ config.fuente | safe }};
       background-image: url('/static/img/{{ config.estilo_visual }}.jpeg');
