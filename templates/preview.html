@@ -25,68 +25,22 @@
       background-attachment: fixed;
       background-position: center;
     }
-    'tarjeta': {
-    'white': 'bg-white',
-    'light': 'bg-light',
-    'dark': 'bg-dark text-white',
-    'info': 'bg-info text-white',
-    'warning': 'bg-warning',
-    'transparent': 'bg-transparent',
-    'gradient': 'bg-gradient'  # si usás clases personalizadas
-}.get(vc.get('tarjeta'), 'bg-white'),
-
 
     .modo-claro {
       color: #333;
     }
-
-    'boton': {
-    'primary': 'primary',              # Azul clásico
-    'secondary': 'secondary',          # Gris neutro
-    'success': 'success',              # Verde
-    'danger': 'danger',                # Rojo
-    'warning': 'warning',              # Amarillo
-    'info': 'info',                    # Celeste
-    'light': 'light',                  # Blanco
-    'dark': 'dark',                    # Negro
-    'outline-primary': 'outline-primary',
-    'outline-success': 'outline-success',
-    'outline-danger': 'outline-danger',
-    'outline-light': 'outline-light',
-    'outline-dark': 'outline-dark'
-}.get(vc.get('boton'), 'primary'),
-
 
     .modo-claro .card {
       background-color: #fff;
       color: #333;
       border: none;
     }
-    'borde': {
-    'none': '',
-    'light': 'border border-light',
-    'dark': 'border border-dark',
-    'primary': 'border border-primary',
-    'success': 'border border-success',
-    'danger': 'border border-danger',
-    'rounded': 'border rounded',
-    'rounded-pill': 'border rounded-pill'
-}.get(vc.get('borde'), ''),
-
 
     .modo-claro .btn-grupo {
       background-color: {{ config.color }};
       color: white;
       border: none;
     }
-    'sombra': {
-    'none': '',
-    'sm': 'shadow-sm',
-    'md': 'shadow',
-    'lg': 'shadow-lg',
-    'inset': 'shadow-inset'  # si tenés clase personalizada
-}.get(vc.get('sombra'), 'shadow'),
-
 
     .modo-oscuro {
       color: white;
