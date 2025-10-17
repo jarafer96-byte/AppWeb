@@ -191,11 +191,21 @@ def step4():
     if request.method == 'POST':
         # Valores permitidos
         estilos_validos = {
-            'boton': ['gradient', 'cuadrado', 'pastel', 'neon'],
-            'tarjeta': ['mate', 'clear', 'pastel', 'flat'],
-            'borde': ['claro', 'oscuro'],
-            'sombra': ['suave', 'intensa']
-        }
+    'boton': [
+        'primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark',
+        'outline-primary', 'outline-success', 'outline-danger', 'outline-light', 'outline-dark'
+    ],
+    'tarjeta': [
+        'white', 'light', 'dark', 'info', 'warning', 'transparent', 'gradient'
+    ],
+    'borde': [
+        'none', 'light', 'dark', 'primary', 'success', 'danger', 'rounded', 'rounded-pill'
+    ],
+    'sombra': [
+        'none', 'sm', 'md', 'lg', 'inset'
+    ]
+}
+
 
         # Obtener y validar cada campo
         visual_config = {}
@@ -302,6 +312,120 @@ def preview():
 def descargar():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
+def map_visual_config_to_bootstrap(vc):
+    return {
+        'boton': {
+            'primary': 'primary',
+            'secondary': 'secondary',
+            'success': 'success',
+            'danger': 'danger',
+            'warning': 'warning',
+            'info': 'info',
+            'light': 'light',
+            'dark': 'dark',
+            'outline-primary': 'outline-primary',
+            'outline-success': 'outline-success',
+            'outline-danger': 'outline-danger',
+            'outline-light': 'outline-light',
+            'outline-dark': 'outline-dark'
+        }.get(vc.get('boton'), 'primary'),
+
+        'tarjeta': {
+            'white': 'bg-white',
+            'light': 'bg-light',
+            'dark': 'bg-dark text-white',
+            'info': 'bg-info text-white',
+            'warning': 'bg-warning',
+            'transparent': 'bg-transparent',
+            'gradient': 'bg-gradient'  # si tenés clase personalizada
+        }.get(vc.get('tarjeta'), 'bg-white'),
+
+        'borde': {
+            'none': '',
+            'light': 'border border-light',
+            'dark': 'border border-dark',
+            'primary': 'border border-primary',
+            'success': 'border border-success',
+            'danger': 'border border-danger',
+            'rounded': 'border rounded',
+            'rounded-pill': 'border rounded-pill'
+        }.get(vc.get('borde'), ''),
+
+        'sombra': {
+            'none': '',
+            'sm': 'shadow-sm',
+            'md': 'shadow',
+            'lg': 'shadow-lg',
+            'inset': 'shadow-inset'  # si tenés clase personalizada
+        }.get(vc.get('sombra'), 'shadow')
+    }
+
+@app.route('/preview')
+def preview():
+    estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+
+    visual_config = session.get('visual_config', {
+        'boton':  'primary', 
+        'tarjeta':  'white', 
+        'borde': 'none', 
+        'sombra': 'md'
+    })
+
+    boton = request.args.get('boton')
+    tarjeta = request.args.get('tarjeta')
+    borde = request.args.get('borde')
+    sombra = request.args.get('sombra')
+
+    if boton:
+        visual_config['boton'] = boton
+    if tarjeta:
+        visual_config['tarjeta'] = tarjeta
+    if borde:
+        visual_config['borde'] = borde
+    if sombra:
+        visual_config['sombra'] = sombra
+
+    visual_config_bootstrap = map_visual_config_to_bootstrap(visual_config)
+
+    productos = session.get('bloques') if session.get('tipo_web') == 'catálogo' else []
+
+    config = {
+        'tipo_web': session.get('tipo_web'),
+        'ubicacion': session.get('ubicacion'),
+        'link_mapa': session.get('link_mapa'),
+        'color': session.get('color'),
+        'fuente': session.get('fuente'),
+        'estilo': session.get('estilo'),
+        'bordes': session.get('bordes'),
+        'botones': session.get('botones'),
+        'vista_imagenes': session.get('vista_imagenes'),
+        'logo': session.get('logo'),
+        'estilo_visual': estilo_visual,
+        'facebook': session.get('facebook'),
+        'whatsapp': session.get('whatsapp'),
+        'instagram': session.get('instagram'),
+        'sobre_mi': session.get('sobre_mi'),
+        'productos': productos,
+        'bloques': [],
+        'visual_config': visual_config,
+        'visual_config_bootstrap': visual_config_bootstrap
+    }
+
+    return render_template('preview.html', config=config)
+
+@app.route('/descargar')
+def descargar():
+    estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+
+    visual_config = session.get('visual_config', {
+        'boton':  'primary', 
+        'tarjeta':  'white', 
+        'borde': 'none', 
+        'sombra': 'md'
+    })
+
+    visual_config_bootstrap = map_visual_config_to_bootstrap(visual_config)
+
     config = {
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
@@ -319,7 +443,9 @@ def descargar():
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
-        'bloques': []
+        'bloques': [],
+        'visual_config': visual_config,
+        'visual_config_bootstrap': visual_config_bootstrap
     }
 
     html = render_template('preview.html', config=config)
