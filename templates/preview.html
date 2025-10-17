@@ -195,17 +195,39 @@
   {% endif %}
 
   {% if config.tipo_web in ['catálogo', 'menú'] %}
-    {% set grupos = {} %}
-    {% for producto in config.productos %}
-      {% set nombre_grupo = producto.get('grupo') %}
-      {% if not nombre_grupo or not nombre_grupo.strip() %}
-        {% set nombre_grupo = 'General' %}
-      {% endif %}
-      {% if nombre_grupo not in grupos %}
-        {% set _ = grupos.update({nombre_grupo: []}) %}
-      {% endif %}
-      {% set _ = grupos[nombre_grupo].append(producto) %}
-    {% endfor %}
+  {% if config.tipo_web in ['catálogo', 'menú'] %}
+  {% set ns = namespace(grupos={}) %}
+  {% for producto in config.productos %}
+    {% set nombre_grupo = producto.get('grupo') %}
+    {% if not nombre_grupo or not nombre_grupo.strip() %}
+      {% set nombre_grupo = 'General' %}
+    {% endif %}
+    {% if nombre_grupo not in ns.grupos %}
+      {% set _ = ns.grupos.update({nombre_grupo: []}) %}
+    {% endif %}
+    {% set _ = ns.grupos[nombre_grupo].append(producto) %}
+  {% endfor %}
+
+  {% for grupo, productos in ns.grupos.items() %}
+    <h3 class="text-light mt-5 mb-3">{{ grupo }}</h3>
+    <div class="row">
+      {% for producto in productos %}
+        <div class="col-md-4 mb-4">
+          <div class="card card-{{ config.visual_config.tarjeta }} borde-{{ config.visual_config.borde }} sombra-{{ config.visual_config.sombra }}">
+            <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen|imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+            <div class="card-body">
+              <h5 class="card-title">{{ producto.nombre }}</h5>
+              <p class="card-text">{{ producto.descripcion }}</p>
+              <p class="card-text fw-bold">${{ producto.precio }}</p>
+              <button class="btn btn-{{ config.visual_config.boton }}">Comprar</button>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+{% endif %}
+
   
     <div class="card card-{{ config.visual_config.tarjeta }} borde-{{ config.visual_config.borde }} sombra-{{ config.visual_config.sombra }} mb-4">
   <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen|imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
