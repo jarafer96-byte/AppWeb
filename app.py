@@ -184,7 +184,26 @@ def step3():
         return redirect('/preview')
 
     return render_template('step3.html', tipo_web=tipo)
-
+    
+@app.route('/taller')
+def taller():
+    # valores por defecto si nunca entró
+    def_style = {
+        'btn_bg': '#25D366',
+        'btn_text': '#ffffff',
+        'card_bg': 'rgba(0,0,0,0.6)',
+        'card_border': '1px solid rgba(255,255,255,0.2)',
+        'card_radius': '12px',
+        'card_shadow': '0 0 10px rgba(0,0,0,0.25)',
+        'space_y': '1.5rem',
+        'btn_radius': '50px',
+        'btn_shadow': '0 0 8px rgba(0,0,0,0.2)',
+    }
+    # mezclamos con lo que ya haya guardado
+    for k in def_style:
+        session.setdefault(k, def_style[k])
+    return render_template('taller.html')
+    
 @app.route('/preview')
 def preview():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
