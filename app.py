@@ -208,7 +208,7 @@ def step4():
         return redirect('/preview')  # Ir al preview final
 
     # Mostrar formulario visual
-    return render_template('step4.html')
+    return render_template('step4.html', now=datetime.now)
 
 
 @app.route('/preview')
