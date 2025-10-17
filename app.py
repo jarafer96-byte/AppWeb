@@ -211,6 +211,32 @@ def step4():
     # Mostrar formulario visual
     return render_template('step4.html', now=datetime.now)
 
+def map_visual_config_to_bootstrap(vc):
+    return {
+        'boton': {
+            'gradient': 'primary',
+            'cuadrado': 'outline-dark',
+            'pastel': 'info',
+            'neon': 'warning'
+        }.get(vc.get('boton'), 'primary'),
+
+        'tarjeta': {
+            'mate': 'bg-light',
+            'clear': 'bg-transparent',
+            'pastel': 'bg-info',
+            'flat': ''
+        }.get(vc.get('tarjeta'), 'bg-light'),
+
+        'borde': {
+            'claro': 'border border-light',
+            'oscuro': 'border border-dark'
+        }.get(vc.get('borde'), ''),
+
+        'sombra': {
+            'suave': 'shadow-sm',
+            'intensa': 'shadow-lg'
+        }.get(vc.get('sombra'), '')
+    }
 
 @app.route('/preview')
 def preview():
@@ -241,6 +267,9 @@ def preview():
     if sombra:
         visual_config['sombra'] = sombra
 
+    # Traducir a clases Bootstrap
+    visual_config_bootstrap = map_visual_config_to_bootstrap(visual_config)
+
     # Productos según tipo_web
     productos = session.get('bloques') if session.get('tipo_web') == 'catálogo' else []
 
@@ -263,7 +292,8 @@ def preview():
         'sobre_mi': session.get('sobre_mi'),
         'productos': productos,
         'bloques': [],
-        'visual_config': visual_config
+        'visual_config': visual_config,
+        'visual_config_bootstrap': visual_config_bootstrap
     }
 
     return render_template('preview.html', config=config)
