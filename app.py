@@ -184,46 +184,25 @@ def step3():
         return redirect('/preview')
 
     return render_template('step3.html', tipo_web=tipo)
-    
-@app.route('/taller')
-def taller():
-    # valores por defecto si nunca entró
-    def_style = {
-        'btn_bg': '#25D366',
-        'btn_text': '#ffffff',
-        'card_bg': 'rgba(0,0,0,0.6)',
-        'card_border': '1px solid rgba(255,255,255,0.2)',
-        'card_radius': '12px',
-        'card_shadow': '0 0 10px rgba(0,0,0,0.25)',
-        'space_y': '1.5rem',
-        'btn_radius': '50px',
-        'btn_shadow': '0 0 8px rgba(0,0,0,0.2)',
-    }
-    # mezclamos con lo que ya haya guardado
-    for k in def_style:
-        session.setdefault(k, def_style[k])
-    return render_template('taller.html')
-    
+
+    @app.route('/step4', methods=['GET', 'POST'])
+    def step4():
+        if request.method == 'POST':
+        # Guardar configuración visual en sesión
+        session['visual_config'] = {
+            'boton': request.form.get('boton', 'gradient'),
+            'tarjeta': request.form.get('tarjeta', 'mate'),
+            'borde': request.form.get('borde', 'claro'),
+            'sombra': request.form.get('sombra', 'suave')
+        }
+        return redirect('/preview')  # Ir al preview final
+
+    # Mostrar formulario visual
+    return render_template('step4.html')
+
 @app.route('/preview')
 def preview():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
-
-    # valores por defecto (si no hay taller)
-    def_style = {
-        'btn_bg': '#25D366',
-        'btn_text': '#ffffff',
-        'btn_radius': '50px',
-        'btn_shadow': '0 0 8px rgba(0,0,0,.2)',
-        'card_bg': 'rgba(0,0,0,0.6)',
-        'card_border': '1px solid rgba(255,255,255,0.2)',
-        'card_radius': '12px',
-        'card_shadow': '0 0 10px rgba(0,0,0,0.25)',
-        'space_y': '1.5rem',
-    }
-
-    # mezclamos: query (taller en vivo) tiene prioridad sobre session
-    def get(k, default):
-        return request.args.get(k) or session.get(k, default)
 
     config = {
         'tipo_web': session.get('tipo_web'),
@@ -242,17 +221,7 @@ def preview():
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
-        'bloques': [],
-        # estilos del taller
-        'btn_bg': get('btn_bg', def_style['btn_bg']),
-        'btn_text': get('btn_text', def_style['btn_text']),
-        'btn_radius': get('btn_radius', def_style['btn_radius']),
-        'btn_shadow': get('btn_shadow', def_style['btn_shadow']),
-        'card_bg': get('card_bg', def_style['card_bg']),
-        'card_border': get('card_border', def_style['card_border']),
-        'card_radius': get('card_radius', def_style['card_radius']),
-        'card_shadow': get('card_shadow', def_style['card_shadow']),
-        'space_y': get('space_y', def_style['space_y']),
+        'bloques': []
     }
 
     return render_template('preview.html', config=config)
