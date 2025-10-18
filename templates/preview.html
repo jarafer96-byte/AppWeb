@@ -221,7 +221,7 @@
     <div class="row grupo-section" id="grupo_{{ grupo }}">
       {% for producto in productos %}
         <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-          <div class="card p-3 card-{{ config.visual_config.tarjeta }} borde-{{ config.visual_config.borde }} sombra-{{ config.visual_config.sombra }}">
+          <<div class="card p-3 {{ config.visual_config_bootstrap.tarjeta }} {{ config.visual_config_bootstrap.borde }} {{ config.visual_config_bootstrap.sombra }}">
             <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen | imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
             <div class="card-body">
               <h5 class="card-title">{{ producto.nombre }}</h5>
