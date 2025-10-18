@@ -170,3 +170,209 @@
     </div>
   </div>
 {% endif %}
+{% if config.tipo_web in ['catálogo', 'menú'] %}
+  {% set grupos = {} %}
+  {% for producto in config.productos %}
+    {% set nombre_grupo = producto.get('grupo') %}
+    {% if not nombre_grupo or not nombre_grupo.strip() %}
+      {% set nombre_grupo = 'General' %}
+    {% endif %}
+    {% if nombre_grupo not in grupos %}
+      {% set _ = grupos.update({nombre_grupo: []}) %}
+    {% endif %}
+    {% set _ = grupos[nombre_grupo].append(producto) %}
+  {% endfor %}
+
+  {% for grupo, productos in grupos.items() %}
+  <div class="row grupo-section" id="grupo_{{ grupo }}">
+    {% for producto in productos %}
+    <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+      <div class="card p-3">
+        <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen | imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+        <div class="card-body">
+          <h5 class="card-title">{{ producto.nombre }}</h5>
+          <p class="card-text">{{ producto.descripcion }}</p>
+          <p><strong>Precio:</strong> $ <span id="precio_{{ producto.nombre | replace(' ', '_') }}">{{ producto.precio }}</span></p>
+          <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+          <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+            <label for="cantidad_{{ loop.index }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+            <input type="number" min="1" max="10" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ loop.index }}">
+            <button type="button" class="btn btn-secondary" onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.nombre | replace(' ', '_') }}', 'cantidad_{{ loop.index }}')">Agregar al carrito</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% endif %}
+
+<div class="text-center mt-5">
+  <a href="/descargar" class="btn btn-primary px-5">Descargar sitio</a>
+</div>
+
+<div class="social-icons">
+  {% if config.facebook %}
+    <a href="{{ config.facebook }}" target="_blank"><img src="/static/img/facebook.png" alt="Facebook"></a>
+  {% endif %}
+  {% if config.instagram %}
+    <a href="{{ config.instagram }}" target="_blank"><img src="/static/img/instagram.png" alt="Instagram"></a>
+  {% endif %}
+  {% if config.whatsapp %}
+    <a href="{{ config.whatsapp }}" target="_blank"><img src="/static/img/whatsapp.png" alt="WhatsApp"></a>
+  {% endif %}
+</div>
+
+{% if config.ubicacion %}
+  <div class="bloque-ubicacion text-center mt-4">
+    <p style="margin-bottom: 6px;">📍 {{ config.ubicacion }}</p>
+    {% if config.link_mapa %}
+      <a href="{{ config.link_mapa }}" target="_blank" style="text-decoration: none;">
+        <span style="margin-right: 6px;">➜</span>
+        <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
+      </a>
+    {% endif %}
+  </div>
+{% endif %}
+
+<button id="toggleCarrito">🛒</button>
+
+<div id="carrito">
+  <h5>🛒 Tu carrito</h5>
+  <ul id="listaCarrito"></ul>
+  <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+  <div class="d-grid gap-2">
+    <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+    <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+  </div>
+</div>
+
+<script>
+  const configWhatsApp = "{{ config.whatsapp }}";
+
+  function mostrarGrupo(nombre) {
+    document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active'));
+    const grupoActivo = document.getElementById('grupo_' + nombre);
+    if (grupoActivo) grupoActivo.classList.add('active');
+    document.getElementById('menuPanel').style.display = 'none';
+  }
+
+  function scrollToContacto() {
+    const contacto = document.querySelector('.social-icons');
+    if (contacto) contacto.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('menuPanel').style.display = 'none';
+  }
+
+  window.onload = function() {
+    const primero = document.querySelector('.grupo-section');
+    if (primero) primero.classList.add('active');
+  };
+
+  document.getElementById('menuToggle').onclick = function() {
+    const panel = document.getElementById('menuPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  };
+
+  let carrito = [];
+
+  function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad) {
+    const cantidadInput = document.getElementById(idCantidad); 
+    const precioSpan = document.getElementById(idPrecioSpan);
+    const cantidad = parseInt(cantidadInput?.value) || 1; 
+    const precio = parseFloat(precioSpan?.textContent) || 0;
+
+    carrito.push({ nombre, precio, cantidad });
+    actualizarCarrito();
+  }
+
+  function vaciarCarrito() {
+    carrito = [];
+    actualizarCarrito();
+  }
+
+  function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
+    let cambio = false;
+    carrito.forEach(item => {
+      if (item.nombre === nombre && item.precio !== nuevoPrecio) {
+        item.precio = nuevoPrecio;
+        cambio = true;
+      }
+    });
+    if (cambio) actualizarCarrito();
+  }
+
+  function sincronizarPreciosDelCarrito() {
+    carrito.forEach(item => {
+      const idPrecio = "precio_" + item.nombre.replace(/ /g, "_");
+      const precioSpan = document.getElementById(idPrecio);
+      if (precioSpan) {
+        const precioActual = parseFloat(precioSpan.textContent);
+        if (!isNaN(precioActual)) {
+          item.precio = precioActual;
+        }
+      }
+    });
+  }
+
+  function actualizarCarrito() {
+    sincronizarPreciosDelCarrito();
+    const lista = document.getElementById('listaCarrito');
+    const total = document.getElementById('totalCarrito');
+    lista.innerHTML = '';
+    let suma = 0;
+
+    carrito.forEach(item => {
+      const subtotal = item.precio * item.cantidad;
+      lista.innerHTML += `<li>${item.nombre} x ${item.cantidad} - $${subtotal.toFixed(2)}</li>`;
+      suma += subtotal;
+    });
+
+    total.textContent = suma.toFixed(2);
+
+    const mensaje = encodeURIComponent(
+      `Hola, quiero consultar por:\n` +
+      carrito.map(i => `- ${i.nombre} x ${i.cantidad}: $${(i.precio * i.cantidad).toFixed(2)}`).join('\n') +
+      `\nTotal estimado: $${suma.toFixed(2)}`
+    );
+
+    document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
+  }
+
+  document.getElementById('toggleCarrito').onclick = function() {
+    const carritoDiv = document.getElementById('carrito');
+    carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+  };
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM", 
+    authDomain: "appweb-2167a.firebaseapp.com",
+    projectId: "appweb-2167a",
+    storageBucket: "appweb-2167a.appspot.com",
+    messagingSenderId: "681717342631",
+    appId: "1:681717342631:web:388935feb3cabc1525d682"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const productosRef = collection(db, "productos");
+
+  getDocs(productosRef).then(snapshot => {
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
+      const precioSpan = document.getElementById(nombreId);
+      if (precioSpan && data.precio) {
+        const nuevoPrecio = parseFloat(data.precio);
+        precioSpan.textContent = nuevoPrecio;
+        actualizarPrecioEnCarrito(data.nombre, nuevoPrecio);
+      }
+    });
+  });
+</script>
+</body>
+</html>
