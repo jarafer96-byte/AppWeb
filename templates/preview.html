@@ -184,7 +184,7 @@
   {% endfor %}
 
   {% for grupo, productos in grupos.items() %}
-  <div class="row grupo-section" id="grupo_{{ grupo }}">
+  <div class="row grupo-section" id="grupo_{{ grupo | replace(' ', '_') }}">
     {% for producto in productos %}
     <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
       <div class="card p-3">
