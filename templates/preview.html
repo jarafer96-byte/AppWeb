@@ -150,7 +150,7 @@
   <div><strong>Categorías</strong></div>
   <ul style="list-style: none; padding-left: 0;">
     {% for grupo in grupos %}
-      <li style="margin: 8px 0; cursor: pointer;" onclick="mostrarGrupo('{{ grupo }}')">{{ grupo }}</li>
+      <li style="margin: 8px 0; cursor: pointer;" onclick="mostrarGrupo('{{ grupo | replace(' ', '_') }}')">{{ grupo }}</li>
     {% endfor %}
   </ul>
   <hr style="border-color: white;">
