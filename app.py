@@ -13,6 +13,7 @@ import shortuuid  # ← ya la tenés instalada, ¿no?
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
 app.secret_key = 'clave-secreta'
+app.jinja_env.add_extension('jinja2.ext.do')
 
 @app.errorhandler(413)
 def too_large(e):
