@@ -276,29 +276,34 @@
 
 <script>
   const configWhatsApp = "{{ config.whatsapp }}";
-
+  // Muestra solo el grupo elegido
   function mostrarGrupo(nombre) {
+    // oculta todos
     document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active'));
-    const grupoActivo = document.getElementById('grupo_' + nombre);
-    if (grupoActivo) grupoActivo.classList.add('active');
-    document.getElementById('panelCategorias').style.display = 'none'; // ← actualizado
+    // muestra el que corresponde
+    const activo = document.getElementById('grupo_' + nombre);
+    if (activo) activo.classList.add('active');
+    // cierra el panel
+    document.getElementById('panelCategorias').style.display = 'none';
   }
 
+  // Abre/cierra el panel de categorías
   function toggleCategorias() {
     const panel = document.getElementById('panelCategorias');
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
   }
 
+  // Smooth scroll a la sección de contacto
   function scrollToContacto() {
     const contacto = document.querySelector('.social-icons');
     if (contacto) contacto.scrollIntoView({ behavior: 'smooth' });
   }
 
-
-  window.onload = function() {
+  // Activa el primer grupo al cargar
+  window.onload = function () {
     const primero = document.querySelector('.grupo-section');
     if (primero) primero.classList.add('active');
-  }
+  };
 
   let carrito = [];
 
