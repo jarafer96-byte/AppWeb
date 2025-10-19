@@ -9,10 +9,8 @@ import time
 import requests
 import json
 import shortuuid  # ← ya la tenés instalada, ¿no?
-from jinja2 import Environment
 
 app = Flask(__name__)
-app.jinja_env.add_extension('jinja2.ext.do')
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
 app.secret_key = 'clave-secreta'
 
