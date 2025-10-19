@@ -258,8 +258,9 @@
     document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active'));
     const grupoActivo = document.getElementById('grupo_' + nombre);
     if (grupoActivo) grupoActivo.classList.add('active');
-    document.getElementById('menuPanel').style.display = 'none';
+    document.getElementById('panelCategorias').style.display = 'none'; // ← actualizado
   }
+
 
   function scrollToContacto() {
     const contacto = document.querySelector('.social-icons');
