@@ -147,7 +147,20 @@
 
 <!-- Barra fija superior -->
 <div id="barraMenu" style="position: fixed; top: 0; left: 0; width: 100%; background-color: rgba(0,0,0,0.85); color: white; padding: 10px 20px; display: flex; gap: 20px; z-index: 1000;">
-  <button onclick="toggleCategorias()" style="background: none; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 1em;">Categorías</button>
+  <button onclick="toggleCategorias()" style="
+  background-color: rgba(255,255,255,0.05);
+  border: none;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1em;
+  padding: 8px 16px;
+  border-radius: 8px;
+  user-select: none;
+  transition: background-color 0.3s ease;
+" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.15)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.05)'">
+  Categorías
+  </button>
   <button onclick="scrollToContacto()" style="background: none; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 1em;">Contacto</button>
 </div>
 
