@@ -200,11 +200,14 @@
     {% if not nombre_grupo or not nombre_grupo.strip() %}
       {% set nombre_grupo = 'General' %}
     {% endif %}
-    {% if nombre_grupo not in grupos %}
-      {% set _ = grupos.update({nombre_grupo: []}) %}
+    {% if grupos[nombre_grupo] is defined %}
+      {% set productos_grupo = grupos[nombre_grupo] %}
+    {% else %}
+      {% set productos_grupo = [] %}
       {% set _ = nombres_grupos.append(nombre_grupo) %}
     {% endif %}
-    {% set _ = grupos[nombre_grupo].append(producto) %}
+    {% set productos_grupo = productos_grupo + [producto] %}
+    {% set _ = grupos.update({nombre_grupo: productos_grupo}) %}
   {% endfor %}
 {% endif %}
 
