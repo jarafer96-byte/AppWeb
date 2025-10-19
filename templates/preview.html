@@ -191,8 +191,10 @@
     </div>
   </div>
 {% endif %}
+  
 {% if config.tipo_web in ['catálogo', 'menú'] %}
   {% set grupos = {} %}
+  {% set nombres_grupos = [] %}
   {% for producto in config.productos %}
     {% set nombre_grupo = producto.get('grupo') %}
     {% if not nombre_grupo or not nombre_grupo.strip() %}
@@ -200,9 +202,11 @@
     {% endif %}
     {% if nombre_grupo not in grupos %}
       {% set _ = grupos.update({nombre_grupo: []}) %}
+      {% set _ = nombres_grupos.append(nombre_grupo) %}
     {% endif %}
     {% set _ = grupos[nombre_grupo].append(producto) %}
   {% endfor %}
+{% endif %}
 
   {% for grupo, productos in grupos.items() %}
   <div class="row grupo-section" id="grupo_{{ grupo | replace(' ', '_') }}">
