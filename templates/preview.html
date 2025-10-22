@@ -29,7 +29,21 @@
     .modo-claro {
       color: #333;
     }
+    
+    .descripcion-emprendimiento {
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 20px;
+      border-radius: 10px;
+      display: inline-block;
+      max-width: 800px;
+      white-space: pre-line;
+      text-align: center;
+      text-indent: 20px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
 
+    
     .modo-claro .card {
       background-color: #fff;
       color: #333;
@@ -193,11 +207,12 @@
 
   {% if config.sobre_mi %}
     <div class="text-center mb-4">
-      <div style="background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px; display: inline-block; max-width: 800px;">
-        <p style="margin: 0;">{{ config.sobre_mi }}</p>
+      <div class="descripcion-emprendimiento">
+        {{ config.sobre_mi | replace('\n', '<br>') | safe }}
       </div>
     </div>
   {% endif %}
+
 
   {% if config.tipo_web in ['catálogo', 'menú'] %}
     {% set grupos = {} %}
