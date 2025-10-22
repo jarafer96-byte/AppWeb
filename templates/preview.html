@@ -210,7 +210,8 @@
       {% endif %}
       {% set _ = grupos[nombre_grupo].append(producto) %}
     {% endfor %}
-
+  {% endif %}
+  
     <div class="text-center mb-4">
       {% for grupo in grupos %}
         {% if grupo.strip() %}
