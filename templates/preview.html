@@ -351,19 +351,17 @@
       const cantidad = parseInt(cantidadInput?.value) || 1; 
       const precio = parseFloat(precioSpan?.textContent) || 0;
 
-     carrito.push({
-        nombre,
-        precio,
-        cantidad
-      });
+      const existente = carrito.find(item => item.nombre === nombre);
+      if (existente) {
+        existente.cantidad += cantidad;
+      } else {
+        const id_base = idPrecioSpan.replace('precio_', '');
+        carrito.push({ nombre, precio, cantidad, id_base });
+      }
 
       actualizarCarrito();
     }
 
-    function vaciarCarrito() {
-      carrito = [];
-      actualizarCarrito();
-    }
     
     function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
   let cambio = false;
@@ -378,7 +376,7 @@
 
     function sincronizarPreciosDelCarrito() {
   carrito.forEach(item => {
-    const idPrecio = "precio_" + item.nombre.replace(/ /g, "_");
+    const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
     const precioSpan = document.getElementById(idPrecio);
     if (precioSpan) {
       const precioActual = parseFloat(precioSpan.textContent);
