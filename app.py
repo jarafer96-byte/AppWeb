@@ -213,7 +213,9 @@ def preview():
         'sobre_mi': session.get('sobre_mi'),
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
         'bloques': []
-    }
+    } 
+    
+    config['descargado'] = session.get('descargado', False)
 
     return render_template('preview.html', config=config)
 
@@ -253,6 +255,8 @@ def descargar():
                 zip_file.write(filepath, arcname='img/' + filename)
 
     limpiar_imagenes_usuario()
+
+    session['descargado'] = True
 
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
