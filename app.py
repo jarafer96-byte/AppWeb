@@ -19,8 +19,8 @@ def too_large(e):
     return "Archivo demasiado grande (máx. 4 MB)", 413
 
 # 🔥 Configuración de Firestore 
-FIREBASE_PROJECT_ID = "appweb-2167a" 
-FIREBASE_API_KEY = "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM" 
+FIREBASE_PROJECT_ID = "bloq-50ae9" 
+FIREBASE_API_KEY = "AIzaSyDpFPhtR-bpmq-aMX5R6MtXINeN7f5KRSw" 
 FIREBASE_COLLECTION = "productos"
 
 def subir_a_firestore(producto):
