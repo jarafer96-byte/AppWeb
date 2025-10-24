@@ -267,14 +267,13 @@
 
 
 
-  {% if not config.descargado %}
-    <div class="text-center mt-5">
-      <a href="/descargar" class="btn btn-primary px-5">
-        Descargar sitio
-      </a>
-    </div>
-  {% endif %}
-
+  {% if config.productos %}
+  <div class="text-center mt-5">
+    <a href="/descargar" class="btn btn-primary px-5">
+      Descargar sitio
+    </a>
+  </div>
+{% endif %}
 
   <div class="social-icons">
     {% if config.facebook %}
