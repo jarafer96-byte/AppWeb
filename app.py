@@ -249,10 +249,20 @@ def descargar():
     with ZipFile(zip_buffer, 'w') as zip_file:
         zip_file.writestr('index.html', html)
 
-        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            if os.path.isfile(filepath):
-                zip_file.write(filepath, arcname='img/' + filename)
+        # ✅ Incluir solo el fondo elegido
+        fondo = f"{estilo_visual}.jpeg"
+        fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
+        if os.path.exists(fondo_path):
+          zip_file.write(fondo_path, arcname='img/' + fondo)
+
+        # ✅ Incluir solo las imágenes de productos
+        for producto in config['productos']:
+        imagen = producto.get('imagen')
+        if imagen:
+          imagen_path = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
+          if os.path.exists(imagen_path):
+              zip_file.write(imagen_path, arcname='img/' + imagen)
+
 
     limpiar_imagenes_usuario()
 
