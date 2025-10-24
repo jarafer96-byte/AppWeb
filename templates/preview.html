@@ -29,7 +29,21 @@
     .modo-claro {
       color: #333;
     }
+    
+    .descripcion-emprendimiento {
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 20px;
+      border-radius: 10px;
+      display: inline-block;
+      max-width: 800px;
+      white-space: pre-line;
+      text-align: center;
+      text-indent: 20px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
 
+    
     .modo-claro .card {
       background-color: #fff;
       color: #333;
@@ -98,7 +112,8 @@
     }
 
     .grupo-section.active {
-      display: block;
+      display: flex !important;
+      flex-wrap: wrap;
     }
 
     .social-icons {
@@ -181,18 +196,23 @@
 <body class="container py-5 {{ modo_visual }}">
 
   {% if config.logo %}
-    <div class="text-center my-3">
-      <img src="{{ url_for('static', filename='img/' + config.logo) }}" alt="Logo" style="max-height: 80px;">
-    </div>
+  <div class="text-center my-3">
+    <img src="{{ url_for('static', filename='img/' + config.logo) }}"
+         alt="Logo"
+         style="height: 8vw; max-height: 280px;"
+         class="img-fluid">
+  </div>
   {% endif %}
+
 
   {% if config.sobre_mi %}
     <div class="text-center mb-4">
-      <div style="background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px; display: inline-block; max-width: 800px;">
-        <p style="margin: 0;">{{ config.sobre_mi }}</p>
+      <div class="descripcion-emprendimiento">
+        {{ config.sobre_mi | replace('\n', '<br>') | safe }}
       </div>
     </div>
   {% endif %}
+
 
   {% if config.tipo_web in ['catálogo', 'menú'] %}
     {% set grupos = {} %}
@@ -206,7 +226,8 @@
       {% endif %}
       {% set _ = grupos[nombre_grupo].append(producto) %}
     {% endfor %}
-
+  {% endif %}
+  
     <div class="text-center mb-4">
       {% for grupo in grupos %}
         {% if grupo.strip() %}
@@ -215,40 +236,42 @@
       {% endfor %}
     </div>
 
-    {% for grupo, productos in grupos.items() %}
+{% for grupo, productos in grupos.items() %}
+  <div class="container mb-5">
     <div class="row grupo-section" id="grupo_{{ grupo }}">
       {% for producto in productos %}
-      <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-        <div class="card p-3">
-          <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen | imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
-          <div class="card-body">
-            <h5 class="card-title">{{ producto.nombre }}</h5>
-            <p class="card-text">{{ producto.descripcion }}</p>
-            <p><strong>Precio:</strong> $ <span id="precio_{{ producto.nombre | replace(' ', '_') }}">{{ producto.precio }}</span></p>
-            <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">
-              Contactar por WhatsApp
-            </a>
-            <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-  <label for="cantidad_{{ loop.index }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-  <input type="number" min="1" max="10" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ loop.index }}">
-  <button type="button" class="btn btn-secondary" onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.nombre | replace(' ', '_') }}', 'cantidad_{{ loop.index }}')">
-    Agregar al carrito
-  </button>
-</div>
-
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+          <div class="card p-3 h-100">
+            <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen | imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+            <div class="card-body">
+              <h5 class="card-title">{{ producto.nombre }}</h5>
+              <p class="card-text">{{ producto.descripcion }}</p>
+              <p><strong>Precio:</strong> $ <span id="precio_{{ producto.nombre | replace(' ', '_') }}">{{ producto.precio }}</span></p>
+              <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                <label for="cantidad_{{ loop.index }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                <input type="number" min="1" max="10" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ loop.index }}">
+                <button type="button" class="btn btn-secondary" onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.nombre | replace(' ', '_') }}', 'cantidad_{{ loop.index }}')">
+                  Agregar al carrito
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
       {% endfor %}
     </div>
-    {% endfor %}
+  </div>
+{% endfor %}
+
+
+  {% if not config.descargado %}
+    <div class="text-center mt-5">
+      <a href="/descargar" class="btn btn-primary px-5">
+        Descargar sitio
+      </a>
+    </div>
   {% endif %}
 
-  <div class="text-center mt-5">
-    <a href="/descargar" class="btn btn-primary px-5">
-      Descargar sitio
-    </a>
-  </div>
 
   <div class="social-icons">
     {% if config.facebook %}
@@ -405,13 +428,14 @@
   } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM", 
-    authDomain: "appweb-2167a.firebaseapp.com",
-    projectId: "appweb-2167a",
-    storageBucket: "appweb-2167a.firebasestorage.app",
-    messagingSenderId: "681717342631",
-    appId: "1:681717342631:web:388935feb3cabc1525d682"
+    apiKey: "AIzaSyDpFPhtR-bpmq-aMX5R6MtXINeN7f5KRSw",
+    authDomain: "bloq-50ae9.firebaseapp.com",
+    projectId: "bloq-50ae9",
+    storageBucket: "bloq-50ae9.firebasestorage.app",
+    messagingSenderId: "1085756859047",
+    appId: "1:1085756859047:web:e5f5532198b58b109c3182"
   };
+
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
@@ -430,19 +454,30 @@
   });
 
   // ✅ Actualización en vivo
-  onSnapshot(productosRef, snapshot => {
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
-      const precioSpan = document.getElementById(nombreId);
-      if (precioSpan && data.precio) {
-  const nuevoPrecio = parseFloat(data.precio);
-  precioSpan.textContent = nuevoPrecio;
-  actualizarPrecioEnCarrito(data.nombre, nuevoPrecio);
-}
-
-    });
+onSnapshot(productosRef, snapshot => {
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
+    const precioSpan = document.getElementById(nombreId);
+    if (precioSpan && data.precio) {
+      const nuevoPrecio = parseFloat(data.precio);
+      precioSpan.textContent = nuevoPrecio;
+      actualizarPrecioEnCarrito(data.nombre, nuevoPrecio);
+    }
   });
+});
+
+// ✅ Cierre del carrito al hacer clic fuera
+document.addEventListener('click', function(event) {
+  const carritoDiv = document.getElementById('carrito');
+  const toggleBtn = document.getElementById('toggleCarrito');
+  const esCarrito = carritoDiv.contains(event.target);
+  const esBoton = toggleBtn.contains(event.target);
+
+  if (!esCarrito && !esBoton && carritoDiv.style.display === 'block') {
+    carritoDiv.style.display = 'none';
+  }
+});
 </script>
 </body>
 </html>
