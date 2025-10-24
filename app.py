@@ -19,8 +19,8 @@ def too_large(e):
     return "Archivo demasiado grande (máx. 4 MB)", 413
 
 # 🔥 Configuración de Firestore 
-FIREBASE_PROJECT_ID = "appweb-2167a" 
-FIREBASE_API_KEY = "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM" 
+FIREBASE_PROJECT_ID = "bloq-50ae9" 
+FIREBASE_API_KEY = "AIzaSyDpFPhtR-bpmq-aMX5R6MtXINeN7f5KRSw" 
 FIREBASE_COLLECTION = "productos"
 
 def subir_a_firestore(producto):
@@ -47,14 +47,18 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ✅ Compresión y redimensionado
-def convertir_y_comprimir(imagen, destino, calidad=70, max_size=(300, 300)):
+def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad=80):
     try:
-        img = Image.open(imagen.stream)
-        img = img.convert('RGB')
-        img.thumbnail(max_size)
-        img.save(destino, format='WEBP', quality=calidad)
+        img = Image.open(imagen.stream).convert('RGBA')
+        img.thumbnail(tamaño, Image.LANCZOS)
+
+        fondo = Image.new('RGBA', tamaño, (0, 0, 0, 0))  # fondo transparente
+        offset = ((tamaño[0] - img.width) // 2, (tamaño[1] - img.height) // 2)
+        fondo.paste(img, offset, img)  # usa la imagen como máscara
+
+        fondo.save(destino, format='WEBP', quality=calidad)
     except Exception as e:
-        print(f"Error al comprimir imagen: {e}")
+        print(f"Error al redimensionar con transparencia: {e}")
 
 def necesita_redimension(src, dst):
     return not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst)
@@ -66,17 +70,19 @@ def redimensionar_webp_en_static():
         if nombre.endswith('.webp'):
             ruta = os.path.join(carpeta, nombre)
             try:
-                img = Image.open(ruta)
-                img = img.convert('RGB')
-                # Solo redimensionar si es mayor a 400x400
-                if img.width > 400 or img.height > 400:
-                    img.thumbnail((400, 400))
-                    img.save(ruta, format='WEBP', quality=80)
-                    print(f"Redimensionado: {nombre}")
-                else:
-                    print(f"Sin cambios: {nombre}")
+                img = Image.open(ruta).convert('RGBA')
+                tamaño = (300, 180)
+
+                img.thumbnail(tamaño, Image.LANCZOS)
+                fondo = Image.new('RGBA', tamaño, (0, 0, 0, 0))
+                offset = ((tamaño[0] - img.width) // 2, (tamaño[1] - img.height) // 2)
+                fondo.paste(img, offset, img)
+
+                fondo.save(ruta, format='WEBP', quality=80)
+                print(f"Redimensionado con transparencia: {nombre}")
             except Exception as e:
                 print(f"Error al redimensionar {nombre}: {e}")
+
 
 # ✅ Limpia imágenes subidas por el usuario si el flujo se abandona o después de descargar
 def limpiar_imagenes_usuario():
@@ -162,7 +168,7 @@ def step3():
                 img.save(src_temp)  # guardar temporalmente para comparar fechas
 
                 if necesita_redimension(src_temp, destino):
-                    tareas.append(executor.submit(convertir_y_comprimir, img, destino))
+                    tareas.append(executor.submit(redimensionar_con_transparencia, img, destino))
                 else:
                     print(f"Usando caché existente: {webp_name}")
                 if os.path.exists(src_temp):
@@ -207,7 +213,12 @@ def preview():
         'sobre_mi': session.get('sobre_mi'),
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
         'bloques': []
-    }
+    } 
+    # ✅ Generar ID único por producto
+    for i, p in enumerate(config['productos']):
+        p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
+        
+    config['descargado'] = session.get('descargado', False)
 
     return render_template('preview.html', config=config)
 
@@ -241,12 +252,24 @@ def descargar():
     with ZipFile(zip_buffer, 'w') as zip_file:
         zip_file.writestr('index.html', html)
 
-        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            if os.path.isfile(filepath):
-                zip_file.write(filepath, arcname='img/' + filename)
+        # ✅ Incluir solo el fondo elegido
+        fondo = f"{estilo_visual}.jpeg"
+        fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
+        if os.path.exists(fondo_path):
+            zip_file.write(fondo_path, arcname='img/' + fondo)
+
+        # ✅ Incluir solo las imágenes de productos
+        for producto in config['productos']:
+            imagen = producto.get('imagen')
+            if imagen:
+                imagen_path = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
+                if os.path.exists(imagen_path):
+                    zip_file.write(imagen_path, arcname='img/' + imagen)
+
 
     limpiar_imagenes_usuario()
+
+    session['descargado'] = True
 
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
