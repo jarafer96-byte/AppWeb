@@ -450,10 +450,10 @@
 
 
   const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const productosRef = collection(db, "productos");
+const db = getFirestore(app);
+const productosRef = collection(db, "productos");
 
-  onSnapshot(productosRef, snapshot => {
+onSnapshot(productosRef, snapshot => {
   const grupos = {};
 
   // Agrupar productos por grupo
@@ -464,11 +464,18 @@
     grupos[grupo].push({ ...data, id: doc.id });
   });
 
+  // Ordenar grupos por campo 'orden' si existe
+  const gruposOrdenados = Object.entries(grupos).sort((a, b) => {
+    const ordenA = a[1][0]?.orden || 999;
+    const ordenB = b[1][0]?.orden || 999;
+    return ordenA - ordenB;
+  });
+
   // Botones dinámicos
   const botonesDiv = document.getElementById("botones-grupo");
   if (botonesDiv) {
     botonesDiv.innerHTML = "";
-    Object.keys(grupos).forEach(grupo => {
+    gruposOrdenados.forEach(([grupo]) => {
       const btn = document.createElement("button");
       btn.className = "btn-grupo";
       btn.textContent = grupo;
@@ -481,7 +488,7 @@
   const contenedorPrincipal = document.getElementById("contenedor-grupos");
   contenedorPrincipal.innerHTML = "";
 
-  Object.entries(grupos).forEach(([grupo, productos]) => {
+  gruposOrdenados.forEach(([grupo]) => {
     const grupoId = "grupo_" + grupo;
     const grupoDiv = document.createElement("div");
     grupoDiv.className = "container mb-5";
@@ -490,7 +497,7 @@
   });
 
   // Tarjetas por grupo
-  Object.entries(grupos).forEach(([grupo, productos]) => {
+  gruposOrdenados.forEach(([grupo, productos]) => {
     const contenedor = document.getElementById("grupo_" + grupo);
     if (!contenedor) return;
     contenedor.innerHTML = "";
