@@ -228,30 +228,35 @@
     {% endfor %}
   {% endif %}
   
-    <div class="text-center mb-4">
-      {% for grupo in grupos %}
-        {% if grupo.strip() %}
-          <button type="button" class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">{{ grupo }}</button>
-        {% endif %}
-      {% endfor %}
-    </div>
+    <!-- Botones de grupo (dinámicos si usarFirestore = true) -->
+<div class="text-center mb-4" id="botones-grupo"></div>
+
+<!-- Contenedores por grupo (vacíos, el script los llena) -->
+<div class="container mb-5"><div class="row grupo-section" id="grupo_B *20"></div></div>
+<div class="container mb-5"><div class="row grupo-section" id="grupo_B *Mitad"></div></div>
+<div class="container mb-5"><div class="row grupo-section" id="grupo_B *U"></div></div>
+<div class="container mb-5"><div class="row grupo-section" id="grupo_B *12"></div></div>
+<div class="container mb-5"><div class="row grupo-section" id="grupo_Info"></div></div>
+
 
 {% for grupo, productos in grupos.items() %}
   <div class="container mb-5">
     <div class="row grupo-section" id="grupo_{{ grupo }}">
       {% for producto in productos %}
+        {% set idBase = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index %}
         <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
           <div class="card p-3 h-100">
             <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen | imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
             <div class="card-body">
               <h5 class="card-title">{{ producto.nombre }}</h5>
               <p class="card-text">{{ producto.descripcion }}</p>
-              <p><strong>Precio:</strong> $ <span id="precio_{{ producto.nombre | replace(' ', '_') }}">{{ producto.precio }}</span></p>
+              <p><strong>Precio:</strong> $ <span id="precio_{{ idBase }}">{{ producto.precio }}</span></p>
               <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
               <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                <label for="cantidad_{{ loop.index }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                <input type="number" min="1" max="10" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ loop.index }}">
-                <button type="button" class="btn btn-secondary" onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.nombre | replace(' ', '_') }}', 'cantidad_{{ loop.index }}')">
+                <label for="cantidad_{{ idBase }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ idBase }}">
+                <button type="button" class="btn btn-secondary"
+                        onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ idBase }}', 'cantidad_{{ idBase }}')">
                   Agregar al carrito
                 </button>
               </div>
@@ -264,14 +269,14 @@
 {% endfor %}
 
 
-  {% if not config.descargado %}
-    <div class="text-center mt-5">
-      <a href="/descargar" class="btn btn-primary px-5">
-        Descargar sitio
-      </a>
-    </div>
-  {% endif %}
 
+  {% if config.productos %}
+  <div class="text-center mt-5">
+    <a href="/descargar" class="btn btn-primary px-5">
+      Descargar sitio
+    </a>
+  </div>
+{% endif %}
 
   <div class="social-icons">
     {% if config.facebook %}
@@ -348,11 +353,13 @@
       const cantidad = parseInt(cantidadInput?.value) || 1; 
       const precio = parseFloat(precioSpan?.textContent) || 0;
 
-     carrito.push({
-        nombre,
-        precio,
-        cantidad
-      });
+      const existente = carrito.find(item => item.nombre === nombre);
+      if (existente) {
+        existente.cantidad += cantidad;
+      } else {
+        const id_base = idPrecioSpan.replace('precio_', '');
+        carrito.push({ nombre, precio, cantidad, id_base });
+      }
 
       actualizarCarrito();
     }
@@ -375,7 +382,7 @@
 
     function sincronizarPreciosDelCarrito() {
   carrito.forEach(item => {
-    const idPrecio = "precio_" + item.nombre.replace(/ /g, "_");
+    const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
     const precioSpan = document.getElementById(idPrecio);
     if (precioSpan) {
       const precioActual = parseFloat(precioSpan.textContent);
@@ -417,6 +424,8 @@
     };
   </script>
   <script type="module">
+  const usarFirestore = true; // Cambiá a false si querés usar solo config.productos
+
   import {
     initializeApp
   } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
@@ -441,32 +450,81 @@
   const db = getFirestore(app);
   const productosRef = collection(db, "productos");
 
-  // ✅ Carga inicial
-  getDocs(productosRef).then(snapshot => {
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
-      const precioSpan = document.getElementById(nombreId);
-      if (precioSpan && data.precio) {
-        precioSpan.textContent = data.precio;
-      }
-    });
-  });
-
-  // ✅ Actualización en vivo
   onSnapshot(productosRef, snapshot => {
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const nombreId = "precio_" + data.nombre.replace(/ /g, "_");
-      const precioSpan = document.getElementById(nombreId);
-      if (precioSpan && data.precio) {
-  const nuevoPrecio = parseFloat(data.precio);
-  precioSpan.textContent = nuevoPrecio;
-  actualizarPrecioEnCarrito(data.nombre, nuevoPrecio);
-}
+  const grupos = {};
 
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const grupo = data.grupo?.trim() || "General";
+    if (!grupos[grupo]) grupos[grupo] = [];
+    grupos[grupo].push({ ...data, id: doc.id });
+  });
+
+  // Botones dinámicos
+  const botonesDiv = document.getElementById("botones-grupo");
+  if (botonesDiv) {
+    botonesDiv.innerHTML = "";
+    Object.keys(grupos).forEach(grupo => {
+      const btn = document.createElement("button");
+      btn.className = "btn-grupo";
+      btn.textContent = grupo;
+      btn.onclick = e => mostrarGrupo(grupo, e);
+      botonesDiv.appendChild(btn);
+    });
+  }
+
+  // Tarjetas por grupo
+  Object.entries(grupos).forEach(([grupo, productos]) => {
+    const contenedor = document.getElementById("grupo_" + grupo);
+    if (!contenedor) return;
+    contenedor.innerHTML = "";
+
+    productos.forEach((producto, i) => {
+      const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
+      const tarjeta = document.createElement("div");
+      tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
+      tarjeta.innerHTML = `
+        <div class="card p-3 h-100">
+          <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
+          <div class="card-body">
+            <h5 class="card-title">${producto.nombre}</h5>
+            <p class="card-text">${producto.descripcion || ""}</p>
+            <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
+            <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+            <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+              <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+              <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
+              <button type="button" class="btn btn-secondary"
+                onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}')">
+                Agregar al carrito
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      contenedor.appendChild(tarjeta);
     });
   });
+
+  // Activar primer grupo
+  const primero = document.querySelector('.grupo-section');
+  if (primero) primero.classList.add('active');
+  const primerBtn = document.querySelector('.btn-grupo');
+  if (primerBtn) primerBtn.classList.add('active');
+});
+
+
+// ✅ Cierre del carrito al hacer clic fuera
+document.addEventListener('click', function(event) {
+  const carritoDiv = document.getElementById('carrito');
+  const toggleBtn = document.getElementById('toggleCarrito');
+  const esCarrito = carritoDiv.contains(event.target);
+  const esBoton = toggleBtn.contains(event.target);
+
+  if (!esCarrito && !esBoton && carritoDiv.style.display === 'block') {
+    carritoDiv.style.display = 'none';
+  }
+});
 </script>
 </body>
 </html>
