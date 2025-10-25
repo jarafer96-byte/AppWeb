@@ -237,12 +237,9 @@
     <!-- Botones de grupo (dinámicos si usarFirestore = true) -->
 <div class="text-center mb-4" id="botones-grupo"></div>
 
-<!-- Contenedores por grupo (vacíos, el script los llena) -->
-<div class="container mb-5"><div class="row grupo-section" id="grupo_B *20"></div></div>
-<div class="container mb-5"><div class="row grupo-section" id="grupo_B *Mitad"></div></div>
-<div class="container mb-5"><div class="row grupo-section" id="grupo_B *U"></div></div>
-<div class="container mb-5"><div class="row grupo-section" id="grupo_B *12"></div></div>
-<div class="container mb-5"><div class="row grupo-section" id="grupo_Info"></div></div>
+<!-- ✅ Este contenedor será llenado dinámicamente -->
+<div id="contenedor-grupos"></div>
+
 
 
 {% for grupo, productos in grupos.items() %}
@@ -459,6 +456,7 @@
   onSnapshot(productosRef, snapshot => {
   const grupos = {};
 
+  // Agrupar productos por grupo
   snapshot.forEach(doc => {
     const data = doc.data();
     const grupo = data.grupo?.trim() || "General";
@@ -478,6 +476,18 @@
       botonesDiv.appendChild(btn);
     });
   }
+
+  // Contenedores por grupo (generados dinámicamente)
+  const contenedorPrincipal = document.getElementById("contenedor-grupos");
+  contenedorPrincipal.innerHTML = "";
+
+  Object.entries(grupos).forEach(([grupo, productos]) => {
+    const grupoId = "grupo_" + grupo;
+    const grupoDiv = document.createElement("div");
+    grupoDiv.className = "container mb-5";
+    grupoDiv.innerHTML = `<div class="row grupo-section" id="${grupoId}"></div>`;
+    contenedorPrincipal.appendChild(grupoDiv);
+  });
 
   // Tarjetas por grupo
   Object.entries(grupos).forEach(([grupo, productos]) => {
@@ -518,6 +528,7 @@
   const primerBtn = document.querySelector('.btn-grupo');
   if (primerBtn) primerBtn.classList.add('active');
 });
+
 
 
 // ✅ Cierre del carrito al hacer clic fuera
