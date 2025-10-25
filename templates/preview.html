@@ -29,7 +29,17 @@
     .modo-claro {
       color: #333;
     }
-    
+
+    .logo {
+      height: 10vw;
+      max-height: 380px;
+    }
+
+    @media (max-width: 600px) {
+      .logo {
+        height: 140px !important;
+      }
+    }
     .descripcion-emprendimiento {
       background-color: rgba(0, 0, 0, 0.5);
       padding: 20px;
@@ -195,15 +205,11 @@
 </head>
 <body class="container py-5 {{ modo_visual }}">
 
-  {% if config.logo %}
-  <div class="text-center my-3">
-    <img src="{{ url_for('static', filename='img/' + config.logo) }}"
-         alt="Logo"
-         style="height: 8vw; max-height: 280px;"
-         class="img-fluid">
-  </div>
-  {% endif %}
-
+ <div class="text-center my-3">
+  <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
+       alt="Logo"
+       class="img-fluid logo">
+</div>
 
   {% if config.sobre_mi %}
     <div class="text-center mb-4">
