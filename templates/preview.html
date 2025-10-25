@@ -219,20 +219,21 @@
     </div>
   {% endif %}
 
+{% set usarFirestore = true %}
+  {% if not usarFirestore and config.tipo_web in ['catálogo', 'menú'] %}
+  {% set grupos = {} %}
+  {% for producto in config.productos %}
+    {% set nombre_grupo = producto.get('grupo') %}
+    {% if not nombre_grupo or not nombre_grupo.strip() %}
+      {% set nombre_grupo = 'General' %}
+    {% endif %}
+    {% if nombre_grupo not in grupos %}
+      {% set _ = grupos.update({nombre_grupo: []}) %}
+    {% endif %}
+    {% set _ = grupos[nombre_grupo].append(producto) %}
+  {% endfor %}
+{% endif %}
 
-  {% if config.tipo_web in ['catálogo', 'menú'] %}
-    {% set grupos = {} %}
-    {% for producto in config.productos %}
-      {% set nombre_grupo = producto.get('grupo') %}
-      {% if not nombre_grupo or not nombre_grupo.strip() %}
-        {% set nombre_grupo = 'General' %}
-      {% endif %}
-      {% if nombre_grupo not in grupos %}
-        {% set _ = grupos.update({nombre_grupo: []}) %}
-      {% endif %}
-      {% set _ = grupos[nombre_grupo].append(producto) %}
-    {% endfor %}
-  {% endif %}
   
     <!-- Botones de grupo (dinámicos si usarFirestore = true) -->
 <div class="text-center mb-4" id="botones-grupo"></div>
