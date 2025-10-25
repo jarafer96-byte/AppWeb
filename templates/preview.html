@@ -466,10 +466,11 @@ onSnapshot(productosRef, snapshot => {
 
   // Ordenar grupos por campo 'orden' si existe
   const gruposOrdenados = Object.entries(grupos).sort((a, b) => {
-    const ordenA = a[1][0]?.orden || 999;
-    const ordenB = b[1][0]?.orden || 999;
-    return ordenA - ordenB;
-  });
+  const ordenA = Math.min(...a[1].map(p => p.orden || 999));
+  const ordenB = Math.min(...b[1].map(p => p.orden || 999));
+  return ordenA - ordenB;
+});
+
 
   // Botones dinámicos
   const botonesDiv = document.getElementById("botones-grupo");
