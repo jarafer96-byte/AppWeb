@@ -35,6 +35,7 @@ def subir_a_firestore(producto):
             "descripcion": {"stringValue": producto.get("descripcion", "")},
             "imagen": {"stringValue": producto["imagen"]},
             "oferta": {"booleanValue": producto.get("oferta", False)}
+            "orden": {"integerValue": int(producto.get("orden", 999))}
         }
     }
 
