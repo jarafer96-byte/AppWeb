@@ -181,7 +181,8 @@ def step3():
                     'descripcion': descripciones[i],
                     'precio': precio,
                     'imagen': webp_name,
-                    'grupo': grupo
+                    'grupo': grupo,
+                    'orden': request.form.getlist('orden')[i]
                 })
 
         session['bloques'] = bloques
