@@ -34,7 +34,8 @@ def subir_a_firestore(producto):
             "grupo": {"stringValue": producto["grupo"]},
             "descripcion": {"stringValue": producto.get("descripcion", "")},
             "imagen": {"stringValue": producto["imagen"]},
-            "oferta": {"booleanValue": producto.get("oferta", False)}
+            "oferta": {"booleanValue": producto.get("oferta", False)},
+            "orden": {"integerValue": int(producto.get("orden", 999))}
         }
     }
 
@@ -180,7 +181,8 @@ def step3():
                     'descripcion': descripciones[i],
                     'precio': precio,
                     'imagen': webp_name,
-                    'grupo': grupo
+                    'grupo': grupo,
+                    'orden': request.form.getlist('orden')[i]
                 })
 
         session['bloques'] = bloques
@@ -196,6 +198,13 @@ def preview():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
     config = {
+        'titulo': session.get('titulo'),
+        'descripcion': session.get('descripcion'),
+        'imagen_destacada': session.get('imagen_destacada'),
+        'url': session.get('url'),
+        'nombre_emprendimiento': session.get('nombre_emprendimiento'),
+        'anio': session.get('anio'),
+
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
         'link_mapa': session.get('link_mapa'),
@@ -214,7 +223,10 @@ def preview():
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
         'bloques': []
     } 
-    
+    # ✅ Generar ID único por producto
+    for i, p in enumerate(config['productos']):
+        p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
+        
     config['descargado'] = session.get('descargado', False)
 
     return render_template('preview.html', config=config)
