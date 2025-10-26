@@ -303,6 +303,33 @@
 </head>
 <body class="container py-5 {{ modo_visual }}">
 
+  <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
+    ↑
+  </button>
+  <nav class="navbar navbar-expand-lg bg-principal text-white fixed-top shadow-sm">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand text-white fw-bold" href="{{ config.url or '#' }}">
+      <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
+           alt="Logo"
+           style="height: 40px; margin-right: 10px;">
+      {{ config.nombre_emprendimiento or 'Mi Emprendimiento' }}
+    </a>
+    <button class="navbar-toggler text-white border-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav gap-3">
+        {% if config.productos %}
+        <li class="nav-item"><a class="nav-link text-white" href="#botones-grupo">Productos</a></li>
+        {% endif %}
+        {% if config.ubicacion %}
+        <li class="nav-item"><a class="nav-link text-white" href="#ubicacion">Ubicación</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+  
  <div class="text-center my-3">
   <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
        alt="Logo"
@@ -438,6 +465,18 @@
   </div>
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
+    
+  window.addEventListener('scroll', () => {
+    const btn = document.getElementById('volverArriba');
+    btn.style.display = window.scrollY > 300 ? 'block' : 'none';
+    btn.style.backgroundColor = 'white';
+    btn.style.color = 'black';
+  });
+
+  document.getElementById('volverArriba').onclick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('volverArriba').blur();
+  };
 
     function mostrarGrupo(nombre, event) {
       document.querySelectorAll('.grupo-section').forEach(div => {
@@ -552,12 +591,12 @@
   } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyDpFPhtR-bpmq-aMX5R6MtXINeN7f5KRSw",
-    authDomain: "bloq-50ae9.firebaseapp.com",
-    projectId: "bloq-50ae9",
-    storageBucket: "bloq-50ae9.firebasestorage.app",
-    messagingSenderId: "1085756859047",
-    appId: "1:1085756859047:web:e5f5532198b58b109c3182"
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
   };
 
 
@@ -662,6 +701,19 @@ document.addEventListener('click', function(event) {
     carritoDiv.style.display = 'none';
   }
 });
+document.addEventListener('click', function (event) {
+    const navbar = document.querySelector('.navbar-collapse');
+    const toggler = document.querySelector('.navbar-toggler');
+
+    const isOpen = navbar.classList.contains('show');
+    const clickedInsideMenu = navbar.contains(event.target);
+    const clickedToggler = toggler.contains(event.target);
+
+    if (isOpen && !clickedInsideMenu && !clickedToggler) {
+      const bsCollapse = new bootstrap.Collapse(navbar, { toggle: false });
+      bsCollapse.hide();
+    }
+  });
 </script>
 </body>
 </html>
