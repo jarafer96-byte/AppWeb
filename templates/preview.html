@@ -221,6 +221,8 @@
 
 {% set usarFirestore = true %}
 
+{% set usarFirestore = true %}
+
 {% if not usarFirestore and config.tipo_web in ['catálogo', 'menú'] %}
   {% set grupos = {} %}
   {% for producto in config.productos %}
@@ -234,6 +236,48 @@
     {% set _ = grupos[nombre_grupo].append(producto) %}
   {% endfor %}
 {% endif %}
+
+{% if not usarFirestore %}
+  <div class="text-center mb-4" id="botones-grupo">
+    {% for grupo in grupos.keys() %}
+      <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
+        {{ grupo }}
+      </button>
+    {% endfor %}
+  </div>
+
+  <div id="contenedor-grupos">
+    {% for grupo, productos in grupos.items() %}
+      <div class="container mb-5">
+        <div class="row grupo-section" id="grupo_{{ grupo }}">
+          {% for producto in productos %}
+            {% set idBase = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index %}
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+              <div class="card p-3 h-100">
+                <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen | imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+                <div class="card-body">
+                  <h5 class="card-title">{{ producto.nombre }}</h5>
+                  <p class="card-text">{{ producto.descripcion }}</p>
+                  <p><strong>Precio:</strong> $ <span id="precio_{{ idBase }}">{{ producto.precio }}</span></p>
+                  <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                  <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                    <label for="cantidad_{{ idBase }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                    <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ idBase }}">
+                    <button type="button" class="btn btn-secondary"
+                            onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ idBase }}', 'cantidad_{{ idBase }}')">
+                      Agregar al carrito
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
 
 
   
