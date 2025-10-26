@@ -220,7 +220,8 @@
   {% endif %}
 
 {% set usarFirestore = true %}
-  {% if not usarFirestore and config.tipo_web in ['catálogo', 'menú'] %}
+
+{% if not usarFirestore and config.tipo_web in ['catálogo', 'menú'] %}
   {% set grupos = {} %}
   {% for producto in config.productos %}
     {% set nombre_grupo = producto.get('grupo') %}
@@ -233,6 +234,7 @@
     {% set _ = grupos[nombre_grupo].append(producto) %}
   {% endfor %}
 {% endif %}
+
 
   
     <!-- Botones de grupo (dinámicos si usarFirestore = true) -->
