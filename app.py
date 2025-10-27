@@ -198,13 +198,6 @@ def preview():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
     config = {
-        'titulo': session.get('titulo'),
-        'descripcion': session.get('descripcion'),
-        'imagen_destacada': session.get('imagen_destacada'),
-        'url': session.get('url'),
-        'nombre_emprendimiento': session.get('nombre_emprendimiento'),
-        'anio': session.get('anio'),
-
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
         'link_mapa': session.get('link_mapa'),
@@ -228,6 +221,7 @@ def preview():
         p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
         
     config['descargado'] = session.get('descargado', False)
+    config['usarFirestore'] = True  # o False según lo que quieras
 
     return render_template('preview.html', config=config)
 
