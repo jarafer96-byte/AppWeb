@@ -200,9 +200,6 @@
       margin-top: 40px;
       text-align: center;
     }
-    #ubicacion {
-      scroll-margin-top: 80px; /* ajustá según el alto de tu navbar */
-    }
     .social-icons img {
       width: 40px;
       margin: 0 10px;
@@ -270,25 +267,6 @@
     .navbar-toggler {
       -webkit-tap-highlight-color: transparent;
     }
-    .navbar-toggler:focus,
-    .navbar-toggler:active {
-      outline: none;
-      box-shadow: none;
-      border-color: transparent;
-    }
-    .navbar-collapse {
-      backdrop-filter: blur(6px);
-      border-radius: 0 0 12px 12px;
-      padding: 20px;
-    }
-    .modo-claro .navbar-collapse {
-      background-color: rgba(255, 255, 255, 0.8);
-      color: #333;
-    }
-    .modo-oscuro .navbar-collapse {
-      background-color: rgba(0, 0, 0, 0.6);
-      color: white;
-    }
     .modo-claro #toggleCarrito {
       background-color: None;
       color: white;
@@ -308,28 +286,6 @@
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
   </button>
-  <nav class="navbar navbar-expand-lg bg-principal text-white fixed-top shadow-sm">
-  <div class="container-fluid px-4">
-    <a class="navbar-brand text-white fw-bold" href="{{ config.url or '#' }}">
-      <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
-           alt="Logo"
-           style="height: 40px; margin-right: 10px;">
-    </a>
-    <button class="navbar-toggler text-white border-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-      <ul class="navbar-nav gap-3">
-        {% if config.productos %}
-        <li class="nav-item"><a class="nav-link text-white" href="#botones-grupo">Productos</a></li>
-        {% endif %}
-        {% if config.ubicacion %}
-        <li class="nav-item"><a class="nav-link text-white" href="#ubicacion">Ubicación</a></li>
-        {% endif %}
-      </ul>
-    </div>
-  </div>
-</nav>
   
  <div class="text-center my-3">
   <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
@@ -360,7 +316,6 @@
     {% set _ = grupos[nombre_grupo].append(producto) %}
   {% endfor %}
 {% endif %}
-
 {% if not usarFirestore %}
   <div class="text-center mb-4" id="botones-grupo">
     {% for grupo in grupos.keys() %}
@@ -447,11 +402,6 @@
       {% endif %}
     </div>
   {% endif %}
-  
-  <footer class="text-center mt-5 py-4" style="font-size: 14px; color: #aaa;">
-    © {{ config.anio }} {{ config.nombre_emprendimiento }} · {{ config.ubicacion }} · Todos los derechos reservados
-  </footer>
-
 
   <button id="toggleCarrito">🛒</button>
 
@@ -688,8 +638,6 @@ onSnapshot(productosRef, snapshot => {
   const primerBtn = document.querySelector('.btn-grupo');
   if (primerBtn) primerBtn.classList.add('active');
 });
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 // ✅ Cierre del carrito al hacer clic fuera
 document.addEventListener('click', function(event) {
