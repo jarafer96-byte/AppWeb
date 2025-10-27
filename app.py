@@ -150,6 +150,9 @@ def step3():
         imagenes = request.files.getlist('imagen')
         ordenes = request.form.getlist('orden')
 
+        MAX_SIZE_MB = 4
+        formatos_validos = ('.jpg', '.jpeg', '.png', '.webp')
+
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
             precio = precios[i].strip()
@@ -158,6 +161,16 @@ def step3():
             filename = secure_filename(img.filename)
 
             if not nombre or not precio or not grupo or not filename:
+                continue
+
+            # Validar formato
+            if not filename.lower().endswith(formatos_validos):
+                print(f"⚠️ Formato no soportado: {filename}")
+                continue
+
+            # Validar peso
+            if img.content_length and img.content_length > MAX_SIZE_MB * 1024 * 1024:
+                print(f"⚠️ Imagen demasiado pesada: {filename}")
                 continue
 
             # Generar nombre único para evitar colisiones
@@ -186,6 +199,7 @@ def step3():
         return redirect('/preview')
 
     return render_template('step3.html', tipo_web=tipo)
+
 
 
 @app.route('/preview')
