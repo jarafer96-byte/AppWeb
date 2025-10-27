@@ -559,6 +559,6 @@ document.addEventListener('click', function(event) {
     carritoDiv.style.display = 'none';
   }
 });
-</script>
+<script>
 </body>
 </html>
