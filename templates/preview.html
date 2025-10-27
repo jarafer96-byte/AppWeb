@@ -4,7 +4,16 @@
   <meta charset="UTF-8">
   <title>Vista previa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
+  <!-- Vista previa para redes sociales -->
+  <meta property="og:title" content="{{ config.titulo }}">
+  <meta property="og:description" content="{{ config.descripcion }}">
+  <meta property="og:image" content="{{ config.imagen_destacada }}">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="{{ config.url }}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <!-- Google Fonts disponibles -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Fira+Code&family=Raleway&family=Quicksand&family=Pacifico&family=Source+Serif+4&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -18,23 +27,83 @@
 
   <style>
     body {
-      font-family: {{ config.fuente | safe }};
-      background-image: url('/static/img/{{ config.estilo_visual }}.jpeg');
+      font-family: 'Quicksand', sans-serif;
+      background-image: url('/static/img/mini_4_jf7.jpeg');
       background-size: cover;
       background-repeat: no-repeat;
       background-attachment: fixed;
       background-position: center;
     }
-
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fondo-animado {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: -2; /* más atrás */
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 40%),
+                  radial-gradient(circle at 80% 70%, rgba(255,255,255,0.06), transparent 40%);
+      animation: moverFondo 40s ease-in-out infinite;
+      background-size: 200% 200%;
+      pointer-events: none;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: -1; /* encima de la animación, debajo del contenido */
+    }
+    .social-icons img {
+      transition: transform 0.3s ease, filter 0.3s ease;
+    }
+    .social-icons img:hover {
+      transform: scale(1.2);
+      filter: drop-shadow(0 0 6px {{ config.color }});
+    }
+    body {
+      padding-top: 70px; /* para que el contenido no quede tapado por la navbar */
+    }
+    .card {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.6s ease forwards;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border-radius: 12px;
+      overflow: hidden;
+      will-change: transform, box-shadow;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    .card-img-top {
+      transition: transform 0.3s ease;
+    }
+    .btn-grupo {
+      transition: all 0.3s ease;
+    }
+    .btn-grupo:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 8px {{ config.color }};
+    }
+    html {
+     scroll-behavior: smooth;
+    }
     .modo-claro {
       color: #333;
     }
-
+    .color-principal {
+      color: {{ config.color }};
+    }
+    .bg-principal {
+      background-color: {{ config.color }};
+    }
     .logo {
       height: 10vw;
       max-height: 380px;
     }
-
     @media (max-width: 600px) {
       .logo {
         height: 140px !important;
@@ -52,45 +121,29 @@
       font-size: 16px;
       line-height: 1.6;
     }
-
-    
     .modo-claro .card {
       background-color: #fff;
       color: #333;
       border: none;
     }
-
     .modo-claro .btn-grupo {
-      background-color: {{ config.color }};
+      background-color: None;
       color: white;
       border: none;
     }
-
     .modo-oscuro {
       color: white;
     }
-
     .modo-oscuro .card {
       background-color: rgba(0,0,0,0.6);
       color: white;
       border: 1px solid rgba(255,255,255,0.2);
     }
-
     .modo-oscuro .btn-grupo {
-      background-color: {{ config.color }};
+      background-color: None;
       color: black;
-      border: 2px solid {{ config.color }};
+      border: 2px solid None;
     }
-
-    .card-img-top {
-      width: 100%;
-      max-width: 300px;
-      height: auto;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
     .btn-grupo {
       padding: 8px 16px;
       margin: 5px;
@@ -98,16 +151,13 @@
       font-weight: bold;
       transition: background-color 0.3s ease;
     }
-
     .btn-grupo:hover {
       background-color: #fff;
       color: {{ config.color }};
     }
-
     .btn-grupo.active {
-      box-shadow: 0 0 5px {{ config.color }};
+      box-shadow: 0 0 5px None;
     }
-
     .btn-whatsapp {
       background-color: #25D366;
       border: none;
@@ -116,33 +166,57 @@
       border-radius: 5px;
       font-size: 14px;
     }
-
+    .btn-volver-arriba {
+      background-color: white;
+      color: black;
+      border: none;
+      font-size: 20px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+    .btn-volver-arriba:hover {
+      background-color: #f0f0f0;
+      transform: scale(1.1);
+    }
+    .btn-volver-arriba {
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-volver-arriba:focus,
+    .btn-volver-arriba:active,
+    .btn-volver-arriba:visited {
+      outline: none;
+      box-shadow: none;
+      background-color: white;
+      color: black;
+    }
     .grupo-section {
       display: none;
     }
-
     .grupo-section.active {
       display: flex !important;
       flex-wrap: wrap;
     }
-
     .social-icons {
       margin-top: 40px;
       text-align: center;
     }
-
     .social-icons img {
       width: 40px;
       margin: 0 10px;
       transition: transform 0.3s ease;
       filter: drop-shadow(0 0 3px white);
     }
-
+    .btn-volver-arriba:focus {
+      outline: none;
+      box-shadow: none;
+    }
+    body {
+      padding-top: 70px; /* Ajusta según el alto de tu navbar */
+    }
     .social-icons img:hover {
       transform: scale(1.1);
-      filter: drop-shadow(0 0 6px {{ config.color }});
+      filter: drop-shadow(0 0 6px None);
     }
-
     .bloque-ubicacion {
       background-color: rgba(0, 0, 0, 0.5);
       color: white;
@@ -153,7 +227,6 @@
       margin: 20px auto 0;
       box-shadow: 0 0 6px rgba(255,255,255,0.3);
     }
-
     #carrito {
       position: fixed;
       bottom: 80px;
@@ -164,21 +237,18 @@
       z-index: 999;
       display: none;
     }
-
     .modo-oscuro #carrito {
       background-color: rgba(0,0,0,0.85);
       color: white;
       border: 1px solid white;
       box-shadow: 0 0 10px white;
     }
-
     .modo-claro #carrito {
       background-color: #fff;
       color: #333;
       border: 1px solid #ccc;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
-
     #toggleCarrito {
       position: fixed;
       bottom: 20px;
@@ -189,22 +259,77 @@
       font-weight: bold;
       box-shadow: 0 0 5px white;
     }
-
     .modo-oscuro #toggleCarrito {
-      background-color: {{ config.color }};
+      background-color: None;
       color: black;
       border: none;
     }
-
+    .navbar-toggler {
+      -webkit-tap-highlight-color: transparent;
+    }
+    .navbar-toggler:focus,
+    .navbar-toggler:active {
+      outline: none;
+      box-shadow: none;
+      border-color: transparent;
+    }
+    .navbar-collapse {
+      backdrop-filter: blur(6px);
+      border-radius: 0 0 12px 12px;
+      padding: 20px;
+    }
+    .modo-claro .navbar-collapse {
+      background-color: rgba(255, 255, 255, 0.8);
+      color: #333;
+    }
+    .modo-oscuro .navbar-collapse {
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
+    }
     .modo-claro #toggleCarrito {
-      background-color: {{ config.color }};
+      background-color: None;
       color: white;
       border: none;
+    }
+    .modo-oscuro .card:hover {
+      box-shadow: 0 8px 20px rgba(255,255,255,0.2);
+    }
+    @keyframes moverFondo {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
     }
   </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
 
+  <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
+    ↑
+  </button>
+  <nav class="navbar navbar-expand-lg bg-principal text-white fixed-top shadow-sm">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand text-white fw-bold" href="{{ config.url or '#' }}">
+      <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
+           alt="Logo"
+           style="height: 40px; margin-right: 10px;">
+      {{ config.nombre_emprendimiento or 'Mi Emprendimiento' }}
+    </a>
+    <button class="navbar-toggler text-white border-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav gap-3">
+        {% if config.productos %}
+        <li class="nav-item"><a class="nav-link text-white" href="#botones-grupo">Productos</a></li>
+        {% endif %}
+        {% if config.ubicacion %}
+        <li class="nav-item"><a class="nav-link text-white" href="#ubicacion">Ubicación</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+  
  <div class="text-center my-3">
   <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
        alt="Logo"
@@ -219,7 +344,7 @@
     </div>
   {% endif %}
 
-{% set usarFirestore = true %}
+{% set usarFirestore = false %}
 
 {% if not usarFirestore and config.tipo_web in ['catálogo', 'menú'] %}
   {% set grupos = {} %}
@@ -288,7 +413,7 @@
       Descargar sitio
     </a>
   </div>
-  {% endif %}
+{% endif %}
 
   <div class="social-icons">
     {% if config.facebook %}
@@ -321,6 +446,11 @@
       {% endif %}
     </div>
   {% endif %}
+  
+  <footer class="text-center mt-5 py-4" style="font-size: 14px; color: #aaa;">
+    © {{ config.anio }} {{ config.nombre_emprendimiento }} · {{ config.ubicacion }} · Todos los derechos reservados
+  </footer>
+
 
   <button id="toggleCarrito">🛒</button>
 
@@ -335,6 +465,18 @@
   </div>
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
+    
+  window.addEventListener('scroll', () => {
+    const btn = document.getElementById('volverArriba');
+    btn.style.display = window.scrollY > 300 ? 'block' : 'none';
+    btn.style.backgroundColor = 'white';
+    btn.style.color = 'black';
+  });
+
+  document.getElementById('volverArriba').onclick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('volverArriba').blur();
+  };
 
     function mostrarGrupo(nombre, event) {
       document.querySelectorAll('.grupo-section').forEach(div => {
@@ -449,13 +591,13 @@
   } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyDGqvK70SEKIYdabn1hM-EW9xHejcqYvGI",
-    authDomain: "hola1-4ed7f.firebaseapp.com",
-    projectId: "hola1-4ed7f",
-    storageBucket: "hola1-4ed7f.firebasestorage.app",
-    messagingSenderId: "261881085447",
-    appId: "1:261881085447:web:d7a38903d1ca614f8074a2"
-  };
+  apiKey: "AIzaSyDGqvK70SEKIYdabn1hM-EW9xHejcqYvGI",
+  authDomain: "hola1-4ed7f.firebaseapp.com",
+  projectId: "hola1-4ed7f",
+  storageBucket: "hola1-4ed7f.firebasestorage.app",
+  messagingSenderId: "261881085447",
+  appId: "1:261881085447:web:d7a38903d1ca614f8074a2"
+};
 
 
   const app = initializeApp(firebaseConfig);
@@ -559,6 +701,19 @@ document.addEventListener('click', function(event) {
     carritoDiv.style.display = 'none';
   }
 });
+document.addEventListener('click', function (event) {
+    const navbar = document.querySelector('.navbar-collapse');
+    const toggler = document.querySelector('.navbar-toggler');
+
+    const isOpen = navbar.classList.contains('show');
+    const clickedInsideMenu = navbar.contains(event.target);
+    const clickedToggler = toggler.contains(event.target);
+
+    if (isOpen && !clickedInsideMenu && !clickedToggler) {
+      const bsCollapse = new bootstrap.Collapse(navbar, { toggle: false });
+      bsCollapse.hide();
+    }
+  });
 </script>
 </body>
 </html>
