@@ -555,6 +555,14 @@
 const db = getFirestore(app);
 const productosRef = collection(db, "productos");
 
+getDocs(productosRef)
+  .then(snapshot => {
+    console.log("Documentos recibidos:", snapshot.size);
+  })
+  .catch(error => {
+    console.error("❌ Error al cargar productos:", error);
+  });
+
 onSnapshot(productosRef, snapshot => {
   const grupos = {};
 
