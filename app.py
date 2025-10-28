@@ -13,6 +13,7 @@ import shortuuid  # ← ya la tenés instalada, ¿no?
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
 app.secret_key = 'clave-secreta'
+app.config['UPLOAD_FOLDER'] = 'static/img'
 
 @app.errorhandler(413)
 def too_large(e):
