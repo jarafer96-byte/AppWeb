@@ -193,10 +193,23 @@ def step3():
             })
 
         session['bloques'] = bloques
-        for producto in bloques:
-            subir_a_firestore(producto)
 
-        return redirect('/preview')
+exitos = 0
+fallos = 0
+
+for producto in bloques:
+    try:
+        subir_a_firestore(producto)
+        print(f"✅ Producto subido: {producto['nombre']}")
+        exitos += 1
+    except Exception as e:
+        print(f"❌ Error al subir {producto['nombre']}: {e}")
+        fallos += 1
+
+print(f"🧮 Subidos correctamente: {exitos} / Fallidos: {fallos}")
+
+return redirect('/preview')
+
 
     return render_template('step3.html', tipo_web=tipo)
 
