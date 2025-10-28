@@ -206,8 +206,11 @@ def step3():
                 fallos += 1
 
         print(f"🧮 Subidos correctamente: {exitos} / Fallidos: {fallos}")
-        return redirect('/preview')
-        return render_template('step3.html', tipo_web=tipo)
+
+        if exitos > 0:
+            return redirect('/preview')
+        else:
+            return render_template('step3.html', tipo_web=tipo)
 
 @app.route('/preview')
 def preview():
