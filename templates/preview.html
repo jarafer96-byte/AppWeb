@@ -33,6 +33,7 @@
       background-repeat: no-repeat;
       background-attachment: fixed;
       background-position: center;
+      padding-top: 70px; /* para que el contenido no quede tapado por la navbar */
     }
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
@@ -55,15 +56,9 @@
       background: rgba(0,0,0,0.4);
       z-index: -1; /* encima de la animación, debajo del contenido */
     }
-    .social-icons img {
-      transition: transform 0.3s ease, filter 0.3s ease;
-    }
     .social-icons img:hover {
       transform: scale(1.2);
       filter: drop-shadow(0 0 6px {{ config.color }});
-    }
-    body {
-      padding-top: 70px; /* para que el contenido no quede tapado por la navbar */
     }
     .card {
       opacity: 0;
@@ -73,12 +68,12 @@
       border-radius: 12px;
       overflow: hidden;
       will-change: transform, box-shadow;
+      padding: 12px;
     }
     .card:hover {
       transform: translateY(-5px);
       box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
-    
      .card-img-top {
       width: 100%;
       max-width: 300px;
@@ -87,24 +82,15 @@
       margin-left: auto;
       margin-right: auto;
     }
-
-
-
-.card {
-  padding: 12px;
-}
-
-.card-body {
-  padding: 10px;
-}
-
-.card-title {
-  font-size: 1rem;
-}
-
-.card-text {
-  font-size: 0.9rem;
-}
+    .card-body {
+      padding: 10px;
+    }
+    .card-title {
+      font-size: 1rem;
+    }
+    .card-text {
+      font-size: 0.9rem;
+    }
     .btn-grupo {
       transition: all 0.3s ease;
     }
@@ -151,7 +137,7 @@
       border: none;
     }
     .modo-claro .btn-grupo {
-      background-color: None;
+      background-color: transparent;
       color: white;
       border: none;
     }
@@ -164,9 +150,9 @@
       border: 1px solid rgba(255,255,255,0.2);
     }
     .modo-oscuro .btn-grupo {
-      background-color: None;
+      background-color: transparent;
       color: black;
-      border: 2px solid None;
+      border: 2px solid transparent;
     }
     .btn-grupo {
       padding: 8px 16px;
@@ -180,7 +166,7 @@
       color: {{ config.color }};
     }
     .btn-grupo.active {
-      box-shadow: 0 0 5px None;
+      box-shadow: none;
     }
     .btn-whatsapp {
       background-color: #25D366;
@@ -197,13 +183,11 @@
       font-size: 20px;
       box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
     }
     .btn-volver-arriba:hover {
       background-color: #f0f0f0;
       transform: scale(1.1);
-    }
-    .btn-volver-arriba {
-      -webkit-tap-highlight-color: transparent;
     }
     .btn-volver-arriba:focus,
     .btn-volver-arriba:active,
@@ -233,9 +217,6 @@
     .btn-volver-arriba:focus {
       outline: none;
       box-shadow: none;
-    }
-    body {
-      padding-top: 70px; /* Ajusta según el alto de tu navbar */
     }
     .social-icons img:hover {
       transform: scale(1.1);
