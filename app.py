@@ -211,7 +211,8 @@ def step3():
             return redirect('/preview')
         else:
             return render_template('step3.html', tipo_web=tipo)
-
+            
+    return render_template('step3.html', tipo_web=tipo)
 @app.route('/preview')
 def preview():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
