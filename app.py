@@ -9,6 +9,7 @@ import time
 import requests
 import json
 import shortuuid  # ← ya la tenés instalada, ¿no?
+from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
@@ -176,22 +177,19 @@ def step3():
             if not nombre or not precio or not grupo or not filename:
                 continue
 
-            # Validar formato
             if not filename.lower().endswith(formatos_validos):
                 print(f"⚠️ Formato no soportado: {filename}")
                 continue
 
-            # Validar peso
             if img.content_length and img.content_length > MAX_SIZE_MB * 1024 * 1024:
                 print(f"⚠️ Imagen demasiado pesada: {filename}")
                 continue
 
-            # Generar nombre único para evitar colisiones
             webp_name = f"{os.path.splitext(filename)[0]}_{shortuuid.uuid()[:4]}.webp"
             destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
 
             try:
-                img.save(destino)  # Guardar directamente sin redimensionar
+                img.save(destino)
             except Exception as e:
                 print(f"❌ Error al guardar imagen {filename}: {e}")
                 continue
@@ -209,21 +207,28 @@ def step3():
         exitos = 0
         fallos = 0
 
+        def subir_con_resultado(producto):
+            try:
+                if subir_a_firestore(producto):
+                    print(f"✅ Producto subido: {producto['nombre']}")
+                    return True
+                else:
+                    print(f"⚠️ Fallo al subir {producto['nombre']}")
+                    return False
+            except Exception as e:
+                print(f"❌ Error inesperado al subir {producto['nombre']}: {e}")
+                return False
+
+        bloques_por_lote = 10
         try:
-            for producto in bloques:
-                try:
-                    if subir_a_firestore(producto):
-                        print(f"✅ Producto subido: {producto['nombre']}")
-                        exitos += 1
-                    else:
-                        print(f"⚠️ Fallo al subir {producto['nombre']}")
-                        fallos += 1
-                except Exception as e:
-                    print(f"❌ Error inesperado al subir {producto['nombre']}: {e}")
-                    fallos += 1
+            for inicio in range(0, len(bloques), bloques_por_lote):
+                lote = bloques[inicio:inicio + bloques_por_lote]
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    resultados = list(executor.map(subir_con_resultado, lote))
+                    exitos += sum(resultados)
+                    fallos += len(resultados) - sum(resultados)
         except Exception as lote_error:
             print(f"🔥 Error crítico en lote de subida: {lote_error}")
-
 
         print(f"🧮 Subidos correctamente: {exitos} / Fallidos: {fallos}")
 
@@ -231,8 +236,9 @@ def step3():
             return redirect('/preview')
         else:
             return render_template('step3.html', tipo_web=tipo)
-            
+
     return render_template('step3.html', tipo_web=tipo)
+
 @app.route('/preview')
 def preview():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
