@@ -78,15 +78,17 @@
       transform: translateY(-5px);
       box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
-    .card-img-top {
-      transition: transform 0.3s ease;
-    }
+    
     .card-img-top {
   height: 180px;
-  object-fit: cover;
   width: 100%;
+  object-fit: cover;
+  display: block;
   border-radius: 8px;
+  background-color: rgba(0,0,0,0.1); /* opcional para detectar bordes vacíos */
+  transition: transform 0.3s ease;
 }
+
 
 
 .card {
