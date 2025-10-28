@@ -27,25 +27,37 @@ def subir_a_firestore(producto):
     url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}?key={FIREBASE_API_KEY}"
     headers = {"Content-Type": "application/json"}
 
+    try:
+        precio = int(producto["precio"])
+        orden = int(producto.get("orden", 999))
+    except ValueError:
+        print(f"❌ Precio u orden inválido en producto: {producto['nombre']}")
+        return False
+
     data = {
         "fields": {
             "nombre": {"stringValue": producto["nombre"]},
-            "precio": {"integerValue": int(producto["precio"])},
+            "precio": {"integerValue": precio},
             "grupo": {"stringValue": producto["grupo"]},
             "descripcion": {"stringValue": producto.get("descripcion", "")},
             "imagen": {"stringValue": producto["imagen"]},
             "oferta": {"booleanValue": producto.get("oferta", False)},
-            "orden": {"integerValue": int(producto.get("orden", 999))}
+            "orden": {"integerValue": orden}
         }
     }
 
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    return response.status_code == 200 or response.status_code == 202
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(data), timeout=5)
+        if response.status_code in [200, 202]:
+            return True
+        else:
+            print(f"❌ Error HTTP {response.status_code} al subir {producto['nombre']}")
+            print(f"📄 Respuesta: {response.text}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error de red al subir {producto['nombre']}: {e}")
+        return False
 
-
-UPLOAD_FOLDER = 'static/img'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ✅ Compresión y redimensionado
 def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad=80):
