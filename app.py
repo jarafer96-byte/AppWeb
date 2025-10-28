@@ -209,14 +209,21 @@ def step3():
         exitos = 0
         fallos = 0
 
-        for producto in bloques:
-            try:   
-                subir_a_firestore(producto)
+        try:
+    for producto in bloques:
+        try:
+            if subir_a_firestore(producto):
                 print(f"✅ Producto subido: {producto['nombre']}")
                 exitos += 1
-            except Exception as e:
-                print(f"❌ Error al subir {producto['nombre']}: {e}")
+            else:
+                print(f"⚠️ Fallo al subir {producto['nombre']}")
                 fallos += 1
+        except Exception as e:
+            print(f"❌ Error inesperado al subir {producto['nombre']}: {e}")
+            fallos += 1
+except Exception as lote_error:
+    print(f"🔥 Error crítico en lote de subida: {lote_error}")
+
 
         print(f"🧮 Subidos correctamente: {exitos} / Fallidos: {fallos}")
 
