@@ -321,8 +321,12 @@ def descargar():
                 imagen_path = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
                 if os.path.exists(imagen_path):
                     zip_file.write(imagen_path, arcname='img/' + imagen)
-
-
+        # ✅ Incluir íconos sociales y mapa
+        iconos = ['map.png', 'whatsapp.png', 'facebook.png', 'instagram.png']
+        for icono in iconos:
+            icono_path = os.path.join(app.config['UPLOAD_FOLDER'], icono)
+            if os.path.exists(icono_path):
+                zip_file.write(icono_path, arcname='img/' + icono)
     limpiar_imagenes_usuario()
 
     session['descargado'] = True
