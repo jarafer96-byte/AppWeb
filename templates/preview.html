@@ -124,6 +124,16 @@
         height: 140px !important;
       }
     }
+    .logo-wrapper {
+      display: inline-block;
+      padding: 20px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.08); /* para modo oscuro */
+      backdrop-filter: blur(4px);
+    }
+    .modo-claro .logo-wrapper {
+      background: rgba(0,0,0,0.05); /* para modo claro */
+    }
     .descripcion-emprendimiento {
       background-color: rgba(0, 0, 0, 0.5);
       color: white;
@@ -302,11 +312,12 @@
     ↑
   </button>
   
- <div class="text-center my-3">
+ <div class="logo-wrapper text-center my-3">
   <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
        alt="Logo"
        class="img-fluid logo">
-</div>
+ </div>
+
 
   {% if config.sobre_mi %}
     <div class="text-center mb-4">
