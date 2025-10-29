@@ -145,11 +145,6 @@
       color: white;
       border: 1px solid rgba(255,255,255,0.2);
     }
-    .modo-oscuro .btn-grupo {
-      background-color: transparent;
-      color: black;
-      border: 2px solid transparent;
-    }
     .btn-grupo {
       position: relative;
       padding: 8px 16px;
@@ -163,6 +158,12 @@
       transition: all 0.3s ease;
       overflow: hidden;
     }
+    .modo-oscuro .btn-grupo {
+      background-color: rgba(255, 255, 255, 0.05); /* fondo tenue claro */
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2); /* borde blanco suave */
+      box-shadow: 0 0 4px rgba(255,255,255,0.1); /* sombra sutil */
+    }
     .btn-grupo::before {
       content: "";
       position: absolute;
@@ -170,6 +171,9 @@
       border-radius: 20px;
       background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1), transparent 70%);
       z-index: -1;
+    }
+    .modo-oscuro .btn-grupo::before {
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);
     }
     .btn-grupo:hover {
       background-color: #fff;
