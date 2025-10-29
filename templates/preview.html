@@ -72,7 +72,10 @@
     .modo-oscuro .card:hover {
       box-shadow: 0 8px 20px rgba(255,255,255,0.2);
     }
-     .card-img-top {
+    .modo-claro .card:hover {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+    .card-img-top {
       width: 100%;
       max-width: 300px;
       height: auto;
@@ -94,16 +97,10 @@
       color: #333;
       border: none;
     }
-    .modo-oscuro {
-      color: white;
-    }
     .modo-oscuro .card {
       background-color: rgba(0,0,0,0.6);
       color: white;
       border: 1px solid rgba(255,255,255,0.2);
-    }
-    .modo-claro {
-      color: #333;
     }
     .color-principal {
       color: {{ config.color }};
@@ -111,10 +108,16 @@
     .bg-principal {
       background-color: {{ config.color }};
     }
+    .modo-oscuro {
+      color: white;
+    }
+    .modo-claro {
+      color: #333;
+    }
     .logo { 
       height: 10vw; 
       max-height: 380px; 
-      filter: drop-shadow(0 0 8px {{ config.color }});
+      ilter: brightness(1.3) contrast(1.1) drop-shadow(0 0 10px {{ config.color }});
     }
     @media (max-width: 600px) {
       .logo {
