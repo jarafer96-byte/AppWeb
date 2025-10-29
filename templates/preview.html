@@ -56,10 +56,6 @@
       background: rgba(0,0,0,0.4);
       z-index: -1; /* encima de la animación, debajo del contenido */
     }
-    .social-icons img:hover {
-      transform: scale(1.2);
-      filter: drop-shadow(0 0 6px {{ config.color }});
-    }
     .card {
       opacity: 0;
       transform: translateY(20px);
@@ -132,11 +128,6 @@
       color: #333;
       border: none;
     }
-    .modo-claro .btn-grupo {
-      background-color: transparent;
-      color: white;
-      border: none;
-    }
     .modo-oscuro {
       color: white;
     }
@@ -157,6 +148,11 @@
       box-shadow: 0 0 6px rgba(255,255,255,0.3);
       transition: all 0.3s ease;
       overflow: hidden;
+    }
+    .modo-claro .btn-grupo {
+      background-color: transparent;
+      color: white;
+      border: none;
     }
     .modo-oscuro .btn-grupo {
       background-color: rgba(255, 255, 255, 0.05); /* fondo tenue claro */
@@ -230,13 +226,9 @@
       transition: transform 0.3s ease;
       filter: drop-shadow(0 0 3px white);
     }
-    .btn-volver-arriba:focus {
-      outline: none;
-      box-shadow: none;
-    }
     .social-icons img:hover {
       transform: scale(1.1);
-      filter: drop-shadow(0 0 6px None);
+      filter: drop-shadow(0 0 0 transparent);
     }
     .bloque-ubicacion {
       background-color: rgba(0, 0, 0, 0.5);
@@ -281,12 +273,9 @@
       box-shadow: 0 0 5px white;
     }
     .modo-oscuro #toggleCarrito {
-      background-color: None;
+      background-color: transparent;
       color: black;
       border: none;
-    }
-    .navbar-toggler {
-      -webkit-tap-highlight-color: transparent;
     }
     .modo-claro #toggleCarrito {
       background-color: None;
