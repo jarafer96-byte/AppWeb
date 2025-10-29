@@ -35,9 +35,12 @@
       background-position: center;
       padding-top: 70px; /* para que el contenido no quede tapado por la navbar */
     }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: -1; /* encima de la animación, debajo del contenido */
     }
     .fondo-animado {
       position: fixed;
@@ -49,12 +52,8 @@
       background-size: 200% 200%;
       pointer-events: none;
     }
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: -1; /* encima de la animación, debajo del contenido */
+    html {
+     scroll-behavior: smooth;
     }
     .card {
       opacity: 0;
@@ -69,6 +68,9 @@
     .card:hover {
       transform: translateY(-5px);
       box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    .modo-oscuro .card:hover {
+      box-shadow: 0 8px 20px rgba(255,255,255,0.2);
     }
      .card-img-top {
       width: 100%;
@@ -87,8 +89,18 @@
     .card-text {
       font-size: 0.9rem;
     }
-    html {
-     scroll-behavior: smooth;
+    .modo-claro .card {
+      background-color: #fff;
+      color: #333;
+      border: none;
+    }
+    .modo-oscuro {
+      color: white;
+    }
+    .modo-oscuro .card {
+      background-color: rgba(0,0,0,0.6);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
     }
     .modo-claro {
       color: #333;
@@ -123,19 +135,6 @@
       line-height: 1.6;
       box-shadow: 0 0 6px rgba(255,255,255,0.3);
     }
-    .modo-claro .card {
-      background-color: #fff;
-      color: #333;
-      border: none;
-    }
-    .modo-oscuro {
-      color: white;
-    }
-    .modo-oscuro .card {
-      background-color: rgba(0,0,0,0.6);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.2);
-    }
     .btn-grupo {
       position: relative;
       padding: 8px 16px;
@@ -165,8 +164,10 @@
       position: absolute;
       inset: 0;
       border-radius: 20px;
-      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1), transparent 70%);
       z-index: -1;
+    }
+    .modo-claro .btn-grupo::before {
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 70%);
     }
     .modo-oscuro .btn-grupo::before {
       background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);
@@ -278,12 +279,13 @@
       border: none;
     }
     .modo-claro #toggleCarrito {
-      background-color: None;
+      background-color: transparent;
       color: white;
       border: none;
     }
-    .modo-oscuro .card:hover {
-      box-shadow: 0 8px 20px rgba(255,255,255,0.2);
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     @keyframes moverFondo {
       0% { background-position: 0% 0%; }
