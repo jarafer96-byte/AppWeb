@@ -116,33 +116,60 @@
   </form>
 
   <script>
-    function mostrarGrupo(grupo) {
-      document.querySelectorAll('.row').forEach(div => div.classList.add('d-none'));
-      document.getElementById('grupo_' + grupo).classList.remove('d-none');
+  function mostrarGrupo(grupo) {
+    document.querySelectorAll('.row').forEach(div => div.classList.add('d-none'));
+    document.getElementById('grupo_' + grupo).classList.remove('d-none');
+  }
+
+  function obtenerModoDesdeNombre(nombre) {
+    const grupo = nombre.split('_')[1]; // mini_2_ueud → '2'
+
+    const oscurasGrupo2 = ['mini_2_ueud.jpeg', 'mini_2_jfjfjjd.jpeg', 'mini_2_83838.jpeg'];
+    const oscurasGrupo4 = ['mini_4_kfj8.jpeg', 'mini_4_kfk.jpeg', 'mini_4_psñqk.jpeg'];
+    const clarasGrupo5 = ['mini_5_bshs.jpeg'];
+
+    if (grupo === '1') return 'modo-oscuro';
+    if (grupo === '2') return oscurasGrupo2.includes(nombre) ? 'modo-oscuro' : 'modo-claro';
+    if (grupo === '3') return 'modo-claro';
+    if (grupo === '4') return oscurasGrupo4.includes(nombre) ? 'modo-oscuro' : 'modo-claro';
+    if (grupo === '5') return clarasGrupo5.includes(nombre) ? 'modo-claro' : 'modo-oscuro';
+
+    return 'modo-claro'; // fallback
+  }
+
+  function seleccionarFondo(nombre) {
+    document.body.style.backgroundImage = "url('/static/img/" + nombre + "')";
+    document.getElementById('estilo_visual_input').value = nombre.replace('.jpeg', '');
+
+    const modo = obtenerModoDesdeNombre(nombre);
+    document.body.classList.remove('modo-claro', 'modo-oscuro');
+    document.body.classList.add(modo);
+
+    // Quitar selección previa
+    document.querySelectorAll('.preview-img').forEach(img => {
+      img.classList.remove('seleccionado');
+    });
+
+    // Marcar imagen actual
+    const imagenes = document.querySelectorAll('.preview-img');
+    imagenes.forEach(img => {
+      if (img.src.includes(nombre.replace('.jpeg', '.webp'))) {
+        img.classList.add('seleccionado');
+      }
+    });
+
+    // Guardar modo en el formulario si lo usás en el backend
+    const modoInput = document.getElementById('modo_visual_input');
+    if (modoInput) {
+      modoInput.value = modo;
     }
+  }
 
-    function seleccionarFondo(nombre) {
-      document.body.style.backgroundImage = "url('/static/img/" + nombre + "')";
-      document.getElementById('estilo_visual_input').value = nombre.replace('.jpeg', '');
+  window.onload = function() {
+    mostrarGrupo('1');
+  };
+</script>
 
-      // Quitar selección previa
-      document.querySelectorAll('.preview-img').forEach(img => {
-        img.classList.remove('seleccionado');
-      });
-
-      // Marcar imagen actual
-      const imagenes = document.querySelectorAll('.preview-img');
-      imagenes.forEach(img => {
-        if (img.src.includes(nombre.replace('.jpeg', '.webp'))) {
-          img.classList.add('seleccionado');
-        }
-      });
-    }
-
-    window.onload = function() {
-      mostrarGrupo('1');
-    };
-  </script>
 
 </body>
 </html>
