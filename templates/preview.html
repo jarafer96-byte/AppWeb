@@ -103,12 +103,10 @@
     .bg-principal {
       background-color: {{ config.color }};
     }
-    .logo {
-      height: 10vw;
-      max-height: 380px;
-      background: radial-gradient(circle at center, rgba(0,0,0,0.25), transparent 70%);
-      border-radius: 10px;
-      box-shadow: 0 0 4px rgba(255,255,255,0.2); 
+    .logo { 
+      height: 10vw; 
+      max-height: 380px; 
+      filter: drop-shadow(0 0 8px {{ config.color }});
     }
     @media (max-width: 600px) {
       .logo {
