@@ -474,17 +474,49 @@
   };
 
     function mostrarGrupo(nombre, event) {
-      document.querySelectorAll('.grupo-section').forEach(div => {
-        div.classList.remove('active');
-      });
-      const grupoActivo = document.getElementById('grupo_' + nombre);
-      if (grupoActivo) grupoActivo.classList.add('active');
+  // Activar grupo visualmente
+  document.querySelectorAll('.grupo-section').forEach(div => {
+    div.classList.remove('active');
+  });
+  const grupoActivo = document.getElementById('grupo_' + nombre);
+  if (grupoActivo) grupoActivo.classList.add('active');
 
-      document.querySelectorAll('.btn-grupo').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      event.target.classList.add('active');
+  document.querySelectorAll('.btn-grupo').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+
+  // ✅ Generar botones de subcategoría
+  const subcategorias = subcategoriasPorGrupo[nombre] || [];
+  const panel = document.getElementById('panelSubcategorias');
+  panel.innerHTML = '';
+  panel.classList.remove('oculto');
+
+  subcategorias.forEach(sub => {
+    const btn = document.createElement('button');
+    btn.textContent = sub;
+    btn.className = 'btn-grupo';
+    btn.onclick = () => filtrarSubcategoria(nombre, sub);
+    panel.appendChild(btn);
+  });
+}
+function filtrarSubcategoria(grupo, subgrupo) {
+  const grupoDiv = document.getElementById('grupo_' + grupo);
+  if (!grupoDiv) return;
+
+  const tarjetas = grupoDiv.querySelectorAll('.card');
+  tarjetas.forEach(card => {
+    const titulo = card.querySelector('.card-title')?.textContent || '';
+    const subgrupoTexto = card.closest('.row')?.previousElementSibling?.textContent || '';
+
+    // Mostrar solo si el subgrupo coincide
+    if (subgrupoTexto.trim() === subgrupo.trim()) {
+      card.parentElement.style.display = 'block';
+    } else {
+      card.parentElement.style.display = 'none';
     }
+  });
+}
 
     window.onload = function() {
       const primero = document.querySelector('.grupo-section');
