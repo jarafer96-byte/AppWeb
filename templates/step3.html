@@ -180,7 +180,8 @@
   contenedor.appendChild(crearFila(nombre, ordenGrupo));
 }
 function crearSubgrupo(btn) {
-  const grupo = btn.closest('.card');
+  const grupo = btn.closest('.card'); // ✅ primero obtenemos el grupo
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ luego usamos grupo
   const subgruposContenedor = grupo.querySelector('.subgrupos');
   const input = grupo.querySelector('input[id^="inputSubgrupo"]');
   const nombreSubgrupo = input.value.trim();
@@ -203,11 +204,10 @@ function crearSubgrupo(btn) {
   input.value = '';
 
   const contenedor = subgrupo.querySelector('.productos');
-  contenedor.appendChild(crearFila(nombreSubgrupo));
+  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo)); // ✅ pasamos grupo también
 }
 
-
-    function crearFila(nombreSubgrupo) {
+  function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2';
 
@@ -222,6 +222,7 @@ function crearSubgrupo(btn) {
       <input type="text" name="precio" class="form-control" placeholder="$">
     </div>
     <div class="col-md-4 text-end">
+      <input type="hidden" name="grupo" value="${nombreGrupo}">
       <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
       <label class="btn-imagen">
         Seleccionar imagen
@@ -237,11 +238,15 @@ function crearSubgrupo(btn) {
 
 
 
+
     function agregarFila(btn) {
   const subgrupo = btn.closest('.subgrupo');
+  const grupo = btn.closest('.card'); // ✅ obtenemos el grupo contenedor
   const contenedor = subgrupo.querySelector('.productos');
   const nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
-  contenedor.appendChild(crearFila(nombreSubgrupo));
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ extraemos el nombre del grupo
+
+  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo));
   actualizarContador(contenedor);
 }
 
