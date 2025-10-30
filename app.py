@@ -138,6 +138,8 @@ def step2():
     imagenes = os.listdir('static/img/webp')
     return render_template('step2.html', config=session, imagenes=imagenes)
 
+# ... encabezado y configuraciones previas ...
+
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
     tipo = session.get('tipo_web')
@@ -147,51 +149,124 @@ def step3():
         descripciones = request.form.getlist('descripcion')
         precios = request.form.getlist('precio')
         grupos = request.form.getlist('grupo')
+        subgrupos = request.form.getlist('subgrupo')  # ✅ nuevo campo
         imagenes = request.files.getlist('imagen')
+        ordenes = request.form.getlist('orden')
 
-        tareas = []
-        max_workers = min(4, len(imagenes))
+        MAX_SIZE_MB = 4
+        formatos_validos = ('.jpg', '.jpeg', '.png', '.webp')
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            for i in range(len(nombres)):
-                nombre = nombres[i].strip()
-                precio = precios[i].strip()
-                grupo = grupos[i].strip()
-                img = imagenes[i]
-                filename = secure_filename(img.filename)
+        for i in range(len(nombres)):
+            nombre = nombres[i].strip()
+            precio = precios[i].strip()
+            grupo = grupos[i].strip()
+            subgrupo = subgrupos[i].strip()  # ✅ capturar subgrupo
+            img = imagenes[i]
+            filename = secure_filename(img.filename)
 
-                if not nombre or not precio or not grupo or not filename:
-                    continue
+            if not nombre or not precio or not grupo or not subgrupo or not filename:
+                continue
 
-                webp_name = f"{os.path.splitext(secure_filename(img.filename))[0]}_{shortuuid.uuid()[:4]}.webp"
-                destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
-                src_temp = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                img.save(src_temp)  # guardar temporalmente para comparar fechas
+            if not filename.lower().endswith(formatos_validos):
+                print(f"⚠️ Formato no soportado: {filename}")
+                continue
 
-                if necesita_redimension(src_temp, destino):
-                    tareas.append(executor.submit(redimensionar_con_transparencia, img, destino))
-                else:
-                    print(f"Usando caché existente: {webp_name}")
-                if os.path.exists(src_temp):
-                    os.remove(src_temp)
+            if img.content_length and img.content_length > MAX_SIZE_MB * 1024 * 1024:
+                print(f"⚠️ Imagen demasiado pesada: {filename}")
+                continue
 
+            webp_name = f"{os.path.splitext(filename)[0]}_{shortuuid.uuid()[:4]}.webp"
+            destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
 
-                bloques.append({
-                    'nombre': nombre,
-                    'descripcion': descripciones[i],
-                    'precio': precio,
-                    'imagen': webp_name,
-                    'grupo': grupo,
-                    'orden': request.form.getlist('orden')[i]
-                })
+            try:
+                img.save(destino)
+            except Exception as e:
+                print(f"❌ Error al guardar imagen {filename}: {e}")
+                continue
+
+            bloques.append({
+                'nombre': nombre,
+                'descripcion': descripciones[i],
+                'precio': precio,
+                'imagen': webp_name,
+                'grupo': grupo,
+                'subgrupo': subgrupo,  # ✅ incluir subgrupo
+                'orden': ordenes[i]
+            })
 
         session['bloques'] = bloques
-        for producto in bloques:
-            subir_a_firestore(producto)
+        exitos = 0
+        fallos = 0
 
-        return redirect('/preview')
+        def subir_con_resultado(producto):
+            try:
+                if subir_a_firestore(producto):
+                    print(f"✅ Producto subido: {producto['nombre']}")
+                    return True
+                else:
+                    print(f"⚠️ Fallo al subir {producto['nombre']}")
+                    return False
+            except Exception as e:
+                print(f"❌ Error inesperado al subir {producto['nombre']}: {e}")
+                return False
+
+        bloques_por_lote = 10
+        try:
+            for inicio in range(0, len(bloques), bloques_por_lote):
+                lote = bloques[inicio:inicio + bloques_por_lote]
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    resultados = list(executor.map(subir_con_resultado, lote))
+                    exitos += sum(resultados)
+                    fallos += len(resultados) - sum(resultados)
+        except Exception as lote_error:
+            print(f"🔥 Error crítico en lote de subida: {lote_error}")
+
+        print(f"🧮 Subidos correctamente: {exitos} / Fallidos: {fallos}")
+
+        if exitos > 0:
+            return redirect('/preview')
+        else:
+            return render_template('step3.html', tipo_web=tipo)
 
     return render_template('step3.html', tipo_web=tipo)
+
+# ✅ Actualización en subir_a_firestore
+def subir_a_firestore(producto):
+    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}?key={FIREBASE_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        precio = int(producto["precio"])
+        orden = int(producto.get("orden", 999))
+    except ValueError:
+        print(f"❌ Precio u orden inválido en producto: {producto['nombre']}")
+        return False
+
+    data = {
+        "fields": {
+            "nombre": {"stringValue": producto["nombre"]},
+            "precio": {"integerValue": precio},
+            "grupo": {"stringValue": producto["grupo"]},
+            "subgrupo": {"stringValue": producto.get("subgrupo", "")},  # ✅ nuevo campo
+            "descripcion": {"stringValue": producto.get("descripcion", "")},
+            "imagen": {"stringValue": producto["imagen"]},
+            "oferta": {"booleanValue": producto.get("oferta", False)},
+            "orden": {"integerValue": orden}
+        }
+    }
+
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(data), timeout=5)
+        if response.status_code in [200, 202]:
+            return True
+        else:
+            print(f"❌ Error HTTP {response.status_code} al subir {producto['nombre']}")
+            print(f"📄 Respuesta: {response.text}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error de red al subir {producto['nombre']}: {e}")
+        return False
+
 
 @app.route('/preview')
 def preview():
