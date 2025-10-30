@@ -294,7 +294,14 @@ def preview():
     config['descargado'] = session.get('descargado', False)
     config['usarFirestore'] = True  # o False según lo que quieras
 
-    return render_template('preview.html', config=config)
+from collections import defaultdict
+
+grupos_dict = defaultdict(list)
+for producto in config['productos']:
+    grupos_dict[producto['grupo']].append(producto)
+
+return render_template('preview.html', config=config, grupos=grupos_dict)
+
 
 @app.route('/descargar')
 def descargar():
