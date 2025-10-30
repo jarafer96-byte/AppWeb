@@ -393,15 +393,13 @@
    {% endfor %}
   </div>
 
-{% endif %}
-
   {% if usarFirestore %}
     <div class="text-center mb-4" id="botones-grupo"></div>
     <div id="contenedor-grupos"></div>
   {% endif %}
 
 
-  {% if config.productos %}
+{% if config.productos %}
   <div class="text-center mt-5">
     <a href="/descargar" class="btn btn-primary px-5">
       Descargar sitio
