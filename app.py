@@ -268,7 +268,6 @@ def preview():
         'url': session.get('url'),
         'nombre_emprendimiento': session.get('nombre_emprendimiento'),
         'anio': session.get('anio'),
-
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
         'link_mapa': session.get('link_mapa'),
@@ -285,23 +284,20 @@ def preview():
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
-        'bloques': []
-    } 
-    # ✅ Generar ID único por producto
+        'bloques': [],
+        'descargado': session.get('descargado', False),
+        'usarFirestore': True
+    }
+
     for i, p in enumerate(config['productos']):
         p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
-        
-    config['descargado'] = session.get('descargado', False)
-    config['usarFirestore'] = True  # o False según lo que quieras
 
-from collections import defaultdict
+    from collections import defaultdict
+    grupos_dict = defaultdict(list)
+    for producto in config['productos']:
+        grupos_dict[producto['grupo']].append(producto)
 
-grupos_dict = defaultdict(list)
-for producto in config['productos']:
-    grupos_dict[producto['grupo']].append(producto)
-
-return render_template('preview.html', config=config, grupos=grupos_dict)
-
+    return render_template('preview.html', config=config, grupos=grupos_dict)  # ✅ dentro de la función
 
 @app.route('/descargar')
 def descargar():
