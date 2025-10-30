@@ -171,6 +171,14 @@ def step3():
         imagenes = request.files.getlist('imagen')
         ordenes = request.form.getlist('orden')
 
+        longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes), len(ordenes)]
+        min_len = min(longitudes)
+        print("🧪 Longitudes:", longitudes)
+
+        if not all(l == min_len for l in longitudes):
+            print("❌ Desalineación en los datos del formulario")
+            return "Error: los campos del formulario están desalineados", 500
+
         MAX_SIZE_MB = 4
         formatos_validos = ('.jpg', '.jpeg', '.png', '.webp')
 
@@ -178,7 +186,8 @@ def step3():
             nombre = nombres[i].strip()
             precio = precios[i].strip()
             grupo = grupos[i].strip()
-            subgrupo = subgrupos[i].strip()  # ✅ capturar subgrupo
+            subgrupo = subgrupos[i].strip()
+            orden = ordenes[i].strip() if i < len(ordenes) else '999'
             img = imagenes[i]
             filename = secure_filename(img.filename)
 
