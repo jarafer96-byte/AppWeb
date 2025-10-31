@@ -893,6 +893,27 @@ document.addEventListener('click', function (event) {
     panelSub.classList.add('oculto');
   }
 });
+/* ---- ELIMINADOR DE TEXTOS FANTASMA ---- */
+const textoBasura = ['PantalonesCamperas', '123', '1234']; // lo que quieras eliminar
+
+const obs = new MutationObserver(() => {
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  );
+  let n;
+  while (n = walker.nextNode()) {
+    const t = n.nodeValue.trim();
+    if (textoBasura.some(txt => t.includes(txt))) {
+      n.parentElement?.removeChild(n);
+    }
+  }
+});
+
+obs.observe(document.body, { childList: true, subtree: true });
+/* --------------------------------------- */
 </script>
 </body>
 </html>
