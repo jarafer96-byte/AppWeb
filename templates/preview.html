@@ -604,11 +604,12 @@ function filtrarSubcategoria(grupo, subgrupo) {
 
 
     window.onload = function() {
-      const primero = document.querySelector('.grupo-section');
-      if (primero) primero.classList.add('active');
-      const primerBtn = document.querySelector('.btn-grupo');
-      if (primerBtn) primerBtn.classList.add('active');
-    };
+  const primerBtn = document.querySelector('.btn-grupo');
+  if (primerBtn) {
+    primerBtn.click(); // activa el primer grupo y su subcategoría
+  }
+};
+
 
     let carrito = [];
 
