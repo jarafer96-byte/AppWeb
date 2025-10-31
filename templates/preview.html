@@ -572,8 +572,21 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
     document.getElementById('volverArriba').blur();
   };
+function mostrarGrupo(nombre, event) {
+  // Activar grupo visualmente
+  document.querySelectorAll('.grupo-section').forEach(div => {
+    div.classList.remove('active');
+  });
+  const grupoActivo = document.getElementById('grupo_' + nombre);
+  if (grupoActivo) grupoActivo.classList.add('active');
 
-  // ✅ Generar botones de subcategoría
+  // Activar botón
+  document.querySelectorAll('.btn-grupo').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  if (event?.target) event.target.classList.add('active');
+
+  // Generar botones de subcategoría
   const subcategorias = subcategoriasPorGrupo[nombre] || [];
   const panel = document.getElementById('panelSubcategorias');
   panel.innerHTML = '';
@@ -586,7 +599,14 @@
     btn.onclick = () => filtrarSubcategoria(nombre, sub);
     panel.appendChild(btn);
   });
+
+  // Mostrar todas las tarjetas del grupo por defecto
+  const tarjetas = grupoActivo?.querySelectorAll('.card');
+  tarjetas?.forEach(card => {
+    card.parentElement.style.display = 'block';
+  });
 }
+
 function filtrarSubcategoria(grupo, subgrupo) {
   const grupoDiv = document.getElementById('grupo_' + grupo);
   if (!grupoDiv) return;
@@ -848,14 +868,6 @@ document.addEventListener('click', function (event) {
     const contacto = document.getElementById('ubicacion');
     if (contacto) contacto.scrollIntoView({ behavior: 'smooth' });
   });
-
-  // Generar los botones de grupo dinámicamente
-  const grupos = Array.from(document.querySelectorAll('.grupo-section'))
-    .map(div => div.id.replace('grupo_', ''));
-
-  panelGrupos.innerHTML = grupos.map(nombre => `
-    <button onclick="mostrarGrupo('${nombre}', event)">${nombre}</button>
-  `).join('');
 
 document.addEventListener('click', function (event) {
   const panel = document.getElementById('panelGrupos');
