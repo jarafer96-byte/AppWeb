@@ -442,6 +442,8 @@
     </div>
   {% endif %}
 
+  {% set usarFirestore = false %}
+  
   {% for grupo, subgrupos in grupos.items() %}
    {% set total_productos = subgrupos.values() | map('length') | sum %}
    {% if total_productos > 0 %}
