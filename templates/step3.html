@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -120,7 +121,7 @@
     <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
 
     <div class="mb-4 text-center">
-      <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" placeholder="Nombre del grupo (ej: Utensilios)">
+      <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" placeholder="Nombre del grupo (ej: Ropa Mujer)">
       <button type="button" class="btn-gradient btn-sm" onclick="crearGrupo()">Crear grupo</button>
     </div>
 
@@ -152,12 +153,12 @@
   if (!nombre) return alert("Ingresá un nombre para el grupo");
 
   grupoId++;
-  const ordenGrupo = grupoId; // este número se usará como campo 'orden'
+  const ordenGrupo = grupoId;
 
   const grupo = document.createElement('div');
   grupo.className = 'card p-3 mb-4';
   grupo.id = 'grupo_' + grupoId;
-  grupo.setAttribute('data-orden', ordenGrupo); // lo guardamos en el DOM
+  grupo.setAttribute('data-orden', ordenGrupo);
 
   grupo.innerHTML = `
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -166,42 +167,70 @@
         ✕ <span style="font-size: 0.75em;">(Borrar grupo)</span>
       </button>
     </div>
-    <div class="productos"></div>
-    <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
+    <div class="subgrupos"></div>
     <div class="text-center mt-2">
-      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+      <input type="text" class="form-control w-50 d-inline-block" placeholder="Ej: Pantalones" id="inputSubgrupo_${grupoId}">
+      <button type="button" class="btn-gradient btn-sm" onclick="crearSubgrupo(this)">+ Crear subgrupo</button>
     </div>
   `;
+
   document.getElementById('grupos').appendChild(grupo);
   document.getElementById('nombreGrupo').value = '';
 
   const contenedor = grupo.querySelector('.productos');
   contenedor.appendChild(crearFila(nombre, ordenGrupo));
 }
+function crearSubgrupo(btn) {
+  const grupo = btn.closest('.card'); // ✅ primero obtenemos el grupo
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ luego usamos grupo
+  const subgruposContenedor = grupo.querySelector('.subgrupos');
+  const input = grupo.querySelector('input[id^="inputSubgrupo"]');
+  const nombreSubgrupo = input.value.trim();
+  if (!nombreSubgrupo) return alert("Ingresá un nombre para el subgrupo");
 
+  const subgrupo = document.createElement('div');
+  subgrupo.className = 'card p-2 mb-3 subgrupo';
+  subgrupo.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <strong>${nombreSubgrupo}</strong>
+      <button class="btn btn-sm btn-danger" onclick="eliminarSubgrupo(this)">✕ Borrar subgrupo</button>
+    </div>
+    <div class="productos"></div>
+    <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
+    <div class="text-center mt-2">
+      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+    </div>
+  `;
+  subgruposContenedor.appendChild(subgrupo);
+  input.value = '';
 
-    function crearFila(nombreGrupo, ordenGrupo = 999) {
+  const contenedor = subgrupo.querySelector('.productos');
+  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo)); // ✅ pasamos grupo también
+}
+
+  function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2';
 
   fila.innerHTML = `
     <div class="col-md-3">
-      <input type="text" name="nombre" class="form-control" placeholder="Ej: Vasos">
+      <input type="text" name="nombre" class="form-control" placeholder="Ej: Pantalón">
     </div>
-    <div class="col-md-5">
-      <textarea name="descripcion" class="form-control" rows="1" placeholder="Ej: De plástico"></textarea>
+    <div class="col-md-3">
+      <textarea name="descripcion" class="form-control" rows="1" placeholder="Ej: De cuero"></textarea>
     </div>
     <div class="col-md-2">
       <input type="text" name="precio" class="form-control" placeholder="$">
     </div>
-    <div class="col-md-2 text-end">
+    <div class="col-md-4 text-end">
       <input type="hidden" name="grupo" value="${nombreGrupo}">
-      <input type="hidden" name="orden" value="${ordenGrupo}">
-      <button type="button" class="btn btn-sm btn-danger px-2 py-1 mb-2" onclick="eliminarFila(this)">✕</button>
+      <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
+      <input type="hidden" name="orden" value="${Date.now()}">
       <label class="btn-imagen">
         Seleccionar imagen
         <input type="file" name="imagen" accept="image/*" class="d-none">
       </label>
+      <button type="button" class="btn btn-sm btn-danger px-2 py-1 mb-2" onclick="eliminarFila(this)">✕</button>
     </div>
   `;
 
@@ -210,15 +239,24 @@
 }
 
 
+
+
     function agregarFila(btn) {
-  const grupo = btn.closest('.card');
-  const contenedor = grupo.querySelector('.productos');
-  const nombreGrupo = grupo.querySelector('h4').textContent;
-  const ordenGrupo = parseInt(grupo.getAttribute('data-orden')) || 999;
-  contenedor.appendChild(crearFila(nombreGrupo, ordenGrupo));
+  const subgrupo = btn.closest('.subgrupo');
+  const grupo = btn.closest('.card:not(.subgrupo)');
+  const contenedor = subgrupo.querySelector('.productos');
+  const nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ extraemos el nombre del grupo
+
+  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo));
   actualizarContador(contenedor);
 }
 
+
+function eliminarSubgrupo(btn) {
+  const subgrupo = btn.closest('.subgrupo');
+  subgrupo.remove();
+}
 
     function eliminarFila(btn) {
       const fila = btn.closest('.row');
