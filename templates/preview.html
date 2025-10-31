@@ -582,12 +582,17 @@ function mostrarGrupo(nombre, event) {
     panel.appendChild(btn);
   });
 
- // Mostrar solo los subgrupos (filas) del grupo
-const filas = grupoActivo?.querySelectorAll('.row[data-subgrupo]');
-filas?.forEach(fila => {
-  fila.style.display = 'flex'; // mostrar todos los subgrupos por defecto
-});
+  // ✅ Mostrar todas las filas del grupo antes de filtrar
+  const filas = grupoActivo?.querySelectorAll('.row[data-subgrupo]');
+  filas?.forEach(fila => {
+    fila.style.display = 'flex';
+  });
 
+  // ✅ Activar la primera subcategoría automáticamente
+  if (subcategorias.length > 0) {
+    filtrarSubcategoria(nombre, subcategorias[0]);
+  }
+}
 
 function filtrarSubcategoria(grupo, subgrupo) {
   const grupoDiv = document.getElementById('grupo_' + grupo);
@@ -603,12 +608,13 @@ function filtrarSubcategoria(grupo, subgrupo) {
 }
 
 
-    window.onload = function() {
+   window.onload = function() {
   const primerBtn = document.querySelector('.btn-grupo');
   if (primerBtn) {
-    primerBtn.click(); // activa el primer grupo y su subcategoría
+    mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn });
   }
 };
+
 
 
     let carrito = [];
