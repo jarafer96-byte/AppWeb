@@ -785,19 +785,6 @@ onSnapshot(productosRef, snapshot => {
   }
 });
 
-  // Botones dinámicos
-  const botonesDiv = document.getElementById("botones-grupo");
-  if (botonesDiv) {
-    botonesDiv.innerHTML = "";
-    gruposOrdenados.forEach(([grupo]) => {
-      const btn = document.createElement("button");
-      btn.className = "btn-grupo";
-      btn.textContent = grupo;
-      btn.onclick = e => mostrarGrupo(grupo, e);
-      botonesDiv.appendChild(btn);
-    });
-  }
-
   // Contenedores por grupo (generados dinámicamente)
   const contenedorPrincipal = document.getElementById("contenedor-grupos");
   contenedorPrincipal.innerHTML = "";
