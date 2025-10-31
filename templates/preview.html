@@ -785,51 +785,6 @@ onSnapshot(productosRef, snapshot => {
   }
 });
 
-  // Contenedores por grupo (generados dinámicamente)
-  const contenedorPrincipal = document.getElementById("contenedor-grupos");
-  contenedorPrincipal.innerHTML = "";
-
-  gruposOrdenados.forEach(([grupo]) => {
-    const grupoId = "grupo_" + grupo;
-    const grupoDiv = document.createElement("div");
-    grupoDiv.className = "container mb-5";
-    grupoDiv.innerHTML = `<div class="row grupo-section" id="${grupoId}"></div>`;
-    contenedorPrincipal.appendChild(grupoDiv);
-  });
-
-  // Tarjetas por grupo
-  gruposOrdenados.forEach(([grupo, productos]) => {
-    const contenedor = document.getElementById("grupo_" + grupo);
-    if (!contenedor) return;
-    contenedor.innerHTML = "";
-
-    productos.forEach((producto, i) => {
-      const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
-      const tarjeta = document.createElement("div");
-      tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
-      tarjeta.innerHTML = `
-        <div class="card p-3 h-100">
-          <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
-          <div class="card-body">
-            <h5 class="card-title">${producto.nombre}</h5>
-            <p class="card-text">${producto.descripcion || ""}</p>
-            <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
-            <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-            <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-              <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-              <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
-              <button type="button" class="btn btn-secondary"
-                onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}')">
-                Agregar al carrito
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      contenedor.appendChild(tarjeta);
-    });
-  });
-
   // Activar primer grupo
   const primero = document.querySelector('.grupo-section');
   if (primero) primero.classList.add('active');
