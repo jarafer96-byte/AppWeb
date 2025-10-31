@@ -442,23 +442,6 @@
     </div>
   {% endif %}
 
-{% set usarFirestore = false %}
-
-{% if not usarFirestore and config.tipo_web in ['catálogo', 'menú'] %}
-  {% set grupos = {} %}
-  {% for producto in config.productos %}
-    {% set grupo = producto.get('grupo') or producto.get('Grupo') or 'General' %}
-    {% set subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo' %}
-    {% if grupo not in grupos %}
-      {% set _ = grupos.update({grupo: {}}) %}
-    {% endif %}
-    {% if subgrupo not in grupos[grupo] %}
-      {% set _ = grupos[grupo].update({subgrupo: []}) %}
-    {% endif %}
-    {% set _ = grupos[grupo][subgrupo].append(producto) %}
-  {% endfor %}
-{% endif %}
-
 
   <div id="contenedor-grupos">
    {% for grupo, subgrupos in grupos.items() %}
