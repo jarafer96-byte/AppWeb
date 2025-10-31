@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request, redirect, session, send_file, url_for
 import os
 from werkzeug.utils import secure_filename
@@ -9,12 +10,10 @@ import time
 import requests
 import json
 import shortuuid  # ← ya la tenés instalada, ¿no?
-from concurrent.futures import ThreadPoolExecutor
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
 app.secret_key = 'clave-secreta'
-app.config['UPLOAD_FOLDER'] = 'static/img'
 
 @app.errorhandler(413)
 def too_large(e):
@@ -25,6 +24,7 @@ FIREBASE_PROJECT_ID = "hola1-4ed7f"
 FIREBASE_API_KEY = "AIzaSyDGqvK70SEKIYdabn1hM-EW9xHejcqYvGI" 
 FIREBASE_COLLECTION = "productos"
 
+# ✅ Actualización en subir_a_firestore
 def subir_a_firestore(producto):
     url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}?key={FIREBASE_API_KEY}"
     headers = {"Content-Type": "application/json"}
@@ -41,6 +41,7 @@ def subir_a_firestore(producto):
             "nombre": {"stringValue": producto["nombre"]},
             "precio": {"integerValue": precio},
             "grupo": {"stringValue": producto["grupo"]},
+            "subgrupo": {"stringValue": producto.get("subgrupo", "")},  # ✅ nuevo campo
             "descripcion": {"stringValue": producto.get("descripcion", "")},
             "imagen": {"stringValue": producto["imagen"]},
             "oferta": {"booleanValue": producto.get("oferta", False)},
@@ -60,6 +61,10 @@ def subir_a_firestore(producto):
         print(f"❌ Error de red al subir {producto['nombre']}: {e}")
         return False
 
+
+UPLOAD_FOLDER = 'static/img'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ✅ Compresión y redimensionado
 def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad=80):
@@ -152,6 +157,8 @@ def step2():
     imagenes = os.listdir('static/img/webp')
     return render_template('step2.html', config=session, imagenes=imagenes)
 
+# ... encabezado y configuraciones previas ...
+
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
     tipo = session.get('tipo_web')
@@ -161,8 +168,17 @@ def step3():
         descripciones = request.form.getlist('descripcion')
         precios = request.form.getlist('precio')
         grupos = request.form.getlist('grupo')
+        subgrupos = request.form.getlist('subgrupo')  # ✅ nuevo campo
         imagenes = request.files.getlist('imagen')
         ordenes = request.form.getlist('orden')
+
+        longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes), len(ordenes)]
+        min_len = min(longitudes)
+        print("🧪 Longitudes:", longitudes)
+
+        if not all(l == min_len for l in longitudes):
+            print("❌ Desalineación en los datos del formulario")
+            return "Error: los campos del formulario están desalineados", 500
 
         MAX_SIZE_MB = 4
         formatos_validos = ('.jpg', '.jpeg', '.png', '.webp')
@@ -170,11 +186,13 @@ def step3():
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
             precio = precios[i].strip()
-            grupo = grupos[i].strip()
+            grupo = grupos[i].strip() or 'Sin grupo'
+            subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
+            orden = ordenes[i].strip() if i < len(ordenes) else '999'
             img = imagenes[i]
             filename = secure_filename(img.filename)
 
-            if not nombre or not precio or not grupo or not filename:
+            if not nombre or not precio or not grupo or not subgrupo or not filename:
                 continue
 
             if not filename.lower().endswith(formatos_validos):
@@ -200,6 +218,7 @@ def step3():
                 'precio': precio,
                 'imagen': webp_name,
                 'grupo': grupo,
+                'subgrupo': subgrupo,  # ✅ incluir subgrupo
                 'orden': ordenes[i]
             })
 
@@ -250,7 +269,6 @@ def preview():
         'url': session.get('url'),
         'nombre_emprendimiento': session.get('nombre_emprendimiento'),
         'anio': session.get('anio'),
-
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
         'link_mapa': session.get('link_mapa'),
@@ -267,16 +285,33 @@ def preview():
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
-        'bloques': []
-    } 
-    # ✅ Generar ID único por producto
+        'bloques': [],
+        'descargado': session.get('descargado', False),
+        'usarFirestore': True
+    }
+
     for i, p in enumerate(config['productos']):
         p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
-        
-    config['descargado'] = session.get('descargado', False)
-    config['usarFirestore'] = True  # o False según lo que quieras
 
-    return render_template('preview.html', config=config)
+    # ✅ Agrupar por grupo y subgrupo
+    grupos_dict = {}
+    for producto in config['productos']:
+        grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
+        subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
+
+        grupo = grupo.strip().title()
+        subgrupo = subgrupo.strip().title()
+
+        if grupo not in grupos_dict:
+            grupos_dict[grupo] = {}
+        if subgrupo not in grupos_dict[grupo]:
+            grupos_dict[grupo][subgrupo] = []
+        grupos_dict[grupo][subgrupo].append(producto)
+
+    config['usarFirestore'] = False  # o False según lo que quieras
+
+    return render_template('preview.html', config=config, grupos=grupos_dict)
+
 
 @app.route('/descargar')
 def descargar():
@@ -302,37 +337,50 @@ def descargar():
         'bloques': []
     }
 
-    html = render_template('preview.html', config=config)
+    # ✅ Construir grupos y subgrupos con validación y normalización
+    grupos = {}
+    for producto in config['productos']:
+        grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
+        subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
 
+        grupo = grupo.strip().title()
+        subgrupo = subgrupo.strip().title()
+
+        if grupo not in grupos:
+            grupos[grupo] = {}
+        if subgrupo not in grupos[grupo]:
+            grupos[grupo][subgrupo] = []
+        grupos[grupo][subgrupo].append(producto)
+
+    # ✅ Renderizar HTML con grupos incluidos
+    html = render_template('preview.html', config=config, grupos=grupos)
+
+    # ✅ Crear ZIP con HTML y recursos
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w') as zip_file:
         zip_file.writestr('index.html', html)
 
-        # ✅ Incluir solo el fondo elegido
+        # ✅ Incluir fondo visual
         fondo = f"{estilo_visual}.jpeg"
         fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
         if os.path.exists(fondo_path):
             zip_file.write(fondo_path, arcname='img/' + fondo)
 
-        # ✅ Incluir solo las imágenes de productos
+        # ✅ Incluir imágenes de productos
         for producto in config['productos']:
             imagen = producto.get('imagen')
             if imagen:
                 imagen_path = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
                 if os.path.exists(imagen_path):
                     zip_file.write(imagen_path, arcname='img/' + imagen)
-        # ✅ Incluir íconos sociales y mapa
-        iconos = ['map.png', 'whatsapp.png', 'facebook.png', 'instagram.png']
-        for icono in iconos:
-            icono_path = os.path.join(app.config['UPLOAD_FOLDER'], icono)
-            if os.path.exists(icono_path):
-                zip_file.write(icono_path, arcname='img/' + icono)
-    limpiar_imagenes_usuario()
 
+    limpiar_imagenes_usuario()
     session['descargado'] = True
 
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
+
+
 
 @app.template_filter('imgver')
 def imgver_filter(name):
