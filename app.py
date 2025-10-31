@@ -323,27 +323,36 @@ def descargar():
         'bloques': []
     }
 
-    # ✅ Construir grupos y subgrupos para la plantilla
+    # ✅ Construir grupos y subgrupos con validación y normalización
     grupos = {}
     for producto in config['productos']:
-        grupo = producto.get('grupo') or 'General'
-        subgrupo = producto.get('subgrupo') or 'Sin subgrupo'
-        grupos.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
+        grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
+        subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
 
-    # ✅ Renderizar con grupos incluidos
+        grupo = grupo.strip().title()
+        subgrupo = subgrupo.strip().title()
+
+        if grupo not in grupos:
+            grupos[grupo] = {}
+        if subgrupo not in grupos[grupo]:
+            grupos[grupo][subgrupo] = []
+        grupos[grupo][subgrupo].append(producto)
+
+    # ✅ Renderizar HTML con grupos incluidos
     html = render_template('preview.html', config=config, grupos=grupos)
 
+    # ✅ Crear ZIP con HTML y recursos
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w') as zip_file:
         zip_file.writestr('index.html', html)
 
-        # ✅ Incluir solo el fondo elegido
+        # ✅ Incluir fondo visual
         fondo = f"{estilo_visual}.jpeg"
         fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
         if os.path.exists(fondo_path):
             zip_file.write(fondo_path, arcname='img/' + fondo)
 
-        # ✅ Incluir solo las imágenes de productos
+        # ✅ Incluir imágenes de productos
         for producto in config['productos']:
             imagen = producto.get('imagen')
             if imagen:
@@ -356,6 +365,7 @@ def descargar():
 
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
+
 
 
 @app.template_filter('imgver')
