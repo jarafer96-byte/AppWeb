@@ -447,8 +447,8 @@
 {% if not usarFirestore and config.tipo_web in ['catálogo', 'menú'] %}
   {% set grupos = {} %}
   {% for producto in config.productos %}
-    {% set grupo = producto.get('grupo') or 'General' %}
-    {% set subgrupo = producto.get('subgrupo') or 'Sin subgrupo' %}
+    {% set grupo = producto.get('grupo') or producto.get('Grupo') or 'General' %}
+    {% set subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo' %}
     {% if grupo not in grupos %}
       {% set _ = grupos.update({grupo: {}}) %}
     {% endif %}
