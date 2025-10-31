@@ -442,10 +442,37 @@
     </div>
   {% endif %}
 
-  {% if usarFirestore %}
-    <div class="text-center mb-4" id="botones-grupo"></div>
-    <div id="contenedor-grupos"></div>
-  {% endif %}
+  {% for grupo, subgrupos in grupos.items() %}
+   <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
+    {% for subgrupo, productos in subgrupos.items() %}
+      <h5 class="text-white mb-3">{{ subgrupo }}</h5>
+      <div class="row" data-subgrupo="{{ subgrupo }}">
+        {% for producto in productos %}
+          <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+            <div class="card p-3 h-100">
+              <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+              <div class="card-body">
+                <h5 class="card-title">{{ producto.nombre }}</h5>
+                <p class="card-text">{{ producto.descripcion }}</p>
+                <p><strong>Precio:</strong> $ <span id="precio_{{ producto.id_base }}">{{ producto.precio }}</span></p>
+                <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                  <label for="cantidad_{{ producto.id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                  <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ producto.id_base }}">
+                  <button type="button" class="btn btn-secondary"
+                    onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.id_base }}', 'cantidad_{{ producto.id_base }}')">
+                    Agregar al carrito
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+   </div>
+  {% endfor %}
+
 
 
 {% if config.productos %}
