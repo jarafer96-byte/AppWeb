@@ -737,6 +737,11 @@ onSnapshot(productosRef, snapshot => {
     grupoDiv.id = "grupo_" + grupo;
 
     Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
+      const titulo = document.createElement("h5");
+      titulo.className = "text-white mb-3";
+      titulo.textContent = subgrupo;
+      grupoDiv.appendChild(titulo);
+
       const fila = document.createElement("div");
       fila.className = "row";
       fila.dataset.subgrupo = subgrupo;
