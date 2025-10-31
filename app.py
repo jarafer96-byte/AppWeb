@@ -307,6 +307,8 @@ def preview():
             grupos_dict[grupo][subgrupo] = []
         grupos_dict[grupo][subgrupo].append(producto)
 
+    config['usarFirestore'] = False
+
     return render_template('preview.html', config=config, grupos=grupos_dict)
 
 
