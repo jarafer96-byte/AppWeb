@@ -186,7 +186,7 @@ def step3():
             nombre = nombres[i].strip()
             precio = precios[i].strip()
             grupo = grupos[i].strip()
-            subgrupo = subgrupos[i].strip()
+            subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() if i < len(ordenes) else '999'
             img = imagenes[i]
             filename = secure_filename(img.filename)
