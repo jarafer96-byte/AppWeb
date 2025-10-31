@@ -323,7 +323,15 @@ def descargar():
         'bloques': []
     }
 
-    html = render_template('preview.html', config=config)
+    # ✅ Construir grupos y subgrupos para la plantilla
+    grupos = {}
+    for producto in config['productos']:
+        grupo = producto.get('grupo') or 'General'
+        subgrupo = producto.get('subgrupo') or 'Sin subgrupo'
+        grupos.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
+
+    # ✅ Renderizar con grupos incluidos
+    html = render_template('preview.html', config=config, grupos=grupos)
 
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w') as zip_file:
@@ -343,13 +351,12 @@ def descargar():
                 if os.path.exists(imagen_path):
                     zip_file.write(imagen_path, arcname='img/' + imagen)
 
-
     limpiar_imagenes_usuario()
-
     session['descargado'] = True
 
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
+
 
 @app.template_filter('imgver')
 def imgver_filter(name):
