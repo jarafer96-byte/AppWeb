@@ -584,9 +584,9 @@ function mostrarGrupo(nombre, event) {
   });
 
   // ✅ Mostrar todas las filas del grupo antes de filtrar
-  const filas = grupoActivo?.querySelectorAll('.row[data-subgrupo]');
-  filas?.forEach(fila => {
-    fila.style.display = 'flex';
+  const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
+  bloques?.forEach(bloque => {
+    bloque.style.display = 'block';
   });
 
   // ✅ Activar la primera subcategoría automáticamente
