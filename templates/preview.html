@@ -576,12 +576,14 @@ function mostrarGrupo(nombre, event) {
   panel.classList.remove('oculto');
 
   subcategorias.forEach(sub => {
+    if (!sub || sub.trim().toLowerCase() === 'general' || sub.trim() === '') return; // ⛔️ salta vacíos o "General"
     const btn = document.createElement('button');
     btn.textContent = sub;
     btn.className = 'btn-grupo';
     btn.onclick = () => filtrarSubcategoria(nombre, sub);
     panel.appendChild(btn);
   });
+
 
   // ✅ Mostrar todas las filas del grupo antes de filtrar
   const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
