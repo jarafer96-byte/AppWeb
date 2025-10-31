@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -114,6 +115,73 @@
     .modo-claro {
       color: #333;
     }
+    .barra-navegacion {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 12px 20px;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+    }
+    .barra-navegacion button {
+      font-family: 'Quicksand', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    .barra-navegacion button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+    .barra-wrapper {
+      z-index: 1000;
+    }
+    .panel-grupos {
+      position: fixed;
+      top: 60px; /* ajustá según la altura real de tu barra principal */
+      left: 0;
+      right: 0;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      padding: 10px 0;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+    }
+    .panel-grupos button {
+      font-family: 'Quicksand', sans-serif;
+      font-weight: 600;
+      margin: 6px;
+      padding: 8px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .panel-grupos button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+    .oculto {
+      display: none;
+    }
     .logo { 
       height: 10vw; 
       max-height: 380px; 
@@ -227,8 +295,7 @@
       display: none;
     }
     .grupo-section.active {
-      display: flex !important;
-      flex-wrap: wrap;
+      display: block !important;
     }
     .social-icons {
       margin-top: 40px;
@@ -296,6 +363,36 @@
       color: white;
       border: none;
     }
+    .panel-subcategorias {
+      position: fixed;
+      top: 110px; /* debajo del panel de grupos */
+      left: 0;
+      right: 0;
+      z-index: 998;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      padding: 10px 0;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button {
+      font-family: 'Quicksand', sans-serif;
+      font-weight: 600;
+      margin: 6px;
+      padding: 8px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+    }
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -308,6 +405,25 @@
   </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
+  
+  <div class="barra-wrapper">
+  <nav class="barra-navegacion">
+    <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
+    <button id="btnContacto" onclick="irAContacto()">Contacto</button>
+  </nav>
+
+  <div id="panelGrupos" class="panel-grupos">
+    {% for grupo in grupos.keys() %}
+      <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
+        {{ grupo }}
+      </button>
+    {% endfor %}
+  </div>
+</div>
+
+
+  <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
+
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
   </button>
@@ -326,69 +442,49 @@
     </div>
   {% endif %}
 
-{% set usarFirestore = false %}
-
-{% if not usarFirestore and config.tipo_web in ['catálogo', 'menú'] %}
-  {% set grupos = {} %}
-  {% for producto in config.productos %}
-    {% set nombre_grupo = producto.get('grupo') %}
-    {% if not nombre_grupo or not nombre_grupo.strip() %}
-      {% set nombre_grupo = 'General' %}
-    {% endif %}
-    {% if nombre_grupo not in grupos %}
-      {% set _ = grupos.update({nombre_grupo: []}) %}
-    {% endif %}
-    {% set _ = grupos[nombre_grupo].append(producto) %}
-  {% endfor %}
-{% endif %}
-{% if not usarFirestore %}
-  <div class="text-center mb-4" id="botones-grupo">
-    {% for grupo in grupos.keys() %}
-      <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
-        {{ grupo }}
-      </button>
-    {% endfor %}
-  </div>
-
-  <div id="contenedor-grupos">
-    {% for grupo, productos in grupos.items() %}
-      <div class="container mb-5">
-        <div class="row grupo-section" id="grupo_{{ grupo }}">
-          {% for producto in productos %}
-            {% set idBase = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index %}
-            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-              <div class="card p-3 h-100">
-                <img src="/static/img/{{ producto.imagen }}?v={{ producto.imagen | imgver }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
-                <div class="card-body">
-                  <h5 class="card-title">{{ producto.nombre }}</h5>
-                  <p class="card-text">{{ producto.descripcion }}</p>
-                  <p><strong>Precio:</strong> $ <span id="precio_{{ idBase }}">{{ producto.precio }}</span></p>
-                  <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-                  <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                    <label for="cantidad_{{ idBase }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                    <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ idBase }}">
-                    <button type="button" class="btn btn-secondary"
-                            onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ idBase }}', 'cantidad_{{ idBase }}')">
-                      Agregar al carrito
-                    </button>
+  {% if not config.usarFirestore %}
+   {% for grupo, subgrupos in grupos.items() %}
+    {% set total_productos = subgrupos.values() | map('length') | sum %}
+    {% if total_productos > 0 %}
+      <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
+        {% for subgrupo, productos in subgrupos.items() %}
+          {% if productos %}
+            <div class="subgrupo-bloque mb-4" data-subgrupo="{{ subgrupo }}">
+            
+              <div class="row">
+                {% for producto in productos %}
+                  <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                    <div class="card p-3 h-100">
+                      <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+                      <div class="card-body">
+                        <h5 class="card-title">{{ producto.nombre }}</h5>
+                        <p class="card-text">{{ producto.descripcion }}</p>
+                        <p><strong>Precio:</strong> $ <span id="precio_{{ producto.id_base }}">{{ producto.precio }}</span></p>
+                        <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                        <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                          <label for="cantidad_{{ producto.id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                          <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ producto.id_base }}">
+                          <button type="button" class="btn btn-secondary"
+                            onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.id_base }}', 'cantidad_{{ producto.id_base }}')">
+                            Agregar al carrito
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                {% endfor %}
               </div>
             </div>
-          {% endfor %}
-        </div>
+          {% endif %}
+        {% endfor %}
       </div>
-    {% endfor %}
-  </div>
-{% endif %}
-
-  {% if usarFirestore %}
-    <div class="text-center mb-4" id="botones-grupo"></div>
-    <div id="contenedor-grupos"></div>
+    {% endif %}
+   {% endfor %}
   {% endif %}
 
 
-  {% if config.productos %}
+
+{% if config.productos %}
   <div class="text-center mt-5">
     <a href="/descargar" class="btn btn-primary px-5">
       Descargar sitio
@@ -448,31 +544,81 @@
     btn.style.backgroundColor = 'white';
     btn.style.color = 'black';
   });
-
+  
+  const subcategoriasPorGrupo = {
+    {% for grupo, subgrupos in grupos.items() %}
+      "{{ grupo }}": [{% for sub in subgrupos.keys() %}"{{ sub }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+    {% endfor %}
+  };
+  
   document.getElementById('volverArriba').onclick = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     document.getElementById('volverArriba').blur();
   };
+function mostrarGrupo(nombre, event) {
+  // Activar grupo visualmente
+  document.querySelectorAll('.grupo-section').forEach(div => {
+    div.classList.remove('active');
+  });
+  const grupoActivo = document.getElementById('grupo_' + nombre);
+  if (grupoActivo) grupoActivo.classList.add('active');
 
-    function mostrarGrupo(nombre, event) {
-      document.querySelectorAll('.grupo-section').forEach(div => {
-        div.classList.remove('active');
-      });
-      const grupoActivo = document.getElementById('grupo_' + nombre);
-      if (grupoActivo) grupoActivo.classList.add('active');
+  // Activar botón
+  document.querySelectorAll('.btn-grupo').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  if (event?.target) event.target.classList.add('active');
 
-      document.querySelectorAll('.btn-grupo').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      event.target.classList.add('active');
-    }
+  // Generar botones de subcategoría
+  const subcategorias = subcategoriasPorGrupo[nombre] || [];
+  const panel = document.getElementById('panelSubcategorias');
+  panel.innerHTML = '';
+  panel.classList.remove('oculto');
 
-    window.onload = function() {
-      const primero = document.querySelector('.grupo-section');
-      if (primero) primero.classList.add('active');
-      const primerBtn = document.querySelector('.btn-grupo');
-      if (primerBtn) primerBtn.classList.add('active');
-    };
+  subcategorias.forEach(sub => {
+    if (!sub || sub.trim().toLowerCase() === 'general' || sub.trim() === '') return; // ⛔️ salta vacíos o "General"
+    const btn = document.createElement('button');
+    btn.textContent = sub;
+    btn.className = 'btn-grupo';
+    btn.onclick = () => filtrarSubcategoria(nombre, sub);
+    panel.appendChild(btn);
+  });
+
+
+  // ✅ Mostrar todas las filas del grupo antes de filtrar
+  const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
+  bloques?.forEach(bloque => {
+    bloque.style.display = 'block';
+  });
+
+  // ✅ Activar la primera subcategoría automáticamente
+  if (subcategorias.length > 0) {
+    filtrarSubcategoria(nombre, subcategorias[0]);
+  }
+}
+
+function filtrarSubcategoria(grupo, subgrupo) {
+  const grupoDiv = document.getElementById('grupo_' + grupo);
+  if (!grupoDiv) return;
+
+  const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
+  bloques.forEach(bloque => {
+    const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
+    const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
+    bloque.style.display = mostrar ? 'block' : 'none';
+  });
+}
+
+
+
+  window.onload = function() {
+  const primerBtn = document.querySelector('.btn-grupo');
+  if (primerBtn) {
+    mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn });
+  }
+};
+
+
 
     let carrito = [];
 
@@ -591,79 +737,96 @@ getDocs(productosRef)
 onSnapshot(productosRef, snapshot => {
   const grupos = {};
 
-  // Agrupar productos por grupo
+  // Agrupar productos por grupo y subgrupo
   snapshot.forEach(doc => {
     const data = doc.data();
-    const grupo = data.grupo?.trim() || "General";
-    if (!grupos[grupo]) grupos[grupo] = [];
-    grupos[grupo].push({ ...data, id: doc.id });
+
+    if (!data.grupo || !data.grupo.trim()) return; // ⛔️ salta productos sin grupo
+    const grupo = data.grupo.trim();
+
+    const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
+
+    if (!grupos[grupo]) grupos[grupo] = {};
+    if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
+    grupos[grupo][subgrupo].push({ ...data, id: doc.id });
   });
 
-  // Ordenar grupos por campo 'orden' si existe
-  const gruposOrdenados = Object.entries(grupos).sort((a, b) => {
-  const ordenA = Math.min(...a[1].map(p => p.orden || 999));
-  const ordenB = Math.min(...b[1].map(p => p.orden || 999));
-  return ordenA - ordenB;
-});
+  // Generar subcategoriasPorGrupo
+  const subcategoriasPorGrupo = {};
+  Object.entries(grupos).forEach(([grupo, subgrupos]) => {
+    subcategoriasPorGrupo[grupo] = Object.keys(subgrupos);
+  });
 
-
-  // Botones dinámicos
+  // Botones de grupo
   const botonesDiv = document.getElementById("botones-grupo");
-  if (botonesDiv) {
-    botonesDiv.innerHTML = "";
-    gruposOrdenados.forEach(([grupo]) => {
-      const btn = document.createElement("button");
-      btn.className = "btn-grupo";
-      btn.textContent = grupo;
-      btn.onclick = e => mostrarGrupo(grupo, e);
-      botonesDiv.appendChild(btn);
-    });
-  }
+  botonesDiv.innerHTML = "";
+  Object.keys(grupos).forEach(grupo => {
+    const btn = document.createElement("button");
+    btn.className = "btn-grupo";
+    btn.textContent = grupo;
+    btn.onclick = e => mostrarGrupo(grupo, e);
+    botonesDiv.appendChild(btn);
+  });
 
-  // Contenedores por grupo (generados dinámicamente)
+  // ✅ Renderizar productos por grupo y subgrupo
   const contenedorPrincipal = document.getElementById("contenedor-grupos");
   contenedorPrincipal.innerHTML = "";
 
-  gruposOrdenados.forEach(([grupo]) => {
-    const grupoId = "grupo_" + grupo;
+  Object.entries(grupos).forEach(([grupo, subgrupos]) => {
     const grupoDiv = document.createElement("div");
-    grupoDiv.className = "container mb-5";
-    grupoDiv.innerHTML = `<div class="row grupo-section" id="${grupoId}"></div>`;
+    grupoDiv.className = "container mb-5 grupo-section";
+    grupoDiv.id = "grupo_" + grupo;
+
+    Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
+      if (!productos || productos.length === 0) return; // ⛔️ salta subgrupos vacíos
+
+      const titulo = document.createElement("h5");
+      titulo.className = "text-white mb-3";
+      titulo.textContent = subgrupo;
+      grupoDiv.appendChild(titulo);
+
+      const fila = document.createElement("div");
+      fila.className = "row";
+      fila.dataset.subgrupo = 
+
+      productos.forEach((producto, i) => {
+        const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
+        const tarjeta = document.createElement("div");
+        tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
+        tarjeta.innerHTML = `
+          <div class="card p-3 h-100">
+            <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
+            <div class="card-body">
+              <h5 class="card-title">${producto.nombre}</h5>
+              <p class="card-text">${producto.descripcion || ""}</p>
+              <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
+              <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
+                <button type="button" class="btn btn-secondary"
+                  onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}')">
+                  Agregar al carrito
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        fila.appendChild(tarjeta);
+      });
+
+      grupoDiv.appendChild(fila);
+    });
+
     contenedorPrincipal.appendChild(grupoDiv);
   });
 
-  // Tarjetas por grupo
-  gruposOrdenados.forEach(([grupo, productos]) => {
-    const contenedor = document.getElementById("grupo_" + grupo);
-    if (!contenedor) return;
-    contenedor.innerHTML = "";
-
-    productos.forEach((producto, i) => {
-      const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
-      const tarjeta = document.createElement("div");
-      tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
-      tarjeta.innerHTML = `
-        <div class="card p-3 h-100">
-          <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
-          <div class="card-body">
-            <h5 class="card-title">${producto.nombre}</h5>
-            <p class="card-text">${producto.descripcion || ""}</p>
-            <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
-            <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-            <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-              <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-              <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
-              <button type="button" class="btn btn-secondary"
-                onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}')">
-                Agregar al carrito
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      contenedor.appendChild(tarjeta);
-    });
-  });
+  // Activar primer grupo
+  const primerBtn = document.querySelector('.btn-grupo');
+  if (primerBtn) {
+    mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn });
+  }
+});
 
   // Activar primer grupo
   const primero = document.querySelector('.grupo-section');
@@ -696,6 +859,47 @@ document.addEventListener('click', function (event) {
       bsCollapse.hide();
     }
   });
+   const btnProductos = document.getElementById('btnProductos');
+  const btnContacto = document.getElementById('btnContacto');
+  const panelGrupos = document.getElementById('panelGrupos');
+
+  // Mostrar/ocultar el panel de grupos al tocar "Productos"
+  btnProductos.addEventListener('click', () => {
+    panelGrupos.classList.toggle('oculto');
+  });
+
+  // Scroll al pie de página al tocar "Contacto"
+  btnContacto.addEventListener('click', () => {
+    const contacto = document.getElementById('ubicacion');
+    if (contacto) contacto.scrollIntoView({ behavior: 'smooth' });
+  });
+
+document.addEventListener('click', function (event) {
+  const panel = document.getElementById('panelGrupos');
+  const btnProductos = document.getElementById('btnProductos');
+
+  const clicDentroPanel = panel.contains(event.target);
+  const clicEnBoton = btnProductos.contains(event.target);
+
+  // Si el panel está visible y el clic fue fuera del panel y del botón, lo ocultamos
+  if (!panel.classList.contains('oculto') && !clicDentroPanel && !clicEnBoton) {
+    panel.classList.add('oculto');
+  }
+});
+document.addEventListener('click', function (event) {
+  const panelSub = document.getElementById('panelSubcategorias');
+  const panelGrupos = document.getElementById('panelGrupos');
+  const btnProductos = document.getElementById('btnProductos');
+
+  const clicDentroSub = panelSub.contains(event.target);
+  const clicDentroGrupos = panelGrupos.contains(event.target);
+  const clicEnBotonProductos = btnProductos.contains(event.target);
+
+  // Si el panel de subcategorías está visible y el clic fue fuera de él, del panel de grupos y del botón, lo ocultamos
+  if (!panelSub.classList.contains('oculto') && !clicDentroSub && !clicDentroGrupos && !clicEnBotonProductos) {
+    panelSub.classList.add('oculto');
+  }
+});
 </script>
 </body>
 </html>
