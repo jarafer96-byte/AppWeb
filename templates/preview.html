@@ -114,6 +114,73 @@
     .modo-claro {
       color: #333;
     }
+    .barra-navegacion {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 12px 20px;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+    }
+    .barra-navegacion button {
+      font-family: 'Quicksand', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    .barra-navegacion button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+    .barra-wrapper {
+      z-index: 1000;
+    }
+    .panel-grupos {
+      position: fixed;
+      top: 60px; /* ajustá según la altura real de tu barra principal */
+      left: 0;
+      right: 0;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      padding: 10px 0;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+    }
+    .panel-grupos button {
+      font-family: 'Quicksand', sans-serif;
+      font-weight: 600;
+      margin: 6px;
+      padding: 8px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .panel-grupos button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+    .oculto {
+      display: none;
+    }
     .logo { 
       height: 10vw; 
       max-height: 380px; 
@@ -296,6 +363,36 @@
       color: white;
       border: none;
     }
+    .panel-subcategorias {
+      position: fixed;
+      top: 110px; /* debajo del panel de grupos */
+      left: 0;
+      right: 0;
+      z-index: 998;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      padding: 10px 0;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button {
+      font-family: 'Quicksand', sans-serif;
+      font-weight: 600;
+      margin: 6px;
+      padding: 8px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+    }
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -309,18 +406,23 @@
 </head>
 <body class="container py-5 {{ modo_visual }}">
   
-<div class="barra-wrapper">
-   <div id="panelGrupos" class="panel-grupos">
+  <div class="barra-wrapper">
+  <nav class="barra-navegacion">
+    <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
+    <button id="btnContacto" onclick="irAContacto()">Contacto</button>
+  </nav>
+
+  <div id="panelGrupos" class="panel-grupos">
     {% for grupo in grupos.keys() %}
       <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
         {{ grupo }}
       </button>
     {% endfor %}
-   </div>
-
-   <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
+  </div>
 </div>
 
+
+  <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
 
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
@@ -470,19 +572,6 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
     document.getElementById('volverArriba').blur();
   };
-
-    function mostrarGrupo(nombre, event) {
-  // Activar grupo visualmente
-  document.querySelectorAll('.grupo-section').forEach(div => {
-    div.classList.remove('active');
-  });
-  const grupoActivo = document.getElementById('grupo_' + nombre);
-  if (grupoActivo) grupoActivo.classList.add('active');
-
-  document.querySelectorAll('.btn-grupo').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  event.target.classList.add('active');
 
   // ✅ Generar botones de subcategoría
   const subcategorias = subcategoriasPorGrupo[nombre] || [];
@@ -745,6 +834,41 @@ document.addEventListener('click', function (event) {
       bsCollapse.hide();
     }
   });
+   const btnProductos = document.getElementById('btnProductos');
+  const btnContacto = document.getElementById('btnContacto');
+  const panelGrupos = document.getElementById('panelGrupos');
+
+  // Mostrar/ocultar el panel de grupos al tocar "Productos"
+  btnProductos.addEventListener('click', () => {
+    panelGrupos.classList.toggle('oculto');
+  });
+
+  // Scroll al pie de página al tocar "Contacto"
+  btnContacto.addEventListener('click', () => {
+    const contacto = document.getElementById('ubicacion');
+    if (contacto) contacto.scrollIntoView({ behavior: 'smooth' });
+  });
+
+  // Generar los botones de grupo dinámicamente
+  const grupos = Array.from(document.querySelectorAll('.grupo-section'))
+    .map(div => div.id.replace('grupo_', ''));
+
+  panelGrupos.innerHTML = grupos.map(nombre => `
+    <button onclick="mostrarGrupo('${nombre}', event)">${nombre}</button>
+  `).join('');
+
+document.addEventListener('click', function (event) {
+  const panel = document.getElementById('panelGrupos');
+  const btnProductos = document.getElementById('btnProductos');
+
+  const clicDentroPanel = panel.contains(event.target);
+  const clicEnBoton = btnProductos.contains(event.target);
+
+  // Si el panel está visible y el clic fue fuera del panel y del botón, lo ocultamos
+  if (!panel.classList.contains('oculto') && !clicDentroPanel && !clicEnBoton) {
+    panel.classList.add('oculto');
+  }
+});
 </script>
 </body>
 </html>
