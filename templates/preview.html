@@ -449,7 +449,6 @@
   {% for producto in config.productos %}
     {% set grupo = producto.get('grupo') or 'General' %}
     {% set subgrupo = producto.get('subgrupo') or 'Sin subgrupo' %}
-
     {% if grupo not in grupos %}
       {% set _ = grupos.update({grupo: {}}) %}
     {% endif %}
@@ -466,7 +465,7 @@
     <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
       {% for subgrupo, productos in subgrupos.items() %}
         <h5 class="text-white mb-3">{{ subgrupo }}</h5>
-        <div class="row">
+        <div class="row" data-subgrupo="{{ subgrupo }}">
           {% for producto in productos %}
             {% set idBase = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index %}
             <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
@@ -611,19 +610,15 @@ function filtrarSubcategoria(grupo, subgrupo) {
   const grupoDiv = document.getElementById('grupo_' + grupo);
   if (!grupoDiv) return;
 
-  const tarjetas = grupoDiv.querySelectorAll('.card');
-  tarjetas.forEach(card => {
-    const titulo = card.querySelector('.card-title')?.textContent || '';
-    const subgrupoTexto = card.closest('.row')?.previousElementSibling?.textContent || '';
+  const filas = grupoDiv.querySelectorAll('.row[data-subgrupo]');
+  filas.forEach(fila => {
+    const subgrupoActual = fila.dataset.subgrupo?.trim() || '';
+    const mostrar = subgrupoActual === subgrupo.trim();
 
-    // Mostrar solo si el subgrupo coincide
-    if (subgrupoTexto.trim() === subgrupo.trim()) {
-      card.parentElement.style.display = 'block';
-    } else {
-      card.parentElement.style.display = 'none';
-    }
+    fila.style.display = mostrar ? 'flex' : 'none';
   });
 }
+
 
     window.onload = function() {
       const primero = document.querySelector('.grupo-section');
