@@ -770,6 +770,8 @@ onSnapshot(productosRef, snapshot => {
     grupoDiv.id = "grupo_" + grupo;
 
     Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
+      if (!productos || productos.length === 0) return; // ⛔️ salta subgrupos vacíos
+
       const titulo = document.createElement("h5");
       titulo.className = "text-white mb-3";
       titulo.textContent = subgrupo;
@@ -777,7 +779,7 @@ onSnapshot(productosRef, snapshot => {
 
       const fila = document.createElement("div");
       fila.className = "row";
-      fila.dataset.subgrupo = subgrupo;
+      fila.dataset.subgrupo = 
 
       productos.forEach((producto, i) => {
         const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
