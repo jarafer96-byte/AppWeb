@@ -292,12 +292,23 @@ def preview():
     for i, p in enumerate(config['productos']):
         p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
 
-    from collections import defaultdict
-    grupos_dict = defaultdict(list)
+    # ✅ Agrupar por grupo y subgrupo
+    grupos_dict = {}
     for producto in config['productos']:
-        grupos_dict[producto['grupo']].append(producto)
+        grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
+        subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
 
-    return render_template('preview.html', config=config, grupos=grupos_dict)  # ✅ dentro de la función
+        grupo = grupo.strip().title()
+        subgrupo = subgrupo.strip().title()
+
+        if grupo not in grupos_dict:
+            grupos_dict[grupo] = {}
+        if subgrupo not in grupos_dict[grupo]:
+            grupos_dict[grupo][subgrupo] = []
+        grupos_dict[grupo][subgrupo].append(producto)
+
+    return render_template('preview.html', config=config, grupos=grupos_dict)
+
 
 @app.route('/descargar')
 def descargar():
