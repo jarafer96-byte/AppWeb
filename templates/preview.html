@@ -740,7 +740,10 @@ onSnapshot(productosRef, snapshot => {
   // Agrupar productos por grupo y subgrupo
   snapshot.forEach(doc => {
     const data = doc.data();
-    const grupo = data.grupo?.trim() || "General";
+
+    if (!data.grupo || !data.grupo.trim()) return; // ⛔️ salta productos sin grupo
+    const grupo = data.grupo.trim();
+
     const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
 
     if (!grupos[grupo]) grupos[grupo] = {};
