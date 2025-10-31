@@ -242,7 +242,7 @@ function crearSubgrupo(btn) {
 
     function agregarFila(btn) {
   const subgrupo = btn.closest('.subgrupo');
-  const grupo = btn.closest('.card'); // ✅ obtenemos el grupo contenedor
+  const grupo = btn.closest('.card:not(.subgrupo)');
   const contenedor = subgrupo.querySelector('.productos');
   const nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
   const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ extraemos el nombre del grupo
