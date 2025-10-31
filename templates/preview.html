@@ -443,7 +443,7 @@
   {% endif %}
 
   {% for grupo, subgrupos in grupos.items() %}
-   {% set total_productos = subgrupos.values() | sum(attribute='|length') %}
+   {% set total_productos = subgrupos.values() | map('length') | sum %}
    {% if total_productos > 0 %}
     <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
       {% for subgrupo, productos in subgrupos.items() %}
