@@ -599,14 +599,14 @@ function filtrarSubcategoria(grupo, subgrupo) {
   const grupoDiv = document.getElementById('grupo_' + grupo);
   if (!grupoDiv) return;
 
-  const filas = grupoDiv.querySelectorAll('.row[data-subgrupo]');
-  filas.forEach(fila => {
-    const subgrupoActual = fila.dataset.subgrupo?.trim() || '';
-    const mostrar = subgrupoActual === subgrupo.trim();
-
-    fila.style.display = mostrar ? 'flex' : 'none';
+  const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
+  bloques.forEach(bloque => {
+    const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
+    const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
+    bloque.style.display = mostrar ? 'block' : 'none';
   });
 }
+
 
 
   window.onload = function() {
