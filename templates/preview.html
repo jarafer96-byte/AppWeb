@@ -54,7 +54,7 @@
       pointer-events: none;
     }
     html {
-     scroll-behavior: smooth;
+     scroll-behavior: auto;
     }
     .card {
       opacity: 0;
@@ -293,6 +293,7 @@
     }
     .grupo-section {
       display: none;
+      min-height: 100vh;
     }
     .grupo-section.active {
       display: block !important;
@@ -412,7 +413,7 @@
     <button id="btnContacto" onclick="irAContacto()">Contacto</button>
   </nav>
 
-  <div id="panelGrupos" class="panel-grupos">
+  <div id="panelGrupos" class="panel-grupos oculto">
     {% for grupo in grupos.keys() %}
       <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
         {{ grupo }}
@@ -555,47 +556,55 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
     document.getElementById('volverArriba').blur();
   };
-function mostrarGrupo(nombre, event) {
-  // Activar grupo visualmente
-  document.querySelectorAll('.grupo-section').forEach(div => {
-    div.classList.remove('active');
-  });
+function mostrarGrupo(nombre, event, auto = false) {
   const grupoActivo = document.getElementById('grupo_' + nombre);
+  document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active'));
   if (grupoActivo) grupoActivo.classList.add('active');
 
-  // Activar botón
-  document.querySelectorAll('.btn-grupo').forEach(btn => {
-    btn.classList.remove('active');
-  });
+  document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
   if (event?.target) event.target.classList.add('active');
 
-  // Generar botones de subcategoría
   const subcategorias = subcategoriasPorGrupo[nombre] || [];
   const panel = document.getElementById('panelSubcategorias');
   panel.innerHTML = '';
-  panel.classList.remove('oculto');
+
+  const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
 
   subcategorias.forEach(sub => {
-    if (!sub || sub.trim().toLowerCase() === 'general' || sub.trim() === '') return; // ⛔️ salta vacíos o "General"
+    if (!sub || sub.trim().toLowerCase() === 'general') return;
     const btn = document.createElement('button');
     btn.textContent = sub;
     btn.className = 'btn-grupo';
     btn.onclick = () => filtrarSubcategoria(nombre, sub);
     panel.appendChild(btn);
+    console.log("Creando botón para subcategoría:", sub);
   });
 
+  // Mostrar el panel de subcategorías y filtrar productos solo si no es la carga automática
+  if (!auto) {
+    panel.classList.remove('oculto');
+    bloques?.forEach(bloque => {
+      bloque.style.display = 'block';
+    });
 
-  // ✅ Mostrar todas las filas del grupo antes de filtrar
-  const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
-  bloques?.forEach(bloque => {
-    bloque.style.display = 'block';
-  });
-
-  // ✅ Activar la primera subcategoría automáticamente
-  if (subcategorias.length > 0) {
-    filtrarSubcategoria(nombre, subcategorias[0]);
+    if (subcategorias.length > 0) {
+      filtrarSubcategoria(nombre, subcategorias[0]);
+    }
+  } else {
+    // En la carga inicial, filtrar por la primera subcategoría pero mantener el panel oculto
+    panel.classList.add('oculto');
+    if (subcategorias.length > 0) {
+      filtrarSubcategoria(nombre, subcategorias[0]);
+    }
   }
 }
+
+window.onload = function() {
+  // Asegurarse de que los paneles de grupos y subcategorías estén ocultos al cargar
+  const panelSubcategorias = document.getElementById('panelSubcategorias');
+  const panelGrupos = document.getElementById('panelGrupos');
+  panelSubcategorias.classList.add('oculto');
+  panelGrupos.classList.add('oculto');
 
 function filtrarSubcategoria(grupo, subgrupo) {
   const grupoDiv = document.getElementById('grupo_' + grupo);
@@ -608,17 +617,6 @@ function filtrarSubcategoria(grupo, subgrupo) {
     bloque.style.display = mostrar ? 'block' : 'none';
   });
 }
-
-
-
-  window.onload = function() {
-  const primerBtn = document.querySelector('.btn-grupo');
-  if (primerBtn) {
-    mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn });
-  }
-};
-
-
 
     let carrito = [];
 
@@ -698,6 +696,18 @@ function filtrarSubcategoria(grupo, subgrupo) {
       const carritoDiv = document.getElementById('carrito');
       carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
     };
+    function mostrarTodos() {
+      const panelGrupos = document.getElementById('panelGrupos');
+      const panelSub = document.getElementById('panelSubcategorias');
+
+      // Alternar visibilidad del panel de grupos
+      panelGrupos.classList.toggle('oculto');
+
+      // Siempre ocultar el panel de subcategorías al abrir/cerrar grupos
+      if (!panelSub.classList.contains('oculto')) {
+        panelSub.classList.add('oculto');
+      }
+    }
 </script>
 <script type="module">
   const usarFirestore = true; // Cambiá a false si querés usar solo config.productos
@@ -787,7 +797,7 @@ onSnapshot(productosRef, snapshot => {
 
       const fila = document.createElement("div");
       fila.className = "row";
-      fila.dataset.subgrupo = 
+      fila.dataset.subgrupo = subgrupo;
 
       productos.forEach((producto, i) => {
         const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
@@ -820,20 +830,12 @@ onSnapshot(productosRef, snapshot => {
 
     contenedorPrincipal.appendChild(grupoDiv);
   });
-
-  // Activar primer grupo
+window.onload = function () {
   const primerBtn = document.querySelector('.btn-grupo');
   if (primerBtn) {
-    mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn });
+    mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
   }
-});
-
-  // Activar primer grupo
-  const primero = document.querySelector('.grupo-section');
-  if (primero) primero.classList.add('active');
-  const primerBtn = document.querySelector('.btn-grupo');
-  if (primerBtn) primerBtn.classList.add('active');
-});
+};
 
 // ✅ Cierre del carrito al hacer clic fuera
 document.addEventListener('click', function(event) {
@@ -863,7 +865,7 @@ document.addEventListener('click', function (event) {
   const btnContacto = document.getElementById('btnContacto');
   const panelGrupos = document.getElementById('panelGrupos');
 
-  // Mostrar/ocultar el panel de grupos al tocar "Productos"
+  / // Mostrar/ocultar el panel de grupos al tocar "Productos"
   btnProductos.addEventListener('click', () => {
     panelGrupos.classList.toggle('oculto');
   });
@@ -873,32 +875,26 @@ document.addEventListener('click', function (event) {
     const contacto = document.getElementById('ubicacion');
     if (contacto) contacto.scrollIntoView({ behavior: 'smooth' });
   });
-
-document.addEventListener('click', function (event) {
-  const panel = document.getElementById('panelGrupos');
-  const btnProductos = document.getElementById('btnProductos');
-
-  const clicDentroPanel = panel.contains(event.target);
-  const clicEnBoton = btnProductos.contains(event.target);
-
-  // Si el panel está visible y el clic fue fuera del panel y del botón, lo ocultamos
-  if (!panel.classList.contains('oculto') && !clicDentroPanel && !clicEnBoton) {
-    panel.classList.add('oculto');
-  }
-});
-document.addEventListener('click', function (event) {
-  const panelSub = document.getElementById('panelSubcategorias');
+  
+ document.addEventListener('click', function (event) {
   const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
   const btnProductos = document.getElementById('btnProductos');
 
-  const clicDentroSub = panelSub.contains(event.target);
+  const clicEnBoton = btnProductos.contains(event.target);
   const clicDentroGrupos = panelGrupos.contains(event.target);
-  const clicEnBotonProductos = btnProductos.contains(event.target);
+  const clicDentroSub = panelSub.contains(event.target);
 
-  // Si el panel de subcategorías está visible y el clic fue fuera de él, del panel de grupos y del botón, lo ocultamos
-  if (!panelSub.classList.contains('oculto') && !clicDentroSub && !clicDentroGrupos && !clicEnBotonProductos) {
-    panelSub.classList.add('oculto');
+  // ⛔️ Si el clic fue fuera de todo, cerramos ambos paneles si están visibles
+  if (!clicEnBoton && !clicDentroGrupos && !clicDentroSub) {
+    if (!panelGrupos.classList.contains('oculto')) {
+      panelGrupos.classList.add('oculto');
+    }
+    if (!panelSub.classList.contains('oculto')) {
+      panelSub.classList.add('oculto');
+    }
   }
+  });
 });
 </script>
 </body>
