@@ -483,7 +483,7 @@
    {% endfor %}
   {% endif %}
 
-
+<div id="contenedor-grupos"></div>
 
 {% if config.productos %}
   <div class="text-center mt-5">
@@ -759,6 +759,15 @@ onSnapshot(productosRef, snapshot => {
     if (!grupos[grupo]) grupos[grupo] = {};
     if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
     grupos[grupo][subgrupo].push({ ...data, id: doc.id });
+  });
+  const panelGrupos = document.getElementById("panelGrupos");
+  panelGrupos.innerHTML = "";
+  Object.keys(grupos).forEach(grupo => {
+    const btn = document.createElement("button");
+    btn.className = "btn-grupo";
+    btn.textContent = grupo;
+    btn.onclick = e => mostrarGrupo(grupo, e);
+    panelGrupos.appendChild(btn);
   });
 
   // Generar subcategoriasPorGrupo
