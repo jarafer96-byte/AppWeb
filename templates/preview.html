@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -34,19 +33,19 @@
       background-repeat: no-repeat;
       background-attachment: fixed;
       background-position: center;
-      padding-top: 70px; /* para que el contenido no quede tapado por la navbar */
+      padding-top: 70px;
     }
     body::before {
       content: "";
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.4);
-      z-index: -1; /* encima de la animación, debajo del contenido */
+      z-index: -1;
     }
     .fondo-animado {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      z-index: -2; /* más atrás */
+      z-index: -2;
       background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 40%),
                   radial-gradient(circle at 80% 70%, rgba(255,255,255,0.06), transparent 40%);
       animation: moverFondo 40s ease-in-out infinite;
@@ -54,7 +53,7 @@
       pointer-events: none;
     }
     html {
-     scroll-behavior: auto;
+      scroll-behavior: auto;
     }
     .card {
       opacity: 0;
@@ -151,7 +150,7 @@
     }
     .panel-grupos {
       position: fixed;
-      top: 60px; /* ajustá según la altura real de tu barra principal */
+      top: 60px;
       left: 0;
       right: 0;
       z-index: 999;
@@ -179,8 +178,8 @@
       transform: scale(1.05);
       box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
     }
-    .oculto {
-      display: none;
+    .oculta {
+      display: none !important;
     }
     .logo { 
       height: 10vw; 
@@ -235,10 +234,10 @@
       border: none;
     }
     .modo-oscuro .btn-grupo {
-      background-color: rgba(255, 255, 255, 0.05); /* fondo tenue claro */
+      background-color: rgba(255, 255, 255, 0.05);
       color: white;
-      border: 1px solid rgba(255, 255, 255, 0.2); /* borde blanco suave */
-      box-shadow: 0 0 4px rgba(255,255,255,0.1); /* sombra sutil */
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 4px rgba(255,255,255,0.1);
     }
     .btn-grupo::before {
       content: "";
@@ -366,7 +365,7 @@
     }
     .panel-subcategorias {
       position: fixed;
-      top: 110px; /* debajo del panel de grupos */
+      top: 110px;
       left: 0;
       right: 0;
       z-index: 998;
@@ -406,34 +405,31 @@
   </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
-  
   <div class="barra-wrapper">
-  <nav class="barra-navegacion">
-    <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
-    <button id="btnContacto" onclick="irAContacto()">Contacto</button>
-  </nav>
-
-  <div id="panelGrupos" class="panel-grupos oculto">
-    {% for grupo in grupos.keys() %}
-      <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
-        {{ grupo }}
-      </button>
-    {% endfor %}
+    <nav class="barra-navegacion">
+      <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
+      <button id="btnContacto" onclick="irAContacto()">Contacto</button>
+    </nav>
+    <div id="panelGrupos" class="panel-grupos oculto">
+      {% for grupo in grupos.keys() %}
+        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
+          {{ grupo }}
+        </button>
+      {% endfor %}
+    </div>
   </div>
-</div>
-
 
   <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
 
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
   </button>
-  
- <div class="text-center my-3">
-  <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
-       alt="Logo"
-       class="img-fluid logo">
- </div>
+
+  <div class="text-center my-3">
+    <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
+         alt="Logo"
+         class="img-fluid logo">
+  </div>
 
   {% if config.sobre_mi %}
     <div class="text-center mb-4">
@@ -444,54 +440,51 @@
   {% endif %}
 
   {% if not config.usarFirestore %}
-   {% for grupo, subgrupos in grupos.items() %}
-    {% set total_productos = subgrupos.values() | map('length') | sum %}
-    {% if total_productos > 0 %}
-      <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
-        {% for subgrupo, productos in subgrupos.items() %}
-          {% if productos %}
-            <div class="subgrupo-bloque mb-4" data-subgrupo="{{ subgrupo }}">
-            
-              <div class="row">
-                {% for producto in productos %}
-                  <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-                    <div class="card p-3 h-100">
-                      <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
-                      <div class="card-body">
-                        <h5 class="card-title">{{ producto.nombre }}</h5>
-                        <p class="card-text">{{ producto.descripcion }}</p>
-                        <p><strong>Precio:</strong> $ <span id="precio_{{ producto.id_base }}">{{ producto.precio }}</span></p>
-                        <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-                        <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                          <label for="cantidad_{{ producto.id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                          <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ producto.id_base }}">
-                          <button type="button" class="btn btn-secondary"
-                            onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.id_base }}', 'cantidad_{{ producto.id_base }}')">
-                            Agregar al carrito
-                          </button>
+    {% for grupo, subgrupos in grupos.items() %}
+      {%ietin% set total_productos = subgrupos.values() | map('length') | sum %}
+      {% if total_productos > 0 %}
+        <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
+          {% for subgrupo, productos in subgrupos.items() %}
+            {% if productos %}
+              <div class="subgrupo-bloque mb-4" data-subgrupo="{{ subgrupo }}">
+                <div class="row">
+                  {% for producto in productos %}
+                    <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                      <div class="card p-3 h-100">
+                        <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+                        <div class="card-body">
+                          <h5 class="card-title">{{ producto.nombre }}</h5>
+                          <p class="card-text">{{ producto.descripcion }}</p>
+                          <p><strong>Precio:</strong> $ <span id="precio_{{ producto.id_base }}">{{ producto.precio }}</span></p>
+                          <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                          <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                            <label for="cantidad_{{ producto.id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                            <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ producto.id_base }}">
+                            <button type="button" class="btn btn-secondary"
+                              onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.id_base }}', 'cantidad_{{ producto.id_base }}')">
+                              Agregar al carrito
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                {% endfor %}
+                  {% endfor %}
+                </div>
               </div>
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    {% endif %}
-   {% endfor %}
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endfor %}
   {% endif %}
 
-<div id="contenedor-grupos"></div>
+  <div id="contenedor-grupos"></div>
 
-{% if config.productos %}
   <div class="text-center mt-5">
     <a href="/descargar" class="btn btn-primary px-5">
       Descargar sitio
     </a>
   </div>
-{% endif %}
 
   <div class="social-icons">
     {% if config.facebook %}
@@ -536,87 +529,96 @@
       <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
     </div>
   </div>
-<script>
+
+  <script>
     const configWhatsApp = "{{ config.whatsapp }}";
-    
-  window.addEventListener('scroll', () => {
-    const btn = document.getElementById('volverArriba');
-    btn.style.display = window.scrollY > 300 ? 'block' : 'none';
-    btn.style.backgroundColor = 'white';
-    btn.style.color = 'black';
-  });
-  
-  const subcategoriasPorGrupo = {
-    {% for grupo, subgrupos in grupos.items() %}
-      "{{ grupo }}": [{% for sub in subgrupos.keys() %}"{{ sub }}"{% if not loop.last %}, {% endif %}{% endfor %}],
-    {% endfor %}
-  };
-  
-  document.getElementById('volverArriba').onclick = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.getElementById('volverArriba').blur();
-  };
-function mostrarGrupo(nombre, event, auto = false) {
-  const grupoActivo = document.getElementById('grupo_' + nombre);
-  document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active'));
-  if (grupoActivo) grupoActivo.classList.add('active');
 
-  document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
-  if (event?.target) event.target.classList.add('active');
-
-  const subcategorias = subcategoriasPorGrupo[nombre] || [];
-  const panel = document.getElementById('panelSubcategorias');
-  panel.innerHTML = '';
-
-  const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
-
-  subcategorias.forEach(sub => {
-    if (!sub || sub.trim().toLowerCase() === 'general') return;
-    const btn = document.createElement('button');
-    btn.textContent = sub;
-    btn.className = 'btn-grupo';
-    btn.onclick = () => filtrarSubcategoria(nombre, sub);
-    panel.appendChild(btn);
-    console.log("Creando botón para subcategoría:", sub);
-  });
-
-  // Mostrar el panel de subcategorías y filtrar productos solo si no es la carga automática
-  if (!auto) {
-    panel.classList.remove('oculto');
-    bloques?.forEach(bloque => {
-      bloque.style.display = 'block';
+    window.addEventListener('scroll', () => {
+      const btn = document.getElementById('volverArriba');
+      btn.style.display = window.scrollY > 300 ? 'block' : 'none';
+      btn.style.backgroundColor = 'white';
+      btn.style.color = 'black';
     });
 
-    if (subcategorias.length > 0) {
-      filtrarSubcategoria(nombre, subcategorias[0]);
+    const subcategoriasPorGrupo = {
+      {% for grupo, subgrupos in grupos.items() %}
+        "{{ grupo }}": [{% for sub in subgrupos.keys() %}"{{ sub }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+      {% endfor %}
+    };
+
+    document.getElementById('volverArriba').onclick = () => {
+      window.scrollTo({ top: 0, behavior: 'auto' }); // Cambiado a 'auto' para evitar deslizamiento
+    };
+
+    function mostrarGrupo(nombre, event, auto = false) {
+      const grupoActivo = document.getElementById('grupo_' + nombre);
+      document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
+      if (grupoActivo) {
+        grupoActivo.classList.add('active');
+        if (auto) grupoActivo.classList.add('initial-load');
+      }
+
+      document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
+      if (event?.target) event.target.classList.add('active');
+
+      const subcategorias = subcategoriasPorGrupo[nombre] || [];
+      const panel = document.getElementById('panelSubcategorias');
+      panel.innerHTML = '';
+
+      const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
+
+      subcategorias.forEach(sub => {
+        if (!sub || sub.trim().toLowerCase() === 'general') return;
+        const btn = document.createElement('button');
+        btn.textContent = sub;
+        btn.className = 'btn-grupo';
+        btn.onclick = () => filtrarSubcategoria(nombre, sub);
+        panel.appendChild(btn);
+        console.log("Creando botón para subcategoría:", sub);
+      });
+
+      if (!auto) {
+        panel.classList.remove('oculta');
+        bloques?.forEach(bloque => {
+          bloque.style.display = 'block';
+        });
+
+        if (subcategorias.length > 0) {
+          filtrarSubcategoria(nombre, subcategorias[0]);
+        }
+      } else {
+        panel.classList.add('oculta');
+        if (subcategorias.length > 0) {
+          filtrarSubcategoria(nombre, subcategorias[0]);
+        }
+      }
     }
-  } else {
-    // En la carga inicial, filtrar por la primera subcategoría pero mantener el panel oculto
-    panel.classList.add('oculto');
-    if (subcategorias.length > 0) {
-      filtrarSubcategoria(nombre, subcategorias[0]);
+
+    function filtrarSubcategoria(grupo, subgrupo) {
+      const grupoDiv = document.getElementById('grupo_' + grupo);
+      if (!grupoDiv) return;
+
+      const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
+      bloques.forEach(bloque => {
+        const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
+        const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
+        bloque.style.display = mostrar ? 'block' : 'none';
+      });
+
+      window.scrollTo({ top: window.scrollY, behavior: 'auto' }); // Evitar desplazamientos
     }
-  }
-}
 
-window.onload = function() {
-  // Asegurarse de que los paneles de grupos y subcategorías estén ocultos al cargar
-  const panelSubcategorias = document.getElementById('panelSubcategorias');
-  const panelGrupos = document.getElementById('panelGrupos');
-  panelSubcategorias.classList.add('oculto');
-  panelGrupos.classList.add('oculto');
+    window.onload = function() {
+      const panelSubcategorias = document.getElementById('panelSubcategorias');
+      const panelGrupos = document.getElementById('panelGrupos');
+      panelSubcategorias.classList.add('oculta');
+      panelGrupos.classList.add('oculta');
 
-function filtrarSubcategoria(grupo, subgrupo) {
-  const grupoDiv = document.getElementById('grupo_' + grupo);
-  if (!grupoDiv) return;
-
-  const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
-  bloques.forEach(bloque => {
-    const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
-    const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
-    bloque.style.display = mostrar ? 'block' : 'none';
-  });
-}
+      const primerBtn = document.querySelector('.btn-grupo');
+      if (primerBtn) {
+        mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
+      }
+    };
 
     let carrito = [];
 
@@ -642,30 +644,30 @@ function filtrarSubcategoria(grupo, subgrupo) {
       carrito = [];
       actualizarCarrito();
     }
-    
+
     function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
-  let cambio = false;
-  carrito.forEach(item => {
-    if (item.nombre === nombre && item.precio !== nuevoPrecio) {
-      item.precio = nuevoPrecio;
-      cambio = true;
+      let cambio = false;
+      carrito.forEach(item => {
+        if (item.nombre === nombre && item.precio !== nuevoPrecio) {
+          item.precio = nuevoPrecio;
+          cambio = true;
+        }
+      });
+      if (cambio) actualizarCarrito();
     }
-  });
-  if (cambio) actualizarCarrito(); // solo actualiza si hubo cambio
-}
 
     function sincronizarPreciosDelCarrito() {
-  carrito.forEach(item => {
-    const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
-    const precioSpan = document.getElementById(idPrecio);
-    if (precioSpan) {
-      const precioActual = parseFloat(precioSpan.textContent);
-      if (!isNaN(precioActual)) {
-        item.precio = precioActual;
-      }
+      carrito.forEach(item => {
+        const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
+        const precioSpan = document.getElementById(idPrecio);
+        if (precioSpan) {
+          const precioActual = parseFloat(precioSpan.textContent);
+          if (!isNaN(precioActual)) {
+            item.precio = precioActual;
+          }
+        }
+      });
     }
-  });
-}
 
     function actualizarCarrito() {
       sincronizarPreciosDelCarrito();
@@ -696,215 +698,172 @@ function filtrarSubcategoria(grupo, subgrupo) {
       const carritoDiv = document.getElementById('carrito');
       carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
     };
+
     function mostrarTodos() {
       const panelGrupos = document.getElementById('panelGrupos');
       const panelSub = document.getElementById('panelSubcategorias');
 
-      // Alternar visibilidad del panel de grupos
-      panelGrupos.classList.toggle('oculto');
+      panelGrupos.classList.toggle('oculta');
 
-      // Siempre ocultar el panel de subcategorías al abrir/cerrar grupos
-      if (!panelSub.classList.contains('oculto')) {
-        panelSub.classList.add('oculto');
+      if (!panelSub.classList.contains('oculta')) {
+        panelSub.classList.add('oculta');
       }
     }
-</script>
-<script type="module">
-  const usarFirestore = true; // Cambiá a false si querés usar solo config.productos
 
-  import {
-    initializeApp
-  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    getDocs,
-    onSnapshot
-  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+    function irAContacto() {
+      const contacto = document.getElementById('ubicacion');
+      if (contacto) contacto.scrollIntoView({ behavior: 'auto' }); // Cambiado a 'auto'
+    }
+  </script>
+  <script type="module">
+    const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
 
-  const firebaseConfig = {
-  apiKey: "AIzaSyDGqvK70SEKIYdabn1hM-EW9xHejcqYvGI",
-  authDomain: "hola1-4ed7f.firebaseapp.com",
-  projectId: "hola1-4ed7f",
-  storageBucket: "hola1-4ed7f.firebasestorage.app",
-  messagingSenderId: "261881085447",
-  appId: "1:261881085447:web:d7a38903d1ca614f8074a2"
-};
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
+    const firebaseConfig = {
+      apiKey: "AIzaSyDGqvK70SEKIYdabn1hM-EW9xHejcqYvGI",
+      authDomain: "hola1-4ed7f.firebaseapp.com",
+      projectId: "hola1-4ed7f",
+      storageBucket: "hola1-4ed7f.firebasestorage.app",
+      messagingSenderId: "261881085447",
+      appId: "1:261881085447:web:d7a38903d1ca614f8074a2"
+    };
 
-  const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const productosRef = collection(db, "productos");
+    if (usarFirestore) {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const productosRef = collection(db, "productos");
 
-getDocs(productosRef)
-  .then(snapshot => {
-    console.log("Documentos recibidos:", snapshot.size);
-  })
-  .catch(error => {
-    console.error("❌ Error al cargar productos:", error);
-  });
+      getDocs(productosRef)
+        .then(snapshot => {
+          console.log("Documentos recibidos:", snapshot.size);
+        })
+        .catch(error => {
+          console.error("❌ Error al cargar productos:", error);
+        });
 
-onSnapshot(productosRef, snapshot => {
-  const grupos = {};
+      onSnapshot(productosRef, snapshot => {
+        const grupos = {};
 
-  // Agrupar productos por grupo y subgrupo
-  snapshot.forEach(doc => {
-    const data = doc.data();
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (!data.grupo || !data.grupo.trim()) return;
+          const grupo = data.grupo.trim();
+          const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
 
-    if (!data.grupo || !data.grupo.trim()) return; // ⛔️ salta productos sin grupo
-    const grupo = data.grupo.trim();
+          if (!grupos[grupo]) grupos[grupo] = {};
+          if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
+          grupos[grupo][subgrupo].push({ ...data, id: doc.id });
+        });
 
-    const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
+        const contenedorPrincipal = document.getElementById("contenedor-grupos");
+        contenedorPrincipal.innerHTML = "";
 
-    if (!grupos[grupo]) grupos[grupo] = {};
-    if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
-    grupos[grupo][subgrupo].push({ ...data, id: doc.id });
-  });
-  const panelGrupos = document.getElementById("panelGrupos");
-  panelGrupos.innerHTML = "";
-  Object.keys(grupos).forEach(grupo => {
-    const btn = document.createElement("button");
-    btn.className = "btn-grupo";
-    btn.textContent = grupo;
-    btn.onclick = e => mostrarGrupo(grupo, e);
-    panelGrupos.appendChild(btn);
-  });
+        Object.entries(grupos).forEach(([grupo, subgrupos]) => {
+          const grupoDiv = document.createElement("div");
+          grupoDiv.className = "container mb-5 grupo-section";
+          grupoDiv.id = "grupo_" + grupo;
 
-  // Generar subcategoriasPorGrupo
-  const subcategoriasPorGrupo = {};
-  Object.entries(grupos).forEach(([grupo, subgrupos]) => {
-    subcategoriasPorGrupo[grupo] = Object.keys(subgrupos);
-  });
+          Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
+            if (!productos || productos.length === 0) return;
 
-  // Botones de grupo
-  const botonesDiv = document.getElementById("botones-grupo");
-  botonesDiv.innerHTML = "";
-  Object.keys(grupos).forEach(grupo => {
-    const btn = document.createElement("button");
-    btn.className = "btn-grupo";
-    btn.textContent = grupo;
-    btn.onclick = e => mostrarGrupo(grupo, e);
-    botonesDiv.appendChild(btn);
-  });
+            const subgrupoDiv = document.createElement("div");
+            subgrupoDiv.className = "subgrupo-bloque mb-4";
+            subgrupoDiv.dataset.subgrupo = subgrupo;
 
-  // ✅ Renderizar productos por grupo y subgrupo
-  const contenedorPrincipal = document.getElementById("contenedor-grupos");
-  contenedorPrincipal.innerHTML = "";
+            const fila = document.createElement("div");
+            fila.className = "row";
 
-  Object.entries(grupos).forEach(([grupo, subgrupos]) => {
-    const grupoDiv = document.createElement("div");
-    grupoDiv.className = "container mb-5 grupo-section";
-    grupoDiv.id = "grupo_" + grupo;
+            productos.forEach((producto, i) => {
+              const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
+              const tarjeta = document.createElement("div");
+              tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
+              tarjeta.innerHTML = `
+                <div class="card p-3 h-100">
+                  <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
+                  <div class="card-body">
+                    <h5 class="card-title">${producto.nombre}</h5>
+                    <p class="card-text">${producto.descripcion || ""}</p>
+                    <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
+                    <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                    <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                      <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                      <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
+                      <button type="button" class="btn btn-secondary"
+                        onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}')">
+                        Agregar al carrito
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+              fila.appendChild(tarjeta);
+            });
 
-    Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
-      if (!productos || productos.length === 0) return; // ⛔️ salta subgrupos vacíos
+            subgrupoDiv.appendChild(fila);
+            grupoDiv.appendChild(subgrupoDiv);
+          });
 
-      const titulo = document.createElement("h5");
-      titulo.className = "text-white mb-3";
-      titulo.textContent = subgrupo;
-      grupoDiv.appendChild(titulo);
-
-      const fila = document.createElement("div");
-      fila.className = "row";
-      fila.dataset.subgrupo = subgrupo;
-
-      productos.forEach((producto, i) => {
-        const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
-        const tarjeta = document.createElement("div");
-        tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
-        tarjeta.innerHTML = `
-          <div class="card p-3 h-100">
-            <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
-            <div class="card-body">
-              <h5 class="card-title">${producto.nombre}</h5>
-              <p class="card-text">${producto.descripcion || ""}</p>
-              <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
-              <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
-                <button type="button" class="btn btn-secondary"
-                  onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}')">
-                  Agregar al carrito
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
-        fila.appendChild(tarjeta);
+          contenedorPrincipal.appendChild(grupoDiv);
+        });
       });
+    }
 
-      grupoDiv.appendChild(fila);
+    // Cierre del carrito al hacer clic fuera
+    document.addEventListener('click', function(event) {
+      const carritoDiv = document.getElementById('carrito');
+      const toggleBtn = document.getElementById('toggleCarrito');
+      const esCarrito = carritoDiv.contains(event.target);
+      const esBoton = toggleBtn.contains(event.target);
+
+      if (!esCarrito && !esBoton && carritoDiv.style.display === 'block') {
+        carritoDiv.style.display = 'none';
+      }
     });
 
-    contenedorPrincipal.appendChild(grupoDiv);
-  });
-window.onload = function () {
-  const primerBtn = document.querySelector('.btn-grupo');
-  if (primerBtn) {
-    mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
-  }
-};
+    // Cierre del panel de grupos y subcategorías al hacer clic fuera
+    document.addEventListener('click', function (event) {
+      const panelGrupos = document.getElementById('panelGrupos');
+      const panelSub = document.getElementById('panelSubcategorias');
+      const btnProductos = document.getElementById('btnProductos');
 
-// ✅ Cierre del carrito al hacer clic fuera
-document.addEventListener('click', function(event) {
-  const carritoDiv = document.getElementById('carrito');
-  const toggleBtn = document.getElementById('toggleCarrito');
-  const esCarrito = carritoDiv.contains(event.target);
-  const esBoton = toggleBtn.contains(event.target);
+      const clicEnBoton = btnProductos.contains(event.target);
+      const clicDentroGrupos = panelGrupos.contains(event.target);
+      const clicDentroSub = panelSub.contains(event.target);
 
-  if (!esCarrito && !esBoton && carritoDiv.style.display === 'block') {
-    carritoDiv.style.display = 'none';
-  }
-});
-document.addEventListener('click', function (event) {
-    const navbar = document.querySelector('.navbar-collapse');
-    const toggler = document.querySelector('.navbar-toggler');
+      if (!clicEnBoton && !clicDentroGrupos && !clicDentroSub) {
+        if (!panelGrupos.classList.contains('oculta')) {
+          panelGrupos.classList.add('oculta');
+        }
+        if (!panelSub.classList.contains('oculta')) {
+          panelSub.classList.add('oculta');
+        }
+      }
+    });
 
-    const isOpen = navbar.classList.contains('show');
-    const clickedInsideMenu = navbar.contains(event.target);
-    const clickedToggler = toggler.contains(event.target);
+    // Manejo de la barra de navegación de Bootstrap (si aplica)
+    document.addEventListener('click', function (event) {
+      const navbar = document.querySelector('.navbar-collapse');
+      if (!navbar) return; // Evitar errores si no hay navbar-collapse
+      const toggler = document.querySelector('.navbar-toggler');
 
-    if (isOpen && !clickedInsideMenu && !clickedToggler) {
-      const bsCollapse = new bootstrap.Collapse(navbar, { toggle: false });
-      bsCollapse.hide();
-    }
-  });
-   const btnProductos = document.getElementById('btnProductos');
-  const btnContacto = document.getElementById('btnContacto');
-  const panelGrupos = document.getElementById('panelGrupos');
+      const isOpen = navbar.classList.contains('show');
+      const clickedInsideMenu = navbar.contains(event.target);
+      const clickedToggler = toggler?.contains(event.target);
 
-  / // Mostrar/ocultar el panel de grupos al tocar "Productos"
-  btnProductos.addEventListener('click', () => {
-    panelGrupos.classList.toggle('oculto');
-  });
-
-  // Scroll al pie de página al tocar "Contacto"
-  btnContacto.addEventListener('click', () => {
-    const contacto = document.getElementById('ubicacion');
-    if (contacto) contacto.scrollIntoView({ behavior: 'smooth' });
-  });
-  
- document.addEventListener('click', function (event) {
-  const panelGrupos = document.getElementById('panelGrupos');
-  const panelSub = document.getElementById('panelSubcategorias');
-  const btnProductos = document.getElementById('btnProductos');
-
-  const clicEnBoton = btnProductos.contains(event.target);
-  const clicDentroGrupos = panelGrupos.contains(event.target);
-  const clicDentroSub = panelSub.contains(event.target);
-
-  // ⛔️ Si el clic fue fuera de todo, cerramos ambos paneles si están visibles
-  if (!clicEnBoton && !clicDentroGrupos && !clicDentroSub) {
-    if (!panelGrupos.classList.contains('oculto')) {
-      panelGrupos.classList.add('oculto');
-    }
-    if (!panelSub.classList.contains('oculto')) {
-      panelSub.classList.add('oculto');
-    }
-  }
-  });
-});
-</script>
+      if (isOpen && !clickedInsideMenu && !clickedToggler) {
+        const bsCollapse = new bootstrap.Collapse(navbar, { toggle: false });
+        bsCollapse.hide();
+      }
+    });
+  </script>
 </body>
 </html>
