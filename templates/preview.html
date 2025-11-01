@@ -441,7 +441,7 @@
 
   {% if not config.usarFirestore %}
     {% for grupo, subgrupos in grupos.items() %}
-      {%ietin% set total_productos = subgrupos.values() | map('length') | sum %}
+      {% set total_productos = subgrupos.values() | map('length') | sum %}
       {% if total_productos > 0 %}
         <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
           {% for subgrupo, productos in subgrupos.items() %}
