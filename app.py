@@ -26,7 +26,7 @@ FIREBASE_COLLECTION = "productos"
 # ✅ Actualización en subir_a_firestore
 def subir_a_firestore(producto):
     grupo_id = producto["grupo"].strip().replace(" ", "_")
-    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{grupo_id}/items?key={FIREBASE_API_KEY}"
+    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}?key={FIREBASE_API_KEY}"
     headers = {"Content-Type": "application/json"}
 
     try:
