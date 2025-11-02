@@ -207,7 +207,7 @@ def step3():
             precio = precios[i].strip()
             grupo = grupos[i].strip().replace(" ", "_") or 'Sin_grupo'
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
-            orden = ordenes[i].strip() if i < len(ordenes) else '999'
+            orden = str(i + 1)
             img = imagenes[i]
             filename = secure_filename(img.filename)
 
@@ -230,6 +230,8 @@ def step3():
             except Exception as e:
                 print(f"❌ Error al guardar imagen {filename}: {e}")
                 continue
+                
+            crear_documento_grupo_si_no_existe(grupo)
 
             bloques.append({
                 'nombre': nombre,
