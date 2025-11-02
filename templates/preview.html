@@ -871,6 +871,22 @@
 
           contenedorPrincipal.appendChild(grupoDiv);
           ajustarPosicionesPaneles();
+          setTimeout(() => {
+            const grupoKeys = Object.keys(grupos);
+            if (grupoKeys.length === 0) return;
+
+            const primerGrupoId = grupoKeys[0];
+            const primerGrupoDiv = document.getElementById('grupo_' + primerGrupoId);
+            if (primerGrupoDiv) primerGrupoDiv.classList.add('active');
+
+            const subgrupos = Object.keys(grupos[primerGrupoId]);
+            const primerSubgrupoNombre = subgrupos[0];
+
+            if (primerGrupoId && primerSubgrupoNombre) {
+              filtrarSubcategoria(primerGrupoId, primerSubgrupoNombre);
+            }
+          }, 100);
+
         });
       });
     }
