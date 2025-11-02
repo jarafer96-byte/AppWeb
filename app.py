@@ -21,7 +21,7 @@ def too_large(e):
 
 # 🔥 Configuración de Firestore 
 FIREBASE_PROJECT_ID = "hola1-4ed7f" 
-FIREBASE_API_KEY = "AIzaSyDGqvK70SEKIYdabn1hM-EW9xHejcqYvGI" 
+FIREBASE_API_KEY = "AIzaSyDGq9xHejcqYvGI" 
 FIREBASE_COLLECTION = "productos"
 
 # ✅ Actualización en subir_a_firestore
