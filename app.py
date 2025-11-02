@@ -60,26 +60,6 @@ def subir_a_firestore(producto):
     except requests.exceptions.RequestException as e:
         print(f"❌ Error de red al subir {producto['nombre']}: {e}")
         return False
-        
-# ✅ Crear documento de grupo si no existe
-def crear_documento_grupo_si_no_existe(grupo_id):
-    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{grupo_id}?key={FIREBASE_API_KEY}"
-    headers = {"Content-Type": "application/json"}
-    data = {
-        "fields": {
-            "creado": {"timestampValue": time.strftime("%Y-%m-%dT%H:%M:%SZ")}
-        }
-    }
-    try:
-        response = requests.patch(url, headers=headers, data=json.dumps(data), timeout=5)
-        if response.status_code in [200, 202]:
-            print(f"📁 Documento de grupo '{grupo_id}' creado o actualizado.")
-        else:
-            print(f"⚠️ No se pudo crear documento de grupo '{grupo_id}': {response.text}")
-    except Exception as e:
-        print(f"❌ Error al crear documento de grupo '{grupo_id}': {e}")
-
-
 
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -230,8 +210,6 @@ def step3():
             except Exception as e:
                 print(f"❌ Error al guardar imagen {filename}: {e}")
                 continue
-                
-            crear_documento_grupo_si_no_existe(grupo)
 
             bloques.append({
                 'nombre': nombre,
