@@ -28,7 +28,7 @@
   <style>
     body {
       font-family: 'Quicksand', sans-serif;
-      background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
+      background-image: url("/static/img/mini_2_83838.jpeg");
       background-size: cover;
       background-repeat: no-repeat;
       background-attachment: fixed;
@@ -103,10 +103,10 @@
       border: 1px solid rgba(255,255,255,0.2);
     }
     .color-principal {
-      color: {{ config.color }};
+      color: None;
     }
     .bg-principal {
-      background-color: {{ config.color }};
+      background-color: None;
     }
     .modo-oscuro {
       color: white;
@@ -150,7 +150,8 @@
     }
     .panel-grupos {
       position: fixed;
-      top: 68px; /* ajustá según la altura real de tu barra principal */
+      max-height: 50vh; /* Altura máxima global */
+      overflow-y: auto; /* Desplazamiento vertical global *//
       left: 0;
       right: 0;
       z-index: 906;
@@ -181,54 +182,19 @@
     .oculta {
       display: none !important;
     }
-     .panel-subcategorias {
-      position: fixed;
-      top: 112px; /* debajo del panel de grupos */
-      left: 0;
-      right: 0;
-      z-index: 908;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(6px);
-      padding: 1px 0;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
-    }
-    .panel-subcategorias button {
-      font-family: 'Quicksand', sans-serif;
-      font-weight: 600;
-      margin: 6px;
-      padding: 1px 8px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 30px;
-      background: rgba(255, 255, 255, 0.05);
-      color: white;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .panel-subcategorias button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(1.05);
-    }
     .logo { 
       height: 10vw; 
       max-height: 380px; 
-      filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px {{ config.color }});
+      filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
       transition: filter 0.3s ease;
       animation: pulsoLogo 4s ease-in-out infinite;
     }
-    @media (max-width: 600px) {
-      .logo {
-        height: 140px !important;
-      }
-    }
     @keyframes pulsoLogo {
       0%, 100% {
-        filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px {{ config.color }});
+        filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
       }
       50% {
-        filter: brightness(1.8) contrast(1.3) drop-shadow(0 0 20px {{ config.color }});
+        filter: brightness(1.8) contrast(1.3) drop-shadow(0 0 20px None);
       }
     }
     .descripcion-emprendimiento {
@@ -284,9 +250,9 @@
     }
     .btn-grupo:hover {
       background-color: #fff;
-      color: {{ config.color }};
+      color: None;
       transform: scale(1.05);
-      box-shadow: 0 0 8px {{ config.color }};
+      box-shadow: 0 0 8px None;
     }
     .btn-grupo.active {
       box-shadow: none;
@@ -393,6 +359,70 @@
       color: white;
       border: none;
     }
+    .panel-subcategorias {
+      position: fixed;
+      max-height: 50vh; /* Altura máxima global */
+      overflow-y: auto; /* Desplazamiento vertical global */
+      left: 0;
+      right: 0;
+      z-index: 908;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      padding: 1px 0;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button {
+      font-family: 'Quicksand', sans-serif;
+      font-weight: 600;
+      margin: 6px;
+      padding: 1px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+    }
+    @media (max-width: 600px) {
+  .logo {
+    height: 140px !important;
+  }
+  .barra-navegacion {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .barra-navegacion button {
+    font-size: 14px;
+    padding: 8px 15px;
+  }
+  .panel-grupos {
+    padding: 1px 0;
+    max-height: 50vh; /* Altura máxima para que sea desplazable si hay muchos botones */
+    overflow-y: auto; /* Hace el panel desplazable verticalmente */
+  }
+  .panel-grupos button {
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 8px;
+   }
+  .panel-subcategorias {
+    padding: 1px 0;
+    max-height: 50vh; /* Altura máxima para el panel de subcategorías */
+    overflow-y: auto; /* Hace el panel desplazable verticalmente */
+  }
+  .panel-subcategorias button {
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+}
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -714,6 +744,48 @@
       const contacto = document.getElementById('ubicacion');
       if (contacto) contacto.scrollIntoView({ behavior: 'auto' }); // Cambiado a 'auto'
     }
+    function ajustarPosicionesPaneles() {
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
+  const barraNav = document.querySelector('.barra-navegacion');
+
+  if (!panelGrupos.classList.contains('oculta')) {
+    const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+    const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
+    panelGrupos.style.top = alturaBarra + 'px';
+    panelGrupos.style.position = 'fixed';
+    panelGrupos.style.left = '0';
+    panelGrupos.style.right = '0';
+  }
+
+  if (!panelSub.classList.contains('oculta')) {
+    const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+    const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
+    const margenAdicional = 19; // Margen para evitar superposiciones
+    const desplazamientoArriba = -20; // Ajuste para subir un poco si lo necesitas
+    panelSub.style.top = (alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba) + 'px';
+    panelSub.style.position = 'fixed';
+    panelSub.style.left = '0';
+    panelSub.style.right = '0';
+  } else {
+    panelSub.style.top = '100%';
+  }
+}
+
+// Recalcular posiciones al cargar y al cambiar el tamaño de la ventana
+window.addEventListener('load', ajustarPosicionesPaneles);
+window.addEventListener('resize', ajustarPosicionesPaneles);
+
+// Recalcular posiciones cuando se muestra un panel
+document.getElementById('btnProductos').addEventListener('click', function() {
+  setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de que el DOM se actualice
+});
+
+document.querySelectorAll('.btn-grupo').forEach(btn => {
+  btn.addEventListener('click', function() {
+    setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de mostrar subcategorías
+  });
+});
   </script>
   <script type="module">
     const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
@@ -813,6 +885,7 @@
           });
 
           contenedorPrincipal.appendChild(grupoDiv);
+          ajustarPosicionesPaneles();
         });
       });
     }
