@@ -148,7 +148,10 @@
   <script>
     let grupoId = 0;
     let contadorOrden = 1;
-
+    
+    window.onload = () => {
+      contadorOrden = 1;
+    };
 
     function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
