@@ -187,7 +187,7 @@ def step3():
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
             precio = precios[i].strip()
-            grupo = grupos[i].strip() or 'Sin grupo'
+            grupo = grupos[i].strip().replace(" ", "_") or 'Sin_grupo'
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() if i < len(ordenes) else '999'
             img = imagenes[i]
