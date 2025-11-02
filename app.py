@@ -19,13 +19,14 @@ def too_large(e):
     return "Archivo demasiado grande (máx. 4 MB)", 413
 
 # 🔥 Configuración de Firestore 
-FIREBASE_PROJECT_ID = "hola1-4ed7f" 
-FIREBASE_API_KEY = "AIzaSyDGqvK70SEKIYdabn1hM-EW9xHejcqYvGI" 
+FIREBASE_PROJECT_ID = "appweb-2167a" 
+FIREBASE_API_KEY = "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM" 
 FIREBASE_COLLECTION = "productos"
 
 # ✅ Actualización en subir_a_firestore
 def subir_a_firestore(producto):
-    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}?key={FIREBASE_API_KEY}"
+    grupo_id = producto["grupo"].strip().replace(" ", "_")
+    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{grupo_id}/items?key={FIREBASE_API_KEY}"
     headers = {"Content-Type": "application/json"}
 
     try:
@@ -40,7 +41,7 @@ def subir_a_firestore(producto):
             "nombre": {"stringValue": producto["nombre"]},
             "precio": {"integerValue": precio},
             "grupo": {"stringValue": producto["grupo"]},
-            "subgrupo": {"stringValue": producto.get("subgrupo", "")},  # ✅ nuevo campo
+            "subgrupo": {"stringValue": producto.get("subgrupo", "")},
             "descripcion": {"stringValue": producto.get("descripcion", "")},
             "imagen": {"stringValue": producto["imagen"]},
             "oferta": {"booleanValue": producto.get("oferta", False)},
@@ -59,6 +60,7 @@ def subir_a_firestore(producto):
     except requests.exceptions.RequestException as e:
         print(f"❌ Error de red al subir {producto['nombre']}: {e}")
         return False
+
 
 
 UPLOAD_FOLDER = 'static/img'
