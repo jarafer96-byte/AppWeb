@@ -853,9 +853,10 @@
                       <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
                       <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
                        <button type="button" class="btn btn-secondary"
-                        onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
-                        Agregar al carrito
-                       </button>
+                        <button type="button" class="btn btn-secondary"
+                          onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ producto.id_base }}', 'cantidad_{{ producto.id_base }}', '{{ producto.id_base }}')">
+                          Agregar al carrito
+                        </button>
                     </div>
                   </div>
                 </div>
