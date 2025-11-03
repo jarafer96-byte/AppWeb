@@ -461,6 +461,14 @@
          alt="Logo"
          class="img-fluid logo">
   </div>
+  
+  <div class="text-center my-4">
+    <select id="ordenPrecio" class="form-select w-auto d-inline-block">
+      <option value="asc">Precio: Menor a mayor</option>
+      <option value="desc">Precio: Mayor a menor</option>
+    </select>
+  </div>
+
 
   {% if config.sobre_mi %}
     <div class="text-center mb-4">
@@ -773,172 +781,142 @@
     });
   </script>
   <script type="module">
-    const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
+  const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
 
-    import {
-      initializeApp
-    } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      onSnapshot
-    } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+  import {
+    initializeApp
+  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
-      authDomain: "appweb-2167a.firebaseapp.com",
-      projectId: "appweb-2167a",
-      storageBucket: "appweb-2167a.firebasestorage.app",
-      messagingSenderId: "681717342631",
-      appId: "1:681717342631:web:f95e6c18b34bae5725d682"
-    };
-    if (usarFirestore) {
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-      const productosRef = collection(db, "productos");
+  const firebaseConfig = {
+    apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
+    authDomain: "appweb-2167a.firebaseapp.com",
+    projectId: "appweb-2167a",
+    storageBucket: "appweb-2167a.firebasestorage.app",
+    messagingSenderId: "681717342631",
+    appId: "1:681717342631:web:f95e6c18b34bae5725d682"
+  };
 
-      getDocs(productosRef)
-        .then(snapshot => {
-          console.log("Documentos recibidos:", snapshot.size);
-        })
-        .catch(error => {
-          console.error("❌ Error al cargar productos:", error);
-        });
+  if (usarFirestore) {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const productosRef = collection(db, "productos");
 
-      onSnapshot(productosRef, snapshot => {
-        const grupos = {};
-
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (!data.grupo || !data.grupo.trim()) return;
-          const grupo = data.grupo.trim();
-          const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
-
-          if (!grupos[grupo]) grupos[grupo] = {};
-          if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
-          grupos[grupo][subgrupo].push({ ...data, id: doc.id });
-        });
-
-        const contenedorPrincipal = document.getElementById("contenedor-grupos");
-        contenedorPrincipal.innerHTML = "";
-
-        Object.entries(grupos).forEach(([grupo, subgrupos]) => {
-          const grupoDiv = document.createElement("div");
-          grupoDiv.className = "container mb-5 grupo-section";
-          grupoDiv.id = "grupo_" + grupo;
-
-          Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
-            if (!productos || productos.length === 0) return;
-
-            const subgrupoDiv = document.createElement("div");
-            subgrupoDiv.className = "subgrupo-bloque mb-4";
-            subgrupoDiv.dataset.subgrupo = subgrupo;
-
-            const fila = document.createElement("div");
-            fila.className = "row";
-
-            productos.forEach((producto, i) => {
-              const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
-              producto.id_base = idBase; // ✅ Esto es lo que falta
-              const tarjeta = document.createElement("div");
-              tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
-              tarjeta.innerHTML = `
-                <div class="card p-3 h-100">
-                  <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
-                  <div class="card-body">
-                    <h5 class="card-title">${producto.nombre}</h5>
-                    <p class="card-text">${producto.descripcion || ""}</p>
-                    <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
-                    <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-                    <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                      <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                      <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
-                       <button type="button" class="btn btn-secondary"
-                        <button type="button" class="btn btn-secondary"
-                          onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
-                          Agregar al carrito
-                        </button>
-                    </div>
-                  </div>
-                </div>
-              `;
-              fila.appendChild(tarjeta);
-            });
-
-            subgrupoDiv.appendChild(fila);
-            grupoDiv.appendChild(subgrupoDiv);
-          });
-
-          contenedorPrincipal.appendChild(grupoDiv);
-          ajustarPosicionesPaneles();
-          setTimeout(() => {
-            const grupoKeys = Object.keys(grupos);
-            if (grupoKeys.length === 0) return;
-
-            const primerGrupoId = grupoKeys[0];
-            const primerGrupoDiv = document.getElementById('grupo_' + primerGrupoId);
-            if (primerGrupoDiv) primerGrupoDiv.classList.add('active');
-
-            const subgrupos = Object.keys(grupos[primerGrupoId]);
-            const primerSubgrupoNombre = subgrupos[0];
-
-            if (primerGrupoId && primerSubgrupoNombre) {
-              filtrarSubcategoria(primerGrupoId, primerSubgrupoNombre);
-            }
-          }, 100);
-
-        });
+    getDocs(productosRef)
+      .then(snapshot => {
+        console.log("Documentos recibidos:", snapshot.size);
+      })
+      .catch(error => {
+        console.error("❌ Error al cargar productos:", error);
       });
+
+    onSnapshot(productosRef, snapshot => {
+      const grupos = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data.grupo || !data.grupo.trim()) return;
+        const grupo = data.grupo.trim();
+        const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
+
+        if (!grupos[grupo]) grupos[grupo] = {};
+        if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
+        grupos[grupo][subgrupo].push({ ...data, id: doc.id });
+      });
+
+      window._gruposProductos = grupos;
+      renderizarProductos(grupos);
+    });
+  }
+
+  function renderizarProductos(grupos) {
+    const contenedorPrincipal = document.getElementById("contenedor-grupos");
+    contenedorPrincipal.innerHTML = "";
+
+    Object.entries(grupos).forEach(([grupo, subgrupos]) => {
+      const grupoDiv = document.createElement("div");
+      grupoDiv.className = "container mb-5 grupo-section";
+      grupoDiv.id = "grupo_" + grupo;
+
+      Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
+        if (!productos || productos.length === 0) return;
+
+        const subgrupoDiv = document.createElement("div");
+        subgrupoDiv.className = "subgrupo-bloque mb-4";
+        subgrupoDiv.dataset.subgrupo = subgrupo;
+
+        const fila = document.createElement("div");
+        fila.className = "row";
+
+        const orden = document.getElementById("ordenPrecio")?.value || "asc";
+        productos.sort((a, b) => {
+          const pa = parseFloat(a.precio) || 0;
+          const pb = parseFloat(b.precio) || 0;
+          return orden === "asc" ? pa - pb : pb - pa;
+        });
+
+        productos.forEach((producto, i) => {
+          const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
+          producto.id_base = idBase;
+          const tarjeta = document.createElement("div");
+          tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
+          tarjeta.innerHTML = `
+            <div class="card p-3 h-100">
+              <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
+              <div class="card-body">
+                <h5 class="card-title">${producto.nombre}</h5>
+                <p class="card-text">${producto.descripcion || ""}</p>
+                <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
+                <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                  <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                  <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
+                  <button type="button" class="btn btn-secondary"
+                    onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
+                    Agregar al carrito
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          fila.appendChild(tarjeta);
+        });
+
+        subgrupoDiv.appendChild(fila);
+        grupoDiv.appendChild(subgrupoDiv);
+      });
+
+      contenedorPrincipal.appendChild(grupoDiv);
+    });
+
+    // Activar primer grupo y subgrupo
+    setTimeout(() => {
+      const grupoKeys = Object.keys(grupos);
+      if (grupoKeys.length === 0) return;
+
+      const primerGrupoId = grupoKeys[0];
+      const primerGrupoDiv = document.getElementById('grupo_' + primerGrupoId);
+      if (primerGrupoDiv) primerGrupoDiv.classList.add('active');
+
+      const subgrupos = Object.keys(grupos[primerGrupoId]);
+      const primerSubgrupoNombre = subgrupos[0];
+
+      if (primerGrupoId && primerSubgrupoNombre) {
+        filtrarSubcategoria(primerGrupoId, primerSubgrupoNombre);
+      }
+    }, 100);
+  }
+
+  document.getElementById("ordenPrecio")?.addEventListener("change", () => {
+    if (window._gruposProductos) {
+      renderizarProductos(window._gruposProductos);
     }
-
-    // Cierre del carrito al hacer clic fuera
-    document.addEventListener('click', function(event) {
-      const carritoDiv = document.getElementById('carrito');
-      const toggleBtn = document.getElementById('toggleCarrito');
-      const esCarrito = carritoDiv.contains(event.target);
-      const esBoton = toggleBtn.contains(event.target);
-
-      if (!esCarrito && !esBoton && carritoDiv.style.display === 'block') {
-        carritoDiv.style.display = 'none';
-      }
-    });
-
-    // Cierre del panel de grupos y subcategorías al hacer clic fuera
-    document.addEventListener('click', function (event) {
-      const panelGrupos = document.getElementById('panelGrupos');
-      const panelSub = document.getElementById('panelSubcategorias');
-      const btnProductos = document.getElementById('btnProductos');
-
-      const clicEnBoton = btnProductos.contains(event.target);
-      const clicDentroGrupos = panelGrupos.contains(event.target);
-      const clicDentroSub = panelSub.contains(event.target);
-
-      if (!clicEnBoton && !clicDentroGrupos && !clicDentroSub) {
-        if (!panelGrupos.classList.contains('oculta')) {
-          panelGrupos.classList.add('oculta');
-        }
-        if (!panelSub.classList.contains('oculta')) {
-          panelSub.classList.add('oculta');
-        }
-      }
-    });
-
-    // Manejo de la barra de navegación de Bootstrap (si aplica)
-    document.addEventListener('click', function (event) {
-      const navbar = document.querySelector('.navbar-collapse');
-      if (!navbar) return; // Evitar errores si no hay navbar-collapse
-      const toggler = document.querySelector('.navbar-toggler');
-
-      const isOpen = navbar.classList.contains('show');
-      const clickedInsideMenu = navbar.contains(event.target);
-      const clickedToggler = toggler?.contains(event.target);
-
-      if (isOpen && !clickedInsideMenu && !clickedToggler) {
-        const bsCollapse = new bootstrap.Collapse(navbar, { toggle: false });
-        bsCollapse.hide();
-      }
-    });
-  </script>
+  });
+</script>
 </body>
 </html>
