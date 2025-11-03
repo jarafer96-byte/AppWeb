@@ -395,37 +395,38 @@
       transform: scale(1.05);
     }
     @media (max-width: 600px) {
-      .logo {
-        height: 140px !important;
-    }
-    .barra-navegacion {
-      padding: 8px 10px;
-      gap: 8px;
-    }
-    .barra-navegacion button {
-      font-size: 14px;
-      padding: 8px 15px;
-    }
-    .panel-grupos {
-      padding: 1px 0;
-      max-height: 50vh; /* Altura máxima para que sea desplazable si hay muchos botones */
-      overflow-y: auto; /* Hace el panel desplazable verticalmente */
-    }
-    .panel-grupos button {
-      font-size: 13px;
-      padding: 1px 6px;
-      border-radius: 8px;
-    }
-    .panel-subcategorias {
-      padding: 1px 0;
-      max-height: 50vh; /* Altura máxima para el panel de subcategorías */
-      overflow-y: auto; /* Hace el panel desplazable verticalmente */
-    }
-    .panel-subcategorias button {
-      font-size: 13px;
-      padding: 1px 6px;
-      border-radius: 8px;
-    }
+  .logo {
+    height: 140px !important;
+  }
+  .barra-navegacion {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .barra-navegacion button {
+    font-size: 14px;
+    padding: 8px 15px;
+  }
+  .panel-grupos {
+    padding: 1px 0;
+    max-height: 50vh; /* Altura máxima para que sea desplazable si hay muchos botones */
+    overflow-y: auto; /* Hace el panel desplazable verticalmente */
+  }
+  .panel-grupos button {
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 8px;
+   }
+  .panel-subcategorias {
+    padding: 1px 0;
+    max-height: 50vh; /* Altura máxima para el panel de subcategorías */
+    overflow-y: auto; /* Hace el panel desplazable verticalmente */
+  }
+  .panel-subcategorias button {
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+}
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -440,20 +441,32 @@
 <body class="container py-5 {{ modo_visual }}">
   
   <div class="barra-wrapper">
-    <nav class="barra-navegacion">
-      <button id="btnProductos">Productos</button>
-      <button id="btnContacto">Contacto</button>
-    </nav>
-    <div id="panelGrupos" class="panel-grupos oculta">
-      <button class="btn-scroll btn-prev" onclick="scrollPanel('panelGrupos', -1)">&lt;</button>
-      <button class="btn-scroll btn-next" onclick="scrollPanel('panelGrupos', 1)">&gt;</button>
+  <nav class="barra-navegacion">
+    <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
+    <button id="btnContacto" onclick="irAContacto()">Contacto</button>
+  </nav>
+
+  <!-- 🔧 Barra de grupos con flechas -->
+  <div class="d-flex align-items-center">
+    <button id="btnGruposIzq" onclick="scrollPanel('panelGrupos', -1)" class="btn btn-sm btn-light me-2" style="display: none;">‹</button>
+    <div id="panelGrupos" class="panel-grupos oculto">
+      {% for grupo in grupos.keys() %}
+        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
+          {{ grupo }}
+        </button>
+      {% endfor %}
     </div>
+    <button id="btnGruposDer" onclick="scrollPanel('panelGrupos', 1)" class="btn btn-sm btn-light ms-2" style="display: none;">›</button>
   </div>
 
-  <div id="panelSubcategorias" class="panel-subcategorias oculta">
-    <button class="btn-scroll btn-prev" onclick="scrollPanel('panelSubcategorias', -1)">&lt;</button>
-    <button class="btn-scroll btn-next" onclick="scrollPanel('panelSubcategorias', 1)">&gt;</button>
+  <!-- 🔧 Barra de subcategorías con flechas -->
+  <div class="d-flex align-items-center">
+    <button id="btnSubgruposIzq" onclick="scrollPanel('panelSubcategorias', -1)" class="btn btn-sm btn-light me-2" style="display: none;">‹</button>
+    <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
+    <button id="btnSubgruposDer" onclick="scrollPanel('panelSubcategorias', 1)" class="btn btn-sm btn-light ms-2" style="display: none;">›</button>
   </div>
+</div>
+
 
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
@@ -471,6 +484,7 @@
       <option value="desc">Precio: Mayor a menor</option>
     </select>
   </div>
+
 
   {% if config.sobre_mi %}
     <div class="text-center mb-4">
@@ -595,7 +609,7 @@
       window.scrollTo({ top: 0, behavior: 'auto' }); // Cambiado a 'auto' para evitar deslizamiento
     };
     function mostrarGrupo(nombre, event, auto = false) {
-      const grupoActivo = document.getElementById('grupo_' + nombre.replace(' ', '_'));
+      const grupoActivo = document.getElementById('grupo_' + nombre);
       document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
       if (grupoActivo) {
         grupoActivo.classList.add('active');
@@ -620,6 +634,8 @@
         panel.appendChild(btn);
         console.log("Creando botón para subcategoría:", sub);
       });
+      
+      actualizarVisibilidadScroll('panelSubcategorias', 'btnSubgruposIzq', 'btnSubgruposDer');
 
       if (!auto) {
         panel.classList.remove('oculta');
@@ -636,12 +652,27 @@
           filtrarSubcategoria(nombre, subcategorias[0]);
         }
       }
-      actualizarScrollControles('panelGrupos');
-      actualizarScrollControles('panelSubcategorias');
     }
+    function scrollPanel(panelId, direccion) {
+  const panel = document.getElementById(panelId);
+  const desplazamiento = 120;
+  if (panel) {
+    panel.scrollBy({ left: direccion * desplazamiento, behavior: 'smooth' });
+  }
+}
+
+function actualizarVisibilidadScroll(panelId, btnIzqId, btnDerId) {
+  const panel = document.getElementById(panelId);
+  const btnIzq = document.getElementById(btnIzqId);
+  const btnDer = document.getElementById(btnDerId);
+
+  const hayOverflow = panel.scrollWidth > panel.clientWidth;
+  btnIzq.style.display = hayOverflow ? 'inline-block' : 'none';
+  btnDer.style.display = hayOverflow ? 'inline-block' : 'none';
+}
 
     function filtrarSubcategoria(grupo, subgrupo) {
-      const grupoDiv = document.getElementById('grupo_' + grupo.replace(' ', '_'));
+      const grupoDiv = document.getElementById('grupo_' + grupo);
       if (!grupoDiv) return;
 
       const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
@@ -651,20 +682,29 @@
         bloque.style.display = mostrar ? 'block' : 'none';
       });
 
-      window.scrollTo({ top: window.scrollY, behavior: 'auto' });
-      actualizarScrollControles('panelSubcategorias');
+      window.scrollTo({ top: window.scrollY, behavior: 'auto' }); // Evitar desplazamientos
     }
     window.onload = function() {
-      const panelSubcategorias = document.getElementById('panelSubcategorias');
-      const panelGrupos = document.getElementById('panelGrupos');
-      panelSubcategorias.classList.add('oculta');
-      panelGrupos.classList.add('oculta');
+  const panelSubcategorias = document.getElementById('panelSubcategorias');
+  const panelGrupos = document.getElementById('panelGrupos');
+  panelSubcategorias.classList.add('oculta');
+  panelGrupos.classList.add('oculta');
 
-      const primerBtn = document.querySelector('.btn-grupo');
-      if (primerBtn) {
-        mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
-      }
-    };
+  const primerBtn = document.querySelector('.btn-grupo');
+  if (primerBtn) {
+    mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
+  }
+
+  document.getElementById('toggleCarrito').onclick = function() {
+    const carritoDiv = document.getElementById('carrito');
+    carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+  };
+
+  // ✅ Agregá esto para las flechas
+  actualizarVisibilidadScroll('panelGrupos', 'btnGruposIzq', 'btnGruposDer');
+  actualizarVisibilidadScroll('panelSubcategorias', 'btnSubgruposIzq', 'btnSubgruposDer');
+};
+
     let carrito = [];
 
     function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
@@ -750,7 +790,7 @@ carrito.forEach(item => {
   document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
 }
 
-    ffunction mostrarTodos() {
+    function mostrarTodos() {
       const panelGrupos = document.getElementById('panelGrupos');
       const panelSub = document.getElementById('panelSubcategorias');
 
@@ -759,7 +799,6 @@ carrito.forEach(item => {
       if (!panelSub.classList.contains('oculta')) {
         panelSub.classList.add('oculta');
       }
-      actualizarScrollControles('panelGrupos');
     }
     function irAContacto() {
       const contacto = document.getElementById('ubicacion');
@@ -770,31 +809,26 @@ carrito.forEach(item => {
       const panelSub = document.getElementById('panelSubcategorias');
       const barraNav = document.querySelector('.barra-navegacion');
 
-      if (window.innerWidth <= 600) {
-        if (!panelGrupos.classList.contains('oculta')) {
-          const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
-          const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
-          panelGrupos.style.top = alturaBarra + 'px';
-          panelGrupos.style.position = 'fixed';
-          panelGrupos.style.left = '0';
-          panelGrupos.style.right = '0';
-        }
-
-        if (!panelSub.classList.contains('oculta')) {
-          const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
-          const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
-          const margenAdicional = 10;
-          const desplazamientoArriba = -20;
-          panelSub.style.top = (alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba) + 'px';
-          panelSub.style.position = 'fixed';
-          panelSub.style.left = '0';
-          panelSub.style.right = '0';
-        } else {
-          panelSub.style.top = '100%';
-        }
+      if (!panelGrupos.classList.contains('oculta')) {
+        const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+        const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
+        panelGrupos.style.top = alturaBarra + 'px';
+        panelGrupos.style.position = 'fixed';
+        panelGrupos.style.left = '0';
+        panelGrupos.style.right = '0';
       }
-      actualizarScrollControles('panelGrupos');
-      actualizarScrollControles('panelSubcategorias');
+      if (!panelSub.classList.contains('oculta')) {
+        const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+        const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
+        const margenAdicional = 19; // Margen para evitar superposiciones
+        const desplazamientoArriba = -20; // Ajuste para subir un poco si lo necesitas
+        panelSub.style.top = (alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba) + 'px';
+        panelSub.style.position = 'fixed';
+        panelSub.style.left = '0';
+        panelSub.style.right = '0';
+      } else {
+        panelSub.style.top = '100%';
+      }
     }
     // Recalcular posiciones al cargar y al cambiar el tamaño de la ventana
     window.addEventListener('load', ajustarPosicionesPaneles);
@@ -807,40 +841,6 @@ carrito.forEach(item => {
       btn.addEventListener('click', function() {
         setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de mostrar subcategorías
       });
-    });
-    // Función para manejar el desplazamiento de los paneles
-    function scrollPanel(panelId, direction) {
-      const panel = document.getElementById(panelId);
-      const scrollAmount = direction * 200; // Distancia de desplazamiento (ajustable)
-      panel.scrollLeft += scrollAmount;
-      actualizarScrollControles(panelId);
-    }
-
-    // Función para actualizar la visibilidad de las flechas
-    function actualizarScrollControles(panelId) {
-      const panel = document.getElementById(panelId);
-      const btnPrev = panel.querySelector('.btn-prev');
-      const btnNext = panel.querySelector('.btn-next');
-
-      if (panel.scrollWidth > panel.clientWidth) {
-        btnPrev.classList.add('active');
-        btnNext.classList.add('active');
-        if (panel.scrollLeft <= 0) {
-          btnPrev.classList.remove('active');
-        }
-        if (panel.scrollLeft >= panel.scrollWidth - panel.clientWidth) {
-          btnNext.classList.remove('active');
-        }
-      } else {
-        btnPrev.classList.remove('active');
-        btnNext.classList.remove('active');
-      }
-    }
-
-    // Inicializar controles de desplazamiento al cargar
-    window.addEventListener('load', () => {
-      actualizarScrollControles('panelGrupos');
-      actualizarScrollControles('panelSubcategorias');
     });
   </script>
   <script type="module">
