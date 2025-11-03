@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -468,23 +470,6 @@
     </select>
   </div>
 
-<div class="text-center my-4">
-  <select id="ordenPrecio" class="form-select w-auto d-inline-block me-2">
-    <option value="asc">Precio: Menor a mayor</option>
-    <option value="desc">Precio: Mayor a menor</option>
-  </select>
-
-  <select id="filtroTalle" class="form-select w-auto d-inline-block">
-    <option value="">Todos los talles</option>
-    <option value="XS">XS</option>
-    <option value="S">S</option>
-    <option value="M">M</option>
-    <option value="L">L</option>
-    <option value="XL">XL</option>
-    <option value="XXL">XXL</option>
-  </select>
-</div>
-
 
   {% if config.sobre_mi %}
     <div class="text-center mb-4">
@@ -854,79 +839,65 @@
   }
 
   function renderizarProductos(grupos) {
-  const contenedorPrincipal = document.getElementById("contenedor-grupos");
-  contenedorPrincipal.innerHTML = "";
+    const contenedorPrincipal = document.getElementById("contenedor-grupos");
+    contenedorPrincipal.innerHTML = "";
 
-  Object.entries(grupos).forEach(([grupo, subgrupos]) => {
-    const grupoDiv = document.createElement("div");
-    grupoDiv.className = "container mb-5 grupo-section";
-    grupoDiv.id = "grupo_" + grupo;
+    Object.entries(grupos).forEach(([grupo, subgrupos]) => {
+      const grupoDiv = document.createElement("div");
+      grupoDiv.className = "container mb-5 grupo-section";
+      grupoDiv.id = "grupo_" + grupo;
 
-    Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
-      if (!productos || productos.length === 0) return;
+      Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
+        if (!productos || productos.length === 0) return;
 
-      const subgrupoDiv = document.createElement("div");
-      subgrupoDiv.className = "subgrupo-bloque mb-4";
-      subgrupoDiv.dataset.subgrupo = subgrupo;
+        const subgrupoDiv = document.createElement("div");
+        subgrupoDiv.className = "subgrupo-bloque mb-4";
+        subgrupoDiv.dataset.subgrupo = subgrupo;
 
-      const fila = document.createElement("div");
-      fila.className = "row";
+        const fila = document.createElement("div");
+        fila.className = "row";
 
-      const orden = document.getElementById("ordenPrecio")?.value || "asc";
-      const talleSeleccionado = document.getElementById("filtroTalle")?.value || "";
+        const orden = document.getElementById("ordenPrecio")?.value || "asc";
+        productos.sort((a, b) => {
+          const pa = parseFloat(a.precio) || 0;
+          const pb = parseFloat(b.precio) || 0;
+          return orden === "asc" ? pa - pb : pb - pa;
+        });
 
-      productos.sort((a, b) => {
-        const pa = parseFloat(a.precio) || 0;
-        const pb = parseFloat(b.precio) || 0;
-        return orden === "asc" ? pa - pb : pb - pa;
-      });
-
-      productos.forEach((producto, i) => {
-        if (
-          talleSeleccionado &&
-          (!producto.talles || !Array.isArray(producto.talles) || !producto.talles.includes(talleSeleccionado))
-        ) {
-          return; // ❌ no coincide con el talle seleccionado
-        }
-
-        const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
-        producto.id_base = idBase;
-
-        const tarjeta = document.createElement("div");
-        tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
-        tarjeta.innerHTML = `
-          <div class="card p-3 h-100">
-            <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
-            <div class="card-body">
-              <h5 class="card-title">${producto.nombre}</h5>
-              <p class="card-text">${producto.descripcion || ""}</p>
-              <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
-              ${producto.talles?.length ? `
-                <p><strong>Talles:</strong> ${producto.talles.map(t => `<span class="badge bg-secondary me-1">${t}</span>`).join('')}</p>
-              ` : ''}
-              <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
-                <button type="button" class="btn btn-secondary"
-                  onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
-                  Agregar al carrito
-                </button>
+        productos.forEach((producto, i) => {
+          const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
+          producto.id_base = idBase;
+          const tarjeta = document.createElement("div");
+          tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
+          tarjeta.innerHTML = `
+            <div class="card p-3 h-100">
+              <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
+              <div class="card-body">
+                <h5 class="card-title">${producto.nombre}</h5>
+                <p class="card-text">${producto.descripcion || ""}</p>
+                <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
+                ${producto.talles?.length ? `<p><strong>Talles:</strong> ${producto.talles.join(', ')}</p>` : ''}
+                <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                  <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                  <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
+                  <button type="button" class="btn btn-secondary"
+                    onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
+                    Agregar al carrito
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        `;
-        fila.appendChild(tarjeta);
+          `;
+          fila.appendChild(tarjeta);
+        });
+
+        subgrupoDiv.appendChild(fila);
+        grupoDiv.appendChild(subgrupoDiv);
       });
 
-      subgrupoDiv.appendChild(fila);
-      grupoDiv.appendChild(subgrupoDiv);
+      contenedorPrincipal.appendChild(grupoDiv);
     });
-
-    contenedorPrincipal.appendChild(grupoDiv);
-  });
-}
-
 
     // Activar primer grupo y subgrupo
     setTimeout(() => {
@@ -945,13 +916,7 @@
       }
     }, 100);
   }
-  
-    document.getElementById("filtroTalle")?.addEventListener("change", () => {
-      if (window._gruposProductos) {
-        renderizarProductos(window._gruposProductos);
-      }
-    });
- 
+
   document.getElementById("ordenPrecio")?.addEventListener("change", () => {
     if (window._gruposProductos) {
       renderizarProductos(window._gruposProductos);
