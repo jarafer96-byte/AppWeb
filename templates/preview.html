@@ -684,6 +684,19 @@ function actualizarVisibilidadScroll(panelId, btnIzqId, btnDerId) {
 
       window.scrollTo({ top: window.scrollY, behavior: 'auto' }); // Evitar desplazamientos
     }
+    document.addEventListener('click', function(event) {
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
+  const barraNav = document.querySelector('.barra-navegacion');
+
+  const esClickDentro = barraNav.contains(event.target) || panelGrupos.contains(event.target) || panelSub.contains(event.target);
+
+  if (!esClickDentro) {
+    panelGrupos.classList.add('oculta');
+    panelSub.classList.add('oculta');
+  }
+});
+
     window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
   const panelGrupos = document.getElementById('panelGrupos');
