@@ -43,6 +43,7 @@ def subir_a_firestore(producto):
         return False
 
     data = {
+        "name": f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}",
         "fields": {
             "nombre": {"stringValue": producto["nombre"]},
             "precio": {"integerValue": precio},
