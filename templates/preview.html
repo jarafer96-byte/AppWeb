@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -663,20 +661,24 @@
     let carrito = [];
 
     function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
-      const cantidadInput = document.getElementById(idCantidad); 
-      const precioSpan = document.getElementById(idPrecioSpan);
+  const cantidadInput = document.getElementById(idCantidad); 
+  const precioSpan = document.getElementById(idPrecioSpan);
+  const talleSelect = document.getElementById("talle_" + id_base); // 👈 capturamos el selector de talle
 
-      const cantidad = parseInt(cantidadInput?.value) || 1; 
-      const precio = parseFloat(precioSpan?.textContent) || 0;
+  const cantidad = parseInt(cantidadInput?.value) || 1; 
+  const precio = parseFloat(precioSpan?.textContent) || 0;
+  const talleElegido = talleSelect?.value || ""; // 👈 obtenemos el talle seleccionado
 
-      const existente = carrito.find(item => item.id_base === id_base);
-      if (existente) {
-        existente.cantidad += cantidad;
-      } else {
-        carrito.push({ nombre, precio, cantidad, id_base });
-      }
-      actualizarCarrito();
-    }
+  const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
+    carrito.push({ nombre, precio, cantidad, id_base, talle: talleElegido }); // 👈 guardamos el talle
+  }
+
+  actualizarCarrito();
+}
+
     function vaciarCarrito() {
       carrito = [];
       actualizarCarrito();
@@ -704,33 +706,30 @@
       });
     }
     function actualizarCarrito() {
-      sincronizarPreciosDelCarrito();
+  sincronizarPreciosDelCarrito();
 
-      const lista = document.getElementById('listaCarrito');
-      const total = document.getElementById('totalCarrito');
-      lista.innerHTML = '';
-      let suma = 0;
+  const lista = document.getElementById('listaCarrito');
+  const total = document.getElementById('totalCarrito');
+  lista.innerHTML = '';
+  let suma = 0;
 
-      carrito.forEach(item => {
-        const subtotal = item.precio * item.cantidad;
-        lista.innerHTML += `<li>${item.nombre} x ${item.cantidad} - $${subtotal.toFixed(2)}</li>`;
-        suma += subtotal;
-      });
+  carrito.forEach(item => {
+    const subtotal = item.precio * item.cantidad;
+    lista.innerHTML += `<li>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</li>`;
+    suma += subtotal;
+  });
 
-      total.textContent = suma.toFixed(2);
+  total.textContent = suma.toFixed(2);
 
-      const mensaje = encodeURIComponent(
-        `Hola, quiero consultar por:\n` +
-        carrito.map(i => `- ${i.nombre} x ${i.cantidad}: $${(i.precio * i.cantidad).toFixed(2)}`).join('\n') +
-        `\nTotal estimado: $${suma.toFixed(2)}`
-      );
+  const mensaje = encodeURIComponent(
+    `Hola, quiero consultar por:\n` +
+    carrito.map(i => `- ${i.nombre}${i.talle ? ' (' + i.talle + ')' : ''} x ${i.cantidad}: $${(i.precio * i.cantidad).toFixed(2)}`).join('\n') +
+    `\nTotal estimado: $${suma.toFixed(2)}`
+  );
 
-      document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
-    }
-    document.getElementById('toggleCarrito').onclick = function() {
-      const carritoDiv = document.getElementById('carrito');
-      carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
-    };
+  document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
+}
+
     function mostrarTodos() {
       const panelGrupos = document.getElementById('panelGrupos');
       const panelSub = document.getElementById('panelSubcategorias');
@@ -876,7 +875,14 @@
                 <h5 class="card-title">${producto.nombre}</h5>
                 <p class="card-text">${producto.descripcion || ""}</p>
                 <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
-                ${producto.talles?.length ? `<p><strong>Talles:</strong> ${producto.talles.join(', ')}</p>` : ''}
+                ${producto.talles?.length ? `
+                  <div class="mb-2">
+                    <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+                    <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
+                      ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
+                    </select>
+                  </div>
+                ` : ''}
                 <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
                 <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                   <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
