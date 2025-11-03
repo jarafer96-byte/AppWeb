@@ -151,7 +151,7 @@
     .panel-grupos {
       position: fixed;
       max-height: 50vh; /* Altura máxima global */
-      overflow-y: auto; /* Desplazamiento vertical global *//
+      overflow-y: auto; /* Desplazamiento vertical global */
       left: 0;
       right: 0;
       z-index: 906;
@@ -657,6 +657,10 @@
       if (primerBtn) {
         mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
       }
+      document.getElementById('toggleCarrito').onclick = function() {
+        const carritoDiv = document.getElementById('carrito');
+        carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+      };
     };
     let carrito = [];
 
