@@ -164,6 +164,8 @@
       padding: 1px 0;
       text-align: center;
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+      overflow-x: auto;
+      white-space: nowrap;
     }
     .panel-grupos button {
       font-family: {{ config.fuente | safe }};
@@ -227,6 +229,7 @@
       box-shadow: 0 0 6px rgba(255,255,255,0.3);
       transition: all 0.3s ease;
       overflow: hidden;
+      display: inline-block;
     }
     .modo-claro .btn-grupo {
       background-color: transparent;
@@ -376,6 +379,8 @@
       text-align: center;
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
       transition: all 0.3s ease;
+      overflow-x: auto;
+      white-space: nowrap;
     }
     .panel-subcategorias button {
       font-family: {{ config.fuente | safe }};
