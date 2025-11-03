@@ -458,19 +458,20 @@
     <button id="btnContacto" onclick="irAContacto()">Contacto</button>
   </nav>
 
-  <div class="d-flex align-items-center">
-    <button onclick="scrollGrupos(-1)" class="btn btn-sm btn-light me-2">‹</button>
-    <div id="panelGrupos" class="panel-grupos oculto"></div>
-    <button onclick="scrollGrupos(1)" class="btn btn-sm btn-light ms-2">›</button>
-  </div>
+  <!-- Para grupos -->
+<div class="d-flex align-items-center">
+  <button id="btnGruposIzq" onclick="scrollPanel('panelGrupos', -1)" class="btn btn-sm btn-light me-2">‹</button>
+  <div id="panelGrupos" class="panel-grupos oculto"></div>
+  <button id="btnGruposDer" onclick="scrollPanel('panelGrupos', 1)" class="btn btn-sm btn-light ms-2">›</button>
 </div>
 
+<!-- Para subgrupos -->
+<div class="d-flex align-items-center">
+  <button id="btnSubgruposIzq" onclick="scrollPanel('panelSubcategorias', -1)" class="btn btn-sm btn-light me-2">‹</button>
+  <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
+  <button id="btnSubgruposDer" onclick="scrollPanel('panelSubcategorias', 1)" class="btn btn-sm btn-light ms-2">›</button>
+</div>
 
-  <div class="d-flex align-items-center">
-    <button onclick="scrollSubgrupos(-1)" class="btn btn-sm btn-light me-2">‹</button>
-    <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
-    <button onclick="scrollSubgrupos(1)" class="btn btn-sm btn-light ms-2">›</button>
-  </div>
 
 
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
@@ -680,24 +681,20 @@
     mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
   }
 
-  const toggleCarrito = document.getElementById('toggleCarrito');
-  const carritoDiv = document.getElementById('carrito');
+  // 👇 Ocultar flechas si no hay overflow
+  actualizarVisibilidadScroll('panelGrupos', 'btnGruposIzq', 'btnGruposDer');
+  actualizarVisibilidadScroll('panelSubcategorias', 'btnSubgruposIzq', 'btnSubgruposDer');
 
-  // Clic para abrir/cerrar
-  toggleCarrito.onclick = function() {
+  document.getElementById('toggleCarrito').onclick = function() {
+    const carritoDiv = document.getElementById('carrito');
     carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
   };
-
-  // Hover para previsualizar (solo desktop)
-  toggleCarrito.addEventListener('mouseenter', () => mostrarCarrito(true));
-  toggleCarrito.addEventListener('mouseleave', () => mostrarCarrito(false));
-
-  function mostrarCarrito(visible) {
-    carritoDiv.style.display = visible ? 'block' : 'none';
-  }
 };
+window.addEventListener('resize', () => {
+  actualizarVisibilidadScroll('panelGrupos', 'btnGruposIzq', 'btnGruposDer');
+  actualizarVisibilidadScroll('panelSubcategorias', 'btnSubgruposIzq', 'btnSubgruposDer');
+});
 
-    let carrito = [];
 
     function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
   const cantidadInput = document.getElementById(idCantidad); 
