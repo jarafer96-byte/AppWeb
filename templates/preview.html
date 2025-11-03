@@ -683,10 +683,12 @@
   actualizarCarrito();
 }
 
-function eliminarProducto(id_base, talle) {
+function eliminarProducto(id_base, talle, event) {
+  event.stopPropagation(); // 👈 evita que el clic cierre el carrito
   carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
   actualizarCarrito();
 }
+
 
     function vaciarCarrito() {
       carrito = [];
@@ -727,7 +729,7 @@ carrito.forEach(item => {
   lista.innerHTML += `
     <li style="display: flex; justify-content: space-between; align-items: center;">
       <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
-      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}')" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
+      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
     </li>`;
   suma += subtotal;
 });
