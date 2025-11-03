@@ -132,7 +132,7 @@
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
     }
     .barra-navegacion button {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       font-weight: 600;
       font-size: 16px;
       padding: 10px 20px;
@@ -165,7 +165,7 @@
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
     }
     .panel-grupos button {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       font-weight: 600;
       margin: 6px;
       padding: 2px 8px;
@@ -377,7 +377,7 @@
       transition: all 0.3s ease;
     }
     .panel-subcategorias button {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       font-weight: 600;
       margin: 6px;
       padding: 1px 8px;
@@ -459,7 +459,7 @@
   </button>
 
   <div class="text-center my-3">
-    <<img src="{{ url_for('static', filename='img/' + config.logo) }}"
+    <img src="{{ url_for('static', filename='img/' + config.logo) }}"
          alt="Logo"
          class="img-fluid logo">
   </div>
