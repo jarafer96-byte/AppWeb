@@ -28,13 +28,16 @@
 
   <style>
     body {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
       background-size: cover;
       background-repeat: no-repeat;
       background-attachment: fixed;
       background-position: center;
       padding-top: 70px;
+    }
+    h1, h2, h3, .btn, .card {
+      font-family: {{ config.fuente | safe }};
     }
     body::before {
       content: "";
@@ -130,7 +133,7 @@
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
     }
     .barra-navegacion button {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       font-weight: 600;
       font-size: 16px;
       padding: 10px 20px;
@@ -163,7 +166,7 @@
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
     }
     .panel-grupos button {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       font-weight: 600;
       margin: 6px;
       padding: 2px 8px;
@@ -183,6 +186,20 @@
     .oculta {
       display: none !important;
     }
+    .panel-grupos,
+.panel-subcategorias {
+  display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+  padding: 8px;
+}
+
+.panel-grupos::-webkit-scrollbar,
+.panel-subcategorias::-webkit-scrollbar {
+  display: none; /* oculta la barra en navegadores compatibles */
+}
+
     .logo { 
       height: 10vw; 
       max-height: 380px; 
@@ -375,7 +392,7 @@
       transition: all 0.3s ease;
     }
     .panel-subcategorias button {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       font-weight: 600;
       margin: 6px;
       padding: 1px 8px;
@@ -435,29 +452,33 @@
     }
   </style>
 </head>
-<body class="container py-5 {{ modo_visual }}">
-  <div class="barra-wrapper">
-    <nav class="barra-navegacion">
-      <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
-      <button id="btnContacto" onclick="irAContacto()">Contacto</button>
-    </nav>
-    <div id="panelGrupos" class="panel-grupos oculto">
-      {% for grupo in grupos.keys() %}
-        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
-          {{ grupo }}
-        </button>
-      {% endfor %}
-    </div>
+<div class="barra-wrapper">
+  <nav class="barra-navegacion">
+    <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
+    <button id="btnContacto" onclick="irAContacto()">Contacto</button>
+  </nav>
+
+  <div class="d-flex align-items-center">
+    <button onclick="scrollGrupos(-1)" class="btn btn-sm btn-light me-2">‹</button>
+    <div id="panelGrupos" class="panel-grupos oculto"></div>
+    <button onclick="scrollGrupos(1)" class="btn btn-sm btn-light ms-2">›</button>
+  </div>
+</div>
+
+
+  <div class="d-flex align-items-center">
+    <button onclick="scrollSubgrupos(-1)" class="btn btn-sm btn-light me-2">‹</button>
+    <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
+    <button onclick="scrollSubgrupos(1)" class="btn btn-sm btn-light ms-2">›</button>
   </div>
 
-  <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
 
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
   </button>
 
   <div class="text-center my-3">
-    <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
+    <img src="{{ url_for('static', filename='img/' + config.logo) }}"
          alt="Logo"
          class="img-fluid logo">
   </div>
@@ -683,6 +704,20 @@
 
   actualizarCarrito();
 }
+function scrollPanel(panelId, direccion) {
+  const panel = document.getElementById(panelId);
+  const desplazamiento = 120;
+  if (panel) {
+    panel.scrollBy({ left: direccion * desplazamiento, behavior: 'smooth' });
+  }
+}
+
+function eliminarProducto(id_base, talle, event) {
+  event.stopPropagation(); // 👈 evita que el clic cierre el carrito
+  carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
+  actualizarCarrito();
+}
+
 
     function vaciarCarrito() {
       carrito = [];
@@ -718,11 +753,17 @@
   lista.innerHTML = '';
   let suma = 0;
 
-  carrito.forEach(item => {
-    const subtotal = item.precio * item.cantidad;
-    lista.innerHTML += `<li>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</li>`;
-    suma += subtotal;
-  });
+carrito.forEach(item => {
+  const subtotal = item.precio * item.cantidad;
+  lista.innerHTML += `
+    <li style="display: flex; justify-content: space-between; align-items: center;">
+      <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
+      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
+    </li>`;
+  suma += subtotal;
+});
+
+
 
   total.textContent = suma.toFixed(2);
 
@@ -950,3 +991,4 @@
 </script>
 </body>
 </html>
+
