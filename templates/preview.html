@@ -676,15 +676,6 @@
   panelSubcategorias.classList.add('oculta');
   panelGrupos.classList.add('oculta');
 
-  // 🔧 Poblar botones de grupo
-  panelGrupos.innerHTML = '';
-  for (const grupo in subcategoriasPorGrupo) {
-    const btn = document.createElement('button');
-    btn.textContent = grupo;
-    btn.className = 'btn-grupo';
-    btn.onclick = (event) => mostrarGrupo(grupo, { target: btn });
-    panelGrupos.appendChild(btn);
-  }
 
   // ✅ Mostrar el primer grupo automáticamente
   const primerBtn = panelGrupos.querySelector('.btn-grupo');
