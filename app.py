@@ -28,22 +28,8 @@ def subir_a_firestore(producto):
     grupo = producto["grupo"].strip().replace(" ", "_").lower()
     subgrupo = producto.get("subgrupo", "general").strip().replace(" ", "_").lower()
     nombre = producto["nombre"].strip().replace(" ", "_").lower()
-
-    # Obtener productos existentes para evitar duplicados
-    url_existentes = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}?key={FIREBASE_API_KEY}"
-    try:
-        response = requests.get(url_existentes, timeout=5)
-        if response.status_code == 200:
-            productos_existentes = response.json().get('documents', [])
-            contador = sum(1 for p in productos_existentes 
-                          if p['fields'].get('grupo', {}).get('stringValue', '').lower() == grupo 
-                          and p['fields'].get('subgrupo', {}).get('stringValue', '').lower() == subgrupo 
-                          and p['fields'].get('nombre', {}).get('stringValue', '').lower().startswith(nombre))
-            custom_id = f"{nombre}_{contador + 1}" if contador > 0 else nombre
-        else:
-            custom_id = nombre
-    except requests.exceptions.RequestException:
-        custom_id = nombre
+    fecha = time.strftime("%Y%m%d")
+    custom_id = f"{nombre}_{fecha}_{shortuuid.uuid()[:4]}"
 
     # URL con ID personalizado
     url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}?key={FIREBASE_API_KEY}"
@@ -65,7 +51,11 @@ def subir_a_firestore(producto):
             "descripcion": {"stringValue": producto.get("descripcion", "")},
             "imagen": {"stringValue": producto["imagen"]},
             "orden": {"integerValue": orden},
-            "talles": {"arrayValue": {"values": [{"stringValue": t} for t in producto.get("talles", [])]}}
+            "talles": {
+                "arrayValue": {
+                    "values": [{"stringValue": t} for t in producto.get("talles", [])]
+                }
+            }
         }
     }
 
@@ -80,6 +70,7 @@ def subir_a_firestore(producto):
     except requests.exceptions.RequestException as e:
         print(f"❌ Error de red al subir {producto['nombre']}: {e}")
         return False
+
 
 
 UPLOAD_FOLDER = 'static/img'
