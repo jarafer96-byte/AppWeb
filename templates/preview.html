@@ -725,10 +725,11 @@ function eliminarProducto(id_base, talle) {
   carrito.forEach(item => {
   const subtotal = item.precio * item.cantidad;
   lista.innerHTML += `
-    <li>
-      ${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}
-      <br>
-      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}')">🗑</button>
+  <li style="display: flex; justify-content: space-between; align-items: center;">
+    <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
+    <button onclick="eliminarProducto('${item.id_base}', '${item.talle}')" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
+  </li>`;
+ onclick="eliminarProducto('${item.id_base}', '${item.talle}')">🗑</button>
     </li>`;
   suma += subtotal;
 });
