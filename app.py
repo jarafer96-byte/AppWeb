@@ -25,11 +25,16 @@ FIREBASE_COLLECTION = "productos"
 
 # ✅ Actualización en subir_a_firestore
 def subir_a_firestore(producto):
-    grupo = producto["grupo"].strip().replace(" ", "_").lower()
-    subgrupo = producto.get("subgrupo", "general").strip().replace(" ", "_").lower()
-    nombre = producto["nombre"].strip().replace(" ", "_").lower()
+    grupo_original = producto["grupo"].strip()
+    subgrupo_original = producto.get("subgrupo", "general").strip()
+    nombre_original = producto["nombre"].strip()
+
+    # Normalización solo para el ID
+    grupo_id = grupo_original.replace(" ", "_").lower()
+    subgrupo_id = subgrupo_original.replace(" ", "_").lower()
+    nombre_id = nombre_original.replace(" ", "_").lower()
     fecha = time.strftime("%Y%m%d")
-    custom_id = f"{nombre}_{fecha}_{shortuuid.uuid()[:4]}"
+    custom_id = f"{nombre_id}_{fecha}_{shortuuid.uuid()[:4]}"
 
     # URL con ID personalizado
     doc_path = f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}"
@@ -46,10 +51,10 @@ def subir_a_firestore(producto):
     data = {
         "name": doc_path,
         "fields": {
-            "nombre": {"stringValue": producto["nombre"]},
+            "nombre": {"stringValue": nombre_original},
             "precio": {"integerValue": precio},
-            "grupo": {"stringValue": producto["grupo"]},
-            "subgrupo": {"stringValue": producto.get("subgrupo", "")},
+            "grupo": {"stringValue": grupo_original},
+            "subgrupo": {"stringValue": subgrupo_original},
             "descripcion": {"stringValue": producto.get("descripcion", "")},
             "imagen": {"stringValue": producto["imagen"]},
             "orden": {"integerValue": orden},
@@ -68,6 +73,7 @@ def subir_a_firestore(producto):
     except requests.exceptions.RequestException as e:
         print(f"❌ Error de red al subir {producto['nombre']}: {e}")
         return False
+
 
 
 
@@ -198,7 +204,7 @@ def step3():
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
             precio = precios[i].strip()
-            grupo = grupos[i].strip().replace(" ", "_") or 'Sin_grupo'
+            grupo = grupos[i].strip() or 'Sin grupo'
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = str(i + 1)
             img = imagenes[i]
