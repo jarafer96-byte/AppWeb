@@ -1,0 +1,1007 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Vista previa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Vista previa para redes sociales -->
+  <meta property="og:title" content="{{ config.titulo }}">
+  <meta property="og:description" content="{{ config.descripcion }}">
+  <meta property="og:image" content="{{ config.imagen_destacada }}">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="{{ config.url }}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <!-- Google Fonts disponibles -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Fira+Code&family=Raleway&family=Quicksand&family=Pacifico&family=Source+Serif+4&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  {% set estilo = config.estilo_visual.lower() %}
+  {% if 'claro' in estilo or 'esferas' in estilo or 'blanco' in estilo %}
+    {% set modo_visual = 'modo-claro' %}
+  {% else %}
+    {% set modo_visual = 'modo-oscuro' %}
+  {% endif %}
+
+  <style>
+    body {
+      font-family: {{ config.fuente | safe }};
+      background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-position: center;
+      padding-top: 70px;
+    }
+    h1, h2, h3, .btn, .card {
+      font-family: {{ config.fuente | safe }};
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: -1;
+    }
+    .fondo-animado {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: -2;
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 40%),
+                  radial-gradient(circle at 80% 70%, rgba(255,255,255,0.06), transparent 40%);
+      animation: moverFondo 40s ease-in-out infinite;
+      background-size: 200% 200%;
+      pointer-events: none;
+    }
+    html {
+      scroll-behavior: auto;
+    }
+    .card {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.6s ease forwards;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border-radius: 12px;
+      overflow: hidden;
+      will-change: transform, box-shadow;
+      padding: 12px;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    .modo-oscuro .card:hover {
+      box-shadow: 0 8px 20px rgba(255,255,255,0.2);
+    }
+    .modo-claro .card:hover {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+    .card-img-top {
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .card-body {
+      padding: 10px;
+    }
+    .card-title {
+      font-size: 1rem;
+    }
+    .card-text {
+      font-size: 0.9rem;
+    }
+    .modo-claro .card {
+      background-color: #fff;
+      color: #333;
+      border: none;
+    }
+    .modo-oscuro .card {
+      background-color: rgba(0,0,0,0.6);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .color-principal {
+      color: None;
+    }
+    .bg-principal {
+      background-color: None;
+    }
+    .modo-oscuro {
+      color: white;
+    }
+    .modo-claro {
+      color: #333;
+    }
+    .barra-navegacion {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 12px 20px;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+    }
+    .barra-navegacion button {
+      font-family: {{ config.fuente | safe }};
+      font-weight: 600;
+      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    .barra-navegacion button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+    .barra-wrapper {
+      z-index: 1000;
+    }
+    .panel-grupos {
+      position: fixed;
+      max-height: 50vh; /* Altura máxima global */
+      overflow-y: auto; /* Desplazamiento vertical global */
+      left: 0;
+      right: 0;
+      z-index: 906;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      padding: 1px 0;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+    }
+    .panel-grupos button {
+      font-family: {{ config.fuente | safe }};
+      font-weight: 600;
+      margin: 6px;
+      padding: 2px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .panel-grupos button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+    .oculta {
+      display: none !important;
+    }
+    .logo { 
+      height: 10vw; 
+      max-height: 380px; 
+      filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
+      transition: filter 0.3s ease;
+      animation: pulsoLogo 4s ease-in-out infinite;
+    }
+    @keyframes pulsoLogo {
+      0%, 100% {
+        filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
+      }
+      50% {
+        filter: brightness(1.8) contrast(1.3) drop-shadow(0 0 20px None);
+      }
+    }
+    .descripcion-emprendimiento {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      display: inline-block;
+      max-width: 800px;
+      white-space: pre-line;
+      text-align: center;
+      text-indent: 20px;
+      font-size: 16px;
+      line-height: 1.6;
+      box-shadow: 0 0 6px rgba(255,255,255,0.3);
+    }
+    .btn-grupo {
+      position: relative;
+      padding: 8px 16px;
+      margin: 5px;
+      border-radius: 20px;
+      font-weight: bold;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 6px rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    .modo-claro .btn-grupo {
+      background-color: transparent;
+      color: white;
+      border: none;
+    }
+    .modo-oscuro .btn-grupo {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 4px rgba(255,255,255,0.1);
+    }
+    .btn-grupo::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      z-index: -1;
+    }
+    .modo-claro .btn-grupo::before {
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 70%);
+    }
+    .modo-oscuro .btn-grupo::before {
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);
+    }
+    .btn-grupo:hover {
+      background-color: #fff;
+      color: None;
+      transform: scale(1.05);
+      box-shadow: 0 0 8px None;
+    }
+    .btn-grupo.active {
+      box-shadow: none;
+    }
+    .btn-whatsapp {
+      background-color: #25D366;
+      border: none;
+      padding: 8px 16px;
+      color: white;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .btn-volver-arriba {
+      background-color: white;
+      color: black;
+      border: none;
+      font-size: 20px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-volver-arriba:hover {
+      background-color: #f0f0f0;
+      transform: scale(1.1);
+    }
+    .btn-volver-arriba:focus,
+    .btn-volver-arriba:active,
+    .btn-volver-arriba:visited {
+      outline: none;
+      box-shadow: none;
+      background-color: white;
+      color: black;
+    }
+    .grupo-section {
+      display: none;
+      min-height: 100vh;
+    }
+    .grupo-section.active {
+      display: block !important;
+    }
+    .social-icons {
+      margin-top: 40px;
+      text-align: center;
+    }
+    .social-icons img {
+      width: 40px;
+      margin: 0 10px;
+      transition: transform 0.3s ease;
+      filter: drop-shadow(0 0 3px white);
+    }
+    .social-icons img:hover {
+      transform: scale(1.1);
+      filter: drop-shadow(0 0 0 transparent);
+    }
+    .bloque-ubicacion {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 600px;
+      margin: 20px auto 0;
+      box-shadow: 0 0 6px rgba(255,255,255,0.3);
+    }
+    #carrito {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      width: 300px;
+      z-index: 999;
+      display: none;
+    }
+    .modo-oscuro #carrito {
+      background-color: rgba(0,0,0,0.85);
+      color: white;
+      border: 1px solid white;
+      box-shadow: 0 0 10px white;
+    }
+    .modo-claro #carrito {
+      background-color: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    #toggleCarrito {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      padding: 10px 14px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 5px white;
+    }
+    .modo-oscuro #toggleCarrito {
+      background-color: transparent;
+      color: black;
+      border: none;
+    }
+    .modo-claro #toggleCarrito {
+      background-color: transparent;
+      color: white;
+      border: none;
+    }
+    .panel-subcategorias {
+      position: fixed;
+      max-height: 50vh; /* Altura máxima global */
+      overflow-y: auto; /* Desplazamiento vertical global */
+      left: 0;
+      right: 0;
+      z-index: 908;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      padding: 1px 0;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button {
+      font-family: {{ config.fuente | safe }};
+      font-weight: 600;
+      margin: 6px;
+      padding: 1px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+    }
+    @media (max-width: 600px) {
+      .logo {
+        height: 140px !important;
+    }
+    .barra-navegacion {
+      padding: 8px 10px;
+      gap: 8px;
+    }
+    .barra-navegacion button {
+      font-size: 14px;
+      padding: 8px 15px;
+    }
+    .panel-grupos {
+      padding: 1px 0;
+      max-height: 50vh; /* Altura máxima para que sea desplazable si hay muchos botones */
+      overflow-y: auto; /* Hace el panel desplazable verticalmente */
+    }
+    .panel-grupos button {
+      font-size: 13px;
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+    .panel-subcategorias {
+      padding: 1px 0;
+      max-height: 50vh; /* Altura máxima para el panel de subcategorías */
+      overflow-y: auto; /* Hace el panel desplazable verticalmente */
+    }
+    .panel-subcategorias button {
+      font-size: 13px;
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes moverFondo {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+  </style>
+</head>
+<body class="container py-5 {{ modo_visual }}">
+  
+  <div class="barra-wrapper">
+    <nav class="barra-navegacion">
+      <button id="btnProductos">Productos</button>
+      <button id="btnContacto">Contacto</button>
+    </nav>
+    <div id="panelGrupos" class="panel-grupos oculta">
+      <button class="btn-scroll btn-prev" onclick="scrollPanel('panelGrupos', -1)">&lt;</button>
+      <button class="btn-scroll btn-next" onclick="scrollPanel('panelGrupos', 1)">&gt;</button>
+    </div>
+  </div>
+
+  <div id="panelSubcategorias" class="panel-subcategorias oculta">
+    <button class="btn-scroll btn-prev" onclick="scrollPanel('panelSubcategorias', -1)">&lt;</button>
+    <button class="btn-scroll btn-next" onclick="scrollPanel('panelSubcategorias', 1)">&gt;</button>
+  </div>
+
+  <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
+    ↑
+  </button>
+
+  <div class="text-center my-3">
+    <img src="{{ url_for('static', filename='img/' + config.logo) }}"
+         alt="Logo"
+         class="img-fluid logo">
+  </div>
+  
+  <div class="text-center my-4">
+    <select id="ordenPrecio" class="form-select w-auto d-inline-block">
+      <option value="asc">Precio: Menor a mayor</option>
+      <option value="desc">Precio: Mayor a menor</option>
+    </select>
+  </div>
+
+  {% if config.sobre_mi %}
+    <div class="text-center mb-4">
+      <div class="descripcion-emprendimiento">
+        {{ config.sobre_mi | replace('\n', '<br>') | safe }}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if not config.usarFirestore %}
+   {% for grupo, subgrupos in grupos.items() %}
+    {% set total_productos = subgrupos.values() | map('length') | sum %}
+    {% if total_productos > 0 %}
+      <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
+        {% for subgrupo, productos in subgrupos.items() %}
+          {% if productos %}
+            <div class="subgrupo-bloque mb-4" data-subgrupo="{{ subgrupo }}">
+              <div class="row">
+                {% for producto in productos %}
+                  {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
+                  <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                    <div class="card p-3 h-100">
+                      <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+                      <div class="card-body">
+                        <h5 class="card-title">{{ producto.nombre }}</h5>
+                        <p class="card-text">{{ producto.descripcion }}</p>
+                        <p><strong>Precio:</strong> $ <span id="precio_{{ id_base }}">{{ producto.precio }}</span></p>
+                        {% if producto.talles %}
+                         <p><strong>Talles:</strong> {{ producto.talles | join(', ') }}</p>
+                        {% endif %}
+                        <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                        <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                          <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                          <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ id_base }}">
+                          <button type="button" class="btn btn-secondary"
+                            onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ id_base }}', 'cantidad_{{ id_base }}', '{{ id_base }}')">
+                            Agregar al carrito
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+   {% endfor %}
+  {% endif %}
+
+
+  <div id="contenedor-grupos"></div>
+
+  <div class="text-center mt-5">
+    <a href="/descargar" class="btn btn-primary px-5">
+      Descargar sitio
+    </a>
+  </div>
+
+  <div class="social-icons">
+    {% if config.facebook %}
+      <a href="{{ config.facebook }}" target="_blank">
+        <img src="/static/img/facebook.png" alt="Facebook">
+      </a>
+    {% endif %}
+    {% if config.instagram %}
+      <a href="{{ config.instagram }}" target="_blank">
+        <img src="/static/img/instagram.png" alt="Instagram">
+      </a>
+    {% endif %}
+    {% if config.whatsapp %}
+      <a href="{{ config.whatsapp }}" target="_blank">
+        <img src="/static/img/whatsapp.png" alt="WhatsApp">
+      </a>
+    {% endif %}
+  </div>
+
+  {% if config.ubicacion %}
+    <div id="ubicacion" class="bloque-ubicacion text-center mt-4">
+      <p style="margin-bottom: 6px;">
+        📍 {{ config.ubicacion }}
+      </p>
+      {% if config.link_mapa %}
+        <a href="{{ config.link_mapa }}" target="_blank" style="text-decoration: none;">
+          <span style="margin-right: 6px;">➜</span>
+          <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <button id="toggleCarrito">🛒</button>
+
+  <div id="carrito">
+    <h5>🛒 Tu carrito</h5>
+    <ul id="listaCarrito"></ul>
+    <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+    <div class="d-grid gap-2">
+      <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+      <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+    </div>
+  </div>
+
+  <script>
+    const configWhatsApp = "{{ config.whatsapp }}";
+
+    window.addEventListener('scroll', () => {
+      const btn = document.getElementById('volverArriba');
+      btn.style.display = window.scrollY > 300 ? 'block' : 'none';
+      btn.style.backgroundColor = 'white';
+      btn.style.color = 'black';
+    });
+    const subcategoriasPorGrupo = {
+      {% for grupo, subgrupos in grupos.items() %}
+        "{{ grupo }}": [{% for sub in subgrupos.keys() %}"{{ sub }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+      {% endfor %}
+    };
+
+    document.getElementById('volverArriba').onclick = () => {
+      window.scrollTo({ top: 0, behavior: 'auto' }); // Cambiado a 'auto' para evitar deslizamiento
+    };
+    function mostrarGrupo(nombre, event, auto = false) {
+      const grupoActivo = document.getElementById('grupo_' + nombre.replace(' ', '_'));
+      document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
+      if (grupoActivo) {
+        grupoActivo.classList.add('active');
+        if (auto) grupoActivo.classList.add('initial-load');
+      }
+
+      document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
+      if (event?.target) event.target.classList.add('active');
+
+      const subcategorias = subcategoriasPorGrupo[nombre] || [];
+      const panel = document.getElementById('panelSubcategorias');
+      panel.innerHTML = '';
+
+      const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
+
+      subcategorias.forEach(sub => {
+        if (!sub || sub.trim().toLowerCase() === 'general') return;
+        const btn = document.createElement('button');
+        btn.textContent = sub;
+        btn.className = 'btn-grupo';
+        btn.onclick = () => filtrarSubcategoria(nombre, sub);
+        panel.appendChild(btn);
+        console.log("Creando botón para subcategoría:", sub);
+      });
+
+      if (!auto) {
+        panel.classList.remove('oculta');
+        bloques?.forEach(bloque => {
+          bloque.style.display = 'block';
+        });
+
+        if (subcategorias.length > 0) {
+          filtrarSubcategoria(nombre, subcategorias[0]);
+        }
+      } else {
+        panel.classList.add('oculta');
+        if (subcategorias.length > 0) {
+          filtrarSubcategoria(nombre, subcategorias[0]);
+        }
+      }
+      actualizarScrollControles('panelGrupos');
+      actualizarScrollControles('panelSubcategorias');
+    }
+
+    function filtrarSubcategoria(grupo, subgrupo) {
+      const grupoDiv = document.getElementById('grupo_' + grupo.replace(' ', '_'));
+      if (!grupoDiv) return;
+
+      const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
+      bloques.forEach(bloque => {
+        const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
+        const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
+        bloque.style.display = mostrar ? 'block' : 'none';
+      });
+
+      window.scrollTo({ top: window.scrollY, behavior: 'auto' });
+      actualizarScrollControles('panelSubcategorias');
+    }
+    window.onload = function() {
+      const panelSubcategorias = document.getElementById('panelSubcategorias');
+      const panelGrupos = document.getElementById('panelGrupos');
+      panelSubcategorias.classList.add('oculta');
+      panelGrupos.classList.add('oculta');
+
+      const primerBtn = document.querySelector('.btn-grupo');
+      if (primerBtn) {
+        mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
+      }
+    };
+    let carrito = [];
+
+    function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
+  const cantidadInput = document.getElementById(idCantidad); 
+  const precioSpan = document.getElementById(idPrecioSpan);
+  const talleSelect = document.getElementById("talle_" + id_base); // 👈 capturamos el selector de talle
+
+  const cantidad = parseInt(cantidadInput?.value) || 1; 
+  const precio = parseFloat(precioSpan?.textContent) || 0;
+  const talleElegido = talleSelect?.value || ""; // 👈 obtenemos el talle seleccionado
+
+  const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
+    carrito.push({ nombre, precio, cantidad, id_base, talle: talleElegido }); // 👈 guardamos el talle
+  }
+
+  actualizarCarrito();
+}
+
+function eliminarProducto(id_base, talle, event) {
+  event.stopPropagation(); // 👈 evita que el clic cierre el carrito
+  carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
+  actualizarCarrito();
+}
+
+
+    function vaciarCarrito() {
+      carrito = [];
+      actualizarCarrito();
+    }
+    function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
+      let cambio = false;
+      carrito.forEach(item => {
+        if (item.nombre === nombre && item.precio !== nuevoPrecio) {
+          item.precio = nuevoPrecio;
+          cambio = true;
+        }
+      });
+      if (cambio) actualizarCarrito();
+    }
+    function sincronizarPreciosDelCarrito() {
+      carrito.forEach(item => {
+        const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
+        const precioSpan = document.getElementById(idPrecio);
+        if (precioSpan) {
+          const precioActual = parseFloat(precioSpan.textContent);
+          if (!isNaN(precioActual)) {
+            item.precio = precioActual;
+          }
+        }
+      });
+    }
+    function actualizarCarrito() {
+  sincronizarPreciosDelCarrito();
+
+  const lista = document.getElementById('listaCarrito');
+  const total = document.getElementById('totalCarrito');
+  lista.innerHTML = '';
+  let suma = 0;
+
+carrito.forEach(item => {
+  const subtotal = item.precio * item.cantidad;
+  lista.innerHTML += `
+    <li style="display: flex; justify-content: space-between; align-items: center;">
+      <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
+      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
+    </li>`;
+  suma += subtotal;
+});
+
+
+
+  total.textContent = suma.toFixed(2);
+
+  const mensaje = encodeURIComponent(
+    `Hola, quiero consultar por:\n` +
+    carrito.map(i => `- ${i.nombre}${i.talle ? ' (' + i.talle + ')' : ''} x ${i.cantidad}: $${(i.precio * i.cantidad).toFixed(2)}`).join('\n') +
+    `\nTotal estimado: $${suma.toFixed(2)}`
+  );
+
+  document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
+}
+
+    ffunction mostrarTodos() {
+      const panelGrupos = document.getElementById('panelGrupos');
+      const panelSub = document.getElementById('panelSubcategorias');
+
+      panelGrupos.classList.toggle('oculta');
+
+      if (!panelSub.classList.contains('oculta')) {
+        panelSub.classList.add('oculta');
+      }
+      actualizarScrollControles('panelGrupos');
+    }
+    function irAContacto() {
+      const contacto = document.getElementById('ubicacion');
+      if (contacto) contacto.scrollIntoView({ behavior: 'auto' }); // Cambiado a 'auto'
+    }
+    function ajustarPosicionesPaneles() {
+      const panelGrupos = document.getElementById('panelGrupos');
+      const panelSub = document.getElementById('panelSubcategorias');
+      const barraNav = document.querySelector('.barra-navegacion');
+
+      if (window.innerWidth <= 600) {
+        if (!panelGrupos.classList.contains('oculta')) {
+          const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+          const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
+          panelGrupos.style.top = alturaBarra + 'px';
+          panelGrupos.style.position = 'fixed';
+          panelGrupos.style.left = '0';
+          panelGrupos.style.right = '0';
+        }
+
+        if (!panelSub.classList.contains('oculta')) {
+          const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+          const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
+          const margenAdicional = 10;
+          const desplazamientoArriba = -20;
+          panelSub.style.top = (alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba) + 'px';
+          panelSub.style.position = 'fixed';
+          panelSub.style.left = '0';
+          panelSub.style.right = '0';
+        } else {
+          panelSub.style.top = '100%';
+        }
+      }
+      actualizarScrollControles('panelGrupos');
+      actualizarScrollControles('panelSubcategorias');
+    }
+    // Recalcular posiciones al cargar y al cambiar el tamaño de la ventana
+    window.addEventListener('load', ajustarPosicionesPaneles);
+    window.addEventListener('resize', ajustarPosicionesPaneles);
+    // Recalcular posiciones cuando se muestra un panel
+    document.getElementById('btnProductos').addEventListener('click', function() {
+      setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de que el DOM se actualice
+    });
+    document.querySelectorAll('.btn-grupo').forEach(btn => {
+      btn.addEventListener('click', function() {
+        setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de mostrar subcategorías
+      });
+    });
+    // Función para manejar el desplazamiento de los paneles
+    function scrollPanel(panelId, direction) {
+      const panel = document.getElementById(panelId);
+      const scrollAmount = direction * 200; // Distancia de desplazamiento (ajustable)
+      panel.scrollLeft += scrollAmount;
+      actualizarScrollControles(panelId);
+    }
+
+    // Función para actualizar la visibilidad de las flechas
+    function actualizarScrollControles(panelId) {
+      const panel = document.getElementById(panelId);
+      const btnPrev = panel.querySelector('.btn-prev');
+      const btnNext = panel.querySelector('.btn-next');
+
+      if (panel.scrollWidth > panel.clientWidth) {
+        btnPrev.classList.add('active');
+        btnNext.classList.add('active');
+        if (panel.scrollLeft <= 0) {
+          btnPrev.classList.remove('active');
+        }
+        if (panel.scrollLeft >= panel.scrollWidth - panel.clientWidth) {
+          btnNext.classList.remove('active');
+        }
+      } else {
+        btnPrev.classList.remove('active');
+        btnNext.classList.remove('active');
+      }
+    }
+
+    // Inicializar controles de desplazamiento al cargar
+    window.addEventListener('load', () => {
+      actualizarScrollControles('panelGrupos');
+      actualizarScrollControles('panelSubcategorias');
+    });
+  </script>
+  <script type="module">
+  const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
+
+  import {
+    initializeApp
+  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
+    authDomain: "appweb-2167a.firebaseapp.com",
+    projectId: "appweb-2167a",
+    storageBucket: "appweb-2167a.firebasestorage.app",
+    messagingSenderId: "681717342631",
+    appId: "1:681717342631:web:f95e6c18b34bae5725d682"
+  };
+
+  if (usarFirestore) {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const productosRef = collection(db, "productos");
+
+    getDocs(productosRef)
+      .then(snapshot => {
+        console.log("Documentos recibidos:", snapshot.size);
+      })
+      .catch(error => {
+        console.error("❌ Error al cargar productos:", error);
+      });
+
+    onSnapshot(productosRef, snapshot => {
+      const grupos = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data.grupo || !data.grupo.trim()) return;
+        const grupo = data.grupo.trim();
+        const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
+
+        if (!grupos[grupo]) grupos[grupo] = {};
+        if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
+        grupos[grupo][subgrupo].push({ ...data, id: doc.id });
+      });
+
+      window._gruposProductos = grupos;
+      renderizarProductos(grupos);
+      actualizarCarrito();
+    });
+  }
+
+  function renderizarProductos(grupos) {
+    const contenedorPrincipal = document.getElementById("contenedor-grupos");
+    contenedorPrincipal.innerHTML = "";
+
+    Object.entries(grupos).forEach(([grupo, subgrupos]) => {
+      const grupoDiv = document.createElement("div");
+      grupoDiv.className = "container mb-5 grupo-section";
+      grupoDiv.id = "grupo_" + grupo;
+
+      Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
+        if (!productos || productos.length === 0) return;
+
+        const subgrupoDiv = document.createElement("div");
+        subgrupoDiv.className = "subgrupo-bloque mb-4";
+        subgrupoDiv.dataset.subgrupo = subgrupo;
+
+        const fila = document.createElement("div");
+        fila.className = "row";
+
+        const orden = document.getElementById("ordenPrecio")?.value || "asc";
+        productos.sort((a, b) => {
+          const pa = parseFloat(a.precio) || 0;
+          const pb = parseFloat(b.precio) || 0;
+          return orden === "asc" ? pa - pb : pb - pa;
+        });
+
+        productos.forEach((producto, i) => {
+          const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
+          producto.id_base = idBase;
+          const tarjeta = document.createElement("div");
+          tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
+          tarjeta.innerHTML = `
+            <div class="card p-3 h-100">
+              <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
+              <div class="card-body">
+                <h5 class="card-title">${producto.nombre}</h5>
+                <p class="card-text">${producto.descripcion || ""}</p>
+                <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
+                ${producto.talles?.length ? `
+                  <div class="mb-2">
+                    <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+                    <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
+                      ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
+                    </select>
+                  </div>
+                ` : ''}
+                <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                  <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                  <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
+                  <button type="button" class="btn btn-secondary"
+                    onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
+                    Agregar al carrito
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          fila.appendChild(tarjeta);
+        });
+
+        subgrupoDiv.appendChild(fila);
+        grupoDiv.appendChild(subgrupoDiv);
+      });
+
+      contenedorPrincipal.appendChild(grupoDiv);
+    });
+
+    // Activar primer grupo y subgrupo
+    setTimeout(() => {
+      const grupoKeys = Object.keys(grupos);
+      if (grupoKeys.length === 0) return;
+
+      const primerGrupoId = grupoKeys[0];
+      const primerGrupoDiv = document.getElementById('grupo_' + primerGrupoId);
+      if (primerGrupoDiv) primerGrupoDiv.classList.add('active');
+
+      const subgrupos = Object.keys(grupos[primerGrupoId]);
+      const primerSubgrupoNombre = subgrupos[0];
+
+      if (primerGrupoId && primerSubgrupoNombre) {
+        filtrarSubcategoria(primerGrupoId, primerSubgrupoNombre);
+      }
+    }, 100);
+  }
+  document.addEventListener('click', function(event) {
+  const carritoDiv = document.getElementById('carrito');
+  const toggleBtn = document.getElementById('toggleCarrito');
+
+  // Si el carrito está visible y el clic fue fuera del carrito y del botón
+  if (
+    carritoDiv.style.display === 'block' &&
+    !carritoDiv.contains(event.target) &&
+    !toggleBtn.contains(event.target)
+  ) {
+    carritoDiv.style.display = 'none';
+  }
+});
+
+  document.getElementById("ordenPrecio")?.addEventListener("change", () => {
+    if (window._gruposProductos) {
+      renderizarProductos(window._gruposProductos);
+    }
+  });
+</script>
+</body>
+</html>
