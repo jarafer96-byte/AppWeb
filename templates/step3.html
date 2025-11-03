@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -40,7 +38,7 @@
       background: linear-gradient(135deg, #8e2de2, #ff6f61);
       color: white;
       border: none;
-      padding: 10px 24px;
+      padding: 6px 14px;
       border-radius: 50px;
       font-weight: bold;
       box-shadow: 0 0 10px rgba(255,255,255,0.3);
@@ -59,7 +57,7 @@
       color: white;
       border: 1px dashed #888;
       border-radius: 8px;
-      padding: 6px 12px;
+      padding: 6px 6px;
       text-align: center;
       font-size: 0.85em;
       font-weight: bold;
@@ -101,6 +99,18 @@
       color: #ffcc00;
       font-weight: bold;
     }
+    .card .row {
+  margin-bottom: 4px;
+}
+.card .form-control,
+.card textarea {
+  padding: 4px 8px;
+  font-size: 0.85em;
+}
+label.btn-imagen {
+  font-size: 0.75em;
+  padding: 4px 8px;
+}
 
     .loader {
       border: 8px solid rgba(255,255,255,0.1);
@@ -109,6 +119,9 @@
       width: 60px;
       height: 60px;
       animation: spin 1s linear infinite;
+    }
+    .precio-chico {
+      width: 10px;
     }
 
     @keyframes spin {
@@ -219,29 +232,28 @@ function crearSubgrupo(btn) {
   fila.className = 'row g-2 align-items-center mb-2';
 
   fila.innerHTML = `
-    <div class="col-md-3">
-      <input type="text" name="nombre" class="form-control" placeholder="Ej: Pantalón">
-    </div>
-    <div class="col-md-3">
-      <textarea name="descripcion" class="form-control" rows="1" placeholder="Ej: De cuero"></textarea>
-    </div>
-    <div class="col-md-2">
-      <input type="text" name="precio" class="form-control" placeholder="$">
-    </div>
-    <div class="col-md-2">
-      <input type="text" name="talles" class="form-control" placeholder="Talles (ej: S, M, L)">
-    </div>
-    <div class="col-md-2 text-end">
-      <input type="hidden" name="grupo" value="${nombreGrupo}">
-      <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
-      <input type="hidden" name="orden" value="${contadorOrden++}">
-      <label class="btn-imagen">
-        Seleccionar imagen
-        <input type="file" name="imagen" accept="image/*" class="d-none">
-      </label>
-      <button type="button" class="btn btn-sm btn-danger px-2 py-1 mb-2" onclick="eliminarFila(this)">✕</button>
-    </div>
-  `;
+  <div class="col-3">
+    <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre">
+  </div>
+  <div class="col-3">
+    <textarea name="descripcion" class="form-control form-control-sm" rows="1" placeholder="Descripción"></textarea>
+  </div>
+  <div class="col-2">
+    <input type="text" name="precio" class="form-control form-control-sm" style="width: 80px;" placeholder="$">
+  </div>
+  <div class="col-2">
+    <input type="text" name="talles" class="form-control form-control-sm" style="width: 200px;" placeholder="(Opcional) S,M,L,XL">
+  </div>
+  <div class="col-2 text-end">
+    <input type="hidden" name="grupo" value="${nombreGrupo}">
+    <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
+    <input type="hidden" name="orden" value="${contadorOrden++}">
+    <label class="btn-imagen btn-sm">
+      Seleccionar Imagen <input type="file" name="imagen" accept="image/*" class="d-none">
+    </label>
+    <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
+  </div>
+`;
 
   activarSelectorImagen(fila.querySelector('label.btn-imagen'));
   return fila;
