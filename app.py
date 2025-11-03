@@ -32,18 +32,19 @@ def subir_a_firestore(producto):
     custom_id = f"{nombre}_{fecha}_{shortuuid.uuid()[:4]}"
 
     # URL con ID personalizado
-    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}?key={FIREBASE_API_KEY}"
+    doc_path = f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}"
+    url = f"https://firestore.googleapis.com/v1/{doc_path}?key={FIREBASE_API_KEY}"
     headers = {"Content-Type": "application/json"}
 
     try:
-        precio = int(producto["precio"])
+        precio = int(producto["precio"].replace("$", "").replace(".", "").strip())
         orden = int(producto.get("orden", 999))
     except ValueError:
         print(f"❌ Precio u orden inválido en producto: {producto['nombre']}")
         return False
 
     data = {
-        "name": f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}",
+        "name": doc_path,
         "fields": {
             "nombre": {"stringValue": producto["nombre"]},
             "precio": {"integerValue": precio},
@@ -61,16 +62,13 @@ def subir_a_firestore(producto):
     }
 
     try:
-        response = requests.post(url, headers=headers, data=json.dumps(data), timeout=5)
-        if response.status_code in [200, 202]:
-            return True
-        else:
-            print(f"❌ Error HTTP {response.status_code} al subir {producto['nombre']}")
-            print(f"📄 Respuesta: {response.text}")
-            return False
+        response = requests.patch(url, headers=headers, data=json.dumps(data), timeout=5)
+        print(f"📄 Firestore response: {response.status_code} → {response.text}")
+        return response.status_code in [200, 202]
     except requests.exceptions.RequestException as e:
         print(f"❌ Error de red al subir {producto['nombre']}: {e}")
         return False
+
 
 
 
