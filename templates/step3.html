@@ -214,7 +214,7 @@ function crearSubgrupo(btn) {
   contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo)); // ✅ pasamos grupo también
 }
 
-  function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
+ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2';
 
@@ -228,7 +228,10 @@ function crearSubgrupo(btn) {
     <div class="col-md-2">
       <input type="text" name="precio" class="form-control" placeholder="$">
     </div>
-    <div class="col-md-4 text-end">
+    <div class="col-md-2">
+      <input type="text" name="talles" class="form-control" placeholder="Talles (ej: S, M, L)">
+    </div>
+    <div class="col-md-2 text-end">
       <input type="hidden" name="grupo" value="${nombreGrupo}">
       <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
       <input type="hidden" name="orden" value="${contadorOrden++}">
