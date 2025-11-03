@@ -683,6 +683,30 @@
   actualizarCarrito();
 }
 
+    function restarUnidad(id_base, talle) {
+  const index = carrito.findIndex(p => p.id_base === id_base && p.talle === talle);
+  if (index !== -1) {
+    carrito[index].cantidad -= 1;
+    if (carrito[index].cantidad <= 0) {
+      carrito.splice(index, 1);
+    }
+    actualizarCarrito();
+  }
+}
+
+function sumarUnidad(id_base, talle) {
+  const index = carrito.findIndex(p => p.id_base === id_base && p.talle === talle);
+  if (index !== -1) {
+    carrito[index].cantidad += 1;
+    actualizarCarrito();
+  }
+}
+
+function eliminarProducto(id_base, talle) {
+  carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
+  actualizarCarrito();
+}
+
     function vaciarCarrito() {
       carrito = [];
       actualizarCarrito();
@@ -718,10 +742,18 @@
   let suma = 0;
 
   carrito.forEach(item => {
-    const subtotal = item.precio * item.cantidad;
-    lista.innerHTML += `<li>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</li>`;
-    suma += subtotal;
-  });
+  const subtotal = item.precio * item.cantidad;
+  lista.innerHTML += `
+    <li>
+      ${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}
+      <br>
+      <button onclick="restarUnidad('${item.id_base}', '${item.talle}')">−</button>
+      <button onclick="sumarUnidad('${item.id_base}', '${item.talle}')">+</button>
+      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}')">🗑</button>
+    </li>`;
+  suma += subtotal;
+});
+
 
   total.textContent = suma.toFixed(2);
 
