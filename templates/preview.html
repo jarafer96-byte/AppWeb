@@ -926,6 +926,19 @@
       }
     }, 100);
   }
+  document.addEventListener('click', function(event) {
+  const carritoDiv = document.getElementById('carrito');
+  const toggleBtn = document.getElementById('toggleCarrito');
+
+  // Si el carrito está visible y el clic fue fuera del carrito y del botón
+  if (
+    carritoDiv.style.display === 'block' &&
+    !carritoDiv.contains(event.target) &&
+    !toggleBtn.contains(event.target)
+  ) {
+    carritoDiv.style.display = 'none';
+  }
+});
 
   document.getElementById("ordenPrecio")?.addEventListener("change", () => {
     if (window._gruposProductos) {
