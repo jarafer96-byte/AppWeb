@@ -31,10 +31,9 @@ def subir_a_firestore(producto):
 
     # Normalización solo para el ID
     grupo_id = grupo_original.replace(" ", "_").lower()
-    subgrupo_id = subgrupo_original.replace(" ", "_").lower()
     nombre_id = nombre_original.replace(" ", "_").lower()
     fecha = time.strftime("%Y%m%d")
-    custom_id = f"{nombre_id}_{fecha}_{shortuuid.uuid()[:4]}"
+    custom_id = f"{nombre_id}_{fecha}_{grupo_id}"
 
     # URL con ID personalizado
     doc_path = f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}"
@@ -73,6 +72,7 @@ def subir_a_firestore(producto):
     except requests.exceptions.RequestException as e:
         print(f"❌ Error de red al subir {producto['nombre']}: {e}")
         return False
+
 
 
 
