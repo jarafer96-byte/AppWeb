@@ -669,21 +669,34 @@
 
       window.scrollTo({ top: window.scrollY, behavior: 'auto' }); // Evitar desplazamientos
     }
-    window.onload = function() {
-      const panelSubcategorias = document.getElementById('panelSubcategorias');
-      const panelGrupos = document.getElementById('panelGrupos');
-      panelSubcategorias.classList.add('oculta');
-      panelGrupos.classList.add('oculta');
+   window.onload = function() {
+  const panelSubcategorias = document.getElementById('panelSubcategorias');
+  const panelGrupos = document.getElementById('panelGrupos');
+  panelSubcategorias.classList.add('oculta');
+  panelGrupos.classList.add('oculta');
 
-      const primerBtn = document.querySelector('.btn-grupo');
-      if (primerBtn) {
-        mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
-      }
-      document.getElementById('toggleCarrito').onclick = function() {
-        const carritoDiv = document.getElementById('carrito');
-        carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
-      };
-    };
+  const primerBtn = document.querySelector('.btn-grupo');
+  if (primerBtn) {
+    mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
+  }
+
+  const toggleCarrito = document.getElementById('toggleCarrito');
+  const carritoDiv = document.getElementById('carrito');
+
+  // Clic para abrir/cerrar
+  toggleCarrito.onclick = function() {
+    carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+  };
+
+  // Hover para previsualizar (solo desktop)
+  toggleCarrito.addEventListener('mouseenter', () => mostrarCarrito(true));
+  toggleCarrito.addEventListener('mouseleave', () => mostrarCarrito(false));
+
+  function mostrarCarrito(visible) {
+    carritoDiv.style.display = visible ? 'block' : 'none';
+  }
+};
+
     let carrito = [];
 
     function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
@@ -710,6 +723,15 @@ function scrollPanel(panelId, direccion) {
   if (panel) {
     panel.scrollBy({ left: direccion * desplazamiento, behavior: 'smooth' });
   }
+}
+function actualizarVisibilidadScroll(panelId, btnIzqId, btnDerId) {
+  const panel = document.getElementById(panelId);
+  const btnIzq = document.getElementById(btnIzqId);
+  const btnDer = document.getElementById(btnDerId);
+
+  const hayOverflow = panel.scrollWidth > panel.clientWidth;
+  btnIzq.style.display = hayOverflow ? 'inline-block' : 'none';
+  btnDer.style.display = hayOverflow ? 'inline-block' : 'none';
 }
 
 function eliminarProducto(id_base, talle, event) {
