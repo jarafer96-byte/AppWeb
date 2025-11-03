@@ -27,13 +27,16 @@
 
   <style>
     body {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
       background-size: cover;
       background-repeat: no-repeat;
       background-attachment: fixed;
       background-position: center;
       padding-top: 70px;
+    }
+    h1, h2, h3, .btn, .card {
+      font-family: {{ config.fuente | safe }};
     }
     body::before {
       content: "";
@@ -456,7 +459,7 @@
   </button>
 
   <div class="text-center my-3">
-    <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
+    <<img src="{{ url_for('static', filename='img/' + config.logo) }}"
          alt="Logo"
          class="img-fluid logo">
   </div>
