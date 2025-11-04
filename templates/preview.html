@@ -473,6 +473,55 @@
       50% { background-position: 100% 100%; }
       100% { background-position: 0% 0%; }
     }
+    /* --- Ajuste final para habilitar scroll horizontal --- */
+.panel-grupos, .panel-subcategorias {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between; /* deja espacio para las < y > */
+  overflow: hidden !important;
+  position: fixed;
+  white-space: nowrap;
+  padding: 0 30px; /* espacio lateral para los botones de scroll */
+  text-align: initial !important; /* evita centrado que aplasta botones */
+  max-height: none !important; /* desactiva límite vertical */
+  overflow-y: visible !important; /* cancela desplazamiento vertical */
+}
+
+.panel-grupos .panel-contenido,
+.panel-subcategorias .panel-contenido {
+  display: inline-flex !important;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.panel-grupos .panel-contenido::-webkit-scrollbar,
+.panel-subcategorias .panel-contenido::-webkit-scrollbar {
+  display: none;
+}
+
+.panel-grupos .btn-grupo,
+.panel-subcategorias .btn-grupo {
+  flex: 0 0 auto; /* evita que los botones se achiquen */
+}
+
+.scroll-btn {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: white;
+  font-size: 24px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+  display: none; /* visible dinámicamente por JS */
+}
+
+.scroll-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
   </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
