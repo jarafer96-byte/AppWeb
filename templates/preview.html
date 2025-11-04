@@ -621,23 +621,13 @@
         panel.appendChild(btn);
         console.log("Creando botón para subcategoría:", sub);
       });
-
-      if (!auto) {
-  panel.classList.remove('oculta');
-  bloques?.forEach(bloque => {
-    bloque.style.display = 'block';
-  });
-
-  if (subcategorias.length > 0) {
-    filtrarSubcategoria(nombre, subcategorias[0]); // ✅ ya lo tenés
-  }
-} else {
-  panel.classList.add('oculta');
-  if (subcategorias.length > 0) {
-    filtrarSubcategoria(nombre, subcategorias[0]); // ✅ también lo tenés
-  }
-}
-
+      panel.classList.remove('oculta'); // Siempre mostrar el panel
+      bloques?.forEach(bloque => {
+      bloque.style.display = 'block'; // Mostrar todos los bloques antes de filtrar
+       });
+      if (subcategorias.length > 0) {
+        filtrarSubcategoria(nombre, subcategorias[0]); // Aplicar filtro
+      }
     }
     function filtrarSubcategoria(grupo, subgrupo) {
   const grupoDiv = document.getElementById('grupo_' + grupo);
