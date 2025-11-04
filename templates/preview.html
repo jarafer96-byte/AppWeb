@@ -154,21 +154,18 @@
     }
     .panel-grupos {
       display: flex;
-      align-items: center;
-      overflow-x: auto;
-      overflow-y: hidden;
-      white-space: nowrap;
-      scroll-behavior: smooth;
-      padding: 6px 12px;
-      gap: 8px;
-      position: fixed;
-      left: 0;
-      right: 0;
-      z-index: 906;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(6px);
-      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+  gap: 8px;
+  padding: 0 8px;
+  max-width: 90vw;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  position: relative;
+  z-index: auto;
     }
     .panel-grupos button {
       font-family: {{ config.fuente | safe }};
@@ -376,22 +373,19 @@
       border: none;
     }
     .panel-subcategorias {
-      position: fixed;
-      max-height: 50vh;
-      overflow-x: auto;
-      overflow-y: hidden;
-      white-space: nowrap;
       display: flex;
-      align-items: center;
-      gap: 8px;
-      left: 0;
-      right: 0;
-      z-index: 908;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(6px);
-      padding: 6px 12px;
-      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+  gap: 8px;
+  padding: 0 8px;
+  max-width: 90vw;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  position: relative;
+  z-index: auto;
     }
     .panel-subcategorias button {
       font-family: {{ config.fuente | safe }};
@@ -418,6 +412,22 @@
   .logo {
     height: 140px !important;
   }
+  .flecha-scroll {
+  background: none;
+  border: none;
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  padding: 0 12px;
+  transition: transform 0.2s ease;
+  user-select: none;
+}
+
+.flecha-scroll:hover {
+  transform: scale(1.2);
+}
+
   .barra-navegacion {
     padding: 8px 10px;
     gap: 8px;
@@ -468,7 +478,7 @@
 
   <!-- 🔧 Barra de grupos con flechas -->
   <div class="d-flex align-items-center">
-    <button id="btnGruposIzq" onclick="scrollPanel('panelGrupos', -1)" class="btn btn-sm btn-light me-2" style="display: none;">‹</button>
+    <button id="btnGruposIzq" class="flecha-scroll" onclick="scrollPanel('panelGrupos', -1)">‹</button>
     <div id="panelGrupos" class="panel-grupos oculto">
       {% for grupo in grupos.keys() %}
         <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
@@ -476,16 +486,16 @@
         </button>
       {% endfor %}
     </div>
-    <button id="btnGruposDer" onclick="scrollPanel('panelGrupos', 1)" class="btn btn-sm btn-light ms-2" style="display: none;">›</button>
+    <button id="btnGruposDer" class="flecha-scroll" onclick="scrollPanel('panelGrupos', 1)">›</button>
   </div>
 
   <!-- 🔧 Barra de subcategorías con flechas -->
-  <div class="d-flex align-items-center">
-    <button id="btnSubgruposIzq" onclick="scrollPanel('panelSubcategorias', -1)" class="btn btn-sm btn-light me-2" style="display: none;">‹</button>
+  <div class="d-flex align-items-center">    
+  <button id="btnSubgruposIzq" class="flecha-scroll" onclick="scrollPanel('panelSubcategorias', -1)">‹</button>
     <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
-    <button id="btnSubgruposDer" onclick="scrollPanel('panelSubcategorias', 1)" class="btn btn-sm btn-light ms-2" style="display: none;">›</button>
+     <button id="btnSubgruposDer" class="flecha-scroll" onclick="scrollPanel('panelSubcategorias', 1)">›</button>
+    </div>
   </div>
-</div>
 
 
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
