@@ -968,6 +968,21 @@ carrito.forEach(item => {
       renderizarProductos(window._gruposProductos);
     }
   });
+  document.addEventListener('click', function(event) {
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
+
+  const esClickDentroGrupos = panelGrupos.contains(event.target);
+  const esClickDentroSub = panelSub.contains(event.target);
+  const esBotonGrupo = event.target.classList.contains('btn-grupo');
+  const esBotonNavegacion = event.target.closest('.barra-navegacion');
+
+  // Si el clic no fue dentro de los paneles ni en botones de grupo o navegación
+  if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
+    panelGrupos.classList.add('oculta');
+    panelSub.classList.add('oculta');
+  }
+});
 </script>
 </body>
 </html>
