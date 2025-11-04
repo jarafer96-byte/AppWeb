@@ -983,6 +983,27 @@ carrito.forEach(item => {
     panelSub.classList.add('oculta');
   }
 });
+  document.getElementById('ordenPrecio').addEventListener('change', function () {
+  const orden = this.value;
+  const grupoActivo = document.querySelector('.grupo-section.active');
+  if (!grupoActivo) return;
+
+  const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
+  bloques.forEach(bloque => {
+    const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
+    const contenedor = bloque.querySelector('.row');
+    if (!contenedor) return;
+
+    productos.sort((a, b) => {
+      const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent) || 0;
+      const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent) || 0;
+      return orden === 'asc' ? precioA - precioB : precioB - precioA;
+    });
+
+    contenedor.innerHTML = '';
+    productos.forEach(p => contenedor.appendChild(p));
+  });
+});
 </script>
 </body>
 </html>
