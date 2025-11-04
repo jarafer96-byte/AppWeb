@@ -258,6 +258,49 @@
       background-color: white;
       color: black;
     }
+    .btn-grupo {
+      position: relative;
+      padding: 8px 16px;
+      margin: 5px;
+      border-radius: 20px;
+      font-weight: bold;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 6px rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    .modo-claro .btn-grupo {
+      background-color: transparent;
+      color: white;
+      border: none;
+    }
+    .modo-oscuro .btn-grupo {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 4px rgba(255,255,255,0.1);
+    }
+    .btn-grupo::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      z-index: -1;
+    }
+    .modo-claro .btn-grupo::before {
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 70%);
+    }
+    .modo-oscuro .btn-grupo::before {
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);
+    }
+    .btn-grupo:hover {
+      background-color: #fff;
+      color: None;
+      transform: scale(1.05);
+      box-shadow: 0 0 8px None;
+    }
     .grupo-section {
       display: none;
       min-height: 100vh;
