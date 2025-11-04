@@ -479,7 +479,7 @@
   <!-- 🔧 Barra de grupos con flechas -->
   <div class="d-flex align-items-center">
     <button id="btnGruposIzq" class="flecha-scroll" onclick="scrollPanel('panelGrupos', -1)">‹</button>
-    <div id="panelGrupos" class="panel-grupos oculto">
+    <div id="panelGrupos" class="panel-grupos oculto modo-libre">
       {% for grupo in grupos.keys() %}
         <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
           {{ grupo }}
@@ -492,7 +492,7 @@
   <!-- 🔧 Barra de subcategorías con flechas -->
   <div class="d-flex align-items-center">    
   <button id="btnSubgruposIzq" class="flecha-scroll" onclick="scrollPanel('panelSubcategorias', -1)">‹</button>
-    <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
+    <div id="panelSubcategorias" class="panel-subcategorias oculto modo-libre"></div>
      <button id="btnSubgruposDer" class="flecha-scroll" onclick="scrollPanel('panelSubcategorias', 1)">›</button>
     </div>
   </div>
@@ -848,31 +848,29 @@ carrito.forEach(item => {
       if (contacto) contacto.scrollIntoView({ behavior: 'auto' }); // Cambiado a 'auto'
     }
     function ajustarPosicionesPaneles() {
-      const panelGrupos = document.getElementById('panelGrupos');
-      const panelSub = document.getElementById('panelSubcategorias');
-      const barraNav = document.querySelector('.barra-navegacion');
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
 
-      if (!panelGrupos.classList.contains('oculta')) {
-        const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
-        const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
-        panelGrupos.style.top = alturaBarra + 'px';
-        panelGrupos.style.position = 'fixed';
-        panelGrupos.style.left = '0';
-        panelGrupos.style.right = '0';
-      }
-      if (!panelSub.classList.contains('oculta')) {
-        const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
-        const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
-        const margenAdicional = 19; // Margen para evitar superposiciones
-        const desplazamientoArriba = -20; // Ajuste para subir un poco si lo necesitas
-        panelSub.style.top = (alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba) + 'px';
-        panelSub.style.position = 'fixed';
-        panelSub.style.left = '0';
-        panelSub.style.right = '0';
-      } else {
-        panelSub.style.top = '100%';
-      }
-    }
+  // Panel de grupos: estilo limpio, no flotante
+  if (!panelGrupos.classList.contains('oculta')) {
+    panelGrupos.style.position = 'relative';
+    panelGrupos.style.top = 'auto';
+    panelGrupos.style.left = 'auto';
+    panelGrupos.style.right = 'auto';
+  }
+
+  // Panel de subcategorías: estilo limpio, no flotante
+  if (!panelSub.classList.contains('oculta')) {
+    panelSub.style.position = 'relative';
+    panelSub.style.top = 'auto';
+    panelSub.style.left = 'auto';
+    panelSub.style.right = 'auto';
+  } else {
+    panelSub.style.top = 'auto';
+  }
+}
+
+    
     // Recalcular posiciones al cargar y al cambiar el tamaño de la ventana
     window.addEventListener('load', ajustarPosicionesPaneles);
     window.addEventListener('resize', ajustarPosicionesPaneles);
