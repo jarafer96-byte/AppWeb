@@ -674,6 +674,7 @@ window.addEventListener('load', () => {
   </script>
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
+  const configWhatsApp = "{{ config.whatsapp }}"; // 👈 agregado para usar en las cards
 
   import {
     initializeApp
@@ -699,49 +700,42 @@ window.addEventListener('load', () => {
     const db = getFirestore(app);
     const productosRef = collection(db, "productos");
 
+    // Comprobación inicial
     getDocs(productosRef)
       .then(snapshot => {
-        console.log("Documentos recibidos:", snapshot.size);
+        console.log("📦 Documentos iniciales:", snapshot.size);
       })
       .catch(error => {
         console.error("❌ Error al cargar productos:", error);
       });
 
+    // Escucha en tiempo real
     onSnapshot(productosRef, snapshot => {
       const grupos = {};
 
-      onSnapshot(productosRef, snapshot => {
-  const grupos = {};
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data.grupo || !data.grupo.trim()) return;
 
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (!data.grupo || !data.grupo.trim()) return;
+        const grupo = data.grupo.trim();
+        const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
 
-    const grupo = data.grupo.trim();
-    const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
+        if (!grupos[grupo]) grupos[grupo] = {};
+        if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
+        grupos[grupo][subgrupo].push({ ...data, id: doc.id });
+      });
 
-    if (!grupos[grupo]) grupos[grupo] = {};
-    if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
-    grupos[grupo][subgrupo].push({ ...data, id: doc.id });
-  });
+      window._gruposProductos = grupos;
 
-  window._gruposProductos = grupos;
+      // Renderiza los productos
+      renderizarProductos(grupos);
+      actualizarCarrito();
+      actualizarScrollButtons();
+      ajustarPosicionesPaneles();
 
-  // Renderiza todos los productos
-  renderizarProductos(grupos);
-
-  // Sincroniza precios o items ya cargados
-  actualizarCarrito();
-
-  // 🔹 Asegura que las flechas < > aparezcan si el contenido desborda
-  actualizarScrollButtons();
-
-  // 🔹 Ajusta la posición visual de los paneles
-  ajustarPosicionesPaneles();
-
-  console.log("🔥 Productos actualizados desde Firestore:", snapshot.size);
-});
-
+      console.log("🔥 Productos actualizados desde Firestore:", snapshot.size);
+    });
+  }
 
   function renderizarProductos(grupos) {
     const contenedorPrincipal = document.getElementById("contenedor-grupos");
@@ -772,6 +766,7 @@ window.addEventListener('load', () => {
         productos.forEach((producto, i) => {
           const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
           producto.id_base = idBase;
+
           const tarjeta = document.createElement("div");
           tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
           tarjeta.innerHTML = `
@@ -787,8 +782,7 @@ window.addEventListener('load', () => {
                     <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
                       ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
                     </select>
-                  </div>
-                ` : ''}
+                  </div>` : ''}
                 <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
                 <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                   <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
@@ -811,7 +805,7 @@ window.addEventListener('load', () => {
       contenedorPrincipal.appendChild(grupoDiv);
     });
 
-    // Activar primer grupo y subgrupo
+    // Activar primer grupo y subgrupo automáticamente
     setTimeout(() => {
       const grupoKeys = Object.keys(grupos);
       if (grupoKeys.length === 0) return;
@@ -822,26 +816,26 @@ window.addEventListener('load', () => {
 
       const subgrupos = Object.keys(grupos[primerGrupoId]);
       const primerSubgrupoNombre = subgrupos[0];
-
       if (primerGrupoId && primerSubgrupoNombre) {
         filtrarSubcategoria(primerGrupoId, primerSubgrupoNombre);
       }
     }, 100);
   }
-  document.addEventListener('click', function(event) {
-  const carritoDiv = document.getElementById('carrito');
-  const toggleBtn = document.getElementById('toggleCarrito');
 
-  // Si el carrito está visible y el clic fue fuera del carrito y del botón
-  if (
-    carritoDiv.style.display === 'block' &&
-    !carritoDiv.contains(event.target) &&
-    !toggleBtn.contains(event.target)
-  ) {
-    carritoDiv.style.display = 'none';
-  }
-});
+  // 🔹 Cierra el carrito al hacer clic fuera
+  document.addEventListener('click', event => {
+    const carritoDiv = document.getElementById('carrito');
+    const toggleBtn = document.getElementById('toggleCarrito');
+    if (
+      carritoDiv.style.display === 'block' &&
+      !carritoDiv.contains(event.target) &&
+      !toggleBtn.contains(event.target)
+    ) {
+      carritoDiv.style.display = 'none';
+    }
+  });
 
+  // 🔹 Reordenar productos por precio
   document.getElementById("ordenPrecio")?.addEventListener("change", () => {
     if (window._gruposProductos) {
       renderizarProductos(window._gruposProductos);
