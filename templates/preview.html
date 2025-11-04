@@ -639,18 +639,23 @@
       }
     }
     function filtrarSubcategoria(grupo, subgrupo) {
-      const grupoDiv = document.getElementById('grupo_' + grupo);
-      if (!grupoDiv) return;
+  const grupoDiv = document.getElementById('grupo_' + grupo);
+  if (!grupoDiv) return;
 
-      const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
-      bloques.forEach(bloque => {
-        const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
-        const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
-        bloque.style.display = mostrar ? 'block' : 'none';
-      });
+  const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
+  bloques.forEach(bloque => {
+    const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
+    const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
+    bloque.style.display = mostrar ? 'block' : 'none';
+  });
 
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    }
+  // Aplicar ordenamiento si hay uno seleccionado
+  const orden = document.getElementById('ordenPrecio')?.value;
+  if (orden) ordenarProductosPorPrecio(orden);
+
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
     window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
   const panelGrupos = document.getElementById('panelGrupos');
@@ -698,6 +703,31 @@ function eliminarProducto(id_base, talle, event) {
   actualizarCarrito();
 }
 
+function ordenarProductosPorPrecio(orden) {
+  const grupoActivo = document.querySelector('.grupo-section.active');
+  if (!grupoActivo) return;
+
+  const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
+  bloques.forEach(bloque => {
+    if (bloque.style.display === 'none') return; // solo ordenar el visible
+
+    const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
+    const contenedor = bloque.querySelector('.row');
+    if (!contenedor) return;
+
+    productos.sort((a, b) => {
+      const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent) || 0;
+      const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent) || 0;
+      return orden === 'asc' ? precioA - precioB : precioB - precioA;
+    });
+
+    contenedor.innerHTML = '';
+    productos.forEach(p => contenedor.appendChild(p));
+  });
+}
+document.getElementById('ordenPrecio').addEventListener('change', function () {
+  ordenarProductosPorPrecio(this.value);
+});
 
     function vaciarCarrito() {
       carrito = [];
