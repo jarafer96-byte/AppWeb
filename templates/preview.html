@@ -26,503 +26,240 @@
   {% endif %}
 
   <style>
-    body {
-      font-family: {{ config.fuente | safe }};
-      background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-attachment: fixed;
-      background-position: center;
-      padding-top: 70px;
-    }
-    h1, h2, h3, .btn, .card {
-      font-family: {{ config.fuente | safe }};
-    }
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: -1;
-    }
-    .fondo-animado {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      z-index: -2;
-      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 40%),
-                  radial-gradient(circle at 80% 70%, rgba(255,255,255,0.06), transparent 40%);
-      animation: moverFondo 40s ease-in-out infinite;
-      background-size: 200% 200%;
-      pointer-events: none;
-    }
-    html {
-      scroll-behavior: auto;
-    }
-    .card {
-      opacity: 0;
-      transform: translateY(20px);
-      animation: fadeInUp 0.6s ease forwards;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      border-radius: 12px;
-      overflow: hidden;
-      will-change: transform, box-shadow;
-      padding: 12px;
-    }
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-    }
-    .modo-oscuro .card:hover {
-      box-shadow: 0 8px 20px rgba(255,255,255,0.2);
-    }
-    .modo-claro .card:hover {
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    }
-    .card-img-top {
-      width: 100%;
-      max-width: 300px;
-      height: auto;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .card-body {
-      padding: 10px;
-    }
-    .card-title {
-      font-size: 1rem;
-    }
-    .card-text {
-      font-size: 0.9rem;
-    }
-    .modo-claro .card {
-      background-color: #fff;
-      color: #333;
-      border: none;
-    }
-    .modo-oscuro .card {
-      background-color: rgba(0,0,0,0.6);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-    .color-principal {
-      color: None;
-    }
-    .bg-principal {
-      background-color: None;
-    }
-    .modo-oscuro {
-      color: white;
-    }
-    .modo-claro {
-      color: #333;
-    }
+  body {
+    font-family: {{ config.fuente | safe }};
+    background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: center;
+    padding-top: 70px;
+  }
+
+  h1, h2, h3, .btn, .card {
+    font-family: {{ config.fuente | safe }};
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: -1;
+  }
+
+  .fondo-animado {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: -2;
+    background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(255,255,255,0.06), transparent 40%);
+    animation: moverFondo 40s ease-in-out infinite;
+    background-size: 200% 200%;
+    pointer-events: none;
+  }
+
+  html { scroll-behavior: auto; }
+
+  /* --- Tarjetas de productos --- */
+  .card {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s ease forwards;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 12px;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+  .modo-oscuro .card:hover {
+    box-shadow: 0 8px 20px rgba(255,255,255,0.2);
+  }
+  .modo-claro .card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-img-top {
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .card-body { padding: 10px; }
+  .card-title { font-size: 1rem; }
+  .card-text { font-size: 0.9rem; }
+
+  .modo-claro .card {
+    background-color: #fff;
+    color: #333;
+    border: none;
+  }
+
+  .modo-oscuro .card {
+    background-color: rgba(0,0,0,0.6);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  /* --- Navbar --- */
+  .barra-navegacion {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 12px 20px;
+    box-shadow: 0 2px 6px rgba(255,255,255,0.1);
+  }
+
+  .barra-navegacion button {
+    font-family: {{ config.fuente | safe }};
+    font-weight: 600;
+    font-size: 16px;
+    padding: 10px 20px;
+    border-radius: 30px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: white;
+    box-shadow: 0 0 6px rgba(255,255,255,0.2);
+    transition: all 0.3s ease;
+  }
+  .barra-navegacion button:hover {
+    background: rgba(255,255,255,0.15);
+    transform: scale(1.05);
+    box-shadow: 0 0 8px rgba(255,255,255,0.3);
+  }
+
+  .oculta { display: none !important; }
+
+  /* --- Botones de grupo --- */
+  .btn-grupo {
+    position: relative;
+    padding: 8px 16px;
+    margin: 5px;
+    border-radius: 20px;
+    font-weight: bold;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 6px rgba(255,255,255,0.3);
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .modo-oscuro .btn-grupo {
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 0 4px rgba(255,255,255,0.1);
+  }
+
+  .modo-claro .btn-grupo {
+    background-color: transparent;
+    border: none;
+  }
+
+  .btn-grupo:hover {
+    background-color: #fff;
+    color: black;
+    transform: scale(1.05);
+    box-shadow: 0 0 8px white;
+  }
+
+  /* --- Paneles horizontales con scroll --- */
+  .panel-grupos, .panel-subcategorias {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: fixed;
+    left: 0; right: 0;
+    z-index: 905;
+    white-space: nowrap;
+    padding: 6px 0;
+    gap: 4px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 2px 6px rgba(255,255,255,0.1);
+  }
+
+  .panel-subcategorias { z-index: 908; }
+
+  .panel-grupos .panel-contenido,
+  .panel-subcategorias .panel-contenido {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+  }
+
+  .panel-grupos .panel-contenido::-webkit-scrollbar,
+  .panel-subcategorias .panel-contenido::-webkit-scrollbar {
+    display: none;
+  }
+
+  .panel-grupos .btn-grupo,
+  .panel-subcategorias .btn-grupo {
+    flex: 0 0 auto;
+  }
+
+  .scroll-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    font-size: 24px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    display: none; /* visible dinámicamente */
+  }
+
+  .scroll-btn:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  /* --- Animaciones y misceláneos --- */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes moverFondo {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 600px) {
+    .logo { height: 140px !important; }
     .barra-navegacion {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(6px);
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      padding: 12px 20px;
-      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+      padding: 8px 10px;
+      gap: 8px;
     }
     .barra-navegacion button {
-      font-family: {{ config.fuente | safe }};
-      font-weight: 600;
-      font-size: 16px;
-      padding: 10px 20px;
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.05);
-      color: white;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
-      transition: all 0.3s ease;
-    }
-    .barra-navegacion button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(1.05);
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-    }
-    .barra-wrapper {
-      z-index: 1000;
-    }
-    .panel-grupos {
-      position: fixed;
-      max-height: 50vh; /* Altura máxima global */
-      overflow-y: auto; /* Desplazamiento vertical global */
-      left: 0;
-      right: 0;
-      z-index: 906;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(6px);
-      padding: 1px 0;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
-    }
-    .panel-grupos button {
-      font-family: {{ config.fuente | safe }};
-      font-weight: 600;
-      margin: 6px;
-      padding: 2px 8px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 30px;
-      background: rgba(255, 255, 255, 0.05);
-      color: white;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .panel-grupos button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(1.05);
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-    }
-    .oculta {
-      display: none !important;
-    }
-    .logo { 
-      height: 10vw; 
-      max-height: 380px; 
-      filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
-      transition: filter 0.3s ease;
-      animation: pulsoLogo 4s ease-in-out infinite;
-    }
-    @keyframes pulsoLogo {
-      0%, 100% {
-        filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
-      }
-      50% {
-        filter: brightness(1.8) contrast(1.3) drop-shadow(0 0 20px None);
-      }
-    }
-    .descripcion-emprendimiento {
-      background-color: rgba(0, 0, 0, 0.5);
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
-      display: inline-block;
-      max-width: 800px;
-      white-space: pre-line;
-      text-align: center;
-      text-indent: 20px;
-      font-size: 16px;
-      line-height: 1.6;
-      box-shadow: 0 0 6px rgba(255,255,255,0.3);
-    }
-    .btn-grupo {
-      position: relative;
-      padding: 8px 16px;
-      margin: 5px;
-      border-radius: 20px;
-      font-weight: bold;
-      background-color: rgba(0, 0, 0, 0.5);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 0 6px rgba(255,255,255,0.3);
-      transition: all 0.3s ease;
-      overflow: hidden;
-    }
-    .modo-claro .btn-grupo {
-      background-color: transparent;
-      color: white;
-      border: none;
-    }
-    .modo-oscuro .btn-grupo {
-      background-color: rgba(255, 255, 255, 0.05);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 0 4px rgba(255,255,255,0.1);
-    }
-    .btn-grupo::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: 20px;
-      z-index: -1;
-    }
-    .modo-claro .btn-grupo::before {
-      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 70%);
-    }
-    .modo-oscuro .btn-grupo::before {
-      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);
-    }
-    .btn-grupo:hover {
-      background-color: #fff;
-      color: None;
-      transform: scale(1.05);
-      box-shadow: 0 0 8px None;
-    }
-    .btn-grupo.active {
-      box-shadow: none;
-    }
-    .btn-whatsapp {
-      background-color: #25D366;
-      border: none;
-      padding: 8px 16px;
-      color: white;
-      border-radius: 5px;
       font-size: 14px;
+      padding: 8px 15px;
     }
-    .btn-volver-arriba {
-      background-color: white;
-      color: black;
-      border: none;
-      font-size: 20px;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn-volver-arriba:hover {
-      background-color: #f0f0f0;
-      transform: scale(1.1);
-    }
-    .btn-volver-arriba:focus,
-    .btn-volver-arriba:active,
-    .btn-volver-arriba:visited {
-      outline: none;
-      box-shadow: none;
-      background-color: white;
-      color: black;
-    }
-    .grupo-section {
-      display: none;
-      min-height: 100vh;
-    }
-    .grupo-section.active {
-      display: block !important;
-    }
-    .social-icons {
-      margin-top: 40px;
-      text-align: center;
-    }
-    .social-icons img {
-      width: 40px;
-      margin: 0 10px;
-      transition: transform 0.3s ease;
-      filter: drop-shadow(0 0 3px white);
-    }
-    .social-icons img:hover {
-      transform: scale(1.1);
-      filter: drop-shadow(0 0 0 transparent);
-    }
-    .bloque-ubicacion {
-      background-color: rgba(0, 0, 0, 0.5);
-      color: white;
-      padding: 12px 16px;
-      border-radius: 10px;
-      text-align: center;
-      max-width: 600px;
-      margin: 20px auto 0;
-      box-shadow: 0 0 6px rgba(255,255,255,0.3);
-    }
-    #carrito {
-      position: fixed;
-      bottom: 80px;
-      right: 20px;
-      padding: 15px;
-      border-radius: 10px;
-      width: 300px;
-      z-index: 999;
-      display: none;
-    }
-    .modo-oscuro #carrito {
-      background-color: rgba(0,0,0,0.85);
-      color: white;
-      border: 1px solid white;
-      box-shadow: 0 0 10px white;
-    }
-    .modo-claro #carrito {
-      background-color: #fff;
-      color: #333;
-      border: 1px solid #ccc;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    }
-    #toggleCarrito {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1000;
-      padding: 10px 14px;
-      border-radius: 50px;
-      font-weight: bold;
-      box-shadow: 0 0 5px white;
-    }
-    .modo-oscuro #toggleCarrito {
-      background-color: transparent;
-      color: black;
-      border: none;
-    }
-    .modo-claro #toggleCarrito {
-      background-color: transparent;
-      color: white;
-      border: none;
-    }
-    .panel-subcategorias {
-      position: fixed;
-      max-height: 50vh; /* Altura máxima global */
-      overflow-y: auto; /* Desplazamiento vertical global */
-      left: 0;
-      right: 0;
-      z-index: 908;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(6px);
-      padding: 1px 0;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
-    }
+    .panel-grupos button,
     .panel-subcategorias button {
-      font-family: {{ config.fuente | safe }};
-      font-weight: 600;
-      margin: 6px;
-      padding: 1px 8px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 30px;
-      background: rgba(255, 255, 255, 0.05);
-      color: white;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
-      cursor: pointer;
-      transition: all 0.3s ease;
+      font-size: 13px;
+      padding: 1px 6px;
+      border-radius: 8px;
     }
-    .panel-grupos, .panel-subcategorias {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: fixed;
-  white-space: nowrap;
-}
-
-.panel-grupos .panel-contenido,
-.panel-subcategorias .panel-contenido {
-  display: inline-flex;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  scrollbar-width: none; /* oculta scrollbar */
-}
-
-.panel-grupos .panel-contenido::-webkit-scrollbar,
-.panel-subcategorias .panel-contenido::-webkit-scrollbar {
-  display: none;
-}
-
-.scroll-btn {
-  background: rgba(255,255,255,0.1);
-  border: none;
-  color: white;
-  font-size: 24px;
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 50%;
-  display: none; /* se muestra dinámicamente */
-}
-
-.scroll-btn:hover {
-  background: rgba(255,255,255,0.3);
-}
-
-    .panel-subcategorias button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(1.05);
-    }
-    @media (max-width: 600px) {
-  .logo {
-    height: 140px !important;
   }
-  .barra-navegacion {
-    padding: 8px 10px;
-    gap: 8px;
-  }
-  .barra-navegacion button {
-    font-size: 14px;
-    padding: 8px 15px;
-  }
-  .panel-grupos {
-    padding: 1px 0;
-    max-height: 50vh; /* Altura máxima para que sea desplazable si hay muchos botones */
-    overflow-y: auto; /* Hace el panel desplazable verticalmente */
-  }
-  .panel-grupos button {
-    font-size: 13px;
-    padding: 1px 6px;
-    border-radius: 8px;
-   }
-  .panel-subcategorias {
-    padding: 1px 0;
-    max-height: 50vh; /* Altura máxima para el panel de subcategorías */
-    overflow-y: auto; /* Hace el panel desplazable verticalmente */
-  }
-  .panel-subcategorias button {
-    font-size: 13px;
-    padding: 1px 6px;
-    border-radius: 8px;
-  }
-}
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes moverFondo {
-      0% { background-position: 0% 0%; }
-      50% { background-position: 100% 100%; }
-      100% { background-position: 0% 0%; }
-    }
-    /* --- Ajuste final para habilitar scroll horizontal --- */
-.panel-grupos, .panel-subcategorias {
-  display: flex !important;
-  align-items: center;
-  justify-content: space-between; /* deja espacio para las < y > */
-  overflow: hidden !important;
-  position: fixed;
-  white-space: nowrap;
-  padding: 0 30px; /* espacio lateral para los botones de scroll */
-  text-align: initial !important; /* evita centrado que aplasta botones */
-  max-height: none !important; /* desactiva límite vertical */
-  overflow-y: visible !important; /* cancela desplazamiento vertical */
-}
+</style>
 
-.panel-grupos .panel-contenido,
-.panel-subcategorias .panel-contenido {
-  display: inline-flex !important;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-}
-
-.panel-grupos .panel-contenido::-webkit-scrollbar,
-.panel-subcategorias .panel-contenido::-webkit-scrollbar {
-  display: none;
-}
-
-.panel-grupos .btn-grupo,
-.panel-subcategorias .btn-grupo {
-  flex: 0 0 auto; /* evita que los botones se achiquen */
-}
-
-.scroll-btn {
-  background: rgba(255,255,255,0.1);
-  border: none;
-  color: white;
-  font-size: 24px;
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 50%;
-  display: none; /* visible dinámicamente por JS */
-}
-
-.scroll-btn:hover {
-  background: rgba(255,255,255,0.3);
-}
-
-  </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
   <div class="barra-wrapper">
@@ -922,7 +659,17 @@ function actualizarScrollButtons() {
 }
 
 window.addEventListener('resize', actualizarScrollButtons);
-window.addEventListener('load', actualizarScrollButtons);
+window.addEventListener('load', () => {
+  actualizarScrollButtons();
+
+  // 👇 Recalcular visibilidad de las flechas cuando se cambia grupo
+  document.querySelectorAll('.btn-grupo').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setTimeout(actualizarScrollButtons, 300);
+    });
+  });
+});
+
 
   </script>
   <script type="module">
