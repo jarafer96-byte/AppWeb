@@ -389,6 +389,44 @@
       cursor: pointer;
       transition: all 0.3s ease;
     }
+    .panel-grupos, .panel-subcategorias {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: fixed;
+  white-space: nowrap;
+}
+
+.panel-grupos .panel-contenido,
+.panel-subcategorias .panel-contenido {
+  display: inline-flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none; /* oculta scrollbar */
+}
+
+.panel-grupos .panel-contenido::-webkit-scrollbar,
+.panel-subcategorias .panel-contenido::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-btn {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: white;
+  font-size: 24px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+  display: none; /* se muestra dinámicamente */
+}
+
+.scroll-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
     .panel-subcategorias button:hover {
       background: rgba(255, 255, 255, 0.15);
       transform: scale(1.05);
@@ -443,16 +481,25 @@
       <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
       <button id="btnContacto" onclick="irAContacto()">Contacto</button>
     </nav>
-    <div id="panelGrupos" class="panel-grupos oculto">
-      {% for grupo in grupos.keys() %}
-        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
-          {{ grupo }}
-        </button>
-      {% endfor %}
-    </div>
+     <div id="panelGrupos" class="panel-grupos oculto">
+      <button class="scroll-btn left" onclick="scrollPanel('panelGrupos', -1)">&#8249;</button>
+     <div class="panel-contenido">
+       {% for grupo in grupos.keys() %}
+         <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
+           {{ grupo }}
+         </button>
+       {% endfor %}
+     </div>
+      <button class="scroll-btn right" onclick="scrollPanel('panelGrupos', 1)">&#8250;</button>
+     </div>
   </div>
 
-  <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
+  <div id="panelSubcategorias" class="panel-subcategorias oculta">
+    <button class="scroll-btn left" onclick="scrollPanel('panelSubcategorias', -1)">&#8249;</button>
+    <div class="panel-contenido"></div>
+    <button class="scroll-btn right" onclick="scrollPanel('panelSubcategorias', 1)">&#8250;</button>
+  </div>
+
 
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
@@ -608,6 +655,8 @@
       const subcategorias = subcategoriasPorGrupo[nombre] || [];
       const panel = document.getElementById('panelSubcategorias');
       panel.innerHTML = '';
+      actualizarScrollButtons();
+
 
       const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
 
@@ -637,6 +686,7 @@
         }
       }
     }
+
     function filtrarSubcategoria(grupo, subgrupo) {
       const grupoDiv = document.getElementById('grupo_' + grupo);
       if (!grupoDiv) return;
@@ -802,6 +852,29 @@ carrito.forEach(item => {
         setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de mostrar subcategorías
       });
     });
+    function scrollPanel(id, dir) {
+  const panel = document.querySelector(`#${id} .panel-contenido`);
+  if (!panel) return;
+  const amount = panel.clientWidth * 0.8;
+  panel.scrollBy({ left: dir * amount, behavior: 'smooth' });
+}
+
+function actualizarScrollButtons() {
+  ['panelGrupos', 'panelSubcategorias'].forEach(id => {
+    const panel = document.querySelector(`#${id} .panel-contenido`);
+    const leftBtn = document.querySelector(`#${id} .scroll-btn.left`);
+    const rightBtn = document.querySelector(`#${id} .scroll-btn.right`);
+    if (!panel || !leftBtn || !rightBtn) return;
+
+    const necesitaScroll = panel.scrollWidth > panel.clientWidth + 10;
+    leftBtn.style.display = necesitaScroll ? 'inline-block' : 'none';
+    rightBtn.style.display = necesitaScroll ? 'inline-block' : 'none';
+  });
+}
+
+window.addEventListener('resize', actualizarScrollButtons);
+window.addEventListener('load', actualizarScrollButtons);
+
   </script>
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
