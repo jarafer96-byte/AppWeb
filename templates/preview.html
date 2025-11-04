@@ -446,7 +446,7 @@
     </nav>
     <div id="panelGrupos" class="panel-grupos oculto">
       {% for grupo in grupos.keys() %}
-        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event, true)">
+        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
           {{ grupo }}
         </button>
       {% endfor %}
