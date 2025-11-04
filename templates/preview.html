@@ -1,4 +1,6 @@
 
+
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -621,45 +623,50 @@
         panel.appendChild(btn);
         console.log("Creando botón para subcategoría:", sub);
       });
-      panel.classList.remove('oculta'); // Siempre mostrar el panel
-      bloques?.forEach(bloque => {
-      bloque.style.display = 'block'; // Mostrar todos los bloques antes de filtrar
-       });
-      if (subcategorias.length > 0) {
-        filtrarSubcategoria(nombre, subcategorias[0]); // Aplicar filtro
+
+      if (!auto) {
+        panel.classList.remove('oculta');
+        bloques?.forEach(bloque => {
+          bloque.style.display = 'block';
+        });
+
+        if (subcategorias.length > 0) {
+          filtrarSubcategoria(nombre, subcategorias[0]);
+        }
+      } else {
+        panel.classList.add('oculta');
+        if (subcategorias.length > 0) {
+          filtrarSubcategoria(nombre, subcategorias[0]);
+        }
       }
     }
     function filtrarSubcategoria(grupo, subgrupo) {
-  const grupoDiv = document.getElementById('grupo_' + grupo);
-  if (!grupoDiv) return;
+      const grupoDiv = document.getElementById('grupo_' + grupo);
+      if (!grupoDiv) return;
 
-  const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
-  bloques.forEach(bloque => {
-    const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
-    const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
-    bloque.style.display = mostrar ? 'block' : 'none';
-  });
+      const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
+      bloques.forEach(bloque => {
+        const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
+        const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
+        bloque.style.display = mostrar ? 'block' : 'none';
+      });
 
-  // Aplicar ordenamiento si hay uno seleccionado
-  const orden = document.getElementById('ordenPrecio')?.value;
-  if (orden) ordenarProductosPorPrecio(orden);
-
-  window.scrollTo({ top: 0, behavior: 'auto' });
-}
-
+      window.scrollTo({ top: window.scrollY, behavior: 'auto' }); // Evitar desplazamientos
+    }
     window.onload = function() {
       const panelSubcategorias = document.getElementById('panelSubcategorias');
       const panelGrupos = document.getElementById('panelGrupos');
       panelSubcategorias.classList.add('oculta');
       panelGrupos.classList.add('oculta');
 
-      const grupoKeys = Object.keys(subcategoriasPorGrupo);
-      if (grupoKeys.length > 0) {
-        const primerGrupo = grupoKeys[0].replace('_', ' ');
-        mostrarGrupo(primerGrupo, null, true); // Mostrar primer grupo y subgrupo automáticamente
-        const primerSubgrupo = subcategoriasPorGrupo[grupoKeys[0]][0].replace('_', ' ');
-        filtrarSubcategoria(primerGrupo, primerSubgrupo);
+      const primerBtn = document.querySelector('.btn-grupo');
+      if (primerBtn) {
+        mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
       }
+      document.getElementById('toggleCarrito').onclick = function() {
+        const carritoDiv = document.getElementById('carrito');
+        carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+      };
     };
 
     let carrito = [];
@@ -689,31 +696,6 @@ function eliminarProducto(id_base, talle, event) {
   actualizarCarrito();
 }
 
-function ordenarProductosPorPrecio(orden) {
-  const grupoActivo = document.querySelector('.grupo-section.active');
-  if (!grupoActivo) return;
-
-  const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
-  bloques.forEach(bloque => {
-    if (bloque.style.display === 'none') return; // solo ordenar el visible
-
-    const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
-    const contenedor = bloque.querySelector('.row');
-    if (!contenedor) return;
-
-    productos.sort((a, b) => {
-      const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent) || 0;
-      const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent) || 0;
-      return orden === 'asc' ? precioA - precioB : precioB - precioA;
-    });
-
-    contenedor.innerHTML = '';
-    productos.forEach(p => contenedor.appendChild(p));
-  });
-}
-document.getElementById('ordenPrecio').addEventListener('change', function () {
-  ordenarProductosPorPrecio(this.value);
-});
 
     function vaciarCarrito() {
       carrito = [];
@@ -772,27 +754,14 @@ carrito.forEach(item => {
   document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
 }
 
-   function mostrarTodos() {
+    function mostrarTodos() {
       const panelGrupos = document.getElementById('panelGrupos');
       const panelSub = document.getElementById('panelSubcategorias');
-      const btnProductos = document.getElementById('btnProductos');
 
       panelGrupos.classList.toggle('oculta');
+
       if (!panelSub.classList.contains('oculta')) {
         panelSub.classList.add('oculta');
-      }
-
-      if (!panelGrupos.classList.contains('oculta')) {
-        const grupoKeys = Object.keys(subcategoriasPorGrupo);
-        panelGrupos.innerHTML = ''; // Limpiar panel antes de agregar botones
-        grupoKeys.forEach(grupo => {
-          const btn = document.createElement('button');
-          btn.textContent = grupo.replace('_', ' ');
-          btn.className = 'btn-grupo';
-          btn.onclick = (e) => mostrarGrupo(grupo.replace('_', ' '), e);
-          panelGrupos.appendChild(btn);
-        });
-        actualizarScrollControles('panelGrupos');
       }
     }
     function irAContacto() {
