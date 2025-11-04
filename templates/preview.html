@@ -446,7 +446,7 @@
     </nav>
     <div id="panelGrupos" class="panel-grupos oculto">
       {% for grupo in grupos.keys() %}
-        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
+        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event, true)">
           {{ grupo }}
         </button>
       {% endfor %}
@@ -623,20 +623,21 @@
       });
 
       if (!auto) {
-        panel.classList.remove('oculta');
-        bloques?.forEach(bloque => {
-          bloque.style.display = 'block';
-        });
+  panel.classList.remove('oculta');
+  bloques?.forEach(bloque => {
+    bloque.style.display = 'block';
+  });
 
-        if (subcategorias.length > 0) {
-          filtrarSubcategoria(nombre, subcategorias[0]);
-        }
-      } else {
-        panel.classList.add('oculta');
-        if (subcategorias.length > 0) {
-          filtrarSubcategoria(nombre, subcategorias[0]);
-        }
-      }
+  if (subcategorias.length > 0) {
+    filtrarSubcategoria(nombre, subcategorias[0]); // ✅ ya lo tenés
+  }
+} else {
+  panel.classList.add('oculta');
+  if (subcategorias.length > 0) {
+    filtrarSubcategoria(nombre, subcategorias[0]); // ✅ también lo tenés
+  }
+}
+
     }
     function filtrarSubcategoria(grupo, subgrupo) {
   const grupoDiv = document.getElementById('grupo_' + grupo);
