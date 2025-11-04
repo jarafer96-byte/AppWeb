@@ -649,23 +649,28 @@
         bloque.style.display = mostrar ? 'block' : 'none';
       });
 
-      window.scrollTo({ top: window.scrollY, behavior: 'auto' }); // Evitar desplazamientos
+      window.scrollTo({ top: 0, behavior: 'auto' });
     }
     window.onload = function() {
-      const panelSubcategorias = document.getElementById('panelSubcategorias');
-      const panelGrupos = document.getElementById('panelGrupos');
-      panelSubcategorias.classList.add('oculta');
-      panelGrupos.classList.add('oculta');
+  const panelSubcategorias = document.getElementById('panelSubcategorias');
+  const panelGrupos = document.getElementById('panelGrupos');
+  panelSubcategorias.classList.add('oculta');
+  panelGrupos.classList.add('oculta');
 
-      const primerBtn = document.querySelector('.btn-grupo');
-      if (primerBtn) {
-        mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
-      }
-      document.getElementById('toggleCarrito').onclick = function() {
-        const carritoDiv = document.getElementById('carrito');
-        carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
-      };
-    };
+  const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
+  const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
+
+  if (primerGrupo && primerSub) {
+    mostrarGrupo(primerGrupo, null, true);
+    filtrarSubcategoria(primerGrupo, primerSub);
+  }
+
+  document.getElementById('toggleCarrito').onclick = function() {
+    const carritoDiv = document.getElementById('carrito');
+    carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+  };
+};
+
     let carrito = [];
 
     function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
