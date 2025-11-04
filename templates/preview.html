@@ -597,49 +597,37 @@
     document.getElementById('volverArriba').onclick = () => {
       window.scrollTo({ top: 0, behavior: 'auto' }); // Cambiado a 'auto' para evitar deslizamiento
     };
-    function mostrarGrupo(nombre, event, auto = false) {
-      const grupoActivo = document.getElementById('grupo_' + nombre);
-      document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
-      if (grupoActivo) {
-        grupoActivo.classList.add('active');
-        if (auto) grupoActivo.classList.add('initial-load');
-      }
+    function mostrarGrupo(nombre, event) {
+  const grupoActivo = document.getElementById('grupo_' + nombre);
+  document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active'));
+  if (grupoActivo) grupoActivo.classList.add('active');
 
-      document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
-      if (event?.target) event.target.classList.add('active');
+  document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
+  if (event?.target) event.target.classList.add('active');
 
-      const subcategorias = subcategoriasPorGrupo[nombre] || [];
-      const panel = document.getElementById('panelSubcategorias');
-      panel.innerHTML = '';
+  const subcategorias = subcategoriasPorGrupo[nombre] || [];
+  const panel = document.getElementById('panelSubcategorias');
+  panel.innerHTML = '';
 
-      const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
+  const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
 
-      subcategorias.forEach(sub => {
-        if (!sub || sub.trim().toLowerCase() === 'general') return;
-        const btn = document.createElement('button');
-        btn.textContent = sub;
-        btn.className = 'btn-grupo';
-        btn.onclick = () => filtrarSubcategoria(nombre, sub);
-        panel.appendChild(btn);
-        console.log("Creando botón para subcategoría:", sub);
-      });
+  subcategorias.forEach(sub => {
+    if (!sub || sub.trim().toLowerCase() === 'general') return;
+    const btn = document.createElement('button');
+    btn.textContent = sub;
+    btn.className = 'btn-grupo';
+    btn.onclick = () => filtrarSubcategoria(nombre, sub);
+    panel.appendChild(btn);
+  });
 
-      if (!auto) {
-        panel.classList.remove('oculta');
-        bloques?.forEach(bloque => {
-          bloque.style.display = 'block';
-        });
+  panel.classList.remove('oculta');
+  bloques?.forEach(bloque => bloque.style.display = 'block');
 
-        if (subcategorias.length > 0) {
-          filtrarSubcategoria(nombre, subcategorias[0]);
-        }
-      } else {
-        panel.classList.add('oculta');
-        if (subcategorias.length > 0) {
-          filtrarSubcategoria(nombre, subcategorias[0]);
-        }
-      }
-    }
+  if (subcategorias.length > 0) {
+    filtrarSubcategoria(nombre, subcategorias[0]);
+  }
+}
+
     function filtrarSubcategoria(grupo, subgrupo) {
       const grupoDiv = document.getElementById('grupo_' + grupo);
       if (!grupoDiv) return;
@@ -659,10 +647,14 @@
       panelSubcategorias.classList.add('oculta');
       panelGrupos.classList.add('oculta');
 
-      const primerBtn = document.querySelector('.btn-grupo');
-      if (primerBtn) {
-        mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
-      }
+      const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
+const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
+
+if (primerGrupo && primerSub) {
+  mostrarGrupo(primerGrupo, null, false); // 👈 auto = false para que se muestre el panel
+  filtrarSubcategoria(primerGrupo, primerSub);
+}
+
       document.getElementById('toggleCarrito').onclick = function() {
         const carritoDiv = document.getElementById('carrito');
         carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
@@ -755,15 +747,13 @@ carrito.forEach(item => {
 }
 
     function mostrarTodos() {
-      const panelGrupos = document.getElementById('panelGrupos');
-      const panelSub = document.getElementById('panelSubcategorias');
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
 
-      panelGrupos.classList.toggle('oculta');
+  panelGrupos.classList.toggle('oculta');
+  panelSub.classList.remove('oculta');
+}
 
-      if (!panelSub.classList.contains('oculta')) {
-        panelSub.classList.add('oculta');
-      }
-    }
     function irAContacto() {
       const contacto = document.getElementById('ubicacion');
       if (contacto) contacto.scrollIntoView({ behavior: 'auto' }); // Cambiado a 'auto'
