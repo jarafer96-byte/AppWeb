@@ -710,22 +710,38 @@ window.addEventListener('load', () => {
     onSnapshot(productosRef, snapshot => {
       const grupos = {};
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (!data.grupo || !data.grupo.trim()) return;
-        const grupo = data.grupo.trim();
-        const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
+      onSnapshot(productosRef, snapshot => {
+  const grupos = {};
 
-        if (!grupos[grupo]) grupos[grupo] = {};
-        if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
-        grupos[grupo][subgrupo].push({ ...data, id: doc.id });
-      });
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (!data.grupo || !data.grupo.trim()) return;
 
-      window._gruposProductos = grupos;
-      renderizarProductos(grupos);
-      actualizarCarrito();
-    });
-  }
+    const grupo = data.grupo.trim();
+    const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
+
+    if (!grupos[grupo]) grupos[grupo] = {};
+    if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
+    grupos[grupo][subgrupo].push({ ...data, id: doc.id });
+  });
+
+  window._gruposProductos = grupos;
+
+  // Renderiza todos los productos
+  renderizarProductos(grupos);
+
+  // Sincroniza precios o items ya cargados
+  actualizarCarrito();
+
+  // 🔹 Asegura que las flechas < > aparezcan si el contenido desborda
+  actualizarScrollButtons();
+
+  // 🔹 Ajusta la posición visual de los paneles
+  ajustarPosicionesPaneles();
+
+  console.log("🔥 Productos actualizados desde Firestore:", snapshot.size);
+});
+
 
   function renderizarProductos(grupos) {
     const contenedorPrincipal = document.getElementById("contenedor-grupos");
