@@ -500,9 +500,6 @@
                         <p class="card-text">{{ producto.descripcion }}</p>
                         <p><strong>Precio:</strong> $ 
                           <span id="precio_{{ id_base }}">{{ producto.precio }}</span>
-                          {% if modoAdmin %}
-                            <button onclick="editarPrecio('{{ id_base }}')">🖉</button>
-                          {% endif %}
                         </p>
                         {% if producto.talles %}
                           <label for="talle_{{ id_base }}"><strong>Talle:</strong></label>
@@ -514,7 +511,10 @@
                         {% endif %}
                         <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
                         {% if modoAdmin %}
-                          <button onclick="eliminarProducto('{{ producto.id }}')" class="btn btn-danger btn-sm mt-2">🗑️ Eliminar</button>
+                          <button onclick="editarPrecio('{{ id_base }}')">🖉</button>
+                          {% if producto.id %}
+                            <button onclick="eliminarProducto('{{ producto.id }}')" class="btn btn-danger btn-sm mt-2">🗑️ Eliminar</button>
+                          {% endif %}
                         {% endif %}
                         <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                           <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
