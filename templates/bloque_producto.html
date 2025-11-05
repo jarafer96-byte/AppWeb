@@ -10,7 +10,7 @@
               {% for producto in productos %}
                 {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
                 <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-                  <div class="card p-3 h-100" data-producto-id="{{ producto.id }}">
+                  <div class="card p-3 h-100" data-producto-id="{{ producto.id }}" data-id="{{ producto.id }}" id="card_{{ id_base }}">
                     <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
                     <div class="card-body">
                       <h5 class="card-title">{{ producto.nombre }}</h5>
