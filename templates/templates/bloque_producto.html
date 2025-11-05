@@ -1,0 +1,57 @@
+{% for grupo, subgrupos in grupos.items() %}
+  {% set total_productos = subgrupos.values() | map('length') | sum %}
+  {% if total_productos > 0 %}
+    <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
+      {% for subgrupo, productos in subgrupos.items() %}
+        {% if productos %}
+          <div class="subgrupo-bloque mb-4" data-subgrupo="{{ subgrupo }}">
+            <div class="row">
+              {% for producto in productos %}
+                {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
+                <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                  <div class="card p-3 h-100" data-producto-id="{{ producto.id }}">
+                    <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+                    <div class="card-body">
+                      <h5 class="card-title">{{ producto.nombre }}</h5>
+                      <p class="card-text">{{ producto.descripcion }}</p>
+                      <p><strong>Precio:</strong> $ 
+                        <span id="precio_{{ id_base }}">{{ producto.precio }}</span>
+                        {% if modoAdmin %}
+                          <button onclick="editarPrecio('{{ id_base }}')">🖉</button>
+                        {% endif %}
+                      </p>
+                      {% if producto.talles %}
+                        <label for="talle_{{ id_base }}"><strong>Talle:</strong></label>
+                        <select id="talle_{{ id_base }}" class="form-select form-select-sm w-auto d-inline-block">
+                          {% for talle in producto.talles %}
+                            <option value="{{ talle }}">{{ talle }}</option>
+                          {% endfor %}
+                        </select>
+                      {% endif %}
+                      <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                      {% if modoAdmin %}
+                        {% if producto.id %}
+                          <button onclick="eliminarProducto('{{ producto.id }}')" class="btn btn-danger btn-sm mt-2">🗑️ Eliminar</button>
+                        {% else %}
+                          <span class="text-warning" style="font-size: 0.8em;">(sin ID)</span>
+                        {% endif %}
+                      {% endif %}
+                      <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                        <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                        <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ id_base }}">
+                        <button type="button" class="btn btn-secondary"
+                          onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ id_base }}', 'cantidad_{{ id_base }}', '{{ id_base }}')">
+                          Agregar al carrito
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endfor %}
