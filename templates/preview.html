@@ -537,7 +537,7 @@
    {% endfor %}
   {% endif %}
 
-<form id="formAgregarProducto" class="oculta mt-4" onsubmit="agregarProducto(event)">
+<form id="formAgregarProducto" class="oculta mt-4" onsubmit="agregarProducto(event)" enctype="multipart/form-data">
   <h5>➕ Agregar nuevo producto</h5>
   <div class="mb-2">
     <input type="text" name="nombre" placeholder="Nombre" class="form-control" required>
@@ -546,7 +546,7 @@
     <input type="number" name="precio" placeholder="Precio" class="form-control" required>
   </div>
   <div class="mb-2">
-    <input type="text" name="imagen" placeholder="Nombre de imagen (ej: camisa.jpg)" class="form-control">
+    <input type="file" name="imagen" accept="image/*" class="form-control" required>
   </div>
   <div class="mb-2">
     <input type="text" name="grupo" placeholder="Grupo" class="form-control">
@@ -737,23 +737,27 @@
 }
 function agregarProducto(event) {
   event.preventDefault();
-  const datos = Object.fromEntries(new FormData(event.target));
-  if (datos.talles) {
-    datos.talles = datos.talles.split(',').map(t => t.trim());
+  const form = event.target;
+  const formData = new FormData(form);
+
+  // Procesar talles si existen
+  const talles = formData.get("talles");
+  if (talles) {
+    formData.set("talles", JSON.stringify(talles.split(',').map(t => t.trim())));
   }
 
   fetch('/agregar-producto', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(datos)
+    body: formData
   }).then(() => {
     alert("✅ Producto agregado");
-    event.target.reset();
+    form.reset();
   }).catch(err => {
     console.error("❌ Error al agregar producto:", err);
     alert("Error al agregar producto");
   });
 }
+
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
   const valorActual = span.textContent.trim();
