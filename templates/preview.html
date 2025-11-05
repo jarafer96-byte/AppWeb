@@ -729,6 +729,11 @@ function agregarProducto(event) {
 
 function editarPrecio(idFirestore, id_base) {
   const span = document.getElementById("precio_" + id_base);
+  if (!span) {
+    console.warn("No se encontró el span de precio para:", id_base);
+    return;
+  }
+
   const valorActual = span.textContent.trim();
   const input = document.createElement("input");
   input.type = "number";
@@ -748,6 +753,7 @@ function editarPrecio(idFirestore, id_base) {
   input.focus();
 }
 
+
 function mostrarAviso(mensaje, tipo = "success") {
   const aviso = document.createElement("div");
   aviso.textContent = mensaje;
@@ -763,6 +769,11 @@ function guardarPrecio(idFirestore, id_base, nuevoValor) {
   nuevoSpan.textContent = parseFloat(nuevoValor).toFixed(2);
 
   const input = document.querySelector(`#precio_${id_base} ~ input`);
+  if (!input || !input.parentNode) {
+    console.warn("No se encontró el input para guardar precio:", id_base);
+    return;
+  }
+
   input.parentNode.insertBefore(nuevoSpan, input);
   input.remove();
 
@@ -776,6 +787,7 @@ function guardarPrecio(idFirestore, id_base, nuevoValor) {
     mostrarAviso("❌ Error al actualizar precio", "danger");
   });
 }
+
 
 
 function eliminarProducto(id) {
