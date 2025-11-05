@@ -727,8 +727,8 @@ function agregarProducto(event) {
   });
 }
 
-function editarPrecio(id) {
-  const span = document.getElementById("precio_" + id);
+function editarPrecio(idFirestore, id_base) {
+  const span = document.getElementById("precio_" + id_base);
   const valorActual = span.textContent.trim();
   const input = document.createElement("input");
   input.type = "number";
@@ -736,14 +736,11 @@ function editarPrecio(id) {
   input.className = "form-control form-control-sm d-inline-block";
   input.style.width = "80px";
 
-  // ✅ Guardar al perder foco
-  input.onblur = () => guardarPrecio(id, input.value);
-
-  // ✅ Guardar al presionar Enter
+  input.onblur = () => guardarPrecio(idFirestore, id_base, input.value);
   input.onkeydown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      guardarPrecio(id, input.value);
+      guardarPrecio(idFirestore, id_base, input.value);
     }
   };
 
@@ -751,20 +748,35 @@ function editarPrecio(id) {
   input.focus();
 }
 
-function guardarPrecio(id, nuevoValor) {
+function mostrarAviso(mensaje, tipo = "success") {
+  const aviso = document.createElement("div");
+  aviso.textContent = mensaje;
+  aviso.className = `alert alert-${tipo} position-fixed top-0 start-50 translate-middle-x mt-3`;
+  aviso.style.zIndex = "2000";
+  document.body.appendChild(aviso);
+  setTimeout(() => aviso.remove(), 2000);
+}
+
+function guardarPrecio(idFirestore, id_base, nuevoValor) {
   const nuevoSpan = document.createElement("span");
-  nuevoSpan.id = "precio_" + id;
+  nuevoSpan.id = "precio_" + id_base;
   nuevoSpan.textContent = parseFloat(nuevoValor).toFixed(2);
-  const input = document.querySelector(`#precio_${id} ~ input`);
+
+  const input = document.querySelector(`#precio_${id_base} ~ input`);
   input.parentNode.insertBefore(nuevoSpan, input);
   input.remove();
 
   fetch('/actualizar-precio', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
+    body: JSON.stringify({ id: idFirestore, nuevoPrecio: nuevoValor })
+  }).then(() => {
+    mostrarAviso("✅ Precio actualizado", "success");
+  }).catch(() => {
+    mostrarAviso("❌ Error al actualizar precio", "danger");
   });
 }
+
 
 function eliminarProducto(id) {
   if (!confirm("¿Eliminar este producto?")) return;
