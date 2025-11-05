@@ -334,6 +334,23 @@ def preview():
 
     return render_template('preview.html', config=config, grupos=grupos_dict)
 
+@app.route('/agregar-producto', methods=['POST'])
+def agregar_producto():
+    data = request.get_json()
+    db.collection('productos').add(data)
+    return jsonify({"status": "ok"})
+    
+@app.route('/actualizar-precio', methods=['POST'])
+def actualizar_precio():
+    data = request.get_json()
+    db.collection('productos').document(data['id']).update({'precio': float(data['nuevoPrecio'])})
+    return jsonify({"status": "ok"})
+    
+@app.route('/eliminar-producto', methods=['POST'])
+def eliminar_producto():
+    data = request.get_json()
+    db.collection('productos').document(data['id']).delete()
+    return jsonify({"status": "ok"})
 
 @app.route('/descargar')
 def descargar():
