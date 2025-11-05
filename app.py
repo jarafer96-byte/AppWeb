@@ -15,6 +15,8 @@ from firebase_admin import credentials, firestore
 if not firebase_admin._apps:
     cred = credentials.ApplicationDefault()  # o Certificate("ruta/clave.json")
     firebase_admin.initialize_app(cred)
+    
+db = firestore.client()
 
 
 app = Flask(__name__)
