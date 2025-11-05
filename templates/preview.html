@@ -672,21 +672,33 @@
     function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
   const cantidadInput = document.getElementById(idCantidad); 
   const precioSpan = document.getElementById(idPrecioSpan);
-  const talleSelect = document.getElementById("talle_" + id_base); // 👈 capturamos el selector de talle
+  const talleSelect = document.getElementById("talle_" + id_base);
 
   const cantidad = parseInt(cantidadInput?.value) || 1; 
   const precio = parseFloat(precioSpan?.textContent) || 0;
-  const talleElegido = talleSelect?.value || ""; // 👈 obtenemos el talle seleccionado
+  const talleElegido = talleSelect?.value || "";
+
+  // ✅ Capturamos el ID real desde el DOM
+  const card = document.getElementById("card_" + id_base);
+  const idFirestore = card?.dataset.id || null;
 
   const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
   if (existente) {
     existente.cantidad += cantidad;
   } else {
-    carrito.push({ nombre, precio, cantidad, id: producto.id, talle: talleElegido });
+    carrito.push({
+      nombre,
+      precio,
+      cantidad,
+      id_base,
+      id: idFirestore, // ✅ ID real de Firestore
+      talle: talleElegido
+    });
   }
 
   actualizarCarrito();
 }
+
 function eliminarDelCarrito(id_base, talle) {
   carrito = carrito.filter(item => !(item.id_base === id_base && item.talle === talle));
   actualizarCarrito();
