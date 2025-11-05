@@ -651,8 +651,7 @@
 const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
 
 if (primerGrupo && primerSub) {
-  mostrarGrupo(primerGrupo, null, false); // 👈 auto = false para que se muestre el panel
-  filtrarSubcategoria(primerGrupo, primerSub);
+  filtrarSubcategoria(primerBtn.textContent.trim(), subcategoriasPorGrupo[primerBtn.textContent.trim()][0]);
 }
 
       document.getElementById('toggleCarrito').onclick = function() {
