@@ -284,6 +284,8 @@ def step3():
 def preview():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
+    usar_firestore = True  # o False si querés forzar modo local
+
     config = {
         'titulo': session.get('titulo'),
         'descripcion': session.get('descripcion'),
@@ -306,18 +308,31 @@ def preview():
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
-        'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
-        'bloques': [],
         'descargado': session.get('descargado', False),
-        'usarFirestore': True
+        'usarFirestore': usar_firestore,
+        'productos': [],
+        'bloques': []
     }
 
-    for i, p in enumerate(config['productos']):
+    productos = []
+
+    if usar_firestore:
+        from firebase_admin import firestore
+        db = firestore.client()
+        docs = db.collection('productos').stream()
+        for doc in docs:
+            producto = doc.to_dict()
+            producto['id'] = doc.id  # ✅ clave para edición/eliminación
+            productos.append(producto)
+    else:
+        productos = session.get('bloques') if config['tipo_web'] == 'catálogo' else []
+
+    for i, p in enumerate(productos):
         p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
 
     # ✅ Agrupar por grupo y subgrupo
     grupos_dict = {}
-    for producto in config['productos']:
+    for producto in productos:
         grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
         subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
 
@@ -330,11 +345,12 @@ def preview():
             grupos_dict[grupo][subgrupo] = []
         grupos_dict[grupo][subgrupo].append(producto)
 
-    config['usarFirestore'] = True  # o False según lo que quieras
-    
+    config['productos'] = productos
+
     modo_admin = request.args.get('admin') == 'true'
-    
+
     return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin)
+
  
 
 @app.route('/agregar-producto', methods=['POST'])
