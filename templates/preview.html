@@ -728,11 +728,9 @@ function agregarProducto(event) {
 }
 
 function editarPrecio(idFirestore, id_base) {
+  const wrapper = document.getElementById("precio_wrapper_" + id_base);
   const span = document.getElementById("precio_" + id_base);
-  if (!span) {
-    console.warn("No se encontró el span de precio para:", id_base);
-    return;
-  }
+  if (!span || !wrapper) return;
 
   const valorActual = span.textContent.trim();
   const input = document.createElement("input");
@@ -749,9 +747,11 @@ function editarPrecio(idFirestore, id_base) {
     }
   };
 
-  span.replaceWith(input);
+  wrapper.innerHTML = "";
+  wrapper.appendChild(input);
   input.focus();
 }
+
 
 
 function mostrarAviso(mensaje, tipo = "success") {
@@ -764,18 +764,15 @@ function mostrarAviso(mensaje, tipo = "success") {
 }
 
 function guardarPrecio(idFirestore, id_base, nuevoValor) {
+  const wrapper = document.getElementById("precio_wrapper_" + id_base);
+  if (!wrapper) return;
+
   const nuevoSpan = document.createElement("span");
   nuevoSpan.id = "precio_" + id_base;
   nuevoSpan.textContent = parseFloat(nuevoValor).toFixed(2);
 
-  const input = document.querySelector(`#precio_${id_base} ~ input`);
-  if (!input || !input.parentNode) {
-    console.warn("No se encontró el input para guardar precio:", id_base);
-    return;
-  }
-
-  input.parentNode.insertBefore(nuevoSpan, input);
-  input.remove();
+  wrapper.innerHTML = "";
+  wrapper.appendChild(nuevoSpan);
 
   fetch('/actualizar-precio', {
     method: 'POST',
