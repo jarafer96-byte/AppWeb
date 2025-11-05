@@ -1,4 +1,6 @@
 
+
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -28,13 +30,16 @@
 
   <style>
     body {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
       background-size: cover;
       background-repeat: no-repeat;
       background-attachment: fixed;
       background-position: center;
       padding-top: 70px;
+    }
+    h1, h2, h3, .btn, .card {
+      font-family: {{ config.fuente | safe }};
     }
     body::before {
       content: "";
@@ -130,7 +135,7 @@
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
     }
     .barra-navegacion button {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       font-weight: 600;
       font-size: 16px;
       padding: 10px 20px;
@@ -163,7 +168,7 @@
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
     }
     .panel-grupos button {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       font-weight: 600;
       margin: 6px;
       padding: 2px 8px;
@@ -375,7 +380,7 @@
       transition: all 0.3s ease;
     }
     .panel-subcategorias button {
-      font-family: 'Quicksand', sans-serif;
+      font-family: {{ config.fuente | safe }};
       font-weight: 600;
       margin: 6px;
       padding: 1px 8px;
@@ -457,7 +462,7 @@
   </button>
 
   <div class="text-center my-3">
-    <img src="{{ url_for('static', filename='img/' + (config.logo if config.logo else 'Copilot_20251022_180643.png')) }}"
+    <img src="{{ url_for('static', filename='img/' + config.logo) }}"
          alt="Logo"
          class="img-fluid logo">
   </div>
@@ -646,23 +651,28 @@
         bloque.style.display = mostrar ? 'block' : 'none';
       });
 
-      window.scrollTo({ top: window.scrollY, behavior: 'auto' }); // Evitar desplazamientos
+      window.scrollTo({ top: 0, behavior: 'auto' });
     }
     window.onload = function() {
-      const panelSubcategorias = document.getElementById('panelSubcategorias');
-      const panelGrupos = document.getElementById('panelGrupos');
-      panelSubcategorias.classList.add('oculta');
-      panelGrupos.classList.add('oculta');
+  const panelSubcategorias = document.getElementById('panelSubcategorias');
+  const panelGrupos = document.getElementById('panelGrupos');
+  panelSubcategorias.classList.add('oculta');
+  panelGrupos.classList.add('oculta');
 
-      const primerBtn = document.querySelector('.btn-grupo');
-      if (primerBtn) {
-        mostrarGrupo(primerBtn.textContent.trim(), { target: primerBtn }, true);
-      }
-      document.getElementById('toggleCarrito').onclick = function() {
-        const carritoDiv = document.getElementById('carrito');
-        carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
-      };
-    };
+  const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
+  const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
+
+  if (primerGrupo && primerSub) {
+    mostrarGrupo(primerGrupo, null, true);
+    filtrarSubcategoria(primerGrupo, primerSub);
+  }
+
+  document.getElementById('toggleCarrito').onclick = function() {
+    const carritoDiv = document.getElementById('carrito');
+    carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+  };
+};
+
     let carrito = [];
 
     function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
@@ -683,6 +693,13 @@
 
   actualizarCarrito();
 }
+
+function eliminarProducto(id_base, talle, event) {
+  event.stopPropagation(); // 👈 evita que el clic cierre el carrito
+  carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
+  actualizarCarrito();
+}
+
 
     function vaciarCarrito() {
       carrito = [];
@@ -718,11 +735,17 @@
   lista.innerHTML = '';
   let suma = 0;
 
-  carrito.forEach(item => {
-    const subtotal = item.precio * item.cantidad;
-    lista.innerHTML += `<li>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</li>`;
-    suma += subtotal;
-  });
+carrito.forEach(item => {
+  const subtotal = item.precio * item.cantidad;
+  lista.innerHTML += `
+    <li style="display: flex; justify-content: space-between; align-items: center;">
+      <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
+      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
+    </li>`;
+  suma += subtotal;
+});
+
+
 
   total.textContent = suma.toFixed(2);
 
@@ -947,6 +970,42 @@
       renderizarProductos(window._gruposProductos);
     }
   });
+  document.addEventListener('click', function(event) {
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
+
+  const esClickDentroGrupos = panelGrupos.contains(event.target);
+  const esClickDentroSub = panelSub.contains(event.target);
+  const esBotonGrupo = event.target.classList.contains('btn-grupo');
+  const esBotonNavegacion = event.target.closest('.barra-navegacion');
+
+  // Si el clic no fue dentro de los paneles ni en botones de grupo o navegación
+  if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
+    panelGrupos.classList.add('oculta');
+    panelSub.classList.add('oculta');
+  }
+});
+  document.getElementById('ordenPrecio').addEventListener('change', function () {
+  const orden = this.value;
+  const grupoActivo = document.querySelector('.grupo-section.active');
+  if (!grupoActivo) return;
+
+  const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
+  bloques.forEach(bloque => {
+    const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
+    const contenedor = bloque.querySelector('.row');
+    if (!contenedor) return;
+
+    productos.sort((a, b) => {
+      const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent) || 0;
+      const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent) || 0;
+      return orden === 'asc' ? precioA - precioB : precioB - precioA;
+    });
+
+    contenedor.innerHTML = '';
+    productos.forEach(p => contenedor.appendChild(p));
+  });
+});
 </script>
 </body>
 </html>
