@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -365,6 +362,17 @@
       color: white;
       border: none;
     }
+    .fade-reorder {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.fade-reorder.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
     .panel-subcategorias {
       position: fixed;
       max-height: 50vh; /* Altura máxima global */
@@ -727,6 +735,44 @@ function eliminarProducto(id_base, talle, event) {
         }
       });
     }
+    function ordenarProductosPorPrecio(orden) {
+  const grupoActivo = document.querySelector('.grupo-section.active');
+  if (!grupoActivo) return;
+
+  const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
+  bloques.forEach(bloque => {
+    if (bloque.style.display === 'none') return;
+
+    const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
+    const contenedor = bloque.querySelector('.row');
+    if (!contenedor) return;
+
+    // 🔄 Paso 1: aplicar fade-out
+    productos.forEach(p => {
+      p.classList.remove('show');
+      p.classList.add('fade-reorder');
+    });
+
+    setTimeout(() => {
+      // 🔄 Paso 2: ordenar
+      productos.sort((a, b) => {
+        const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent) || 0;
+        const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent) || 0;
+        return orden === 'asc' ? precioA - precioB : precioB - precioA;
+      });
+
+      contenedor.innerHTML = '';
+      productos.forEach(p => {
+        p.classList.add('show'); // fade-in
+        contenedor.appendChild(p);
+      });
+    }, 200); // tiempo para fade-out
+  });
+}
+document.getElementById('ordenPrecio').addEventListener('change', function () {
+  ordenarProductosPorPrecio(this.value);
+});
+
     function actualizarCarrito() {
   sincronizarPreciosDelCarrito();
 
