@@ -499,7 +499,12 @@
                         <p class="card-text">{{ producto.descripcion }}</p>
                         <p><strong>Precio:</strong> $ <span id="precio_{{ id_base }}">{{ producto.precio }}</span></p>
                         {% if producto.talles %}
-                         <p><strong>Talles:</strong> {{ producto.talles | join(', ') }}</p>
+                          <label for="talle_{{ id_base }}"><strong>Talle:</strong></label>
+                          <select id="talle_{{ id_base }}" class="form-select form-select-sm w-auto d-inline-block">
+                            {% for talle in producto.talles %}
+                              <option value="{{ talle }}">{{ talle }}</option>
+                            {% endfor %}
+                          </select>
                         {% endif %}
                         <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
                         <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
