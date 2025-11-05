@@ -9,6 +9,13 @@ import time
 import requests
 import json
 import shortuuid  # ← ya la tenés instalada, ¿no?
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+if not firebase_admin._apps:
+    cred = credentials.ApplicationDefault()  # o Certificate("ruta/clave.json")
+    firebase_admin.initialize_app(cred)
+
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
