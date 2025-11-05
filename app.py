@@ -332,7 +332,8 @@ def preview():
 
     config['usarFirestore'] = True  # o False según lo que quieras
 
-    return render_template('preview.html', config=config, grupos=grupos_dict)
+    return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin)
+    modo_admin = request.args.get('admin') == 'true'
 
 @app.route('/agregar-producto', methods=['POST'])
 def agregar_producto():
