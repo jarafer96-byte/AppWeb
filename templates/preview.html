@@ -498,7 +498,12 @@
                       <div class="card-body">
                         <h5 class="card-title">{{ producto.nombre }}</h5>
                         <p class="card-text">{{ producto.descripcion }}</p>
-                        <p><strong>Precio:</strong> $ <span id="precio_{{ id_base }}">{{ producto.precio }}</span></p>
+                        <p><strong>Precio:</strong> $ 
+                          <span id="precio_{{ id_base }}">{{ producto.precio }}</span>
+                          {% if modoAdmin %}
+                            <button onclick="editarPrecio('{{ id_base }}')">🖉</button>
+                          {% endif %}
+                        </p>
                         {% if producto.talles %}
                           <label for="talle_{{ id_base }}"><strong>Talle:</strong></label>
                           <select id="talle_{{ id_base }}" class="form-select form-select-sm w-auto d-inline-block">
@@ -508,6 +513,9 @@
                           </select>
                         {% endif %}
                         <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                        {% if modoAdmin %}
+                          <button onclick="eliminarProducto('{{ producto.id }}')" class="btn btn-danger btn-sm mt-2">🗑️ Eliminar</button>
+                        {% endif %}
                         <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                           <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
                           <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ id_base }}">
@@ -528,6 +536,32 @@
     {% endif %}
    {% endfor %}
   {% endif %}
+
+<form id="formAgregarProducto" class="oculta mt-4" onsubmit="agregarProducto(event)">
+  <h5>➕ Agregar nuevo producto</h5>
+  <div class="mb-2">
+    <input type="text" name="nombre" placeholder="Nombre" class="form-control" required>
+  </div>
+  <div class="mb-2">
+    <input type="number" name="precio" placeholder="Precio" class="form-control" required>
+  </div>
+  <div class="mb-2">
+    <input type="text" name="imagen" placeholder="Nombre de imagen (ej: camisa.jpg)" class="form-control">
+  </div>
+  <div class="mb-2">
+    <input type="text" name="grupo" placeholder="Grupo" class="form-control">
+  </div>
+  <div class="mb-2">
+    <input type="text" name="subgrupo" placeholder="Subgrupo" class="form-control">
+  </div>
+  <div class="mb-2">
+    <input type="text" name="descripcion" placeholder="Descripción" class="form-control">
+  </div>
+  <div class="mb-2">
+    <input type="text" name="talles" placeholder="Talles separados por coma (ej: S,M,L)" class="form-control">
+  </div>
+  <button type="submit" class="btn btn-success">Agregar</button>
+</form>
 
 
   <div id="contenedor-grupos"></div>
@@ -584,6 +618,7 @@
 
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
+    const modoAdmin = new URLSearchParams(window.location.search).get('admin') === 'true';
 
     window.addEventListener('scroll', () => {
       const btn = document.getElementById('volverArriba');
@@ -662,6 +697,10 @@
   panelSubcategorias.classList.add('oculta');
   panelGrupos.classList.add('oculta');
 
+  if (modoAdmin) {
+    document.getElementById('formAgregarProducto')?.classList.remove('oculta');
+  }
+
   const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
   const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
 
@@ -695,6 +734,25 @@
   }
 
   actualizarCarrito();
+}
+function agregarProducto(event) {
+  event.preventDefault();
+  const datos = Object.fromEntries(new FormData(event.target));
+  if (datos.talles) {
+    datos.talles = datos.talles.split(',').map(t => t.trim());
+  }
+
+  fetch('/agregar-producto', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos)
+  }).then(() => {
+    alert("✅ Producto agregado");
+    event.target.reset();
+  }).catch(err => {
+    console.error("❌ Error al agregar producto:", err);
+    alert("Error al agregar producto");
+  });
 }
 
 function eliminarProducto(id_base, talle, event) {
