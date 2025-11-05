@@ -336,9 +336,45 @@ def preview():
 
 @app.route('/agregar-producto', methods=['POST'])
 def agregar_producto():
-    data = request.get_json()
-    db.collection('productos').add(data)
-    return jsonify({"status": "ok"})
+    nombre = request.form.get('nombre', '').strip()
+    precio = request.form.get('precio', '').strip()
+    grupo = request.form.get('grupo', '').strip() or 'Sin grupo'
+    subgrupo = request.form.get('subgrupo', '').strip() or 'Sin subgrupo'
+    descripcion = request.form.get('descripcion', '').strip()
+    orden = request.form.get('orden', '999')
+    talles_raw = request.form.get('talles', '[]')
+    talles = json.loads(talles_raw)
+
+    imagen = request.files.get('imagen')
+    if not imagen:
+        return "❌ Imagen faltante", 400
+
+    filename = secure_filename(imagen.filename)
+    webp_name = f"{os.path.splitext(filename)[0]}_{shortuuid.uuid()[:4]}.webp"
+    destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
+
+    try:
+        imagen.save(destino)
+    except Exception as e:
+        print(f"❌ Error al guardar imagen: {e}")
+        return "❌ Error al guardar imagen", 500
+
+    producto = {
+        'nombre': nombre,
+        'precio': precio,
+        'grupo': grupo,
+        'subgrupo': subgrupo,
+        'descripcion': descripcion,
+        'imagen': webp_name,
+        'orden': orden,
+        'talles': talles
+    }
+
+    if subir_a_firestore(producto):
+        return jsonify({"status": "ok"})
+    else:
+        return "❌ Error al subir a Firestore", 500
+
     
 @app.route('/actualizar-precio', methods=['POST'])
 def actualizar_precio():
