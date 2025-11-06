@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, redirect, session, send_file, url_for
 import os
 from werkzeug.utils import secure_filename
@@ -13,6 +12,15 @@ import shortuuid  # ← ya la tenés instalada, ¿no?
 import mercadopago
 from flask import jsonify
 from datetime import datetime
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+if not firebase_admin._apps:
+    cred = credentials.ApplicationDefault()  # o Certificate("ruta/clave.json")
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()  # ✅ Ahora sí funciona
+
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
