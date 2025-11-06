@@ -1015,13 +1015,11 @@ carrito.forEach(item => {
                   <span id="precio_${idBase}">${producto.precio}</span>
                   ${modoAdmin ? `<button onclick="editarPrecio('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
                 </p>
-                ${producto.talles?.length ? `
-                  <div class="mb-2">
-                    <label class="form-label mb-1" style="font-size: 14px;"><strong>Talles:</strong></label><br>
-                    <span id="talles_${idBase}">${producto.talles.join(', ')}</span>
-                    ${modoAdmin ? `<button onclick="editarTalles('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
-                  </div>
-                ` : ''}
+                <div class="mb-2">
+                  <label class="form-label mb-1" style="font-size: 14px;"><strong>Talles:</strong></label><br>
+                  <span id="talles_${idBase}">${producto.talles?.length ? producto.talles.join(', ') : 'Sin talles disponibles'}</span>
+                  ${modoAdmin ? `<button onclick="editarTalles('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
+                </div>
                 <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
                 <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                   <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
