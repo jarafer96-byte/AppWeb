@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 import requests
 import json
-import shortuuid  # ← ya la tenés instalada, ¿no?
+import shortuuid
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -18,9 +18,9 @@ if not firebase_admin._apps:
     
 db = firestore.client()
 
-
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
+app.config['UPLOAD_FOLDER'] = 'static/img'
 app.secret_key = 'clave-secreta'
 
 @app.errorhandler(413)
@@ -50,426 +50,183 @@ def subir_a_firestore(producto):
     headers = {"Content-Type": "application/json"}
 
     try:
-        precio = int(producto["precio"].replace("$", "").replace(".", "").strip())
-        orden = int(producto.get("orden", 999))
-    except ValueError:
-        print(f"❌ Precio u orden inválido en producto: {producto['nombre']}")
-        return False
-
-    data = {
-        "name": doc_path,
-        "fields": {
-            "nombre": {"stringValue": nombre_original},
-            "precio": {"integerValue": precio},
-            "grupo": {"stringValue": grupo_original},
-            "subgrupo": {"stringValue": subgrupo_original},
-            "descripcion": {"stringValue": producto.get("descripcion", "")},
-            "imagen": {"stringValue": producto["imagen"]},
-            "orden": {"integerValue": orden},
-            "talles": {
-                "arrayValue": {
-                    "values": [{"stringValue": t} for t in producto.get("talles", [])]
-                }
+        data = {
+            "fields": {
+                "nombre": {"stringValue": nombre_original},
+                "descripcion": {"stringValue": producto.get("descripcion", "")},
+                "precio": {"doubleValue": float(producto.get("precio", 0))},
+                "imagen": {"stringValue": producto.get("imagen", "")},
+                "grupo": {"stringValue": grupo_original},
+                "subgrupo": {"stringValue": subgrupo_original},
+                "talles": {"arrayValue": {"values": [{"stringValue": t} for t in producto.get("talles", [])]}}
             }
         }
-    }
-
-    try:
-        response = requests.patch(url, headers=headers, data=json.dumps(data), timeout=5)
-        print(f"📄 Firestore response: {response.status_code} → {response.text}")
-        return response.status_code in [200, 202]
+        response = requests.patch(url, headers=headers, data=json.dumps(data))
+        response.raise_for_status()
+        return custom_id
     except requests.exceptions.RequestException as e:
-        print(f"❌ Error de red al subir {producto['nombre']}: {e}")
-        return False
-
-
-
-
-
-
-UPLOAD_FOLDER = 'static/img'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# ✅ Compresión y redimensionado
-def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad=80):
-    try:
-        img = Image.open(imagen.stream).convert('RGBA')
-        img.thumbnail(tamaño, Image.LANCZOS)
-
-        fondo = Image.new('RGBA', tamaño, (0, 0, 0, 0))  # fondo transparente
-        offset = ((tamaño[0] - img.width) // 2, (tamaño[1] - img.height) // 2)
-        fondo.paste(img, offset, img)  # usa la imagen como máscara
-
-        fondo.save(destino, format='WEBP', quality=calidad)
-    except Exception as e:
-        print(f"Error al redimensionar con transparencia: {e}")
-
-def necesita_redimension(src, dst):
-    return not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst)
+        print(f"Error al subir a Firestore: {e}")
+        return None
 
 def redimensionar_webp_en_static():
-    carpeta = 'static/img/webp'
-    os.makedirs(carpeta, exist_ok=True)
-    for nombre in os.listdir(carpeta):
-        if nombre.endswith('.webp'):
-            ruta = os.path.join(carpeta, nombre)
+    carpeta = app.config['UPLOAD_FOLDER']
+    for archivo in os.listdir(carpeta):
+        if archivo.lower().endswith('.webp'):
+            ruta = os.path.join(carpeta, archivo)
             try:
-                img = Image.open(ruta).convert('RGBA')
-                tamaño = (300, 180)
-
-                img.thumbnail(tamaño, Image.LANCZOS)
-                fondo = Image.new('RGBA', tamaño, (0, 0, 0, 0))
-                offset = ((tamaño[0] - img.width) // 2, (tamaño[1] - img.height) // 2)
-                fondo.paste(img, offset, img)
-
-                fondo.save(ruta, format='WEBP', quality=80)
-                print(f"Redimensionado con transparencia: {nombre}")
+                with Image.open(ruta) as img:
+                    if img.size[0] > 300 or img.size[1] > 300:
+                        img.thumbnail((300, 300))
+                        img.save(ruta, 'WEBP')
             except Exception as e:
-                print(f"Error al redimensionar {nombre}: {e}")
+                print(f"Error al redimensionar {archivo}: {e}")
 
-
-# ✅ Limpia imágenes subidas por el usuario si el flujo se abandona o después de descargar
 def limpiar_imagenes_usuario():
-    carpeta = 'static/img/uploads'
-    os.makedirs(carpeta, exist_ok=True)
-    for nombre in os.listdir(carpeta):
-        ruta = os.path.join(carpeta, nombre)
-        try:
-            if os.path.isfile(ruta):
-                os.remove(ruta)
-                print(f"Imagen eliminada: {nombre}")
-        except Exception as e:
-            print(f"Error al eliminar {nombre}: {e}")
+    carpeta = app.config['UPLOAD_FOLDER']
+    for archivo in os.listdir(carpeta):
+        if archivo.startswith('user_') and archivo.endswith(('.jpg', '.jpeg', '.png', '.webp')):
+            os.remove(os.path.join(carpeta, archivo))
 
 @app.route('/', methods=['GET', 'POST'])
-def step1():
-    limpiar_imagenes_usuario()
+def index():
     if request.method == 'POST':
-        session['tipo_web'] = 'catálogo'
-        session['facebook'] = request.form.get('facebook')
-        session['whatsapp'] = request.form.get('whatsapp')
-        session['instagram'] = request.form.get('instagram')
-        session['sobre_mi'] = request.form.get('sobre_mi')
-        session['ubicacion'] = request.form.get('ubicacion')
-        session['link_mapa'] = request.form.get('link_mapa')
-        session['fuente'] = request.form.get('fuente')
+        config = {
+            'titulo': request.form.get('titulo', 'Mi Tienda'),
+            'descripcion': request.form.get('descripcion', 'Descripción por defecto'),
+            'imagen_destacada': request.form.get('imagen_destacada', 'default.jpg'),
+            'url': request.form.get('url', 'https://example.com'),
+            'whatsapp': request.form.get('whatsapp', '#'),
+            'facebook': request.form.get('facebook', '#'),
+            'instagram': request.form.get('instagram', '#'),
+            'maps': request.form.get('maps', '#'),
+            'direccion': request.form.get('direccion', 'Dirección no especificada'),
+            'logo': request.form.get('logo', 'mini_1_jfjf8.jpeg'),
+            'fuente': request.form.get('fuente', 'Raleway'),
+            'color': request.form.get('color', '#ff6f61'),
+            'estilo_visual': request.form.get('estilo_visual', 'oscuro'),
+            'productos': []
+        }
 
-        logo = request.files.get('logo')
-        if logo:
-            filename = secure_filename(logo.filename)
-            if filename:
-                logo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                session['logo'] = filename
-        else:
-            session['logo'] = None
+        if 'imagen' in request.files:
+            archivo = request.files['imagen']
+            if archivo and archivo.filename:
+                filename = secure_filename(f"user_{shortuuid.uuid()}.{archivo.filename.rsplit('.', 1)[1].lower()}")
+                ruta = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                archivo.save(ruta)
+                config['imagen_destacada'] = filename
 
-        return redirect('/estilo')
-    return render_template('step1.html')
+        productos = []
+        for i in range(1, 11):  # Suponemos hasta 10 productos
+            nombre = request.form.get(f'nombre_{i}')
+            if nombre:
+                producto = {
+                    'nombre': nombre,
+                    'descripcion': request.form.get(f'descripcion_{i}', ''),
+                    'precio': request.form.get(f'precio_{i}', '0'),
+                    'imagen': request.form.get(f'imagen_{i}', ''),
+                    'grupo': request.form.get(f'grupo_{i}', 'General'),
+                    'subgrupo': request.form.get(f'subgrupo_{i}', 'General'),
+                    'talles': request.form.getlist(f'talles_{i}') if request.form.get(f'talles_{i}') else []
+                }
+                if 'imagen_producto_' + str(i) in request.files:
+                    archivo = request.files['imagen_producto_' + str(i)]
+                    if archivo and archivo.filename:
+                        filename = secure_filename(f"user_{shortuuid.uuid()}.{archivo.filename.rsplit('.', 1)[1].lower()}")
+                        ruta = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                        archivo.save(ruta)
+                        producto['imagen'] = filename
+                productos.append(producto)
+                subir_a_firestore(producto)  # Subir cada producto a Firestore
 
-@app.route('/estilo', methods=['GET', 'POST'])
-def step2():
-    if request.method == 'POST':
-        session['color'] = request.form.get('color')
-        session['estilo'] = request.form.get('estilo')
-        session['bordes'] = request.form.get('bordes')
-        session['botones'] = request.form.get('botones')
-        session['vista_imagenes'] = request.form.get('vista_imagenes')
-        session['estilo_visual'] = request.form.get('estilo_visual')
+        config['productos'] = productos
+        session['config'] = config
 
-        return redirect('/contenido')
+        grupos = {}
+        for producto in config['productos']:
+            grupo = producto.get('grupo', 'General')
+            subgrupo = producto.get('subgrupo', 'General')
+            if grupo not in grupos:
+                grupos[grupo] = {}
+            if subgrupo not in grupos[grupo]:
+                grupos[grupo][subgrupo] = []
+            grupos[grupo][subgrupo].append(producto)
 
-    imagenes = os.listdir('static/img/webp')
-    return render_template('step2.html', config=session, imagenes=imagenes)
+        return render_template('preview.html', config=config, grupos=grupos, modoAdmin=True)
 
-# ... encabezado y configuraciones previas ...
-
-@app.route('/contenido', methods=['GET', 'POST'])
-def step3():
-    tipo = session.get('tipo_web')
-    if request.method == 'POST':
-        bloques = []
-        nombres = request.form.getlist('nombre')
-        descripciones = request.form.getlist('descripcion')
-        precios = request.form.getlist('precio')
-        grupos = request.form.getlist('grupo')
-        subgrupos = request.form.getlist('subgrupo')  # ✅ nuevo campo
-        imagenes = request.files.getlist('imagen')
-        ordenes = request.form.getlist('orden')
-        talles = request.form.getlist('talles')
-
-
-        longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes), len(ordenes)]
-        min_len = min(longitudes)
-        print("🧪 Longitudes:", longitudes)
-
-        if not all(l == min_len for l in longitudes):
-            print("❌ Desalineación en los datos del formulario")
-            return "Error: los campos del formulario están desalineados", 500
-
-        MAX_SIZE_MB = 4
-        formatos_validos = ('.jpg', '.jpeg', '.png', '.webp')
-
-        for i in range(len(nombres)):
-            nombre = nombres[i].strip()
-            precio = precios[i].strip()
-            grupo = grupos[i].strip() or 'Sin grupo'
-            subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
-            orden = str(i + 1)
-            img = imagenes[i]
-            filename = secure_filename(img.filename)
-            talle_raw = talles[i].strip() if i < len(talles) else ''
-            talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
-
-
-            if not nombre or not precio or not grupo or not subgrupo or not filename:
-                continue
-
-            if not filename.lower().endswith(formatos_validos):
-                print(f"⚠️ Formato no soportado: {filename}")
-                continue
-
-            if img.content_length and img.content_length > MAX_SIZE_MB * 1024 * 1024:
-                print(f"⚠️ Imagen demasiado pesada: {filename}")
-                continue
-
-            webp_name = f"{os.path.splitext(filename)[0]}_{shortuuid.uuid()[:4]}.webp"
-            destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
-
-            try:
-                img.save(destino)
-            except Exception as e:
-                print(f"❌ Error al guardar imagen {filename}: {e}")
-                continue
-
-            bloques.append({
-                'nombre': nombre,
-                'descripcion': descripciones[i],
-                'precio': precio,
-                'imagen': webp_name,
-                'grupo': grupo,
-                'subgrupo': subgrupo,  # ✅ incluir subgrupo
-                'orden': ordenes[i],
-                'talles': talle_lista
-            })
-
-        session['bloques'] = bloques
-        exitos = 0
-        fallos = 0
-
-        def subir_con_resultado(producto):
-            try:
-                if subir_a_firestore(producto):
-                    print(f"✅ Producto subido: {producto['nombre']}")
-                    return True
-                else:
-                    print(f"⚠️ Fallo al subir {producto['nombre']}")
-                    return False
-            except Exception as e:
-                print(f"❌ Error inesperado al subir {producto['nombre']}: {e}")
-                return False
-
-        bloques_por_lote = 10
-        try:
-            for inicio in range(0, len(bloques), bloques_por_lote):
-                lote = bloques[inicio:inicio + bloques_por_lote]
-                with ThreadPoolExecutor(max_workers=5) as executor:
-                    resultados = list(executor.map(subir_con_resultado, lote))
-                    exitos += sum(resultados)
-                    fallos += len(resultados) - sum(resultados)
-        except Exception as lote_error:
-            print(f"🔥 Error crítico en lote de subida: {lote_error}")
-
-        print(f"🧮 Subidos correctamente: {exitos} / Fallidos: {fallos}")
-
-        if exitos > 0:
-            return redirect('/preview')
-        else:
-            return render_template('step3.html', tipo_web=tipo)
-
-    return render_template('step3.html', tipo_web=tipo)
+    return render_template('index.html')
 
 @app.route('/preview')
 def preview():
-    estilo_visual = session.get('estilo_visual') or 'claro_moderno'
-
-    usar_firestore = True  # o False si querés forzar modo local
-
-    config = {
-        'titulo': session.get('titulo'),
-        'descripcion': session.get('descripcion'),
-        'imagen_destacada': session.get('imagen_destacada'),
-        'url': session.get('url'),
-        'nombre_emprendimiento': session.get('nombre_emprendimiento'),
-        'anio': session.get('anio'),
-        'tipo_web': session.get('tipo_web'),
-        'ubicacion': session.get('ubicacion'),
-        'link_mapa': session.get('link_mapa'),
-        'color': session.get('color'),
-        'fuente': session.get('fuente'),
-        'estilo': session.get('estilo'),
-        'bordes': session.get('bordes'),
-        'botones': session.get('botones'),
-        'vista_imagenes': session.get('vista_imagenes'),
-        'logo': session.get('logo'),
-        'estilo_visual': estilo_visual,
-        'facebook': session.get('facebook'),
-        'whatsapp': session.get('whatsapp'),
-        'instagram': session.get('instagram'),
-        'sobre_mi': session.get('sobre_mi'),
-        'descargado': session.get('descargado', False),
-        'usarFirestore': usar_firestore,
-        'productos': [],
-        'bloques': []
-    }
-
-    productos = []
-
-    if usar_firestore:
-        from firebase_admin import firestore
-        db = firestore.client()
-        docs = db.collection('productos').stream()
-        for doc in docs:
-            producto = doc.to_dict()
-            producto['id'] = doc.id  # ✅ clave para edición/eliminación
-            productos.append(producto)
-    else:
-        productos = session.get('bloques') if config['tipo_web'] == 'catálogo' else []
-
-    for i, p in enumerate(productos):
-        p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
-
-    # ✅ Agrupar por grupo y subgrupo
-    grupos_dict = {}
-    for producto in productos:
-        grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
-        subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
-
-        grupo = grupo.strip().title()
-        subgrupo = subgrupo.strip().title()
-
-        if grupo not in grupos_dict:
-            grupos_dict[grupo] = {}
-        if subgrupo not in grupos_dict[grupo]:
-            grupos_dict[grupo][subgrupo] = []
-        grupos_dict[grupo][subgrupo].append(producto)
-
-    config['productos'] = productos
-
-    modo_admin = request.args.get('admin') == 'true'
-
-    return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin)
-
- 
-
-@app.route('/agregar-producto', methods=['POST'])
-def agregar_producto():
-    nombre = request.form.get('nombre', '').strip()
-    precio = request.form.get('precio', '').strip()
-    grupo = request.form.get('grupo', '').strip() or 'Sin grupo'
-    subgrupo = request.form.get('subgrupo', '').strip() or 'Sin subgrupo'
-    descripcion = request.form.get('descripcion', '').strip()
-    orden = request.form.get('orden', '999')
-    talles_raw = request.form.get('talles', '[]')
-    talles = json.loads(talles_raw)
-
-    imagen = request.files.get('imagen')
-    if not imagen:
-        return "❌ Imagen faltante", 400
-
-    filename = secure_filename(imagen.filename)
-    webp_name = f"{os.path.splitext(filename)[0]}_{shortuuid.uuid()[:4]}.webp"
-    destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
-
-    try:
-        imagen.save(destino)
-    except Exception as e:
-        print(f"❌ Error al guardar imagen: {e}")
-        return "❌ Error al guardar imagen", 500
-
-    producto = {
-        'nombre': nombre,
-        'precio': precio,
-        'grupo': grupo,
-        'subgrupo': subgrupo,
-        'descripcion': descripcion,
-        'imagen': webp_name,
-        'orden': orden,
-        'talles': talles
-    }
-
-    if subir_a_firestore(producto):
-        return jsonify({"status": "ok"})
-    else:
-        return "❌ Error al subir a Firestore", 500
-
-    
-@app.route('/actualizar-precio', methods=['POST'])
-def actualizar_precio():
-    data = request.get_json()
-    db.collection('productos').document(data['id']).update({'precio': float(data['nuevoPrecio'])})
-    return jsonify({"status": "ok"})
-    
-@app.route('/eliminar-producto', methods=['POST'])
-def eliminar_producto():
-    data = request.get_json()
-    db.collection('productos').document(data['id']).delete()
-    return jsonify({"status": "ok"})
-
-@app.route('/descargar')
-def descargar():
-    estilo_visual = session.get('estilo_visual') or 'claro_moderno'
-
-    config = {
-        'tipo_web': session.get('tipo_web'),
-        'ubicacion': session.get('ubicacion'),
-        'link_mapa': session.get('link_mapa'),
-        'color': session.get('color'),
-        'fuente': session.get('fuente'),
-        'estilo': session.get('estilo'),
-        'bordes': session.get('bordes'),
-        'botones': session.get('botones'),
-        'vista_imagenes': session.get('vista_imagenes'),
-        'logo': session.get('logo'),
-        'estilo_visual': estilo_visual,
-        'facebook': session.get('facebook'),
-        'whatsapp': session.get('whatsapp'),
-        'instagram': session.get('instagram'),
-        'sobre_mi': session.get('sobre_mi'),
-        'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
-        'bloques': []
-    }
-
-    # ✅ Construir grupos y subgrupos con validación y normalización
+    config = session.get('config', {
+        'titulo': 'Mi Tienda',
+        'descripcion': 'Descripción por defecto',
+        'imagen_destacada': 'default.jpg',
+        'url': 'https://example.com',
+        'whatsapp': '#',
+        'facebook': '#',
+        'instagram': '#',
+        'maps': '#',
+        'direccion': 'Dirección no especificada',
+        'logo': 'mini_1_jfjf8.jpeg',
+        'fuente': 'Raleway',
+        'color': '#ff6f61',
+        'estilo_visual': 'oscuro',
+        'productos': []
+    })
     grupos = {}
     for producto in config['productos']:
-        grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
-        subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
-
-        grupo = grupo.strip().title()
-        subgrupo = subgrupo.strip().title()
-
+        grupo = producto.get('grupo', 'General')
+        subgrupo = producto.get('subgrupo', 'General')
         if grupo not in grupos:
             grupos[grupo] = {}
         if subgrupo not in grupos[grupo]:
             grupos[grupo][subgrupo] = []
         grupos[grupo][subgrupo].append(producto)
 
-    # ✅ Renderizar HTML con grupos incluidos
+    html = render_template('preview.html', config=config, grupos=grupos, modoAdmin=True)
+    return html
+
+@app.route('/download')
+def download():
+    config = session.get('config', {
+        'titulo': 'Mi Tienda',
+        'descripcion': 'Descripción por defecto',
+        'imagen_destacada': 'default.jpg',
+        'url': 'https://example.com',
+        'whatsapp': '#',
+        'facebook': '#',
+        'instagram': '#',
+        'maps': '#',
+        'direccion': 'Dirección no especificada',
+        'logo': 'mini_1_jfjf8.jpeg',
+        'fuente': 'Raleway',
+        'color': '#ff6f61',
+        'estilo_visual': 'oscuro',
+        'productos': []
+    })
+    estilo_visual = config.get('estilo_visual', 'oscuro')
+
+    grupos = {}
+    for producto in config['productos']:
+        grupo = producto.get('grupo', 'General')
+        subgrupo = producto.get('subgrupo', 'General')
+        if grupo not in grupos:
+            grupos[grupo] = {}
+        if subgrupo not in grupos[grupo]:
+            grupos[grupo][subgrupo] = []
+        grupos[grupo][subgrupo].append(producto)
+
     html = render_template('preview.html', config=config, grupos=grupos)
 
-    # ✅ Crear ZIP con HTML y recursos
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w') as zip_file:
         zip_file.writestr('index.html', html)
 
-        # ✅ Incluir fondo visual
         fondo = f"{estilo_visual}.jpeg"
         fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
         if os.path.exists(fondo_path):
             zip_file.write(fondo_path, arcname='img/' + fondo)
 
-        # ✅ Incluir imágenes de productos
         for producto in config['productos']:
             imagen = producto.get('imagen')
             if imagen:
@@ -482,8 +239,6 @@ def descargar():
 
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
-
-
 
 @app.template_filter('imgver')
 def imgver_filter(name):
