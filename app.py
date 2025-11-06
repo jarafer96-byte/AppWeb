@@ -279,6 +279,41 @@ def step3():
             return render_template('step3.html', tipo_web=tipo)
 
     return render_template('step3.html', tipo_web=tipo)
+import mercadopago
+
+@app.route('/pagar', methods=['POST'])
+def pagar():
+    carrito = request.json.get('carrito', [])
+    access_token = config.get('mercado_pago')  # credencial opcional
+
+    if not access_token:
+        return jsonify({'error': 'Credencial de Mercado Pago no configurada'}), 400
+
+    sdk = mercadopago.SDK(access_token)
+
+    items = []
+    for item in carrito:
+        items.append({
+            "title": item['nombre'] + (f" ({item['talle']})" if item['talle'] else ""),
+            "quantity": item['cantidad'],
+            "unit_price": float(item['precio']),
+            "currency_id": "ARS"
+        })
+
+    preference_data = {
+        "items": items,
+        "back_urls": {
+            "success": url_for('preview', _external=True),
+            "failure": url_for('preview', _external=True),
+            "pending": url_for('preview', _external=True)
+        },
+        "auto_return": "approved"
+    }
+
+    preference_response = sdk.preference().create(preference_data)
+    preference = preference_response["response"]
+
+    return jsonify({"init_point": preference["init_point"]})
 
 @app.route('/preview')
 def preview():
