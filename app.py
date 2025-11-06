@@ -138,31 +138,36 @@ def limpiar_imagenes_usuario():
         except Exception as e:
             print(f"Error al eliminar {nombre}: {e}")
             
-@app.route('/actualizar-precio', methods=['POST'])
-def actualizar_precio():
+@app.route('/actualizar-talles', methods=['POST'])
+def actualizar_talles():
     data = request.get_json()
     id_base = data.get("id")
-    nuevo_precio = int(data.get("nuevoPrecio", 0))
+    nuevos_talles = data.get("talles", [])
 
     url = (
         f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}"
         f"/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}"
-        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=precio"
+        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=talles"
     )
     headers = {"Content-Type": "application/json"}
     payload = {
         "fields": {
-            "precio": {"integerValue": nuevo_precio}
+            "talles": {
+                "arrayValue": {
+                    "values": [{"stringValue": t} for t in nuevos_talles]
+                }
+            }
         }
     }
 
     try:
         r = requests.patch(url, headers=headers, data=json.dumps(payload))
-        print("💰 Precio actualizado:", r.status_code)
+        print("👟 Talles actualizados:", r.status_code)
         return jsonify({"status": "ok"}), r.status_code
     except Exception as e:
-        print("❌ Error al actualizar precio:", e)
+        print("❌ Error al actualizar talles:", e)
         return jsonify({"error": str(e)}), 500
+
 
 
 
