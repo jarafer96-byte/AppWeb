@@ -301,7 +301,7 @@ def pagar():
         items.append({
             "title": item['nombre'] + (f" ({item['talle']})" if item['talle'] else ""),
             "quantity": item['cantidad'],
-            "unit_price": float(item.get('precio', 0))
+            "unit_price": float(item.get('precio', 0)),
             "currency_id": "ARS"
         })
 
@@ -312,7 +312,7 @@ def pagar():
             "failure": url_for('preview', _external=True),
             "pending": url_for('preview', _external=True)
         },
-        "auto_return": "approved"
+        "auto_return": "approved",
         "statement_descriptor": "TuEmprendimiento",
         "external_reference": "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
     }
