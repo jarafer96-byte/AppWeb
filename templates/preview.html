@@ -728,6 +728,31 @@ function guardarPrecio(id) {
   })
   .catch(err => console.error("❌ Error en fetch:", err));
 }
+    
+function guardarTalles(id) {
+  const input = document.getElementById("talles_" + id);
+  const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
+
+  const nuevoSpan = document.createElement("span");
+  nuevoSpan.id = "talles_" + id;
+  nuevoSpan.textContent = nuevosTalles.join(", ");
+  input.replaceWith(nuevoSpan);
+
+  fetch('/actualizar-talles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, talles: nuevosTalles })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "ok") {
+      console.log("✅ Talles actualizados en Firestore");
+    } else {
+      console.warn("❌ Error en respuesta:", data);
+    }
+  })
+  .catch(err => console.error("❌ Error en fetch:", err));
+}
 
 
 function mostrarAvisoPrecio() {
