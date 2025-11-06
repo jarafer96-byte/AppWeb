@@ -935,7 +935,7 @@ carrito.forEach(item => {
         });
 
         productos.forEach((producto, i) => {
-          const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
+          const idBase = producto.id_base;
           producto.id_base = idBase;
           const tarjeta = document.createElement("div");
           tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
