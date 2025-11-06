@@ -659,24 +659,27 @@
 
     let carrito = [];
 
-    function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
+   function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
   const cantidadInput = document.getElementById(idCantidad); 
   const precioSpan = document.getElementById(idPrecioSpan);
-  const talleSelect = document.getElementById("talle_" + id_base); // 👈 capturamos el selector de talle
+  const talleSelect = document.getElementById("talle_" + id_base);
 
   const cantidad = parseInt(cantidadInput?.value) || 1; 
-  const precio = parseFloat(precioSpan?.textContent) || 0;
-  const talleElegido = talleSelect?.value || ""; // 👈 obtenemos el talle seleccionado
+  const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
+  console.log("🧪 Precio capturado:", precio); // ✅ Ubicación ideal
+
+  const talleElegido = talleSelect?.value || "";
 
   const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
   if (existente) {
     existente.cantidad += cantidad;
   } else {
-    carrito.push({ nombre, precio, cantidad, id_base, talle: talleElegido }); // 👈 guardamos el talle
+    carrito.push({ nombre, precio, cantidad, id_base, talle: talleElegido });
   }
 
   actualizarCarrito();
 }
+
 
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
