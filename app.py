@@ -149,7 +149,8 @@ def step1():
 
         mercado_pago = request.form.get('mercado_pago')
         if mercado_pago and mercado_pago.startswith("APP_USR-"):
-          config['mercado_pago'] = mercado_pago.strip()
+          session['mercado_pago'] = mercado_pago.strip()
+
 
         logo = request.files.get('logo')
         if logo:
@@ -288,6 +289,9 @@ import mercadopago
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
+    config = {
+    'mercado_pago': session.get('mercado_pago')
+    }
     carrito = request.json.get('carrito', [])
     access_token = config.get('mercado_pago')  # credencial opcional
 
