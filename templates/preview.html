@@ -702,6 +702,36 @@
 
   actualizarCarrito();
 }
+<script>
+function editarPrecio(id) {
+  const span = document.getElementById("precio_" + id);
+  const valorActual = span.textContent.trim();
+  const input = document.createElement("input");
+  input.type = "number";
+  input.value = valorActual;
+  input.className = "form-control form-control-sm d-inline-block";
+  input.style.width = "80px";
+  input.onblur = () => guardarPrecio(id, input.value);
+  span.replaceWith(input);
+  input.focus();
+}
+
+function guardarPrecio(id, nuevoValor) {
+  const nuevoSpan = document.createElement("span");
+  nuevoSpan.id = "precio_" + id;
+  nuevoSpan.textContent = parseFloat(nuevoValor).toFixed(2);
+  const input = document.querySelector(`#precio_${id}`);
+  input.parentNode.insertBefore(nuevoSpan, input);
+  input.remove();
+
+  fetch('/actualizar-precio', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
+  });
+}
+</script>
+
 function pagarConMercadoPago() {
   fetch('/pagar', {
     method: 'POST',
