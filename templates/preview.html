@@ -695,6 +695,24 @@ function editarPrecio(id) {
   input.focus();
 }
 
+function editarTalles(id) {
+  const span = document.getElementById("talles_" + id);
+  const tallesActuales = span.textContent.split(",").map(t => t.trim()).join(", ");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = tallesActuales;
+  input.id = "talles_" + id;
+  input.className = "form-control form-control-sm d-inline-block";
+  input.style.width = "150px";
+
+  const botonGuardar = document.createElement("button");
+  botonGuardar.textContent = "💾";
+  botonGuardar.className = "btn btn-sm btn-success ms-2";
+  botonGuardar.onclick = () => guardarTalles(id);
+
+  span.replaceWith(input);
+  span.insertAdjacentElement("afterend", botonGuardar);
+}
 
 function guardarPrecio(id) {
   const input = document.getElementById("precio_" + id);
@@ -995,10 +1013,9 @@ carrito.forEach(item => {
                 </p>
                 ${producto.talles?.length ? `
                   <div class="mb-2">
-                    <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-                    <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
-                      ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
-                    </select>
+                    <label class="form-label mb-1" style="font-size: 14px;"><strong>Talles:</strong></label><br>
+                    <span id="talles_${idBase}">${producto.talles.join(', ')}</span>
+                    ${modoAdmin ? `<button onclick="editarTalles('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
                   </div>
                 ` : ''}
                 <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
