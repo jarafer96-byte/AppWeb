@@ -719,6 +719,9 @@ function guardarPrecio(id) {
   .then(data => {
     if (data.status === "ok") {
       console.log("✅ Precio actualizado en Firestore");
+      if (typeof mostrarAvisoPrecio === "function") {
+        mostrarAvisoPrecio();
+      }
     } else {
       console.warn("❌ Error en respuesta:", data);
     }
