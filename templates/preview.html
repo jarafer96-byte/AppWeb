@@ -498,7 +498,12 @@
                       <div class="card-body">
                         <h5 class="card-title">{{ producto.nombre }}</h5>
                         <p class="card-text">{{ producto.descripcion }}</p>
-                        <p><strong>Precio:</strong> $ <span id="precio_{{ id_base }}">{{ producto.precio }}</span></p>
+                        <p><strong>Precio:</strong> $ 
+                          <span id="precio_{{ id_base }}">{{ producto.precio }}</span>
+                          {% if modoAdmin %}
+                            <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
+                          {% endif %}
+                        </p>
                         {% if producto.talles %}
                          <p><strong>Talles:</strong> {{ producto.talles | join(', ') }}</p>
                         {% endif %}
