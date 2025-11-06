@@ -129,36 +129,57 @@
         </div>
       </div>
 
-      <div class="card p-4 shadow-sm">
-        <h5 class="mb-3 text-white">Agregá tus redes y links de contacto (opcional)</h5>
-        <div class="d-flex flex-column gap-3">
-          <div>
-            <label class="form-label text-white">
-              <img src="/static/img/mercadopago.png" class="icono" alt="Mercado Pago"> Credencial Mercado Pago (opcional)
-            </label>
-            <input type="password" name="mercado_pago" class="form-control"
-               placeholder="APP_USR-..." autocomplete="off">
-          </div>
-          <div>
-            <label class="form-label text-white">
-              <img src="/static/img/facebook.png" class="icono" alt="Facebook"> Facebook
-            </label>
-            <input type="url" name="facebook" class="form-control" placeholder="https://facebook.com/tu_pagina">
-          </div>
-          <div>
-            <label class="form-label text-white">
-              <img src="/static/img/whatsapp.png" class="icono" alt="WhatsApp"> WhatsApp
-            </label>
-            <input type="url" name="whatsapp" class="form-control" value="https://wa.me/549" placeholder="Ej: https://wa.me/5491123456789">
-          </div>
-          <div>
-            <label class="form-label text-white">
-              <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Instagram
-            </label>
-            <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/tu_usuario">
-          </div>
-        </div>
+     <div class="card p-4 shadow-sm">
+  <h5 class="mb-3 text-white">Agregá tus redes y links de contacto (opcional)</h5>
+  <div class="d-flex flex-column gap-3">
+
+    <!-- Facebook -->
+    <div>
+      <label class="form-label text-white">
+        <img src="/static/img/facebook.png" class="icono" alt="Facebook"> Facebook
+      </label>
+      <input type="url" name="facebook" class="form-control" placeholder="https://facebook.com/tu_pagina">
+    </div>
+
+    <!-- WhatsApp -->
+    <div>
+      <label class="form-label text-white">
+        <img src="/static/img/whatsapp.png" class="icono" alt="WhatsApp"> WhatsApp
+      </label>
+      <input type="url" name="whatsapp" class="form-control" value="https://wa.me/549" placeholder="Ej: https://wa.me/5491123456789">
+    </div>
+
+    <!-- Instagram -->
+    <div>
+      <label class="form-label text-white">
+        <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Instagram
+      </label>
+      <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/tu_usuario">
+    </div>
+
+    <!-- Activar Mercado Pago -->
+    <div>
+      <label class="form-label text-white">
+        <input type="checkbox" id="activarMP" onchange="toggleCampoMP()"> Usar Mercado Pago
+      </label>
+    </div>
+
+    <!-- Campo credencial oculto por defecto -->
+    <div id="campoMP" style="display: none;">
+      <label class="form-label text-white">
+        <img src="/static/img/mercadopago.png" class="icono" alt="Mercado Pago"> Credencial Mercado Pago
+      </label>
+      <input type="password" name="mercado_pago" class="form-control"
+             placeholder="APP_USR-..." autocomplete="off"
+             oninput="validarCredencialMP(this)">
+      <div id="avisoMP" class="text-warning mt-1" style="display: none; font-size: 0.9em;">
+        ⚠️ La credencial debe comenzar con <strong>APP_USR-</strong>
       </div>
+    </div>
+
+  </div>
+</div>
+
 
       <div class="mb-3">
         <label for="ubicacion" class="form-label">Dirección</label>
@@ -175,5 +196,16 @@
       </div>
     </form>
   </div>
+<script>
+function toggleCampoMP() {
+  const activo = document.getElementById('activarMP').checked;
+  document.getElementById('campoMP').style.display = activo ? 'block' : 'none';
+}
+
+function validarCredencialMP(input) {
+  const valido = input.value.startsWith("APP_USR-");
+  document.getElementById('avisoMP').style.display = valido || input.value === "" ? 'none' : 'block';
+}
+</script>
 </body>
 </html>
