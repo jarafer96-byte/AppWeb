@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, redirect, session, send_file, url_for
 import os
 from werkzeug.utils import secure_filename
@@ -10,6 +9,9 @@ import time
 import requests
 import json
 import shortuuid  # ← ya la tenés instalada, ¿no?
+import mercadopago
+from flask import jsonify
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
@@ -49,21 +51,23 @@ def subir_a_firestore(producto):
         return False
 
     data = {
-        "name": doc_path,
-        "fields": {
-            "nombre": {"stringValue": nombre_original},
-            "precio": {"integerValue": precio},
-            "grupo": {"stringValue": grupo_original},
-            "subgrupo": {"stringValue": subgrupo_original},
-            "descripcion": {"stringValue": producto.get("descripcion", "")},
-            "imagen": {"stringValue": producto["imagen"]},
-            "orden": {"integerValue": orden},
-            "talles": {
-                "arrayValue": {
-                    "values": [{"stringValue": t} for t in producto.get("talles", [])]
-                }
+      "name": doc_path,
+      "fields": {
+        "nombre": {"stringValue": nombre_original},
+        "id_base": {"stringValue": f"{nombre_id}_{fecha}_{grupo_id}"},
+        "precio": {"integerValue": precio},
+        "grupo": {"stringValue": grupo_original},
+        "subgrupo": {"stringValue": subgrupo_original},
+        "descripcion": {"stringValue": producto.get("descripcion", "")},
+        "imagen": {"stringValue": producto["imagen"]},
+        "orden": {"integerValue": orden},
+        "talles": {
+            "arrayValue": {
+                "values": [{"stringValue": t} for t in producto.get("talles", [])]
             }
         }
+      }
+ 
     }
 
     try:
@@ -134,6 +138,101 @@ def limpiar_imagenes_usuario():
         except Exception as e:
             print(f"Error al eliminar {nombre}: {e}")
 
+@app.route('/subir-producto', methods=['POST'])
+def subir_producto():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Datos faltantes"}), 400
+
+    producto = {
+        "fields": {
+            "nombre": {"stringValue": data.get("nombre", "")},
+            "precio": {"stringValue": str(data.get("precio", ""))},
+            "grupo": {"stringValue": data.get("grupo", "")},
+            "subgrupo": {"stringValue": data.get("subgrupo", "")},
+            "descripcion": {"stringValue": data.get("descripcion", "")},
+            "imagen": {"stringValue": data.get("imagen", "")},
+            "id_base": {"stringValue": data.get("id_base", "")},
+            "talles": {
+                "arrayValue": {
+                    "values": [{"stringValue": t} for t in data.get("talles", [])]
+                }
+            }
+        }
+    }
+
+    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}?key={FIREBASE_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        r = requests.post(url, headers=headers, data=json.dumps(producto))
+        print("📦 Producto subido:", r.status_code)
+        return jsonify({"status": "ok"}), r.status_code
+    except Exception as e:
+        print("❌ Error al subir producto:", e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/actualizar-precio', methods=['POST'])
+def actualizar_precio():
+    data = request.get_json()
+    id_base = data.get("id")
+    nuevo_precio = int(data.get("nuevoPrecio", 0))
+
+    url = (
+        f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}"
+        f"/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}"
+        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=precio"
+    )
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "fields": {
+            "precio": {"integerValue": nuevo_precio}
+        }
+    }
+
+    try:
+        r = requests.patch(url, headers=headers, data=json.dumps(payload))
+        print("💰 Precio actualizado:", r.status_code)
+        return jsonify({"status": "ok"}), r.status_code
+    except Exception as e:
+        print("❌ Error al actualizar precio:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/actualizar-talles', methods=['POST'])
+def actualizar_talles():
+    data = request.get_json()
+    id_base = data.get("id")
+    nuevos_talles = data.get("talles", [])
+
+    url = (
+        f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}"
+        f"/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}"
+        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=talles"
+    )
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "fields": {
+            "talles": {
+                "arrayValue": {
+                    "values": [{"stringValue": t} for t in nuevos_talles] if nuevos_talles else []
+                }
+            }
+        }
+    }
+
+    try:
+        r = requests.patch(url, headers=headers, data=json.dumps(payload))
+        print("👟 Talles actualizados:", r.status_code)
+        return jsonify({"status": "ok"}), r.status_code
+    except Exception as e:
+        print("❌ Error al actualizar talles:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+
+
+
 @app.route('/', methods=['GET', 'POST'])
 def step1():
     limpiar_imagenes_usuario()
@@ -146,6 +245,11 @@ def step1():
         session['ubicacion'] = request.form.get('ubicacion')
         session['link_mapa'] = request.form.get('link_mapa')
         session['fuente'] = request.form.get('fuente')
+
+        mercado_pago = request.form.get('mercado_pago')
+        if mercado_pago and mercado_pago.startswith("APP_USR-"):
+          session['mercado_pago'] = mercado_pago.strip()
+          print("Credencial MP:", session.get('mercado_pago'))
 
         logo = request.files.get('logo')
         if logo:
@@ -280,6 +384,53 @@ def step3():
             return render_template('step3.html', tipo_web=tipo)
 
     return render_template('step3.html', tipo_web=tipo)
+import mercadopago
+
+@app.route('/pagar', methods=['POST'])
+def pagar():
+    try:
+        data = request.get_json(silent=True) or {}
+        carrito = data.get('carrito', [])
+        access_token = session.get('mercado_pago')
+
+        if not access_token:
+            return jsonify({'error': 'Credencial de Mercado Pago no configurada'}), 400
+
+        sdk = mercadopago.SDK(access_token)
+
+        items = []
+        for item in carrito:
+            items.append({
+                "title": item['nombre'] + (f" ({item['talle']})" if item.get('talle') else ""),
+                "quantity": item['cantidad'],
+                "unit_price": float(item.get('precio', 0)),
+                "currency_id": "ARS"
+            })
+
+        preference_data = {
+            "items": items,
+            "back_urls": {
+                "success": url_for('preview', _external=True),
+                "failure": url_for('preview', _external=True),
+                "pending": url_for('preview', _external=True)
+            },
+            "auto_return": "approved",
+            "statement_descriptor": "TuEmprendimiento",
+            "external_reference": "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
+        }
+
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response["response"]
+
+        return jsonify({"init_point": preference["init_point"]})
+    
+    except Exception as e:
+        import traceback
+        print("⚠️ Error en /pagar:", e)
+        traceback.print_exc()  # ✅ muestra el traceback completo en los logs
+        return jsonify({'error': 'Error interno al generar el pago'}), 500
+
+    return jsonify({"init_point": preference["init_point"]})
 
 @app.route('/preview')
 def preview():
@@ -307,6 +458,7 @@ def preview():
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
+        'mercado_pago': session.get('mercado_pago'),
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
         'bloques': [],
         'descargado': session.get('descargado', False),
@@ -332,8 +484,9 @@ def preview():
         grupos_dict[grupo][subgrupo].append(producto)
 
     config['usarFirestore'] = True  # o False según lo que quieras
+    modo_admin = request.args.get('admin') == 'true'
 
-    return render_template('preview.html', config=config, grupos=grupos_dict)
+    return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin)
 
 
 @app.route('/descargar')
