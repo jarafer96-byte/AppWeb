@@ -150,7 +150,7 @@ def step1():
         mercado_pago = request.form.get('mercado_pago')
         if mercado_pago and mercado_pago.startswith("APP_USR-"):
           session['mercado_pago'] = mercado_pago.strip()
-
+          print("Credencial MP:", session.get('mercado_pago'))
 
         logo = request.files.get('logo')
         if logo:
