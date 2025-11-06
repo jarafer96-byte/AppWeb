@@ -170,7 +170,6 @@ def actualizar_precio():
         return jsonify({"error": str(e)}), 500
 
 
-
 @app.route('/', methods=['GET', 'POST'])
 def step1():
     limpiar_imagenes_usuario()
