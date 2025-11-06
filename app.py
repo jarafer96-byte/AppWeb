@@ -142,15 +142,25 @@ def limpiar_imagenes_usuario():
 @app.route('/actualizar-precio', methods=['POST'])
 def actualizar_precio():
     data = request.get_json()
-    producto_id = data.get('id')
+    id_base = data.get('id')
     nuevo_precio = float(data.get('nuevoPrecio', 0))
 
     try:
-        db.collection('productos').document(producto_id).update({'precio': nuevo_precio})
-        return jsonify({"status": "ok"})
+        docs = db.collection('productos').stream()
+        for doc in docs:
+            producto = doc.to_dict()
+            if producto.get('id_base') == id_base:
+                db.collection('productos').document(doc.id).update({'precio': nuevo_precio})
+                print(f"✅ Precio actualizado en Firestore para {id_base}")
+                return jsonify({"status": "ok"}), 200
+
+        print(f"❌ No se encontró documento con id_base: {id_base}")
+        return jsonify({"error": "Documento no encontrado"}), 404
+
     except Exception as e:
         print("⚠️ Error al actualizar precio:", e)
         return jsonify({"error": "No se pudo actualizar el precio"}), 500
+
 
 @app.route('/', methods=['GET', 'POST'])
 def step1():
