@@ -352,6 +352,7 @@ def preview():
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
+        'mercado_pago': session.get('mercado_pago'),
         'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
         'bloques': [],
         'descargado': session.get('descargado', False),
