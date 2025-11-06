@@ -696,26 +696,36 @@ function editarPrecio(id) {
 }
 
 
-function guardarPrecio(id, nuevoValor) {
-  const nuevoSpan = document.createElement("span");
-  nuevoSpan.id = "precio_" + id;
-  nuevoSpan.textContent = parseFloat(nuevoValor).toFixed(2);
+function guardarPrecio(id) {
   const input = document.getElementById("precio_" + id);
-  if (!input) {
-    console.warn("❌ No se encontró el input con id:", "precio_" + id);
-    return;
-  }
-  input.parentNode.insertBefore(nuevoSpan, input);
-  input.remove();
+  const nuevoValor = parseInt(input.value);
 
+  // Reemplazar el input por el nuevo <span>
+  const span = document.createElement("span");
+  span.id = "precio_" + id;
+  span.textContent = "$" + nuevoValor;
+  input.replaceWith(span);
+
+  // 🧪 Confirmación visual
+  console.log("🧪 Precio capturado:", nuevoValor);
+
+  // ✅ Actualizar Firestore vía backend
   fetch('/actualizar-precio', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
-  }).then(() => {
-    mostrarAvisoPrecio();
-  });
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "ok") {
+      console.log("✅ Precio actualizado en Firestore");
+    } else {
+      console.warn("❌ Error en respuesta:", data);
+    }
+  })
+  .catch(err => console.error("❌ Error en fetch:", err));
 }
+
 
 function mostrarAvisoPrecio() {
   const aviso = document.getElementById("avisoPrecio");
