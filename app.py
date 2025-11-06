@@ -162,7 +162,7 @@ def index():
 
         return render_template('preview.html', config=config, grupos=grupos, modoAdmin=True)
 
-    return render_template('index.html')
+    return render_template('preview.html')
 
 @app.route('/preview')
 def preview():
