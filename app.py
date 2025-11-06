@@ -144,7 +144,11 @@ def actualizar_precio():
     id_base = data.get("id")
     nuevo_precio = int(data.get("nuevoPrecio", 0))
 
-    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}?key={FIREBASE_API_KEY}"
+    url = (
+        f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}"
+        f"/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}"
+        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=precio"
+    )
     headers = {"Content-Type": "application/json"}
     payload = {
         "fields": {
@@ -159,6 +163,7 @@ def actualizar_precio():
     except Exception as e:
         print("❌ Error al actualizar precio:", e)
         return jsonify({"error": str(e)}), 500
+
 
 
 @app.route('/', methods=['GET', 'POST'])
