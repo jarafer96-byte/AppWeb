@@ -689,16 +689,22 @@ function editarPrecio(id) {
   input.value = valorActual;
   input.className = "form-control form-control-sm d-inline-block";
   input.style.width = "80px";
+  input.id = "precio_" + id; // ✅ esto es lo que faltaba
   input.onblur = () => guardarPrecio(id, input.value);
   span.replaceWith(input);
   input.focus();
 }
 
+
 function guardarPrecio(id, nuevoValor) {
   const nuevoSpan = document.createElement("span");
   nuevoSpan.id = "precio_" + id;
   nuevoSpan.textContent = parseFloat(nuevoValor).toFixed(2);
-  const input = document.querySelector(`#precio_${id}`);
+  const input = document.getElementById("precio_" + id);
+  if (!input) {
+    console.warn("❌ No se encontró el input con id:", "precio_" + id);
+    return;
+  }
   input.parentNode.insertBefore(nuevoSpan, input);
   input.remove();
 
