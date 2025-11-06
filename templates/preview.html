@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -482,48 +480,23 @@
     </div>
   {% endif %}
 
-  {% if not config.usarFirestore %}
-   {% for grupo, subgrupos in grupos.items() %}
-    {% set total_productos = subgrupos.values() | map('length') | sum %}
-    {% if total_productos > 0 %}
-      <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
-        {% for subgrupo, productos in subgrupos.items() %}
-          {% if productos %}
-            <div class="subgrupo-bloque mb-4" data-subgrupo="{{ subgrupo }}">
-              <div class="row">
-                {% for producto in productos %}
-                  {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
-                  <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-                    <div class="card p-3 h-100">
-                      <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
-                      <div class="card-body">
-                        <h5 class="card-title">{{ producto.nombre }}</h5>
-                        <p class="card-text">{{ producto.descripcion }}</p>
-                        <p><strong>Precio:</strong> $ <span id="precio_{{ id_base }}">{{ producto.precio }}</span></p>
-                        {% if producto.talles %}
-                         <p><strong>Talles:</strong> {{ producto.talles | join(', ') }}</p>
-                        {% endif %}
-                        <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-                        <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                          <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                          <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ id_base }}">
-                          <button type="button" class="btn btn-secondary"
-                            onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ id_base }}', 'cantidad_{{ id_base }}', '{{ id_base }}')">
-                            Agregar al carrito
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    {% endif %}
-   {% endfor %}
-  {% endif %}
+  {% if config.usarFirestore %}
+  <div id="contenedor-grupos"></div> {# JS lo llenará dinámicamente si usás Firestore #}
+{% else %}
+  {% for grupo, subgrupos in grupos.items() %}
+    {% for subgrupo, productos in subgrupos.items() %}
+      {% for producto in productos %}
+        {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
+        <span id="precio_{{ id_base }}">{{ producto.precio }}</span>
+        {% if modoAdmin %}
+          <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  {% endfor %}
+{% endif %}
+
+
 
 
   <div id="contenedor-grupos"></div>
@@ -573,10 +546,21 @@
     <ul id="listaCarrito"></ul>
     <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
     <div class="d-grid gap-2">
-      <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
-      <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
-    </div>
+  <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+
+  {% if config.mercado_pago %}
+    <button class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
+  {% else %}
+    <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+  {% endif %}
+</div>
+
   </div>
+<!-- Aviso flotante de precio actualizado -->
+<div id="avisoPrecio" class="alert alert-success text-center" role="alert"
+     style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;">
+  ✔ Precio actualizado
+</div>
 
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
@@ -674,23 +658,146 @@
 
     let carrito = [];
 
-    function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
+   function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
   const cantidadInput = document.getElementById(idCantidad); 
   const precioSpan = document.getElementById(idPrecioSpan);
-  const talleSelect = document.getElementById("talle_" + id_base); // 👈 capturamos el selector de talle
+  const talleSelect = document.getElementById("talle_" + id_base);
 
   const cantidad = parseInt(cantidadInput?.value) || 1; 
-  const precio = parseFloat(precioSpan?.textContent) || 0;
-  const talleElegido = talleSelect?.value || ""; // 👈 obtenemos el talle seleccionado
+  const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
+  console.log("🧪 Precio capturado:", precio); // ✅ Ubicación ideal
+
+  const talleElegido = talleSelect?.value || "";
 
   const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
   if (existente) {
     existente.cantidad += cantidad;
   } else {
-    carrito.push({ nombre, precio, cantidad, id_base, talle: talleElegido }); // 👈 guardamos el talle
+    carrito.push({ nombre, precio, cantidad, id_base, talle: talleElegido });
   }
 
   actualizarCarrito();
+}
+
+
+function editarPrecio(id) {
+  const span = document.getElementById("precio_" + id);
+  const valorActual = span.textContent.trim();
+  const input = document.createElement("input");
+  input.type = "number";
+  input.value = valorActual;
+  input.className = "form-control form-control-sm d-inline-block";
+  input.style.width = "80px";
+  input.id = "precio_" + id; // ✅ esto es lo que faltaba
+  input.onblur = () => guardarPrecio(id, input.value);
+  span.replaceWith(input);
+  input.focus();
+}
+
+function guardarPrecio(id) {
+  const input = document.getElementById("precio_" + id);
+  const nuevoValor = parseInt(input.value);
+
+  // Reemplazar el input por el nuevo <span>
+  const span = document.createElement("span");
+  span.id = "precio_" + id;
+  span.textContent = "$" + nuevoValor;
+  input.replaceWith(span);
+
+  // 🧪 Confirmación visual
+  console.log("🧪 Precio capturado:", nuevoValor);
+
+  // ✅ Actualizar Firestore vía backend
+  fetch('/actualizar-precio', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "ok") {
+      console.log("✅ Precio actualizado en Firestore");
+      if (typeof mostrarAvisoPrecio === "function") {
+        mostrarAvisoPrecio();
+      }
+    } else {
+      console.warn("❌ Error en respuesta:", data);
+    }
+  })
+  .catch(err => console.error("❌ Error en fetch:", err));
+}
+    
+function editarTalles(id) {
+  const span = document.getElementById("talles_" + id);
+  const tallesActuales = span.textContent.split(",").map(t => t.trim()).join(", ");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = tallesActuales;
+  input.id = "talles_" + id;
+  input.className = "form-control form-control-sm d-inline-block";
+  input.style.width = "150px";
+
+  input.addEventListener("blur", () => guardarTalles(id));
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      guardarTalles(id);
+    }
+  });
+
+  span.replaceWith(input);
+  input.focus();
+}
+
+    
+function guardarTalles(id) {
+  const input = document.getElementById("talles_" + id);
+  const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
+
+  const nuevoSpan = document.createElement("span");
+  nuevoSpan.id = "talles_" + id;
+  nuevoSpan.textContent = nuevosTalles.join(", ");
+  input.replaceWith(nuevoSpan);
+
+  fetch('/actualizar-talles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, talles: nuevosTalles })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "ok") {
+      console.log("✅ Talles actualizados en Firestore");
+    } else {
+      console.warn("❌ Error en respuesta:", data);
+    }
+  })
+  .catch(err => console.error("❌ Error en fetch:", err));
+}
+
+
+function mostrarAvisoPrecio() {
+  const aviso = document.getElementById("avisoPrecio");
+  aviso.style.display = "block";
+  setTimeout(() => {
+    aviso.style.display = "none";
+  }, 2000);
+}
+
+function pagarConMercadoPago() {
+  fetch('/pagar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ carrito })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.init_point) {
+      window.location.href = data.init_point;
+    } else {
+      alert("Error al generar pago");
+    }
+  });
 }
 
 function eliminarProducto(id_base, talle, event) {
@@ -812,6 +919,7 @@ carrito.forEach(item => {
   </script>
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
+  const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
 
   import {
     initializeApp
@@ -892,7 +1000,7 @@ carrito.forEach(item => {
         });
 
         productos.forEach((producto, i) => {
-          const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
+          const idBase = producto.id_base;
           producto.id_base = idBase;
           const tarjeta = document.createElement("div");
           tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
@@ -902,15 +1010,15 @@ carrito.forEach(item => {
               <div class="card-body">
                 <h5 class="card-title">${producto.nombre}</h5>
                 <p class="card-text">${producto.descripcion || ""}</p>
-                <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
-                ${producto.talles?.length ? `
-                  <div class="mb-2">
-                    <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-                    <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
-                      ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
-                    </select>
-                  </div>
-                ` : ''}
+                <p><strong>Precio:</strong> $ 
+                  <span id="precio_${idBase}">${producto.precio}</span>
+                  ${modoAdmin ? `<button onclick="editarPrecio('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
+                </p>
+                <div class="mb-2">
+                  <label class="form-label mb-1" style="font-size: 14px;"><strong>Talles:</strong></label><br>
+                  <span id="talles_${idBase}">${producto.talles?.length ? producto.talles.join(', ') : 'Sin talles disponibles'}</span>
+                  ${modoAdmin ? `<button onclick="editarTalles('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
+                </div>
                 <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
                 <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                   <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
