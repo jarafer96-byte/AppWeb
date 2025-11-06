@@ -150,24 +150,25 @@ def limpiar_imagenes_usuario():
 @app.route('/actualizar-precio', methods=['POST'])
 def actualizar_precio():
     data = request.get_json()
-    id_base = data.get('id')
-    nuevo_precio = float(data.get('nuevoPrecio', 0))
+    id_base = data.get("id")
+    nuevo_precio = int(data.get("nuevoPrecio", 0))
+
+    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}?key={FIREBASE_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "fields": {
+            "precio": {"integerValue": nuevo_precio}
+        }
+    }
 
     try:
-        docs = db.collection('productos').stream()
-        for doc in docs:
-            producto = doc.to_dict()
-            if producto.get('id_base') == id_base:
-                db.collection('productos').document(doc.id).update({'precio': nuevo_precio})
-                print(f"✅ Precio actualizado en Firestore para {id_base}")
-                return jsonify({"status": "ok"}), 200
-
-        print(f"❌ No se encontró documento con id_base: {id_base}")
-        return jsonify({"error": "Documento no encontrado"}), 404
-
+        r = requests.patch(url, headers=headers, data=json.dumps(payload))
+        print("💰 Precio actualizado:", r.status_code)
+        return jsonify({"status": "ok"}), r.status_code
     except Exception as e:
-        print("⚠️ Error al actualizar precio:", e)
-        return jsonify({"error": "No se pudo actualizar el precio"}), 500
+        print("❌ Error al actualizar precio:", e)
+        return jsonify({"error": str(e)}), 500
+
 
 
 @app.route('/', methods=['GET', 'POST'])
