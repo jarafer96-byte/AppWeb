@@ -851,6 +851,7 @@ carrito.forEach(item => {
   </script>
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
+  const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
 
   import {
     initializeApp
@@ -941,7 +942,10 @@ carrito.forEach(item => {
               <div class="card-body">
                 <h5 class="card-title">${producto.nombre}</h5>
                 <p class="card-text">${producto.descripcion || ""}</p>
-                <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
+                <p><strong>Precio:</strong> $ 
+                  <span id="precio_${idBase}">${producto.precio}</span>
+                  ${modoAdmin ? `<button onclick="editarPrecio('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
+                </p>
                 ${producto.talles?.length ? `
                   <div class="mb-2">
                     <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
