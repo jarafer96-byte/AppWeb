@@ -587,6 +587,11 @@
 </div>
 
   </div>
+<!-- Aviso flotante de precio actualizado -->
+<div id="avisoPrecio" class="alert alert-success text-center" role="alert"
+     style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;">
+  ✔ Precio actualizado
+</div>
 
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
@@ -702,7 +707,7 @@
 
   actualizarCarrito();
 }
-<script>
+
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
   const valorActual = span.textContent.trim();
@@ -728,9 +733,18 @@ function guardarPrecio(id, nuevoValor) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
+  }).then(() => {
+    mostrarAvisoPrecio();
   });
 }
-</script>
+
+function mostrarAvisoPrecio() {
+  const aviso = document.getElementById("avisoPrecio");
+  aviso.style.display = "block";
+  setTimeout(() => {
+    aviso.style.display = "none";
+  }, 2000);
+}
 
 function pagarConMercadoPago() {
   fetch('/pagar', {
