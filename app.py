@@ -181,7 +181,7 @@ def actualizar_talles():
         "fields": {
             "talles": {
                 "arrayValue": {
-                    "values": [{"stringValue": t} for t in nuevos_talles]
+                    "values": [{"stringValue": t} for t in nuevos_talles] if nuevos_talles else []
                 }
             }
         }
