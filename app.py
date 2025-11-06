@@ -147,6 +147,10 @@ def step1():
         session['link_mapa'] = request.form.get('link_mapa')
         session['fuente'] = request.form.get('fuente')
 
+        mercado_pago = request.form.get('mercado_pago')
+        if mercado_pago and mercado_pago.startswith("APP_USR-"):
+          config['mercado_pago'] = mercado_pago.strip()
+
         logo = request.files.get('logo')
         if logo:
             filename = secure_filename(logo.filename)
