@@ -52,21 +52,23 @@ def subir_a_firestore(producto):
         return False
 
     data = {
-        "name": doc_path,
-        "fields": {
-            "nombre": {"stringValue": nombre_original},
-            "precio": {"integerValue": precio},
-            "grupo": {"stringValue": grupo_original},
-            "subgrupo": {"stringValue": subgrupo_original},
-            "descripcion": {"stringValue": producto.get("descripcion", "")},
-            "imagen": {"stringValue": producto["imagen"]},
-            "orden": {"integerValue": orden},
-            "talles": {
-                "arrayValue": {
-                    "values": [{"stringValue": t} for t in producto.get("talles", [])]
-                }
+      "name": doc_path,
+      "fields": {
+        "nombre": {"stringValue": nombre_original},
+        "id_base": {"stringValue": f"{nombre_id}_{fecha}_{grupo_id}"},
+        "precio": {"integerValue": precio},
+        "grupo": {"stringValue": grupo_original},
+        "subgrupo": {"stringValue": subgrupo_original},
+        "descripcion": {"stringValue": producto.get("descripcion", "")},
+        "imagen": {"stringValue": producto["imagen"]},
+        "orden": {"integerValue": orden},
+        "talles": {
+            "arrayValue": {
+                "values": [{"stringValue": t} for t in producto.get("talles", [])]
             }
         }
+      }
+ 
     }
 
     try:
