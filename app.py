@@ -11,12 +11,21 @@ import json
 import shortuuid
 import firebase_admin
 from firebase_admin import credentials, firestore
+import tempfile
 
 if not firebase_admin._apps:
-    cred = credentials.ApplicationDefault()  # o Certificate("ruta/clave.json")
-    firebase_admin.initialize_app(cred)
-    
-db = firestore.client()
+    cred_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if cred_json:
+        with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.json') as f:
+            f.write(cred_json)
+            cred_path = f.name
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+    else:
+        raise RuntimeError("❌ Falta la variable GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
+db = firestore.client()  # ✅ solo una vez, después de inicializar
+
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
