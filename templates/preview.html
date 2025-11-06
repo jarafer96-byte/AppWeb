@@ -259,8 +259,7 @@
       box-shadow: 0 0 8px None;
     }
     .btn-grupo.active {
-      box-shadow: 0 0 0 1px #00a50000; /* contorno verde suave */
-      border: 2px solid #00a500;     /* borde verde más definido */
+      box-shadow: none;
     }
     .btn-whatsapp {
       background-color: #25D366;
@@ -377,7 +376,7 @@
       text-align: center;
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
       transition: all 0.3s ease;
-    } 
+    }
     .panel-subcategorias button {
       font-family: {{ config.fuente | safe }};
       font-weight: 600;
@@ -501,12 +500,7 @@
                         <p class="card-text">{{ producto.descripcion }}</p>
                         <p><strong>Precio:</strong> $ <span id="precio_{{ id_base }}">{{ producto.precio }}</span></p>
                         {% if producto.talles %}
-                          <label for="talle_{{ id_base }}"><strong>Talle:</strong></label>
-                          <select id="talle_{{ id_base }}" class="form-select form-select-sm w-auto d-inline-block">
-                            {% for talle in producto.talles %}
-                              <option value="{{ talle }}">{{ talle }}</option>
-                            {% endfor %}
-                          </select>
+                         <p><strong>Talles:</strong> {{ producto.talles | join(', ') }}</p>
                         {% endif %}
                         <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
                         <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
@@ -578,9 +572,15 @@
     <ul id="listaCarrito"></ul>
     <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
     <div class="d-grid gap-2">
-      <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
-      <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
-    </div>
+  <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+
+  {% if config.mercado_pago %}
+    <button class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
+  {% else %}
+    <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+  {% endif %}
+</div>
+
   </div>
 
   <script>
@@ -696,6 +696,21 @@
   }
 
   actualizarCarrito();
+}
+function pagarConMercadoPago() {
+  fetch('/pagar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ carrito })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.init_point) {
+      window.location.href = data.init_point;
+    } else {
+      alert("Error al generar pago");
+    }
+  });
 }
 
 function eliminarProducto(id_base, talle, event) {
@@ -1013,3 +1028,4 @@ carrito.forEach(item => {
 </script>
 </body>
 </html>
+
