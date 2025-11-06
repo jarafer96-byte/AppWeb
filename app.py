@@ -388,8 +388,9 @@ def preview():
         grupos_dict[grupo][subgrupo].append(producto)
 
     config['usarFirestore'] = True  # o False según lo que quieras
+    modo_admin = request.args.get('admin') == 'true'
 
-    return render_template('preview.html', config=config, grupos=grupos_dict)
+    return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin)
 
 
 @app.route('/descargar')
