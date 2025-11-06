@@ -696,6 +696,21 @@
 
   actualizarCarrito();
 }
+function pagarConMercadoPago() {
+  fetch('/pagar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ carrito })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.init_point) {
+      window.location.href = data.init_point;
+    } else {
+      alert("Error al generar pago");
+    }
+  });
+}
 
 function eliminarProducto(id_base, talle, event) {
   event.stopPropagation(); // 👈 evita que el clic cierre el carrito
