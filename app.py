@@ -136,6 +136,19 @@ def limpiar_imagenes_usuario():
                 print(f"Imagen eliminada: {nombre}")
         except Exception as e:
             print(f"Error al eliminar {nombre}: {e}")
+            
+@app.route('/actualizar-precio', methods=['POST'])
+def actualizar_precio():
+    data = request.get_json()
+    producto_id = data.get('id')
+    nuevo_precio = float(data.get('nuevoPrecio', 0))
+
+    try:
+        db.collection('productos').document(producto_id).update({'precio': nuevo_precio})
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        print("⚠️ Error al actualizar precio:", e)
+        return jsonify({"error": "No se pudo actualizar el precio"}), 500
 
 @app.route('/', methods=['GET', 'POST'])
 def step1():
