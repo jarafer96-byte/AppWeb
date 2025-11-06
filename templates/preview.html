@@ -695,25 +695,6 @@ function editarPrecio(id) {
   input.focus();
 }
 
-function editarTalles(id) {
-  const span = document.getElementById("talles_" + id);
-  const tallesActuales = span.textContent.split(",").map(t => t.trim()).join(", ");
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = tallesActuales;
-  input.id = "talles_" + id;
-  input.className = "form-control form-control-sm d-inline-block";
-  input.style.width = "150px";
-
-  const botonGuardar = document.createElement("button");
-  botonGuardar.textContent = "💾";
-  botonGuardar.className = "btn btn-sm btn-success ms-2";
-  botonGuardar.onclick = () => guardarTalles(id);
-
-  span.replaceWith(input);
-  span.insertAdjacentElement("afterend", botonGuardar);
-}
-
 function guardarPrecio(id) {
   const input = document.getElementById("precio_" + id);
   const nuevoValor = parseInt(input.value);
@@ -746,6 +727,29 @@ function guardarPrecio(id) {
   })
   .catch(err => console.error("❌ Error en fetch:", err));
 }
+    
+function editarTalles(id) {
+  const span = document.getElementById("talles_" + id);
+  const tallesActuales = span.textContent.split(",").map(t => t.trim()).join(", ");
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = tallesActuales;
+  input.id = "talles_" + id;
+  input.className = "form-control form-control-sm d-inline-block";
+  input.style.width = "150px";
+
+  input.addEventListener("blur", () => guardarTalles(id));
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      guardarTalles(id);
+    }
+  });
+
+  span.replaceWith(input);
+  input.focus();
+}
+
     
 function guardarTalles(id) {
   const input = document.getElementById("talles_" + id);
