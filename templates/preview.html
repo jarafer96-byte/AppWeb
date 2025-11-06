@@ -5,13 +5,13 @@
   <title>Vista previa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Vista previa para redes sociales -->
-  <meta property="og:title" content="{{ config.titulo | default('Vista Previa') }}">
-  <meta property="og:description" content="{{ config.descripcion | default('Página de muestra') }}">
-  <meta property="og:image" content="{{ config.imagen_destacada | default('/static/img/default.jpg') }}">
+  <meta property="og:title" content="{{ config.titulo }}">
+  <meta property="og:description" content="{{ config.descripcion }}">
+  <meta property="og:image" content="{{ config.imagen_destacada }}">
   <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:url" content="{{ config.url | default('https://example.com') }}">
+  <meta property="og:url" content="{{ config.url }}">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <!-- Google Fonts disponibles -->
@@ -106,10 +106,10 @@
       border: 1px solid rgba(255,255,255,0.2);
     }
     .color-principal {
-      color: {{ config.color }};
+      color: None;
     }
     .bg-principal {
-      background-color: {{ config.color }};
+      background-color: None;
     }
     .modo-oscuro {
       color: white;
@@ -153,13 +153,14 @@
     }
     .panel-grupos {
       position: fixed;
-      top: 60px;
+      max-height: 50vh; /* Altura máxima global */
+      overflow-y: auto; /* Desplazamiento vertical global */
       left: 0;
       right: 0;
-      z-index: 999;
+      z-index: 906;
       background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(6px);
-      padding: 10px 0;
+      padding: 1px 0;
       text-align: center;
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
     }
@@ -167,9 +168,9 @@
       font-family: {{ config.fuente | safe }};
       font-weight: 600;
       margin: 6px;
-      padding: 8px 16px;
-      border-radius: 30px;
+      padding: 2px 8px;
       border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
       background: rgba(255, 255, 255, 0.05);
       color: white;
       box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
@@ -187,37 +188,16 @@
     .logo { 
       height: 10vw; 
       max-height: 380px; 
-      filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px {{ config.color }});
+      filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
       transition: filter 0.3s ease;
       animation: pulsoLogo 4s ease-in-out infinite;
     }
-    @media (max-width: 600px) {
-      .logo {
-        height: 140px !important;
-      }
-      .barra-navegacion {
-        padding: 8px 10px;
-        gap: 8px;
-      }
-      .barra-navegacion button {
-        font-size: 14px;
-        padding: 8px 15px;
-      }
-      .panel-grupos {
-        padding: 8px 0;
-      }
-      .panel-grupos button {
-        font-size: 14px;
-        padding: 6px 12px;
-        margin: 4px;
-      }
-    }
     @keyframes pulsoLogo {
       0%, 100% {
-        filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px {{ config.color }});
+        filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
       }
       50% {
-        filter: brightness(1.8) contrast(1.3) drop-shadow(0 0 20px {{ config.color }});
+        filter: brightness(1.8) contrast(1.3) drop-shadow(0 0 20px None);
       }
     }
     .descripcion-emprendimiento {
@@ -273,9 +253,9 @@
     }
     .btn-grupo:hover {
       background-color: #fff;
-      color: {{ config.color }};
+      color: None;
       transform: scale(1.05);
-      box-shadow: 0 0 8px {{ config.color }};
+      box-shadow: 0 0 8px None;
     }
     .btn-grupo.active {
       box-shadow: none;
@@ -384,13 +364,14 @@
     }
     .panel-subcategorias {
       position: fixed;
-      top: 110px;
+      max-height: 50vh; /* Altura máxima global */
+      overflow-y: auto; /* Desplazamiento vertical global */
       left: 0;
       right: 0;
-      z-index: 998;
+      z-index: 908;
       background: rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(6px);
-      padding: 10px 0;
+      padding: 1px 0;
       text-align: center;
       box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
       transition: all 0.3s ease;
@@ -399,9 +380,9 @@
       font-family: {{ config.fuente | safe }};
       font-weight: 600;
       margin: 6px;
-      padding: 8px 16px;
-      border-radius: 30px;
+      padding: 1px 8px;
       border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
       background: rgba(255, 255, 255, 0.05);
       color: white;
       box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
@@ -412,6 +393,39 @@
       background: rgba(255, 255, 255, 0.15);
       transform: scale(1.05);
     }
+    @media (max-width: 600px) {
+  .logo {
+    height: 140px !important;
+  }
+  .barra-navegacion {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .barra-navegacion button {
+    font-size: 14px;
+    padding: 8px 15px;
+  }
+  .panel-grupos {
+    padding: 1px 0;
+    max-height: 50vh; /* Altura máxima para que sea desplazable si hay muchos botones */
+    overflow-y: auto; /* Hace el panel desplazable verticalmente */
+  }
+  .panel-grupos button {
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 8px;
+   }
+  .panel-subcategorias {
+    padding: 1px 0;
+    max-height: 50vh; /* Altura máxima para el panel de subcategorías */
+    overflow-y: auto; /* Hace el panel desplazable verticalmente */
+  }
+  .panel-subcategorias button {
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+}
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -421,107 +435,134 @@
       50% { background-position: 100% 100%; }
       100% { background-position: 0% 0%; }
     }
-    /* Estilos para el botón Atrás */
-    .btn-atras {
-      font-family: {{ config.fuente | safe }};
-      font-weight: 600;
-      margin: 6px;
-      padding: 8px 16px;
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.05);
-      color: white;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
-      transition: all 0.3s ease;
-    }
-    .btn-atras:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(1.05);
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-    }
-    /* Media query para móviles (pantallas menores a 600px) */
-    @media (max-width: 600px) {
-      .logo {
-        height: 140px !important;
-      }
-      .barra-navegacion {
-        padding: 8px 10px;
-        gap: 8px;
-      }
-      .barra-navegacion button {
-        font-size: 14px;
-        padding: 8px 15px;
-      }
-      .panel-grupos {
-        padding: 8px 0;
-      }
-      .panel-grupos button,
-      .btn-atras {
-        font-size: 14px;
-        padding: 6px 12px;
-        margin: 4px;
-      }
-      .panel-subcategorias {
-        padding: 8px 0;
-      }
-      .panel-subcategorias button {
-        font-size: 14px;
-        padding: 6px 12px;
-        margin: 4px;
-      }
-    }
   </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
   <div class="barra-wrapper">
     <nav class="barra-navegacion">
-      <button id="btnProductos">Productos</button>
-      <button id="btnContacto">Contacto</button>
+      <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
+      <button id="btnContacto" onclick="irAContacto()">Contacto</button>
     </nav>
-    <div id="panelGrupos" class="panel-grupos oculta"></div>
+    <div id="panelGrupos" class="panel-grupos oculto">
+      {% for grupo in grupos.keys() %}
+        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
+          {{ grupo }}
+        </button>
+      {% endfor %}
+    </div>
   </div>
 
-  <div id="panelSubcategorias" class="panel-subcategorias oculta"></div>
+  <div id="panelSubcategorias" class="panel-subcategorias oculto"></div>
 
   <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
   </button>
 
   <div class="text-center my-3">
-    <img src="/static/img/{{ config.logo | default('mini_1_jfjf8.jpeg') }}" alt="Logo" class="img-fluid logo">
+    <img src="{{ url_for('static', filename='img/' + config.logo) }}"
+         alt="Logo"
+         class="img-fluid logo">
+  </div>
+  
+  <div class="text-center my-4">
+    <select id="ordenPrecio" class="form-select w-auto d-inline-block">
+      <option value="asc">Precio: Menor a mayor</option>
+      <option value="desc">Precio: Mayor a menor</option>
+    </select>
   </div>
 
-  <div class="text-center mb-4">
-    <div class="descripcion-emprendimiento">
-      {{ config.descripcion_emprendimiento | safe | default('Descripción por defecto') }}
+
+  {% if config.sobre_mi %}
+    <div class="text-center mb-4">
+      <div class="descripcion-emprendimiento">
+        {{ config.sobre_mi | replace('\n', '<br>') | safe }}
+      </div>
     </div>
-  </div>
+  {% endif %}
+
+  {% if not config.usarFirestore %}
+   {% for grupo, subgrupos in grupos.items() %}
+    {% set total_productos = subgrupos.values() | map('length') | sum %}
+    {% if total_productos > 0 %}
+      <div class="container mb-5 grupo-section" id="grupo_{{ grupo }}">
+        {% for subgrupo, productos in subgrupos.items() %}
+          {% if productos %}
+            <div class="subgrupo-bloque mb-4" data-subgrupo="{{ subgrupo }}">
+              <div class="row">
+                {% for producto in productos %}
+                  {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
+                  <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                    <div class="card p-3 h-100">
+                      <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+                      <div class="card-body">
+                        <h5 class="card-title">{{ producto.nombre }}</h5>
+                        <p class="card-text">{{ producto.descripcion }}</p>
+                        <p><strong>Precio:</strong> $ <span id="precio_{{ id_base }}">{{ producto.precio }}</span></p>
+                        {% if producto.talles %}
+                         <p><strong>Talles:</strong> {{ producto.talles | join(', ') }}</p>
+                        {% endif %}
+                        <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                        <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                          <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                          <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ id_base }}">
+                          <button type="button" class="btn btn-secondary"
+                            onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ id_base }}', 'cantidad_{{ id_base }}', '{{ id_base }}')">
+                            Agregar al carrito
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+   {% endfor %}
+  {% endif %}
+
 
   <div id="contenedor-grupos"></div>
 
-  {% include '1.txt' %}
+  <div class="text-center mt-5">
+    <a href="/descargar" class="btn btn-primary px-5">
+      Descargar sitio
+    </a>
+  </div>
 
   <div class="social-icons">
-    <a href="{{ config.facebook | default('#') }}" target="_blank">
-      <img src="/static/img/facebook.png" alt="Facebook">
-    </a>
-    <a href="{{ config.instagram | default('#') }}" target="_blank">
-      <img src="/static/img/instagram.png" alt="Instagram">
-    </a>
-    <a href="{{ config.whatsapp | default('#') }}" target="_blank">
-      <img src="/static/img/whatsapp.png" alt="WhatsApp">
-    </a>
+    {% if config.facebook %}
+      <a href="{{ config.facebook }}" target="_blank">
+        <img src="/static/img/facebook.png" alt="Facebook">
+      </a>
+    {% endif %}
+    {% if config.instagram %}
+      <a href="{{ config.instagram }}" target="_blank">
+        <img src="/static/img/instagram.png" alt="Instagram">
+      </a>
+    {% endif %}
+    {% if config.whatsapp %}
+      <a href="{{ config.whatsapp }}" target="_blank">
+        <img src="/static/img/whatsapp.png" alt="WhatsApp">
+      </a>
+    {% endif %}
   </div>
 
-  <div id="ubicacion" class="bloque-ubicacion text-center mt-4">
-    <p style="margin-bottom: 6px;">
-      📍 {{ config.direccion | default('Dirección no especificada') }}
-    </p>
-    <a href="{{ config.maps | default('#') }}" target="_blank" style="text-decoration: none;">
-      <span style="margin-right: 6px;">➜</span>
-      <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
-    </a>
-  </div>
+  {% if config.ubicacion %}
+    <div id="ubicacion" class="bloque-ubicacion text-center mt-4">
+      <p style="margin-bottom: 6px;">
+        📍 {{ config.ubicacion }}
+      </p>
+      {% if config.link_mapa %}
+        <a href="{{ config.link_mapa }}" target="_blank" style="text-decoration: none;">
+          <span style="margin-right: 6px;">➜</span>
+          <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
 
   <button id="toggleCarrito">🛒</button>
 
@@ -536,8 +577,7 @@
   </div>
 
   <script>
-    const configWhatsApp = "{{ config.whatsapp | default('#') }}";
-    const modoAdmin = {{ modoAdmin | default(false) | tojson }};
+    const configWhatsApp = "{{ config.whatsapp }}";
 
     window.addEventListener('scroll', () => {
       const btn = document.getElementById('volverArriba');
@@ -545,28 +585,27 @@
       btn.style.backgroundColor = 'white';
       btn.style.color = 'black';
     });
-
     const subcategoriasPorGrupo = {
       {% for grupo, subgrupos in grupos.items() %}
-        "{{ grupo | replace(' ', '_') }}": [{% for subgrupo in subgrupos.keys() %}"{{ subgrupo | replace(' ', '_') }}"{% if not loop.last %}, {% endif %}{% endfor %}],
+        "{{ grupo }}": [{% for sub in subgrupos.keys() %}"{{ sub }}"{% if not loop.last %}, {% endif %}{% endfor %}],
       {% endfor %}
     };
 
     document.getElementById('volverArriba').onclick = () => {
-      window.scrollTo({ top: 0, behavior: 'auto' });
+      window.scrollTo({ top: 0, behavior: 'auto' }); // Cambiado a 'auto' para evitar deslizamiento
     };
-
     function mostrarGrupo(nombre, event, auto = false) {
-      const grupoActivo = document.getElementById('grupo_' + nombre.replace(' ', '_'));
+      const grupoActivo = document.getElementById('grupo_' + nombre);
       document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
       if (grupoActivo) {
         grupoActivo.classList.add('active');
+        if (auto) grupoActivo.classList.add('initial-load');
       }
 
       document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
       if (event?.target) event.target.classList.add('active');
 
-      const subcategorias = subcategoriasPorGrupo[nombre.replace(' ', '_')] || [];
+      const subcategorias = subcategoriasPorGrupo[nombre] || [];
       const panel = document.getElementById('panelSubcategorias');
       panel.innerHTML = '';
 
@@ -575,10 +614,11 @@
       subcategorias.forEach(sub => {
         if (!sub || sub.trim().toLowerCase() === 'general') return;
         const btn = document.createElement('button');
-        btn.textContent = sub.replace('_', ' ');
+        btn.textContent = sub;
         btn.className = 'btn-grupo';
-        btn.onclick = () => filtrarSubcategoria(nombre, sub.replace('_', ' '));
+        btn.onclick = () => filtrarSubcategoria(nombre, sub);
         panel.appendChild(btn);
+        console.log("Creando botón para subcategoría:", sub);
       });
 
       if (!auto) {
@@ -586,19 +626,19 @@
         bloques?.forEach(bloque => {
           bloque.style.display = 'block';
         });
+
         if (subcategorias.length > 0) {
-          filtrarSubcategoria(nombre, subcategorias[0].replace('_', ' '));
+          filtrarSubcategoria(nombre, subcategorias[0]);
         }
       } else {
         panel.classList.add('oculta');
         if (subcategorias.length > 0) {
-          filtrarSubcategoria(nombre, subcategorias[0].replace('_', ' '));
+          filtrarSubcategoria(nombre, subcategorias[0]);
         }
       }
     }
-
     function filtrarSubcategoria(grupo, subgrupo) {
-      const grupoDiv = document.getElementById('grupo_' + grupo.replace(' ', '_'));
+      const grupoDiv = document.getElementById('grupo_' + grupo);
       if (!grupoDiv) return;
 
       const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
@@ -608,47 +648,60 @@
         bloque.style.display = mostrar ? 'block' : 'none';
       });
 
-      window.scrollTo({ top: window.scrollY, behavior: 'auto' });
+      window.scrollTo({ top: 0, behavior: 'auto' });
     }
-
     window.onload = function() {
-      const panelSubcategorias = document.getElementById('panelSubcategorias');
-      const panelGrupos = document.getElementById('panelGrupos');
-      panelSubcategorias.classList.add('oculta');
-      panelGrupos.classList.add('oculta');
+  const panelSubcategorias = document.getElementById('panelSubcategorias');
+  const panelGrupos = document.getElementById('panelGrupos');
+  panelSubcategorias.classList.add('oculta');
+  panelGrupos.classList.add('oculta');
 
-      const grupos = Object.keys(subcategoriasPorGrupo);
-      if (grupos.length > 0) {
-        mostrarGrupo(grupos[0], null, true); // Mostrar primer grupo automáticamente
-      }
-    };
+  const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
+  const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
+
+  if (primerGrupo && primerSub) {
+    mostrarGrupo(primerGrupo, null, true);
+    filtrarSubcategoria(primerGrupo, primerSub);
+  }
+
+  document.getElementById('toggleCarrito').onclick = function() {
+    const carritoDiv = document.getElementById('carrito');
+    carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
+  };
+};
 
     let carrito = [];
 
-    function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, idBase) {
-      const cantidadInput = document.getElementById(idCantidad);
-      const precioSpan = document.getElementById(idPrecioSpan);
-      const talleSelect = document.getElementById('talle_' + idBase);
+    function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
+  const cantidadInput = document.getElementById(idCantidad); 
+  const precioSpan = document.getElementById(idPrecioSpan);
+  const talleSelect = document.getElementById("talle_" + id_base); // 👈 capturamos el selector de talle
 
-      const cantidad = parseInt(cantidadInput?.value) || 1;
-      const precio = parseFloat(precioSpan?.textContent) || 0;
-      const talle = talleSelect ? talleSelect.value : null;
+  const cantidad = parseInt(cantidadInput?.value) || 1; 
+  const precio = parseFloat(precioSpan?.textContent) || 0;
+  const talleElegido = talleSelect?.value || ""; // 👈 obtenemos el talle seleccionado
 
-      const existente = carrito.find(item => item.nombre === nombre && item.id_base === idBase && item.talle === talle);
-      if (existente) {
-        existente.cantidad += cantidad;
-      } else {
-        carrito.push({ nombre, precio, cantidad, id_base: idBase, talle });
-      }
+  const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
+    carrito.push({ nombre, precio, cantidad, id_base, talle: talleElegido }); // 👈 guardamos el talle
+  }
 
-      actualizarCarrito();
-    }
+  actualizarCarrito();
+}
+
+function eliminarProducto(id_base, talle, event) {
+  event.stopPropagation(); // 👈 evita que el clic cierre el carrito
+  carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
+  actualizarCarrito();
+}
+
 
     function vaciarCarrito() {
       carrito = [];
       actualizarCarrito();
     }
-
     function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
       let cambio = false;
       carrito.forEach(item => {
@@ -659,7 +712,6 @@
       });
       if (cambio) actualizarCarrito();
     }
-
     function sincronizarPreciosDelCarrito() {
       carrito.forEach(item => {
         const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
@@ -672,81 +724,286 @@
         }
       });
     }
-
     function actualizarCarrito() {
-      sincronizarPreciosDelCarrito();
+  sincronizarPreciosDelCarrito();
 
-      const lista = document.getElementById('listaCarrito');
-      const total = document.getElementById('totalCarrito');
-      lista.innerHTML = '';
-      let suma = 0;
+  const lista = document.getElementById('listaCarrito');
+  const total = document.getElementById('totalCarrito');
+  lista.innerHTML = '';
+  let suma = 0;
 
-      carrito.forEach(item => {
-        const subtotal = item.precio * item.cantidad;
-        const talleText = item.talle ? ` (Talle: ${item.talle})` : '';
-        lista.innerHTML += `<li>${item.nombre}${talleText} x ${item.cantidad} - $${subtotal.toFixed(2)}</li>`;
-        suma += subtotal;
-      });
+carrito.forEach(item => {
+  const subtotal = item.precio * item.cantidad;
+  lista.innerHTML += `
+    <li style="display: flex; justify-content: space-between; align-items: center;">
+      <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
+      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
+    </li>`;
+  suma += subtotal;
+});
 
-      total.textContent = suma.toFixed(2);
 
-      const mensaje = encodeURIComponent(
-        `Hola, quiero consultar por:\n` +
-        carrito.map(i => `- ${i.nombre}${i.talle ? ` (Talle: ${i.talle})` : ''} x ${i.cantidad}: $${(i.precio * i.cantidad).toFixed(2)}`).join('\n') +
-        `\nTotal estimado: $${suma.toFixed(2)}`
-      );
 
-      document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
-    }
+  total.textContent = suma.toFixed(2);
 
-    document.getElementById('toggleCarrito').onclick = function() {
-      const carritoDiv = document.getElementById('carrito');
-      carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
-    };
+  const mensaje = encodeURIComponent(
+    `Hola, quiero consultar por:\n` +
+    carrito.map(i => `- ${i.nombre}${i.talle ? ' (' + i.talle + ')' : ''} x ${i.cantidad}: $${(i.precio * i.cantidad).toFixed(2)}`).join('\n') +
+    `\nTotal estimado: $${suma.toFixed(2)}`
+  );
 
-    document.getElementById('btnProductos').onclick = function() {
+  document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
+}
+
+    function mostrarTodos() {
       const panelGrupos = document.getElementById('panelGrupos');
+      const panelSub = document.getElementById('panelSubcategorias');
+
       panelGrupos.classList.toggle('oculta');
-      if (!panelGrupos.classList.contains('oculta')) {
-        const grupos = Object.keys(subcategoriasPorGrupo);
-        panelGrupos.innerHTML = '';
-        grupos.forEach(grupo => {
-          const btn = document.createElement('button');
-          btn.textContent = grupo.replace('_', ' ');
-          btn.className = 'btn-grupo';
-          btn.onclick = (e) => mostrarGrupo(grupo, e);
-          panelGrupos.appendChild(btn);
-        });
+
+      if (!panelSub.classList.contains('oculta')) {
+        panelSub.classList.add('oculta');
       }
-    };
-
-    document.getElementById('btnContacto').onclick = irAContacto;
-
+    }
     function irAContacto() {
       const contacto = document.getElementById('ubicacion');
-      if (contacto) contacto.scrollIntoView({ behavior: 'auto' });
+      if (contacto) contacto.scrollIntoView({ behavior: 'auto' }); // Cambiado a 'auto'
     }
+    function ajustarPosicionesPaneles() {
+      const panelGrupos = document.getElementById('panelGrupos');
+      const panelSub = document.getElementById('panelSubcategorias');
+      const barraNav = document.querySelector('.barra-navegacion');
 
-    // Funciones administrativas (ajústalas según tu backend)
-    function editarPrecio(productoId, idBase) {
-      const nuevoPrecio = prompt('Ingrese el nuevo precio:');
-      if (nuevoPrecio && !isNaN(nuevoPrecio)) {
-        const precioSpan = document.getElementById('precio_' + idBase);
-        precioSpan.textContent = nuevoPrecio;
-        actualizarPrecioEnCarrito(document.getElementById('card_' + idBase).querySelector('.card-title').textContent, parseFloat(nuevoPrecio));
-        // Aquí deberías actualizar Firestore con una llamada AJAX
-        console.log(`Actualizar precio ${productoId} a ${nuevoPrecio}`);
+      if (!panelGrupos.classList.contains('oculta')) {
+        const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+        const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
+        panelGrupos.style.top = alturaBarra + 'px';
+        panelGrupos.style.position = 'fixed';
+        panelGrupos.style.left = '0';
+        panelGrupos.style.right = '0';
+      }
+      if (!panelSub.classList.contains('oculta')) {
+        const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+        const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
+        const margenAdicional = 19; // Margen para evitar superposiciones
+        const desplazamientoArriba = -20; // Ajuste para subir un poco si lo necesitas
+        panelSub.style.top = (alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba) + 'px';
+        panelSub.style.position = 'fixed';
+        panelSub.style.left = '0';
+        panelSub.style.right = '0';
+      } else {
+        panelSub.style.top = '100%';
       }
     }
-
-    function eliminarProducto(productoId) {
-      if (confirm('¿Estás seguro de eliminar este producto?')) {
-        // Aquí deberías eliminar de Firestore con una llamada AJAX
-        console.log(`Eliminar producto ${productoId}`);
-        const card = document.querySelector(`[data-producto-id="${productoId}"]`);
-        if (card) card.remove();
-      }
-    }
+    // Recalcular posiciones al cargar y al cambiar el tamaño de la ventana
+    window.addEventListener('load', ajustarPosicionesPaneles);
+    window.addEventListener('resize', ajustarPosicionesPaneles);
+    // Recalcular posiciones cuando se muestra un panel
+    document.getElementById('btnProductos').addEventListener('click', function() {
+      setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de que el DOM se actualice
+    });
+    document.querySelectorAll('.btn-grupo').forEach(btn => {
+      btn.addEventListener('click', function() {
+        setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de mostrar subcategorías
+      });
+    });
   </script>
+  <script type="module">
+  const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
+
+  import {
+    initializeApp
+  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
+    authDomain: "appweb-2167a.firebaseapp.com",
+    projectId: "appweb-2167a",
+    storageBucket: "appweb-2167a.firebasestorage.app",
+    messagingSenderId: "681717342631",
+    appId: "1:681717342631:web:f95e6c18b34bae5725d682"
+  };
+
+  if (usarFirestore) {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const productosRef = collection(db, "productos");
+
+    getDocs(productosRef)
+      .then(snapshot => {
+        console.log("Documentos recibidos:", snapshot.size);
+      })
+      .catch(error => {
+        console.error("❌ Error al cargar productos:", error);
+      });
+
+    onSnapshot(productosRef, snapshot => {
+      const grupos = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data.grupo || !data.grupo.trim()) return;
+        const grupo = data.grupo.trim();
+        const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
+
+        if (!grupos[grupo]) grupos[grupo] = {};
+        if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
+        grupos[grupo][subgrupo].push({ ...data, id: doc.id });
+      });
+
+      window._gruposProductos = grupos;
+      renderizarProductos(grupos);
+      actualizarCarrito();
+    });
+  }
+
+  function renderizarProductos(grupos) {
+    const contenedorPrincipal = document.getElementById("contenedor-grupos");
+    contenedorPrincipal.innerHTML = "";
+
+    Object.entries(grupos).forEach(([grupo, subgrupos]) => {
+      const grupoDiv = document.createElement("div");
+      grupoDiv.className = "container mb-5 grupo-section";
+      grupoDiv.id = "grupo_" + grupo;
+
+      Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
+        if (!productos || productos.length === 0) return;
+
+        const subgrupoDiv = document.createElement("div");
+        subgrupoDiv.className = "subgrupo-bloque mb-4";
+        subgrupoDiv.dataset.subgrupo = subgrupo;
+
+        const fila = document.createElement("div");
+        fila.className = "row";
+
+        const orden = document.getElementById("ordenPrecio")?.value || "asc";
+        productos.sort((a, b) => {
+          const pa = parseFloat(a.precio) || 0;
+          const pb = parseFloat(b.precio) || 0;
+          return orden === "asc" ? pa - pb : pb - pa;
+        });
+
+        productos.forEach((producto, i) => {
+          const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
+          producto.id_base = idBase;
+          const tarjeta = document.createElement("div");
+          tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
+          tarjeta.innerHTML = `
+            <div class="card p-3 h-100">
+              <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
+              <div class="card-body">
+                <h5 class="card-title">${producto.nombre}</h5>
+                <p class="card-text">${producto.descripcion || ""}</p>
+                <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
+                ${producto.talles?.length ? `
+                  <div class="mb-2">
+                    <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+                    <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
+                      ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
+                    </select>
+                  </div>
+                ` : ''}
+                <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                  <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                  <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
+                  <button type="button" class="btn btn-secondary"
+                    onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
+                    Agregar al carrito
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          fila.appendChild(tarjeta);
+        });
+
+        subgrupoDiv.appendChild(fila);
+        grupoDiv.appendChild(subgrupoDiv);
+      });
+
+      contenedorPrincipal.appendChild(grupoDiv);
+    });
+
+    // Activar primer grupo y subgrupo
+    setTimeout(() => {
+      const grupoKeys = Object.keys(grupos);
+      if (grupoKeys.length === 0) return;
+
+      const primerGrupoId = grupoKeys[0];
+      const primerGrupoDiv = document.getElementById('grupo_' + primerGrupoId);
+      if (primerGrupoDiv) primerGrupoDiv.classList.add('active');
+
+      const subgrupos = Object.keys(grupos[primerGrupoId]);
+      const primerSubgrupoNombre = subgrupos[0];
+
+      if (primerGrupoId && primerSubgrupoNombre) {
+        filtrarSubcategoria(primerGrupoId, primerSubgrupoNombre);
+      }
+    }, 100);
+  }
+  document.addEventListener('click', function(event) {
+  const carritoDiv = document.getElementById('carrito');
+  const toggleBtn = document.getElementById('toggleCarrito');
+
+  // Si el carrito está visible y el clic fue fuera del carrito y del botón
+  if (
+    carritoDiv.style.display === 'block' &&
+    !carritoDiv.contains(event.target) &&
+    !toggleBtn.contains(event.target)
+  ) {
+    carritoDiv.style.display = 'none';
+  }
+});
+
+  document.getElementById("ordenPrecio")?.addEventListener("change", () => {
+    if (window._gruposProductos) {
+      renderizarProductos(window._gruposProductos);
+    }
+  });
+  document.addEventListener('click', function(event) {
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
+
+  const esClickDentroGrupos = panelGrupos.contains(event.target);
+  const esClickDentroSub = panelSub.contains(event.target);
+  const esBotonGrupo = event.target.classList.contains('btn-grupo');
+  const esBotonNavegacion = event.target.closest('.barra-navegacion');
+
+  // Si el clic no fue dentro de los paneles ni en botones de grupo o navegación
+  if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
+    panelGrupos.classList.add('oculta');
+    panelSub.classList.add('oculta');
+  }
+});
+  document.getElementById('ordenPrecio').addEventListener('change', function () {
+  const orden = this.value;
+  const grupoActivo = document.querySelector('.grupo-section.active');
+  if (!grupoActivo) return;
+
+  const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
+  bloques.forEach(bloque => {
+    const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
+    const contenedor = bloque.querySelector('.row');
+    if (!contenedor) return;
+
+    productos.sort((a, b) => {
+      const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent) || 0;
+      const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent) || 0;
+      return orden === 'asc' ? precioA - precioB : precioB - precioA;
+    });
+
+    contenedor.innerHTML = '';
+    productos.forEach(p => contenedor.appendChild(p));
+  });
+});
+</script>
 </body>
 </html>
+
