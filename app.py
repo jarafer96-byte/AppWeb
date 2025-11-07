@@ -1,20 +1,19 @@
-from flask import Flask, render_template, request, redirect, session, send_file, url_for
+from flask import Flask, render_template, request, redirect, session, send_file, url_for, jsonify
 import os
+import uuid
+import time
+import json
+import requests
+import traceback
 from werkzeug.utils import secure_filename
 from zipfile import ZipFile
 from io import BytesIO
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
-import time
-import requests
-import json
-import shortuuid  # ← ya la tenés instalada, ¿no?
-import mercadopago
-from flask import jsonify
 from datetime import datetime
-import requests, uuid, os
-from flask import Flask, request, redirect
-import os
+import shortuuid
+import mercadopago
+
 
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"        # tu usuario de GitHub
