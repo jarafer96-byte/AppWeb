@@ -131,8 +131,10 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token):
     
 def generar_nombre_repo(email):
     base = email.replace("@", "_at_").replace(".", "_")
-    hash_id = uuid.uuid4().hex[:6]
-    return f"{base}-{hash_id}"
+    fecha = time.strftime("%Y%m%d")
+    return f"{base}_{fecha}"
+
+
 
 def crear_repo_github(nombre_repo, token):
     if not token:
