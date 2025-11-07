@@ -122,7 +122,11 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token):
         "branch": "main"
     }
     r = requests.put(url, headers=headers, json=data)
-    print(f"📤 {ruta_remota}: {r.status_code}")
+    if r.status_code != 201:
+        print(f"❌ Error al subir {ruta_remota}: {r.status_code} → {r.text}")
+    else:
+        print(f"✅ Subido: {ruta_remota}")
+
     return r.status_code == 201
     
 def generar_nombre_repo(email):
@@ -495,6 +499,7 @@ def preview():
         nombre_repo = generar_nombre_repo(email)
         token = os.getenv("GITHUB_TOKEN")
         resultado = crear_repo_github(nombre_repo, token)
+        print("📦 Resultado:", resultado)  # 👈 Agregalo acá
         if "url" in resultado:
             session['repo_creado'] = resultado["url"]
             session['repo_nombre'] = nombre_repo
