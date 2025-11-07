@@ -89,10 +89,9 @@
   <div class="container py-5">
     <h2 class="mb-4 text-center">Creá tu sitio tipo catálogo</h2>
 
-    <form action="/crear-repo" method="POST">
-      <input type="email" name="email" required placeholder="Ingresá tu email">
-      <button type="submit">Crear repositorio</button>
-    </form>
+    <input type="email" id="email" required placeholder="Ingresá tu email">
+    <button onclick="crearRepositorio()">Crear repositorio</button>
+    <div id="resultado-repo" style="margin-top: 10px;"></div>
 
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="tipo_web" value="catálogo">
@@ -205,6 +204,26 @@
 function toggleCampoMP() {
   const activo = document.getElementById('activarMP').checked;
   document.getElementById('campoMP').style.display = activo ? 'block' : 'none';
+}
+
+async function crearRepositorio() {
+  const email = document.getElementById("email").value;
+  if (!email) return alert("Ingresá un email válido");
+
+  const res = await fetch("/crear-repo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email })
+  });
+
+  const data = await res.json();
+  const resultado = document.getElementById("resultado-repo");
+
+  if (data.url) {
+    resultado.innerHTML = `✅ Repositorio creado: <a href="${data.url}" target="_blank">${data.url}</a>`;
+  } else {
+    resultado.innerHTML = `❌ Error: ${data.error || "No se pudo crear el repositorio"}`;
+  }
 }
 
 function validarCredencialMP(input) {
