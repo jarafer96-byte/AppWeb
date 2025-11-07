@@ -446,6 +446,7 @@ def pagar():
 
 @app.route('/preview')
 def preview():
+    print("🚀 Entrando a /preview")
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
     config = {
@@ -497,6 +498,7 @@ def preview():
     if not session.get('repo_creado'):
         email = session.get('email') or "sin_email@appweb.com"
         nombre_repo = generar_nombre_repo(email)
+        print("📦 Intentando crear repo con:", nombre_repo)
         token = os.getenv("GITHUB_TOKEN")
         resultado = crear_repo_github(nombre_repo, token)
         print("📦 Resultado:", resultado)  # 👈 Agregalo acá
