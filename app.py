@@ -495,54 +495,70 @@ def preview():
             grupos_dict[grupo][subgrupo] = []
         grupos_dict[grupo][subgrupo].append(producto)
 
+    # ✅ Crear repo si no existe
     if not session.get('repo_creado'):
         email = session.get('email') or "sin_email@appweb.com"
         nombre_repo = generar_nombre_repo(email)
         print("📦 Intentando crear repo con:", nombre_repo)
         token = os.getenv("GITHUB_TOKEN")
         resultado = crear_repo_github(nombre_repo, token)
-        print("📦 Resultado:", resultado)  # 👈 Agregalo acá
+        print("📦 Resultado:", resultado)
         if "url" in resultado:
             session['repo_creado'] = resultado["url"]
             session['repo_nombre'] = nombre_repo
-
-            # ✅ Subir index.html renderizado
-            template = current_app.jinja_env.get_template('preview.html')
-            html = template.render(config=config, grupos=grupos_dict, modoAdmin=False)
-            subir_archivo(nombre_repo, html.encode("utf-8"), "index.html", token)
-
-            # ✅ Subir imágenes a static/img/
-            for producto in config['productos']:
-                imagen = producto.get("imagen")
-                if imagen:
-                    ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
-                    if os.path.exists(ruta_local):
-                        with open(ruta_local, "rb") as f:
-                            contenido = f.read()
-                        subir_archivo(nombre_repo, contenido, f"static/img/{imagen}", token)
-            # ✅ Subir logo si existe
-            logo = config.get("logo")
-            if logo:
-                logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
-                if os.path.exists(logo_path):
-                    with open(logo_path, "rb") as f:
-                        contenido = f.read()
-                    subir_archivo(nombre_repo, contenido, f"static/img/{logo}", token)
-
-            # ✅ Subir fondo visual si existe
-            fondo = f"{estilo_visual}.jpeg"
-            fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
-            if os.path.exists(fondo_path):
-                with open(fondo_path, "rb") as f:
-                    contenido = f.read()
-                subir_archivo(nombre_repo, contenido, f"static/img/{fondo}", token)
         else:
             print("⚠️ No se pudo crear el repositorio:", resultado.get("error"))
 
+    # ✅ Subir archivos si el repo existe
+    if session.get('repo_creado') and session.get('repo_nombre'):
+        nombre_repo = session['repo_nombre']
+        token = os.getenv("GITHUB_TOKEN")
+        print("📤 Subiendo archivos al repo:", nombre_repo)
+
+        # Subir index.html
+        template = current_app.jinja_env.get_template('preview.html')
+        html = template.render(config=config, grupos=grupos_dict, modoAdmin=False)
+        subir_archivo(nombre_repo, html.encode("utf-8"), "index.html", token)
+        print("📄 Subido: index.html")
+
+        # Subir imágenes
+        for producto in config['productos']:
+            imagen = producto.get("imagen")
+            if imagen:
+                ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
+                if os.path.exists(ruta_local):
+                    with open(ruta_local, "rb") as f:
+                        contenido = f.read()
+                    subir_archivo(nombre_repo, contenido, f"static/img/{imagen}", token)
+                    print(f"🖼️ Subida imagen: {imagen}")
+                else:
+                    print(f"⚠️ Imagen no encontrada: {imagen}")
+
+        # Subir logo
+        logo = config.get("logo")
+        if logo:
+            logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
+            if os.path.exists(logo_path):
+                with open(logo_path, "rb") as f:
+                    contenido = f.read()
+                subir_archivo(nombre_repo, contenido, f"static/img/{logo}", token)
+                print(f"🎯 Subido logo: {logo}")
+            else:
+                print(f"⚠️ Logo no encontrado: {logo}")
+
+        # Subir fondo visual
+        fondo = f"{estilo_visual}.jpeg"
+        fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
+        if os.path.exists(fondo_path):
+            with open(fondo_path, "rb") as f:
+                contenido = f.read()
+            subir_archivo(nombre_repo, contenido, f"static/img/{fondo}", token)
+            print(f"🌄 Subido fondo visual: {fondo}")
+        else:
+            print(f"⚠️ Fondo visual no encontrado: {fondo}")
+
     modo_admin = request.args.get('admin') == 'true'
     return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin)
-
-
 
 @app.route('/descargar')
 def descargar():
