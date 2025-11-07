@@ -447,6 +447,9 @@ def pagar():
 @app.route('/preview')
 def preview():
     print("🚀 Entrando a /preview")
+    print("🔍 repo_creado:", session.get('repo_creado'))
+    print("🔍 repo_nombre:", session.get('repo_nombre'))
+    
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
     config = {
