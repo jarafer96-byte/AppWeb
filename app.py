@@ -114,14 +114,14 @@ def generar_nombre_repo(email):
     hash_id = uuid.uuid4().hex[:6]
     return f"{base}-{hash_id}"
 
-def crear_repo_github(nombre_repo):
-    if not GITHUB_TOKEN:
+def crear_repo_github(nombre_repo, token):
+    if not token:
         print("❌ Token no cargado desde entorno")
         return {"error": "Token no disponible"}
 
     url = "https://api.github.com/user/repos"
     headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
+        "Authorization": f"token {token}",
         "Accept": "application/vnd.github+json"
     }
     data = {
@@ -143,6 +143,7 @@ def crear_repo_github(nombre_repo):
     except requests.exceptions.RequestException as e:
         print(f"❌ Error de red: {e}")
         return {"error": str(e)}
+
 
 def redimensionar_webp_en_static():
     carpeta = 'static/img/webp'
@@ -473,7 +474,8 @@ def preview():
     if not session.get('repo_creado'):
         email = session.get('email') or "sin_email@appweb.com"
         nombre_repo = generar_nombre_repo(email)
-        resultado = crear_repo_github(nombre_repo)
+        token = os.getenv("GITHUB_TOKEN")
+        resultado = crear_repo_github(nombre_repo, token)
         if "url" in resultado:
             session['repo_creado'] = resultado["url"]
         else:
