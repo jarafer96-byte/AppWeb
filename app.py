@@ -197,59 +197,14 @@ def limpiar_imagenes_usuario():
 
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
-    if not GITHUB_TOKEN:
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
         return "❌ Token no cargado desde entorno", 500
 
     nombre_repo = request.json.get("nombre", f"repo-{uuid.uuid4().hex[:6]}")
-    url = "https://api.github.com/user/repos"
-    headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    }
-    data = {
-        "name": nombre_repo,
-        "private": True,
-        "auto_init": True,
-        "description": "Repo creado desde Flask"
-    }
+    resultado = crear_repo_github(nombre_repo, token)
+    return jsonify(resultado), 200 if "url" in resultado else 400
 
-    try:
-        response = requests.post(url, headers=headers, json=data, timeout=5)
-        if response.status_code == 201:
-            return jsonify({"✅ Repo creado": response.json()["html_url"]})
-        else:
-            return f"❌ Error: {response.status_code} → {response.text}", 400
-    except requests.exceptions.RequestException as e:
-        return f"❌ Error de red: {e}", 500
-
-if __name__ == "__main__":
-    app.run(debug=True)
-
-@app.route('/actualizar-precio', methods=['POST'])
-def actualizar_precio():
-    data = request.get_json()
-    id_base = data.get("id")
-    nuevo_precio = int(data.get("nuevoPrecio", 0))
-
-    url = (
-        f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}"
-        f"/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}"
-        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=precio"
-    )
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "fields": {
-            "precio": {"integerValue": nuevo_precio}
-        }
-    }
-
-    try:
-        r = requests.patch(url, headers=headers, data=json.dumps(payload))
-        print("💰 Precio actualizado:", r.status_code)
-        return jsonify({"status": "ok"}), r.status_code
-    except Exception as e:
-        print("❌ Error al actualizar precio:", e)
-        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/actualizar-talles', methods=['POST'])
