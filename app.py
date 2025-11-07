@@ -12,6 +12,11 @@ import shortuuid  # ← ya la tenés instalada, ¿no?
 import mercadopago
 from flask import jsonify
 from datetime import datetime
+import requests, uuid, os
+from flask import Flask, request, redirect
+
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # guardalo en .env
+GITHUB_USERNAME = "jarafer96-byte"        # tu usuario de GitHub
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
@@ -103,6 +108,26 @@ def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad
 
 def necesita_redimension(src, dst):
     return not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst)
+    
+def generar_nombre_repo(email):
+    base = email.replace("@", "_at_").replace(".", "_")
+    hash_id = uuid.uuid4().hex[:6]
+    return f"{base}-{hash_id}"
+
+def crear_repo_github(nombre_repo):
+    url = "https://api.github.com/user/repos"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json"
+    }
+    data = {
+        "name": nombre_repo,
+        "private": False,
+        "auto_init": True,
+        "description": "Repositorio generado automáticamente desde step1"
+    }
+    response = requests.post(url, headers=headers, json=data)
+    return response.json()
 
 def redimensionar_webp_en_static():
     carpeta = 'static/img/webp'
@@ -138,39 +163,16 @@ def limpiar_imagenes_usuario():
         except Exception as e:
             print(f"Error al eliminar {nombre}: {e}")
 
-@app.route('/subir-producto', methods=['POST'])
-def subir_producto():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Datos faltantes"}), 400
+@app.route("/crear_repo", methods=["POST"])
+def crear_repo():
+    email = request.form.get("email")
+    nombre_repo = generar_nombre_repo(email)
+    resultado = crear_repo_github(nombre_repo)
 
-    producto = {
-        "fields": {
-            "nombre": {"stringValue": data.get("nombre", "")},
-            "precio": {"stringValue": str(data.get("precio", ""))},
-            "grupo": {"stringValue": data.get("grupo", "")},
-            "subgrupo": {"stringValue": data.get("subgrupo", "")},
-            "descripcion": {"stringValue": data.get("descripcion", "")},
-            "imagen": {"stringValue": data.get("imagen", "")},
-            "id_base": {"stringValue": data.get("id_base", "")},
-            "talles": {
-                "arrayValue": {
-                    "values": [{"stringValue": t} for t in data.get("talles", [])]
-                }
-            }
-        }
-    }
-
-    url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}?key={FIREBASE_API_KEY}"
-    headers = {"Content-Type": "application/json"}
-
-    try:
-        r = requests.post(url, headers=headers, data=json.dumps(producto))
-        print("📦 Producto subido:", r.status_code)
-        return jsonify({"status": "ok"}), r.status_code
-    except Exception as e:
-        print("❌ Error al subir producto:", e)
-        return jsonify({"error": str(e)}), 500
+    if "html_url" in resultado:
+        return f"Repositorio creado: <a href='{resultado['html_url']}' target='_blank'>{resultado['html_url']}</a>"
+    else:
+        return f"Error al crear repositorio: {resultado.get('message', 'Desconocido')}"
 
 @app.route('/actualizar-precio', methods=['POST'])
 def actualizar_precio():
