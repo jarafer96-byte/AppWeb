@@ -205,7 +205,7 @@ def crear_repo():
     if not token:
         return "❌ Token no cargado desde entorno", 500
 
-    nombre_repo = request.json.get("nombre", f"repo-{uuid.uuid4().hex[:6]}")
+    nombre_repo = request.form.get("email", f"repo-{uuid.uuid4().hex[:6]}")
     resultado = crear_repo_github(nombre_repo, token)
     return jsonify(resultado), 200 if "url" in resultado else 400
 
