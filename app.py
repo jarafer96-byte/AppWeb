@@ -14,8 +14,9 @@ from flask import jsonify
 from datetime import datetime
 import requests, uuid, os
 from flask import Flask, request, redirect
+import os
 
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # guardalo en .env
+token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"        # tu usuario de GitHub
 
 app = Flask(__name__)
@@ -115,6 +116,10 @@ def generar_nombre_repo(email):
     return f"{base}-{hash_id}"
 
 def crear_repo_github(nombre_repo):
+    if not GITHUB_TOKEN:
+        print("❌ Token no cargado desde entorno")
+        return {"error": "Token no disponible"}
+
     url = "https://api.github.com/user/repos"
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -126,8 +131,19 @@ def crear_repo_github(nombre_repo):
         "auto_init": True,
         "description": "Repositorio generado automáticamente desde step1"
     }
-    response = requests.post(url, headers=headers, json=data)
-    return response.json()
+
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=5)
+        if response.status_code == 201:
+            repo_url = response.json().get("html_url", "URL no disponible")
+            print(f"✅ Repositorio creado: {repo_url}")
+            return {"url": repo_url}
+        else:
+            print(f"⚠️ Error {response.status_code}: {response.text}")
+            return {"error": response.text}
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error de red: {e}")
+        return {"error": str(e)}
 
 def redimensionar_webp_en_static():
     carpeta = 'static/img/webp'
@@ -163,16 +179,35 @@ def limpiar_imagenes_usuario():
         except Exception as e:
             print(f"Error al eliminar {nombre}: {e}")
 
-@app.route("/crear_repo", methods=["POST"])
+@app.route("/crear-repo", methods=["POST"])
 def crear_repo():
-    email = request.form.get("email")
-    nombre_repo = generar_nombre_repo(email)
-    resultado = crear_repo_github(nombre_repo)
+    if not GITHUB_TOKEN:
+        return "❌ Token no cargado desde entorno", 500
 
-    if "html_url" in resultado:
-        return f"Repositorio creado: <a href='{resultado['html_url']}' target='_blank'>{resultado['html_url']}</a>"
-    else:
-        return f"Error al crear repositorio: {resultado.get('message', 'Desconocido')}"
+    nombre_repo = request.json.get("nombre", f"repo-{uuid.uuid4().hex[:6]}")
+    url = "https://api.github.com/user/repos"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    data = {
+        "name": nombre_repo,
+        "private": True,
+        "auto_init": True,
+        "description": "Repo creado desde Flask"
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=5)
+        if response.status_code == 201:
+            return jsonify({"✅ Repo creado": response.json()["html_url"]})
+        else:
+            return f"❌ Error: {response.status_code} → {response.text}", 400
+    except requests.exceptions.RequestException as e:
+        return f"❌ Error de red: {e}", 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
 
 @app.route('/actualizar-precio', methods=['POST'])
 def actualizar_precio():
