@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, send_file, url_for, jsonify
+from flask import Flask, render_template, request, redirect, session, send_file, url_for, jsonify, current_app
 import os
 import uuid
 import time
@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import shortuuid
 import mercadopago
+import base64
 
 
 token = os.getenv("GITHUB_TOKEN")
@@ -108,6 +109,21 @@ def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad
 
 def necesita_redimension(src, dst):
     return not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst)
+
+def subir_archivo(repo, contenido_bytes, ruta_remota, token):
+    url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo}/contents/{ruta_remota}"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github+json"
+    }
+    data = {
+        "message": f"Subida de {ruta_remota}",
+        "content": base64.b64encode(contenido_bytes).decode("utf-8"),
+        "branch": "main"
+    }
+    r = requests.put(url, headers=headers, json=data)
+    print(f"📤 {ruta_remota}: {r.status_code}")
+    return r.status_code == 201
     
 def generar_nombre_repo(email):
     base = email.replace("@", "_at_").replace(".", "_")
@@ -471,16 +487,6 @@ def pagar():
 
 @app.route('/preview')
 def preview():
-    if not session.get('repo_creado'):
-        email = session.get('email') or "sin_email@appweb.com"
-        nombre_repo = generar_nombre_repo(email)
-        token = os.getenv("GITHUB_TOKEN")
-        resultado = crear_repo_github(nombre_repo, token)
-        if "url" in resultado:
-            session['repo_creado'] = resultado["url"]
-        else:
-            print("⚠️ No se pudo crear el repositorio:", resultado.get("error"))
-            
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
     config = {
@@ -515,7 +521,6 @@ def preview():
     for i, p in enumerate(config['productos']):
         p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
 
-    # ✅ Agrupar por grupo y subgrupo
     grupos_dict = {}
     for producto in config['productos']:
         grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
@@ -530,10 +535,43 @@ def preview():
             grupos_dict[grupo][subgrupo] = []
         grupos_dict[grupo][subgrupo].append(producto)
 
-    config['usarFirestore'] = True  # o False según lo que quieras
-    modo_admin = request.args.get('admin') == 'true'
+    if not session.get('repo_creado'):
+        email = session.get('email') or "sin_email@appweb.com"
+        nombre_repo = generar_nombre_repo(email)
+        token = os.getenv("GITHUB_TOKEN")
+        resultado = crear_repo_github(nombre_repo, token)
+        if "url" in resultado:
+            session['repo_creado'] = resultado["url"]
+            session['repo_nombre'] = nombre_repo
 
+            # ✅ Subir index.html renderizado
+            template = current_app.jinja_env.get_template('preview.html')
+            html = template.render(config=config, grupos=grupos_dict, modoAdmin=False)
+            subir_archivo(nombre_repo, html.encode("utf-8"), "index.html", token)
+
+            # ✅ Subir imágenes a static/img/
+            for producto in config['productos']:
+                imagen = producto.get("imagen")
+                if imagen:
+                    ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
+                    if os.path.exists(ruta_local):
+                        with open(ruta_local, "rb") as f:
+                            contenido = f.read()
+                        subir_archivo(nombre_repo, contenido, f"static/img/{imagen}", token)
+
+            # ✅ Subir fondo visual si existe
+            fondo = f"{estilo_visual}.jpeg"
+            fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
+            if os.path.exists(fondo_path):
+                with open(fondo_path, "rb") as f:
+                    contenido = f.read()
+                subir_archivo(nombre_repo, contenido, f"static/img/{fondo}", token)
+        else:
+            print("⚠️ No se pudo crear el repositorio:", resultado.get("error"))
+
+    modo_admin = request.args.get('admin') == 'true'
     return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin)
+
 
 
 @app.route('/descargar')
