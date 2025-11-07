@@ -558,6 +558,14 @@ def preview():
                         with open(ruta_local, "rb") as f:
                             contenido = f.read()
                         subir_archivo(nombre_repo, contenido, f"static/img/{imagen}", token)
+            # ✅ Subir logo si existe
+            logo = config.get("logo")
+            if logo:
+                logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
+                if os.path.exists(logo_path):
+                    with open(logo_path, "rb") as f:
+                        contenido = f.read()
+                    subir_archivo(nombre_repo, contenido, f"static/img/{logo}", token)
 
             # ✅ Subir fondo visual si existe
             fondo = f"{estilo_visual}.jpeg"
