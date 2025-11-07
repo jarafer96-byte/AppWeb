@@ -999,7 +999,7 @@ carrito.forEach(item => {
         });
 
          productos.forEach((producto, i) => {
-          const idBase = producto.id_base;
+          const idBase = producto.nombre.replace(/ /g, "_") + "_" + i;
           producto.id_base = idBase;
           const tarjeta = document.createElement("div");
           tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
@@ -1009,15 +1009,15 @@ carrito.forEach(item => {
               <div class="card-body">
                 <h5 class="card-title">${producto.nombre}</h5>
                 <p class="card-text">${producto.descripcion || ""}</p>
-                <p><strong>Precio:</strong> $ 
-                  <span id="precio_${idBase}">${producto.precio}</span>
-                  ${modoAdmin ? `<button onclick="editarPrecio('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
-                </p>
-                <div class="mb-2">
-                  <label class="form-label mb-1" style="font-size: 14px;"><strong>Talles:</strong></label><br>
-                  <span id="talles_${idBase}">${producto.talles?.length ? producto.talles.join(', ') : 'Sin talles disponibles'}</span>
-                  ${modoAdmin ? `<button onclick="editarTalles('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
-                </div>
+                <p><strong>Precio:</strong> $ <span id="precio_${idBase}">${producto.precio}</span></p>
+                ${producto.talles?.length ? `
+                  <div class="mb-2">
+                    <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+                    <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
+                      ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
+                    </select>
+                  </div>
+                ` : ''}
                 <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
                 <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                   <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
