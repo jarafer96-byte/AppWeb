@@ -210,9 +210,14 @@ def crear_repo():
     email = request.json.get("email", f"repo-{uuid.uuid4().hex[:6]}")
     session['email'] = email
     nombre_repo = generar_nombre_repo(email)
+    session['repo_nombre'] = nombre_repo  # ✅ ESTA LÍNEA ES CLAVE
 
     resultado = crear_repo_github(nombre_repo, token)
+    if "url" in resultado:
+        session['repo_creado'] = resultado["url"]
+
     return jsonify(resultado), 200 if "url" in resultado else 400
+
 
 
 
