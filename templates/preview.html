@@ -17,7 +17,7 @@
   <!-- Google Fonts disponibles -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Fira+Code&family=Raleway&family=Quicksand&family=Pacifico&family=Source+Serif+4&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  
+
   {% set estilo = config.estilo_visual.lower() %}
   {% if 'claro' in estilo or 'esferas' in estilo or 'blanco' in estilo %}
     {% set modo_visual = 'modo-claro' %}
@@ -783,59 +783,6 @@ function mostrarAvisoPrecio() {
     aviso.style.display = "none";
   }, 2000);
 }
-    
-async function guardarNuevoProducto() {
-  const nombre = document.getElementById("nuevo_nombre").value.trim();
-  const precio = parseFloat(document.getElementById("nuevo_precio").value.trim()) || 0;
-  const grupo = document.getElementById("nuevo_grupo").value.trim() || "Sin grupo";
-  const subgrupo = document.getElementById("nuevo_subgrupo").value.trim() || "Sin subgrupo";
-  const descripcion = document.getElementById("nuevo_descripcion").value.trim();
-  const talles = document.getElementById("nuevo_talles").value.split(",").map(t => t.trim()).filter(t => t);
-  const imagenInput = document.getElementById("nuevo_imagen");
-  const imagen = imagenInput.files[0];
-
-  if (!nombre || !imagen) {
-    alert("Nombre e imagen son obligatorios");
-    return;
-  }
-
-  const storageRef = firebase.storage().ref();
-  const nombreImagen = "img_" + Date.now() + "_" + imagen.name;
-  const imagenRef = storageRef.child(nombreImagen);
-
-  await imagenRef.put(imagen);
-  const urlImagen = await imagenRef.getDownloadURL();
-
-  const id_base = nombre.replace(/ /g, "_") + "_" + Date.now();
-
-  const producto = {
-    nombre,
-    precio,
-    grupo,
-    subgrupo,
-    descripcion,
-    talles,
-    imagen: nombreImagen, // o urlImagen si preferís mostrar directo
-    id_base
-  };
-
-  try {
-    const res = await fetch("/subir-producto", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(producto)
-    });
-    const data = await res.json();
-    if (data.status === "ok") {
-      alert("✅ Producto agregado");
-      location.reload();
-    } else {
-      console.warn("❌ Error:", data);
-    }
-  } catch (err) {
-    console.error("❌ Error en fetch:", err);
-  }
-}
 
 function pagarConMercadoPago() {
   fetch('/pagar', {
@@ -1093,22 +1040,6 @@ carrito.forEach(item => {
 
       contenedorPrincipal.appendChild(grupoDiv);
     });
-    if (modoAdmin) {
-  const formulario = document.createElement("div");
-  formulario.className = "card p-3 mb-5 border border-success";
-  formulario.innerHTML = `
-    <h5>➕ Agregar nuevo producto</h5>
-    <input type="text" class="form-control mb-2" placeholder="Nombre" id="nuevo_nombre">
-    <input type="number" class="form-control mb-2" placeholder="Precio" id="nuevo_precio">
-    <input type="text" class="form-control mb-2" placeholder="Grupo" id="nuevo_grupo">
-    <input type="text" class="form-control mb-2" placeholder="Subgrupo" id="nuevo_subgrupo">
-    <input type="text" class="form-control mb-2" placeholder="Descripción" id="nuevo_descripcion">
-    <input type="text" class="form-control mb-2" placeholder="Talles separados por coma" id="nuevo_talles">
-    <input type="file" class="form-control mb-2" accept="image/*" id="nuevo_imagen">
-    <button class="btn btn-success" onclick="guardarNuevoProducto()">Guardar producto</button>
-  `;
-  contenedorPrincipal.appendChild(formulario);
-}
 
     // Activar primer grupo y subgrupo
     setTimeout(() => {
@@ -1185,3 +1116,4 @@ carrito.forEach(item => {
 </script>
 </body>
 </html>
+
