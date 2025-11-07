@@ -470,7 +470,6 @@ def pagar():
 
 @app.route('/preview')
 def preview():
-    def preview():
     if not session.get('repo_creado'):
         email = session.get('email') or "sin_email@appweb.com"
         nombre_repo = generar_nombre_repo(email)
