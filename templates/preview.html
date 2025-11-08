@@ -845,6 +845,29 @@ function guardarTalles(id) {
     });
 }
 
+function actualizarFirestore(id, datos) {
+  console.log("📡 Enviando actualización a Firestore para", id, "→", datos);
+
+  fetch("/actualizar-firestore", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...datos })
+  })
+    .then(res => {
+      console.log("📡 Respuesta del backend:", res.status);
+      return res.json();
+    })
+    .then(data => {
+      if (data.status === "ok") {
+        console.log("✅ Firestore actualizado para", id);
+      } else {
+        console.warn("❌ Error en respuesta:", data);
+      }
+    })
+    .catch(err => {
+      console.error("❌ Error en fetch:", err);
+    });
+}
 
 
 function mostrarAvisoPrecio() {
