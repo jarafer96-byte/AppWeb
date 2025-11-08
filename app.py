@@ -235,23 +235,26 @@ def login_admin():
     clave_ingresada = data.get('clave')
 
     print("🔐 Intentando login:", usuario)
+    print("🔐 Clave ingresada:", clave_ingresada)
 
     if not usuario or not clave_ingresada:
         print("❌ Faltan datos para login")
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
 
     try:
-        # Leer documento del usuario
         url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/usuarios/{usuario}?key={FIREBASE_API_KEY}"
         r = requests.get(url)
         doc = r.json()
 
         clave_guardada = doc.get("fields", {}).get("clave_admin", {}).get("stringValue")
+        print("🔐 Clave guardada en Firestore:", clave_guardada)
 
         if clave_guardada == clave_ingresada:
+            session.permanent = True  # ✅ Mantener sesión activa
             session['modo_admin'] = True
             session['email'] = usuario
-            print("✅ Login exitoso")
+            print("✅ Login exitoso → modo_admin activado")
+            print("🧠 session:", dict(session))
             return jsonify({'status': 'ok'})
         else:
             print("❌ Clave incorrecta")
@@ -260,6 +263,7 @@ def login_admin():
     except Exception as e:
         print("❌ Error al validar login:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 
 @app.route("/crear-repo", methods=["POST"])
@@ -690,7 +694,12 @@ def preview():
 
     modo_admin = session.get('modo_admin') == True
     modo_admin_intentado = request.args.get('admin') == 'true'
-    
+
+    print("🧠 session['modo_admin']:", session.get('modo_admin'))
+    print("🧠 modo_admin:", modo_admin)
+    print("🧠 modo_admin_intentado:", modo_admin_intentado)
+    print("🧠 session completa:", dict(session))
+
     return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin, modoAdminIntentado=modo_admin_intentado)
 
 @app.route('/descargar')
