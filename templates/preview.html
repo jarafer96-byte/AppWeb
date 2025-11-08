@@ -538,6 +538,16 @@
     </div>
   {% endif %}
 
+  {% if modoAdminIntentado and not modoAdmin %}
+    <div id="login-admin" class="container mt-4">
+      <h3 class="text-center">🔐 Ingresá tu clave de administrador</h3>
+      <form id="form-login-admin" class="text-center">
+        <input type="text" id="usuario_login" placeholder="Usuario" required>
+        <input type="password" id="clave_login" placeholder="Contraseña" required>
+      </form>
+    </div>
+  {% endif %}
+
   <button id="toggleCarrito">🛒</button>
 
   <div id="carrito">
