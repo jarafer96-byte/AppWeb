@@ -763,38 +763,43 @@ function guardarPrecio(id) {
 
     
 function editarTalles(id) {
+  const selector = document.getElementById("talle_" + id);
   const span = document.getElementById("talles_" + id);
-  if (!span) {
-    console.warn("❌ No se encontró el span con id:", "talles_" + id);
-    return;
-  }
 
-  const tallesActuales = span.textContent.split(",").map(t => t.trim()).join(", ");
-  console.log("🧪 Editando talles para:", id, "| Talles actuales:", tallesActuales);
+  if (selector) {
+    console.log("📦 Selector detectado para:", id, "| Valor actual:", selector.value);
+    const tallesActuales = Array.from(selector.options).map(opt => opt.value).join(", ");
+    const nuevoTalle = prompt("Modificar talles (separados por coma):", tallesActuales);
+    if (nuevoTalle !== null) {
+      const tallesArray = nuevoTalle.split(',').map(t => t.trim()).filter(t => t);
+      console.log("✅ Nuevos talles ingresados:", tallesArray);
 
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = tallesActuales;
-  input.id = "talles_" + id;
-  input.className = "form-control form-control-sm d-inline-block";
-  input.style.width = "150px";
-
-  input.addEventListener("blur", () => {
-    console.log("📤 onblur: guardando talles para", id, "con valor:", input.value);
-    guardarTalles(id);
-  });
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      console.log("⏎ Enter presionado: guardando talles para", id, "con valor:", input.value);
-      input.blur(); // dispara onblur
+      const nuevoSelect = document.createElement("select");
+      nuevoSelect.id = "talle_" + id;
+      nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
+      tallesArray.forEach(t => {
+        const option = document.createElement("option");
+        option.value = t;
+        option.textContent = t;
+        nuevoSelect.appendChild(option);
+      });
+      selector.replaceWith(nuevoSelect);
+      actualizarFirestore(id, { talles: tallesArray });
     }
-  });
-
-  span.replaceWith(input);
-  input.focus();
+  } else if (span) {
+    console.log("📦 Texto plano detectado para:", id, "| Valor actual:", span.textContent);
+    const nuevoTalle = prompt("Modificar talles (separados por coma):", span.textContent);
+    if (nuevoTalle !== null) {
+      const tallesArray = nuevoTalle.split(',').map(t => t.trim()).filter(t => t);
+      console.log("✅ Nuevos talles ingresados:", tallesArray);
+      span.textContent = tallesArray.join(', ');
+      actualizarFirestore(id, { talles: tallesArray });
+    }
+  } else {
+    console.warn("❌ No se encontró selector ni span para:", id);
+  }
 }
+
 
 
     
