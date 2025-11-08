@@ -1,0 +1,56 @@
+<!-- catalogo.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Catálogo por usuario</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+    import {
+      getFirestore, doc, collection, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_DOMINIO.firebaseapp.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_BUCKET.appspot.com",
+      messagingSenderId: "TU_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const usuario = "{{ session['usuario'] or 'anonimo' }}";
+    const productosRef = collection(doc(db, "usuarios", usuario), "productos");
+
+    async function cargarProductos() {
+      const snapshot = await getDocs(productosRef);
+      const contenedor = document.getElementById("catalogo");
+
+      snapshot.forEach(doc => {
+        const p = doc.data();
+        const div = document.createElement("div");
+        div.className = "producto";
+        div.innerHTML = `
+          <h3>${p.nombre}</h3>
+          <p>Precio: $${p.precio}</p>
+          <img src="/static/img/${p.imagen}" alt="${p.nombre}" />
+        `;
+        contenedor.appendChild(div);
+      });
+    }
+
+    cargarProductos();
+  </script>
+  <style>
+    .producto { margin: 20px; padding: 10px; border: 1px solid #ccc; }
+    img { max-width: 200px; }
+  </style>
+</head>
+<body>
+  <h1>Catálogo de productos</h1>
+  <div id="catalogo"></div>
+</body>
+</html>
