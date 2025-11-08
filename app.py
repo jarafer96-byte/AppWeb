@@ -648,7 +648,7 @@ def preview():
 
         # Subir index.html
         template = current_app.jinja_env.get_template('preview.html')
-        html = template.render(config=config, grupos=grupos_dict, modoAdmin=False)
+        html = template.render(config=config, grupos=grupos_dict, modoAdmin=modo_admin)
         subir_archivo(nombre_repo, html.encode("utf-8"), "index.html", token)
         print("📄 Subido: index.html")
 
@@ -689,7 +689,9 @@ def preview():
             print(f"⚠️ Fondo visual no encontrado: {fondo}")
 
     modo_admin = session.get('modo_admin') == True
-    return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin)
+    modo_admin_intentado = request.args.get('admin') == 'true'
+    
+    return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin, modoAdminIntentado=modo_admin_intentado)
 
 @app.route('/descargar')
 def descargar():
