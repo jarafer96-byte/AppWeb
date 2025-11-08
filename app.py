@@ -268,6 +268,11 @@ def login_admin():
         print("🧠 session después del login:", dict(session))
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/logout-admin')
+def logout_admin():
+    session.pop('modo_admin', None)
+    print("🔓 Sesión admin cerrada")
+    return redirect('/preview')
 
 
 @app.route("/crear-repo", methods=["POST"])
