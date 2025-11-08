@@ -802,7 +802,7 @@ function loginAdmin(event) {
     .then(data => {
       if (data.status === "ok") {
         alert("✅ Acceso concedido");
-        location.href = "/preview"; // sin ?admin=true
+        location.href = window.location.href;
       } else {
         alert("❌ " + data.message);
       }
