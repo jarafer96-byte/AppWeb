@@ -735,7 +735,7 @@ function editarPrecio(id) {
   span.replaceWith(input);
   input.focus();
 }
-
+  
 function guardarPrecio(id) {
   const input = document.getElementById("precio_" + id);
   if (!input) {
@@ -781,7 +781,39 @@ function guardarPrecio(id) {
       console.error("❌ Error en fetch al actualizar precio:", err);
     });
 }
+    
+function loginAdmin(event) {
+  event.preventDefault();
+  const usuario = document.getElementById("usuario_login").value.trim();
+  const clave = document.getElementById("clave_login").value.trim();
 
+  fetch("/login-admin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ usuario, clave })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "ok") {
+        alert("✅ Acceso concedido");
+        location.href = "/preview"; // sin ?admin=true
+      } else {
+        alert("❌ " + data.message);
+      }
+    })
+    .catch(err => {
+      console.error("❌ Error en login:", err);
+      alert("❌ Error al intentar login");
+    });
+}
+
+// Detectar envío automático del formulario
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("form-login-admin");
+  if (form) {
+    form.addEventListener("submit", loginAdmin);
+  }
+});
     
 function editarTalles(id) {
   const selector = document.getElementById("talle_" + id);
