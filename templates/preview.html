@@ -1093,10 +1093,11 @@ carrito.forEach(item => {
     appId: "1:681717342631:web:f95e6c18b34bae5725d682"
   };
 
-  if (usarFirestore) {
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const productosRef = collection(db, "productos");
+   if (usarFirestore) {
+     const app = initializeApp(firebaseConfig);
+     const db = getFirestore(app);
+     const usuario = "{{ session['usuario'] or 'anonimo' }}";
+     const productosRef = collection(doc(db, "usuarios", usuario), "productos");
 
     getDocs(productosRef)
       .then(snapshot => {
