@@ -1072,6 +1072,7 @@ carrito.forEach(item => {
   </script>
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
+  console.log("📦 usarFirestore:", usarFirestore);
   const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
 
   import {
@@ -1092,13 +1093,22 @@ carrito.forEach(item => {
     messagingSenderId: "681717342631",
     appId: "1:681717342631:web:f95e6c18b34bae5725d682"
   };
+if (usarFirestore) {
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const usuario = "{{ session['usuario'] or 'anonimo' }}";
+  console.log("👤 Usuario activo:", usuario);
 
-   if (usarFirestore) {
-     const app = initializeApp(firebaseConfig);
-     const db = getFirestore(app);
-     const usuario = "{{ session['usuario'] or 'anonimo' }}";
-     const productosRef = collection(doc(db, "usuarios", usuario), "productos");
+  const productosRef = collection(doc(db, "usuarios", usuario), "productos");
+  const snapshot = await getDocs(productosRef);
+  console.log("📦 Productos encontrados:", snapshot.size);
 
+  snapshot.forEach(doc => {
+    console.log("🧩 Producto:", doc.data());
+  });
+}
+
+     
     getDocs(productosRef)
       .then(snapshot => {
         console.log("Documentos recibidos:", snapshot.size);
