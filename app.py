@@ -22,6 +22,8 @@ GITHUB_USERNAME = "jarafer96-byte"        # tu usuario de GitHub
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
+app.config['SESSION_COOKIE_SECURE'] = not app.debug  # True en producción, False en local
+
 
 @app.errorhandler(413)
 def too_large(e):
@@ -253,6 +255,7 @@ def login_admin():
             session.permanent = True  # ✅ Mantener sesión activa
             session['modo_admin'] = True
             session['email'] = usuario
+            print("🧠 session después del login:", dict(session))
             print("✅ Login exitoso → modo_admin activado")
             print("🧠 session:", dict(session))
             return jsonify({'status': 'ok'})
