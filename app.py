@@ -272,7 +272,7 @@ def login_admin():
 def logout_admin():
     session.pop('modo_admin', None)
     print("🔓 Sesión admin cerrada")
-    return redirect('/preview?admin=true')
+    return redirect('/preview')
 
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
