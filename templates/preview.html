@@ -1093,6 +1093,7 @@ carrito.forEach(item => {
     messagingSenderId: "681717342631",
     appId: "1:681717342631:web:f95e6c18b34bae5725d682"
   };
+    
 if (usarFirestore) {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
@@ -1100,22 +1101,22 @@ if (usarFirestore) {
   console.log("👤 Usuario activo:", usuario);
 
   const productosRef = collection(doc(db, "usuarios", usuario), "productos");
-  const snapshot = await getDocs(productosRef);
-  console.log("📦 Productos encontrados:", snapshot.size);
 
-  snapshot.forEach(doc => {
-    console.log("🧩 Producto:", doc.data());
-  });
-}
+  async function cargarProductos() {
+    try {
+      const snapshot = await getDocs(productosRef);
+      console.log("📦 Productos encontrados:", snapshot.size);
 
-     
-    getDocs(productosRef)
-      .then(snapshot => {
-        console.log("Documentos recibidos:", snapshot.size);
-      })
-      .catch(error => {
-        console.error("❌ Error al cargar productos:", error);
+      snapshot.forEach(doc => {
+        console.log("🧩 Producto:", doc.data());
       });
+    } catch (error) {
+      console.error("❌ Error al cargar productos:", error);
+    }
+  }
+
+  cargarProductos();
+}
 
     onSnapshot(productosRef, snapshot => {
       const grupos = {};
