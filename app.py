@@ -200,16 +200,23 @@ def crear_admin():
     usuario = data.get('usuario')
     clave = data.get('clave')
 
+    print("📥 Datos recibidos:", data)
+
     if not usuario or not clave:
+        print("❌ Faltan datos: usuario o clave vacíos")
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
 
-    doc_ref = firestore.client().collection('usuarios').document(usuario)
-    doc_ref.set({
-        'clave_admin': clave
-    })
+    try:
+        doc_ref = firestore.client().collection('usuarios').document(usuario)
+        doc_ref.set({
+            'clave_admin': clave
+        })
+        print(f"✅ Admin creado correctamente: {usuario}")
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        print("❌ Error al guardar en Firestore:", e)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
-    print(f"✅ Admin creado: {usuario}")
-    return jsonify({'status': 'ok'})
 
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
