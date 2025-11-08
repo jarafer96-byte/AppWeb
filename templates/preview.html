@@ -717,36 +717,50 @@ function editarPrecio(id) {
 
 function guardarPrecio(id) {
   const input = document.getElementById("precio_" + id);
-  const nuevoValor = parseInt(input.value);
+  if (!input) {
+    console.warn("❌ No se encontró el input con id:", "precio_" + id);
+    return;
+  }
+
+  const nuevoValor = parseFloat(input.value);
+  if (isNaN(nuevoValor)) {
+    console.warn("⚠️ Valor ingresado no es un número válido:", input.value);
+    return;
+  }
+
+  console.log("🧪 Precio capturado para", id, "→", nuevoValor);
 
   // Reemplazar el input por el nuevo <span>
   const span = document.createElement("span");
   span.id = "precio_" + id;
-  span.textContent = "$" + nuevoValor;
+  span.textContent = "$" + nuevoValor.toFixed(2);
   input.replaceWith(span);
-
-  // 🧪 Confirmación visual
-  console.log("🧪 Precio capturado:", nuevoValor);
 
   // ✅ Actualizar Firestore vía backend
   fetch('/actualizar-precio', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
   })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === "ok") {
-      console.log("✅ Precio actualizado en Firestore");
-      if (typeof mostrarAvisoPrecio === "function") {
-        mostrarAvisoPrecio();
+    .then(res => {
+      console.log("📡 Respuesta recibida del backend:", res.status);
+      return res.json();
+    })
+    .then(data => {
+      if (data.status === "ok") {
+        console.log("✅ Precio actualizado en Firestore para", id);
+        if (typeof mostrarAvisoPrecio === "function") {
+          mostrarAvisoPrecio();
+        }
+      } else {
+        console.warn("❌ Error en respuesta del backend:", data);
       }
-    } else {
-      console.warn("❌ Error en respuesta:", data);
-    }
-  })
-  .catch(err => console.error("❌ Error en fetch:", err));
+    })
+    .catch(err => {
+      console.error("❌ Error en fetch al actualizar precio:", err);
+    });
 }
+
     
 function editarTalles(id) {
   const span = document.getElementById("talles_" + id);
