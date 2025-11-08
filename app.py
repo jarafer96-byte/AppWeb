@@ -47,7 +47,8 @@ def subir_a_firestore(producto):
     custom_id = f"{nombre_id}_{fecha}_{grupo_id}"
 
     # URL con ID personalizado
-    doc_path = f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}"
+    usuario = producto.get("usuario", "anonimo")  # o session['email'] si lo tenés en sesión
+    doc_path = f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/usuarios/{usuario}/productos/{custom_id}"
     url = f"https://firestore.googleapis.com/v1/{doc_path}?key={FIREBASE_API_KEY}"
     headers = {"Content-Type": "application/json"}
 
@@ -627,7 +628,10 @@ def preview():
         p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
 
     grupos_dict = {}
-    for producto in config['productos']:
+    for i, producto in enumerate(config['productos']):
+        producto["usuario"] = session.get("usuario", "anonimo")
+        subir_a_firestore(producto)
+
         grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
         subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
 
@@ -639,6 +643,7 @@ def preview():
         if subgrupo not in grupos_dict[grupo]:
             grupos_dict[grupo][subgrupo] = []
         grupos_dict[grupo][subgrupo].append(producto)
+
 
     # ✅ Crear repo si no existe
     if not session.get('repo_creado'):
