@@ -475,6 +475,12 @@
     </div>
   {% endif %}
 
+  {% if modoAdmin %}
+    <div class="text-center mt-3">
+      <a href="/logout-admin" class="btn btn-sm btn-outline-light">🔓 Salir del modo administrador</a>
+    </div>
+  {% endif %}
+
   <div class="text-center my-4">
     <select id="ordenPrecio" class="form-select w-auto d-inline-block">
       <option value="asc">Precio: Menor a mayor</option>
