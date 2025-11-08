@@ -194,6 +194,23 @@ def limpiar_imagenes_usuario():
         except Exception as e:
             print(f"Error al eliminar {nombre}: {e}")
 
+@app.route('/crear-admin', methods=['POST'])
+def crear_admin():
+    data = request.get_json(silent=True) or {}
+    usuario = data.get('usuario')
+    clave = data.get('clave')
+
+    if not usuario or not clave:
+        return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
+
+    doc_ref = firestore.client().collection('usuarios').document(usuario)
+    doc_ref.set({
+        'clave_admin': clave
+    })
+
+    print(f"✅ Admin creado: {usuario}")
+    return jsonify({'status': 'ok'})
+
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
     token = os.getenv("GITHUB_TOKEN")
