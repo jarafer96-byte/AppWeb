@@ -92,6 +92,14 @@
     <input type="email" id="email" required placeholder="Ingresá tu email">
     <button onclick="crearRepositorio()">Crear repositorio</button>
     <div id="resultado-repo" style="margin-top: 10px;"></div>
+    
+    <form id="form-crear-admin" onsubmit="crearAdmin(event)">
+      <label>Usuario:</label>
+      <input type="text" id="usuario_admin" required>
+      <label>Contraseña:</label>
+      <input type="password" id="clave_admin" required>
+      <button type="submit">Crear admin</button>
+    </form>
 
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="tipo_web" value="catálogo">
@@ -224,6 +232,35 @@ async function crearRepositorio() {
   } else {
     resultado.innerHTML = `❌ Error: ${data.error || "No se pudo crear el repositorio"}`;
   }
+}
+  
+function crearAdmin(event) {
+  event.preventDefault();
+  const usuario = document.getElementById("usuario_admin").value.trim();
+  const clave = document.getElementById("clave_admin").value.trim();
+
+  if (!usuario || !clave) {
+    alert("Faltan datos");
+    return;
+  }
+
+  fetch("/crear-admin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ usuario, clave })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "ok") {
+        alert("✅ Admin creado correctamente");
+      } else {
+        alert("❌ Error: " + data.message);
+      }
+    })
+    .catch(err => {
+      console.error("❌ Error en fetch:", err);
+      alert("❌ Error al crear admin");
+    });
 }
 
 function validarCredencialMP(input) {
