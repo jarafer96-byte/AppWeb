@@ -14,6 +14,7 @@ from datetime import datetime
 import shortuuid
 import mercadopago
 import base64
+from google.cloud import firestore
 
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"        # tu usuario de GitHub
