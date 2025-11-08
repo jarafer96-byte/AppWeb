@@ -665,19 +665,29 @@
 
   const cantidad = parseInt(cantidadInput?.value) || 1; 
   const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
-  console.log("🧪 Precio capturado:", precio); // ✅ Ubicación ideal
-
   const talleElegido = talleSelect?.value || "";
+
+  console.log("🛒 Intentando agregar al carrito:", {
+    nombre,
+    precio,
+    cantidad,
+    talle: talleElegido,
+    id_base
+  });
 
   const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
   if (existente) {
     existente.cantidad += cantidad;
+    console.log("🔁 Producto ya en carrito, sumando cantidad:", existente);
   } else {
-    carrito.push({ nombre, precio, cantidad, id_base, talle: talleElegido });
+    const nuevoItem = { nombre, precio, cantidad, id_base, talle: talleElegido };
+    carrito.push(nuevoItem);
+    console.log("✅ Producto agregado al carrito:", nuevoItem);
   }
 
   actualizarCarrito();
 }
+
 
 
 function editarPrecio(id) {
