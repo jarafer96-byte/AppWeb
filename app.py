@@ -208,12 +208,22 @@ def crear_admin():
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
 
     try:
-        doc_ref = firestore.Client().collection('usuarios').document(usuario)
-        doc_ref.set({
-            'clave_admin': clave
-        })
-        print(f"✅ Admin creado correctamente: {usuario}")
-        return jsonify({'status': 'ok'})
+        url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/usuarios/{usuario}?key={FIREBASE_API_KEY}"
+        payload = {
+            "fields": {
+                "clave_admin": { "stringValue": clave }
+            }
+        }
+
+        r = requests.patch(url, headers={"Content-Type": "application/json"}, data=json.dumps(payload))
+        print("📡 Firestore response:", r.status_code, r.text)
+
+        if r.status_code in [200, 201]:
+            print(f"✅ Admin creado correctamente: {usuario}")
+            return jsonify({'status': 'ok'})
+        else:
+            return jsonify({'status': 'error', 'message': r.text}), r.status_code
+
     except Exception as e:
         print("❌ Error al guardar en Firestore:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
