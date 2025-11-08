@@ -208,7 +208,7 @@ def crear_admin():
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
 
     try:
-        doc_ref = firestore.client().collection('usuarios').document(usuario)
+        doc_ref = firestore.Client().collection('usuarios').document(usuario)
         doc_ref.set({
             'clave_admin': clave
         })
