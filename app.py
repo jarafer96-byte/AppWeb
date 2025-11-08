@@ -262,6 +262,7 @@ def login_admin():
 
     except Exception as e:
         print("❌ Error al validar login:", e)
+        print("🧠 session después del login:", dict(session))
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
