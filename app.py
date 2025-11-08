@@ -15,7 +15,6 @@ import shortuuid
 import mercadopago
 import base64
 
-
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"        # tu usuario de GitHub
 
@@ -84,11 +83,6 @@ def subir_a_firestore(producto):
         print(f"❌ Error de red al subir {producto['nombre']}: {e}")
         return False
 
-
-
-
-
-
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -133,7 +127,6 @@ def generar_nombre_repo(email):
     base = email.replace("@", "_at_").replace(".", "_")
     fecha = time.strftime("%Y%m%d")
     return f"{base}_{fecha}"
-
 
 
 def crear_repo_github(nombre_repo, token):
@@ -275,8 +268,41 @@ def actualizar_talles():
         print("❌ Error al actualizar talles:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.route('/actualizar-firestore', methods=['POST'])
+def actualizar_firestore():
+    data = request.get_json(silent=True) or {}
+    id_base = data.get('id')
+    campos = {k: v for k, v in data.items() if k != 'id'}
 
+    if not id_base or not campos:
+        return jsonify({'status': 'error', 'message': 'Datos incompletos'}), 400
 
+    url = (
+        f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}"
+        f"/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}"
+        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=" + ",".join(campos.keys())
+    )
+
+    payload = {
+        "fields": {
+            k: (
+                {"stringValue": v} if isinstance(v, str)
+                else {"integerValue": v} if isinstance(v, int)
+                else {"arrayValue": {"values": [{"stringValue": t} for t in v]}} if isinstance(v, list)
+                else {"stringValue": str(v)}
+            )
+            for k, v in campos.items()
+        }
+    }
+
+    headers = {"Content-Type": "application/json"}
+    try:
+        r = requests.patch(url, headers=headers, data=json.dumps(payload))
+        print("✅ Firestore actualizado:", r.status_code)
+        return jsonify({"status": "ok"}), r.status_code
+    except Exception as e:
+        print("❌ Error al actualizar Firestore:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -663,8 +689,6 @@ def descargar():
 
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
-
-
 
 @app.template_filter('imgver')
 def imgver_filter(name):
