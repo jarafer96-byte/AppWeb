@@ -583,6 +583,8 @@ def pagar():
 @app.route('/preview')
 def preview():
     print("🚀 Entrando a /preview")
+    modo_admin = session.get('modo_admin') == True
+    modo_admin_intentado = request.args.get('admin') == 'true'
     print("🔍 repo_creado:", session.get('repo_creado'))
     print("🔍 repo_nombre:", session.get('repo_nombre'))
     
@@ -695,9 +697,6 @@ def preview():
             print(f"🌄 Subido fondo visual: {fondo}")
         else:
             print(f"⚠️ Fondo visual no encontrado: {fondo}")
-
-    modo_admin = session.get('modo_admin') == True
-    modo_admin_intentado = request.args.get('admin') == 'true'
 
     print("🧠 session['modo_admin']:", session.get('modo_admin'))
     print("🧠 modo_admin:", modo_admin)
