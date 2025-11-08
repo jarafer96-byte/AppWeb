@@ -21,7 +21,7 @@ GITHUB_USERNAME = "jarafer96-byte"        # tu usuario de GitHub
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
-app.secret_key = 'clave-secreta'
+app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 
 @app.errorhandler(413)
 def too_large(e):
