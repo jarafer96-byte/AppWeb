@@ -682,14 +682,35 @@
 
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
+  if (!span) {
+    console.warn("❌ No se encontró el span con id:", "precio_" + id);
+    return;
+  }
+
   const valorActual = span.textContent.trim();
+  console.log("🧪 Editando precio para:", id, "| Valor actual:", valorActual);
+
   const input = document.createElement("input");
   input.type = "number";
   input.value = valorActual;
   input.className = "form-control form-control-sm d-inline-block";
   input.style.width = "80px";
-  input.id = "precio_" + id; // ✅ esto es lo que faltaba
-  input.onblur = () => guardarPrecio(id, input.value);
+  input.id = "precio_" + id;
+
+  // ✅ Guardar al salir del input
+  input.onblur = () => {
+    console.log("📤 onblur: guardando precio para", id, "con valor:", input.value);
+    guardarPrecio(id, input.value);
+  };
+
+  // ✅ Guardar al presionar Enter
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      console.log("⏎ Enter presionado: guardando precio para", id, "con valor:", input.value);
+      input.blur(); // dispara onblur
+    }
+  });
+
   span.replaceWith(input);
   input.focus();
 }
