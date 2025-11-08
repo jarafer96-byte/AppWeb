@@ -228,6 +228,39 @@ def crear_admin():
         print("❌ Error al guardar en Firestore:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/login-admin', methods=['POST'])
+def login_admin():
+    data = request.get_json(silent=True) or {}
+    usuario = data.get('usuario')
+    clave_ingresada = data.get('clave')
+
+    print("🔐 Intentando login:", usuario)
+
+    if not usuario or not clave_ingresada:
+        print("❌ Faltan datos para login")
+        return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
+
+    try:
+        # Leer documento del usuario
+        url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/usuarios/{usuario}?key={FIREBASE_API_KEY}"
+        r = requests.get(url)
+        doc = r.json()
+
+        clave_guardada = doc.get("fields", {}).get("clave_admin", {}).get("stringValue")
+
+        if clave_guardada == clave_ingresada:
+            session['modo_admin'] = True
+            session['email'] = usuario
+            print("✅ Login exitoso")
+            return jsonify({'status': 'ok'})
+        else:
+            print("❌ Clave incorrecta")
+            return jsonify({'status': 'error', 'message': 'Clave incorrecta'}), 403
+
+    except Exception as e:
+        print("❌ Error al validar login:", e)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
@@ -655,7 +688,7 @@ def preview():
         else:
             print(f"⚠️ Fondo visual no encontrado: {fondo}")
 
-    modo_admin = request.args.get('admin') == 'true'
+    modo_admin = session.get('modo_admin') == True
     return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin)
 
 @app.route('/descargar')
