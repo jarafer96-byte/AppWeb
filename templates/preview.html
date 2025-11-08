@@ -1050,8 +1050,14 @@ carrito.forEach(item => {
                   ${modoAdmin ? `<button onclick="editarPrecio('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
                 </p>
                 <div class="mb-2">
-                  <label class="form-label mb-1" style="font-size: 14px;"><strong>Talles:</strong></label><br>
-                  <span id="talles_${idBase}">${producto.talles?.length ? producto.talles.join(', ') : 'Sin talles disponibles'}</span>
+                  <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+                  ${producto.talles?.length ? `
+                    <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
+                      ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
+                    </select>
+                  ` : `
+                    <span id="talles_${idBase}">Sin talles disponibles</span>
+                  `}
                   ${modoAdmin ? `<button onclick="editarTalles('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
                 </div>
                 <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
