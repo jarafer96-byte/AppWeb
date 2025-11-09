@@ -273,6 +273,15 @@ function validarCredencialMP(input) {
   const valido = input.value.startsWith("APP_USR-");
   document.getElementById('avisoMP').style.display = valido || input.value === "" ? 'none' : 'block';
 }
+  
+window.addEventListener('DOMContentLoaded', () => {
+  const credencial = "{{ config.mercado_pago or '' }}";
+  if (credencial.startsWith("APP_USR-")) {
+    document.getElementById("campoMP").style.display = "block";
+    document.getElementById("activarMP").checked = true;
+  }
+});
+
 </script>
 </body>
 </html>
