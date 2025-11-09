@@ -15,6 +15,16 @@ import shortuuid
 import mercadopago
 import base64
 from google.cloud import firestore
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+cred_dict = json.loads(os.getenv("FIREBASE_CREDENTIALS_JSON"))
+cred = credentials.Certificate(cred_dict)
+
+firebase_admin.initialize_app(cred)
+
+# Cliente Firestore con acceso total
+db = firestore.client()
 
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"        # tu usuario de GitHub
