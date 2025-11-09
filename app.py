@@ -263,16 +263,14 @@ def login_admin():
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
 
     try:
-        url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/usuarios/{usuario}?key={FIREBASE_API_KEY}"
-        print("🔗 URL:", url)
-        r = requests.get(url)
-        doc = r.json()
-        print("📦 Respuesta Firestore:", json.dumps(doc, indent=2))
+        doc_ref = db.collection("usuarios").document(usuario)
+        doc = doc_ref.get()
 
-        # Validación robusta del campo
-        fields = doc.get("fields", {})
-        clave_guardada = fields.get("clave_admin", {}).get("stringValue")
+        if not doc.exists:
+            print("❌ Usuario no encontrado en Firestore")
+            return jsonify({'status': 'error', 'message': 'Usuario no registrado'}), 404
 
+        clave_guardada = doc.to_dict().get("clave_admin")
         print("🔐 Clave guardada en Firestore:", clave_guardada)
 
         if clave_guardada == clave_ingresada:
@@ -287,7 +285,6 @@ def login_admin():
 
     except Exception as e:
         print("❌ Error al validar login:", e)
-        traceback.print_exc()
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
