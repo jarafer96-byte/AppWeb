@@ -497,26 +497,37 @@
     </div>
   {% endif %}
 
-{% for grupo, subgrupos in grupos.items() %}
-  <div id="grupo_{{ grupo | lower | replace(' ', '_') }}" class="grupo-section">
-    {% for subgrupo, productos in subgrupos.items() %}
-      <div class="subgrupo-bloque" data-subgrupo="{{ subgrupo }}">
-        {% for producto in productos %}
-          {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
-          <div class="card mb-3">
-            <div class="card-body">
-              <h5 class="card-title">{{ producto.nombre }}</h5>
-              <span id="precio_{{ id_base }}">{{ producto.precio }}</span>
-              {% if modoAdmin %}
-                <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
-              {% endif %}
-            </div>
-          </div>
-        {% endfor %}
+<div class="card p-3 h-100">
+  <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+  <div class="card-body">
+    <h5 class="card-title">{{ producto.nombre }}</h5>
+    <p class="card-text">{{ producto.descripcion }}</p>
+    <p><strong>Precio:</strong> $<span id="precio_{{ id_base }}">{{ producto.precio }}</span>
+      {% if modoAdmin %}
+        <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
+      {% endif %}
+    </p>
+    {% if producto.talles %}
+      <div class="mb-2">
+        <label for="talle_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+        <select id="talle_{{ id_base }}" class="form-select form-select-sm w-auto d-inline-block">
+          {% for t in producto.talles %}
+            <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
       </div>
-    {% endfor %}
+    {% endif %}
+    <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+      <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+      <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ id_base }}">
+      <button type="button" class="btn btn-secondary"
+        onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ id_base }}', 'cantidad_{{ id_base }}', '{{ id_base }}')">
+        Agregar al carrito
+      </button>
+    </div>
   </div>
-{% endfor %}
+</div>
+
 
 
 
