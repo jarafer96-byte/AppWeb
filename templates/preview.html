@@ -580,9 +580,20 @@
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
 
-    const config = {
-      mercado_pago: {{ config.mercado_pago is defined and config.mercado_pago.startswith("APP_USR-") | tojson }}
-    };
+    const configWhatsApp = "{{ config.whatsapp }}";
+
+const config = {
+  mercado_pago: {{ config.mercado_pago is defined and config.mercado_pago.startswith("APP_USR-") | tojson }},
+  usarFirestore: {{ 'true' if config.usarFirestore else 'false' }},
+  modoAdmin: {{ 'true' if modoAdmin else 'false' }}
+};
+
+const btnMP = document.querySelector("button[onclick='pagarConMercadoPago()']");
+if (!config.mercado_pago && btnMP) {
+  btnMP.style.display = "none";
+  btnMP.title = "⚠️ Mercado Pago no está configurado";
+}
+
 
     const btnMP = document.querySelector("button[onclick='pagarConMercadoPago()']");
     if (!config.mercado_pago && btnMP) {
@@ -1087,11 +1098,7 @@ function eliminarProducto(id_base, talle, event) {
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
   const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
-  const config = {
-  mercado_pago: {{ config.mercado_pago is defined and config.mercado_pago.startswith("APP_USR-") | tojson }}
-};
-
-    
+     
   import {
     initializeApp
   } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
