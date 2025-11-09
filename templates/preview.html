@@ -808,6 +808,7 @@ function guardarPrecio(id) {
   const nuevoValor = parseFloat(input.value);
   if (isNaN(nuevoValor)) {
     console.warn("⚠️ Valor ingresado no es un número válido:", input.value);
+    alert("❌ El precio ingresado no es válido");
     return;
   }
 
@@ -817,7 +818,9 @@ function guardarPrecio(id) {
   const span = document.createElement("span");
   span.id = "precio_" + id;
   span.textContent = "$" + nuevoValor.toFixed(2);
-  input.replaceWith(span);
+
+  input.insertAdjacentElement("beforebegin", span);
+  input.remove();
 
   // ✅ Actualizar Firestore vía backend
   fetch('/actualizar-precio', {
@@ -837,12 +840,15 @@ function guardarPrecio(id) {
         }
       } else {
         console.warn("❌ Error en respuesta del backend:", data);
+        alert("❌ No se pudo actualizar el precio en el servidor");
       }
     })
     .catch(err => {
-      console.error("❌ Error en fetch al actualizar precio:", err);
+      console.error("❌ Error de red al actualizar precio:", err);
+      alert("❌ Error de conexión al guardar el precio");
     });
 }
+
     
 function loginAdmin(event) {
   event.preventDefault();
@@ -881,43 +887,65 @@ function editarTalles(id) {
   const selector = document.getElementById("talle_" + id);
   const span = document.getElementById("talles_" + id);
 
-  if (selector) {
-    console.log("📦 Selector detectado para:", id, "| Valor actual:", selector.value);
-    const tallesActuales = Array.from(selector.options).map(opt => opt.value).join(", ");
-    const nuevoTalle = prompt("Modificar talles (separados por coma):", tallesActuales);
-    if (nuevoTalle !== null) {
-      const tallesArray = nuevoTalle.split(',').map(t => t.trim()).filter(t => t);
-      console.log("✅ Nuevos talles ingresados:", tallesArray);
+  let tallesActuales = "";
 
-      const nuevoSelect = document.createElement("select");
-      nuevoSelect.id = "talle_" + id;
-      nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
-      tallesArray.forEach(t => {
-        const option = document.createElement("option");
-        option.value = t;
-        option.textContent = t;
-        nuevoSelect.appendChild(option);
-      });
-      selector.replaceWith(nuevoSelect);
-      actualizarFirestore(id, { talles: tallesArray });
-    }
+  if (selector) {
+    tallesActuales = Array.from(selector.options).map(opt => opt.value).join(", ");
   } else if (span) {
-    console.log("📦 Texto plano detectado para:", id, "| Valor actual:", span.textContent);
-    const nuevoTalle = prompt("Modificar talles (separados por coma):", span.textContent);
-    if (nuevoTalle !== null) {
-      const tallesArray = nuevoTalle.split(',').map(t => t.trim()).filter(t => t);
-      console.log("✅ Nuevos talles ingresados:", tallesArray);
-      span.textContent = tallesArray.join(', ');
-      actualizarFirestore(id, { talles: tallesArray });
-    }
+    tallesActuales = span.textContent;
   } else {
     console.warn("❌ No se encontró selector ni span para:", id);
+    return;
   }
+
+  const nuevoTalle = prompt("Modificar talles (separados por coma):", tallesActuales);
+  if (nuevoTalle === null) return;
+
+  const tallesArray = nuevoTalle.split(',').map(t => t.trim()).filter(t => t);
+  console.log("✅ Nuevos talles ingresados:", tallesArray);
+
+  // Actualizar visualmente
+  const nuevoSelect = document.createElement("select");
+  nuevoSelect.id = "talle_" + id;
+  nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
+  tallesArray.forEach(t => {
+    const option = document.createElement("option");
+    option.value = t;
+    option.textContent = t;
+    nuevoSelect.appendChild(option);
+  });
+
+  if (selector) {
+    selector.replaceWith(nuevoSelect);
+  } else if (span) {
+    const nuevoSpan = document.createElement("span");
+    nuevoSpan.id = "talles_" + id;
+    nuevoSpan.textContent = tallesArray.join(', ');
+    span.replaceWith(nuevoSpan);
+  }
+
+  // ✅ Actualizar Firestore vía backend
+  fetch('/actualizar-talles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_base: id, nuevoTalles: tallesArray.join(',') })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "ok") {
+        console.log("✅ Talles actualizados en Firestore para", id);
+      } else {
+        console.warn("❌ Error en respuesta del backend:", data);
+        alert("❌ No se pudo actualizar los talles");
+      }
+    })
+    .catch(err => {
+      console.error("❌ Error en fetch al actualizar talles:", err);
+      alert("❌ Error de conexión al guardar los talles");
+    });
 }
 
-
-
-    
+ 
 function guardarTalles(id) {
   const input = document.getElementById("talles_" + id);
   if (!input) {
@@ -938,11 +966,11 @@ function guardarTalles(id) {
   nuevoSpan.textContent = nuevosTalles.join(", ");
   input.replaceWith(nuevoSpan);
 
-  // Enviar al backend
+  // Enviar al backend con claves correctas
   fetch('/actualizar-talles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, talles: nuevosTalles })
+    body: JSON.stringify({ id_base: id, nuevoTalles: nuevosTalles.join(',') })
   })
     .then(res => {
       console.log("📡 Respuesta del backend:", res.status);
@@ -953,12 +981,15 @@ function guardarTalles(id) {
         console.log("✅ Talles actualizados en Firestore para", id);
       } else {
         console.warn("❌ Error en respuesta del backend:", data);
+        alert("❌ No se pudo actualizar los talles");
       }
     })
     .catch(err => {
       console.error("❌ Error en fetch al actualizar talles:", err);
+      alert("❌ Error de conexión al guardar los talles");
     });
 }
+
 
 function actualizarFirestore(id, datos) {
   console.log("📡 Enviando actualización a Firestore para", id, "→", datos);
