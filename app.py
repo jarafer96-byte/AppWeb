@@ -677,6 +677,8 @@ def preview():
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
         print("📤 Subiendo archivos al repo:", nombre_repo)
+        subir_iconos_png(nombre_repo, token)
+
 
         # Subir index.html
         template = current_app.jinja_env.get_template('preview.html')
