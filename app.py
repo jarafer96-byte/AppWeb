@@ -42,9 +42,9 @@ app.config['SESSION_COOKIE_SECURE'] = not app.debug
 def too_large(e):
     return "Archivo demasiado grande (máx. 4 MB)", 413
 
-FIREBASE_PROJECT_ID = "appweb-bd7c8" 
-FIREBASE_API_KEY = "AIzaSyDde7U-pgzMHvhTbrckn4iUjXlmIWtbsjE" 
-FIREBASE_COLLECTION = "productos"
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "appweb-bd7c8")  # reemplazá con tu ID real
+FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY", "AIzaSyDde7U-pgzMHvhTbrckn4iUjXlmIWtbsjE")     # reemplazá con tu API key real
+
 
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
