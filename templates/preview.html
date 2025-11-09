@@ -1240,11 +1240,14 @@ function eliminarProducto(id_base, talle, event) {
   const btnWA = document.getElementById("enviarCarrito");
 
   if (!config.mercado_pago && btnMP) {
-    btnMP.style.display = "none";
+    btnMP.disabled = true;
+    btnMP.classList.add("disabled");
+    btnMP.title = "⚠️ Mercado Pago no está configurado";
   }
-  if (config.mercado_pago && btnWA) {
+  if (!config.whatsapp && btnWA) {
     btnWA.style.display = "none";
   }
+
 
   document.getElementById("ordenPrecio")?.addEventListener("change", () => {
     if (window._gruposProductos) {
