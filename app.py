@@ -1,7 +1,3 @@
-
-
-
-
 from flask import Flask, render_template, request, redirect, session, send_file, url_for, jsonify, current_app
 import os
 import uuid
@@ -129,7 +125,21 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token):
         print(f"✅ Subido: {ruta_remota}")
 
     return r.status_code == 201
-    
+
+def subir_iconos_png(repo, token):
+    carpeta = os.path.join("static", "img")
+    for nombre_archivo in os.listdir(carpeta):
+        if nombre_archivo.lower().endswith(".png"):
+            ruta_local = os.path.join(carpeta, nombre_archivo)
+            ruta_remota = f"static/img/{nombre_archivo}"
+            with open(ruta_local, "rb") as f:
+                contenido = f.read()
+            exito = subir_archivo(repo, contenido, ruta_remota, token)
+            if exito:
+                print(f"✅ PNG subido: {ruta_remota}")
+            else:
+                print(f"❌ Falló subida de: {ruta_remota}")
+
 def generar_nombre_repo(email):
     base = email.replace("@", "_at_").replace(".", "_")
     fecha = time.strftime("%Y%m%d")
