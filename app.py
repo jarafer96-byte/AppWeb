@@ -30,8 +30,8 @@ def too_large(e):
     return "Archivo demasiado grande (máx. 4 MB)", 413
 
 # 🔥 Configuración de Firestore 
-FIREBASE_PROJECT_ID = "appweb-bd7c8" 
-FIREBASE_API_KEY = "AIzaSyDde7U-pgzMHvhTbrckn4iUjXlmIWtbsjE" 
+FIREBASE_PROJECT_ID = "appweb-2167a" 
+FIREBASE_API_KEY = "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM" 
 FIREBASE_COLLECTION = "productos"
 
 # ✅ Actualización en subir_a_firestore
@@ -47,8 +47,7 @@ def subir_a_firestore(producto):
     custom_id = f"{nombre_id}_{fecha}_{grupo_id}"
 
     # URL con ID personalizado
-    usuario = producto.get("usuario", "anonimo")  # o session['email'] si lo tenés en sesión
-    doc_path = f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/usuarios/{usuario}/productos/{custom_id}"
+    doc_path = f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}"
     url = f"https://firestore.googleapis.com/v1/{doc_path}?key={FIREBASE_API_KEY}"
     headers = {"Content-Type": "application/json"}
 
@@ -628,10 +627,7 @@ def preview():
         p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
 
     grupos_dict = {}
-    for i, producto in enumerate(config['productos']):
-        producto["usuario"] = session.get("usuario", "anonimo")
-        subir_a_firestore(producto)
-
+    for producto in config['productos']:
         grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
         subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
 
@@ -643,7 +639,6 @@ def preview():
         if subgrupo not in grupos_dict[grupo]:
             grupos_dict[grupo][subgrupo] = []
         grupos_dict[grupo][subgrupo].append(producto)
-
 
     # ✅ Crear repo si no existe
     if not session.get('repo_creado'):
