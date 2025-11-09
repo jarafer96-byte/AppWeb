@@ -1088,8 +1088,9 @@ function eliminarProducto(id_base, talle, event) {
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
   const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
   const config = {
-    mercado_pago: {{ 'true' if config.mercado_pago else 'false' | safe }}
-  };
+  mercado_pago: {{ config.mercado_pago is defined and config.mercado_pago.startswith("APP_USR-") | tojson }}
+};
+
     
   import {
     initializeApp
