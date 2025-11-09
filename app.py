@@ -3,7 +3,6 @@ import os
 import uuid
 import time
 import json
-import requests
 import traceback
 from werkzeug.utils import secure_filename
 from zipfile import ZipFile
@@ -17,9 +16,9 @@ import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-cred_dict = json.loads(os.getenv("FIREBASE_CREDENTIALS_JSON"))
+# 🔐 Inicialización segura de Firebase
 try:
-    print("✅ JSON cargado correctamente:", cred_dict["project_id"])
+    cred_dict = json.loads(os.getenv("FIREBASE_CREDENTIALS_JSON"))
     cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred)
     print("✅ Firebase inicializado con:", firebase_admin.get_app().name)
@@ -29,31 +28,33 @@ except Exception as e:
 # Cliente Firestore con acceso total
 db = firestore.client()
 
+# GitHub y Flask config
 token = os.getenv("GITHUB_TOKEN")
-GITHUB_USERNAME = "jarafer96-byte"        # tu usuario de GitHub
+GITHUB_USERNAME = "jarafer96-byte"
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
-app.config['SESSION_COOKIE_SECURE'] = not app.debug  # True en producción, False en local
-
+app.config['SESSION_COOKIE_SECURE'] = not app.debug
 
 @app.errorhandler(413)
 def too_large(e):
     return "Archivo demasiado grande (máx. 4 MB)", 413
 
-# 🔥 Configuración de Firestore 
-FIREBASE_PROJECT_ID = "appweb-bd7c8" 
-FIREBASE_API_KEY = "AIzaSyDde7U-pgzMHvhTbrckn4iUjXlmIWtbsjE" 
-FIREBASE_COLLECTION = "productos"
+UPLOAD_FOLDER = 'static/img'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ Actualización en subir_a_firestore
-def subir_a_firestore(producto):
+# ✅ Subida de producto por usuario
+def subir_a_firestore(producto, email):
+    if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio") or not producto.get("imagen"):
+        print("❌ Producto incompleto, faltan campos obligatorios")
+        return False
+
     grupo_original = producto["grupo"].strip()
     subgrupo_original = producto.get("subgrupo", "general").strip()
     nombre_original = producto["nombre"].strip()
 
-    # Normalización solo para el ID
     grupo_id = grupo_original.replace(" ", "_").lower()
     nombre_id = nombre_original.replace(" ", "_").lower()
     fecha = time.strftime("%Y%m%d")
@@ -66,8 +67,12 @@ def subir_a_firestore(producto):
         print(f"❌ Precio u orden inválido en producto: {producto['nombre']}")
         return False
 
+    talles = producto.get("talles") or []
+    if isinstance(talles, str):
+        talles = [t.strip() for t in talles.split(',') if t.strip()]
+
     try:
-        db.collection("productos").document(custom_id).set({
+        db.collection("usuarios").document(email).collection("productos").document(custom_id).set({
             "nombre": nombre_original,
             "id_base": custom_id,
             "precio": precio,
@@ -76,9 +81,8 @@ def subir_a_firestore(producto):
             "descripcion": producto.get("descripcion", ""),
             "imagen": producto["imagen"],
             "orden": orden,
-            "talles": producto.get("talles", []),
-            "timestamp": firestore.SERVER_TIMESTAMP,
-            "admin": session.get("email")  # opcional, si querés trazabilidad
+            "talles": talles,
+            "timestamp": firestore.SERVER_TIMESTAMP
         })
         print(f"✅ Producto subido correctamente: {nombre_original}")
         return True
@@ -312,93 +316,60 @@ def actualizar_precio():
     data = request.get_json()
     id_base = data.get("id")
     nuevo_precio = int(data.get("nuevoPrecio", 0))
+    email = session.get("email")
 
-    url = (
-        f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}"
-        f"/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}"
-        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=precio"
-    )
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "fields": {
-            "precio": {"integerValue": nuevo_precio}
-        }
-    }
+    if not email or not id_base:
+        return jsonify({"error": "Datos incompletos"}), 400
 
     try:
-        r = requests.patch(url, headers=headers, data=json.dumps(payload))
-        print("💰 Precio actualizado:", r.status_code)
-        return jsonify({"status": "ok"}), r.status_code
+        db.collection("usuarios").document(email).collection("productos").document(id_base).update({
+            "precio": nuevo_precio
+        })
+        print("💰 Precio actualizado:", id_base)
+        return jsonify({"status": "ok"})
     except Exception as e:
         print("❌ Error al actualizar precio:", e)
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/actualizar-talles', methods=['POST'])
 def actualizar_talles():
     data = request.get_json()
     id_base = data.get("id")
     nuevos_talles = data.get("talles", [])
+    email = session.get("email")
 
-    url = (
-        f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}"
-        f"/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}"
-        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=talles"
-    )
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "fields": {
-            "talles": {
-                "arrayValue": {
-                    "values": [{"stringValue": t} for t in nuevos_talles] if nuevos_talles else []
-                }
-            }
-        }
-    }
+    if not email or not id_base:
+        return jsonify({"error": "Datos incompletos"}), 400
 
     try:
-        r = requests.patch(url, headers=headers, data=json.dumps(payload))
-        print("👟 Talles actualizados:", r.status_code)
-        return jsonify({"status": "ok"}), r.status_code
+        db.collection("usuarios").document(email).collection("productos").document(id_base).update({
+            "talles": nuevos_talles
+        })
+        print("👟 Talles actualizados:", id_base)
+        return jsonify({"status": "ok"})
     except Exception as e:
         print("❌ Error al actualizar talles:", e)
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/actualizar-firestore', methods=['POST'])
 def actualizar_firestore():
     data = request.get_json(silent=True) or {}
     id_base = data.get('id')
     campos = {k: v for k, v in data.items() if k != 'id'}
+    email = session.get("email")
 
-    if not id_base or not campos:
+    if not email or not id_base or not campos:
         return jsonify({'status': 'error', 'message': 'Datos incompletos'}), 400
 
-    url = (
-        f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}"
-        f"/databases/(default)/documents/{FIREBASE_COLLECTION}/{id_base}"
-        f"?key={FIREBASE_API_KEY}&updateMask.fieldPaths=" + ",".join(campos.keys())
-    )
-
-    payload = {
-        "fields": {
-            k: (
-                {"stringValue": v} if isinstance(v, str)
-                else {"integerValue": v} if isinstance(v, int)
-                else {"arrayValue": {"values": [{"stringValue": t} for t in v]}} if isinstance(v, list)
-                else {"stringValue": str(v)}
-            )
-            for k, v in campos.items()
-        }
-    }
-
-    headers = {"Content-Type": "application/json"}
     try:
-        r = requests.patch(url, headers=headers, data=json.dumps(payload))
-        print("✅ Firestore actualizado:", r.status_code)
-        return jsonify({"status": "ok"}), r.status_code
+        db.collection("usuarios").document(email).collection("productos").document(id_base).update(campos)
+        print("✅ Firestore actualizado:", id_base)
+        return jsonify({"status": "ok"})
     except Exception as e:
         print("❌ Error al actualizar Firestore:", e)
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/', methods=['GET', 'POST'])
 def step1():
@@ -449,22 +420,26 @@ def step2():
     imagenes = os.listdir('static/img/webp')
     return render_template('step2.html', config=session, imagenes=imagenes)
 
-# ... encabezado y configuraciones previas ...
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
     tipo = session.get('tipo_web')
+    email = session.get('email')
+
+    if not email:
+        print("❌ Sesión no válida")
+        return "Error: sesión no iniciada", 403
+
     if request.method == 'POST':
         bloques = []
         nombres = request.form.getlist('nombre')
         descripciones = request.form.getlist('descripcion')
         precios = request.form.getlist('precio')
         grupos = request.form.getlist('grupo')
-        subgrupos = request.form.getlist('subgrupo')  # ✅ nuevo campo
+        subgrupos = request.form.getlist('subgrupo')
         imagenes = request.files.getlist('imagen')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
-
 
         longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes), len(ordenes)]
         min_len = min(longitudes)
@@ -474,39 +449,37 @@ def step3():
             print("❌ Desalineación en los datos del formulario")
             return "Error: los campos del formulario están desalineados", 500
 
-        MAX_SIZE_MB = 4
         formatos_validos = ('.jpg', '.jpeg', '.png', '.webp')
+        MAX_SIZE_MB = 4
 
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
             precio = precios[i].strip()
             grupo = grupos[i].strip() or 'Sin grupo'
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
-            orden = str(i + 1)
+            orden = ordenes[i].strip() or str(i + 1)
             img = imagenes[i]
-            filename = secure_filename(img.filename)
+            nombre_archivo = secure_filename(img.filename)
+            nombre_unico = f"{uuid.uuid4().hex[:6]}_{nombre_archivo}"
+            webp_name = f"{os.path.splitext(nombre_unico)[0]}.webp"
+            destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
+
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
 
-
-            if not nombre or not precio or not grupo or not subgrupo or not filename:
+            if not nombre or not precio or not grupo or not subgrupo or not nombre_archivo:
                 continue
-
-            if not filename.lower().endswith(formatos_validos):
-                print(f"⚠️ Formato no soportado: {filename}")
+            if not nombre_archivo.lower().endswith(formatos_validos):
+                print(f"⚠️ Formato no soportado: {nombre_archivo}")
                 continue
-
             if img.content_length and img.content_length > MAX_SIZE_MB * 1024 * 1024:
-                print(f"⚠️ Imagen demasiado pesada: {filename}")
+                print(f"⚠️ Imagen demasiado pesada: {nombre_archivo}")
                 continue
-
-            webp_name = f"{os.path.splitext(filename)[0]}_{shortuuid.uuid()[:4]}.webp"
-            destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
 
             try:
-                img.save(destino)
+                redimensionar_con_transparencia(img, destino)
             except Exception as e:
-                print(f"❌ Error al guardar imagen {filename}: {e}")
+                print(f"❌ Error al guardar imagen {nombre_archivo}: {e}")
                 continue
 
             bloques.append({
@@ -515,8 +488,8 @@ def step3():
                 'precio': precio,
                 'imagen': webp_name,
                 'grupo': grupo,
-                'subgrupo': subgrupo,  # ✅ incluir subgrupo
-                'orden': ordenes[i],
+                'subgrupo': subgrupo,
+                'orden': orden,
                 'talles': talle_lista
             })
 
@@ -526,12 +499,7 @@ def step3():
 
         def subir_con_resultado(producto):
             try:
-                if subir_a_firestore(producto):
-                    print(f"✅ Producto subido: {producto['nombre']}")
-                    return True
-                else:
-                    print(f"⚠️ Fallo al subir {producto['nombre']}")
-                    return False
+                return subir_a_firestore(producto, email)
             except Exception as e:
                 print(f"❌ Error inesperado al subir {producto['nombre']}: {e}")
                 return False
@@ -555,6 +523,7 @@ def step3():
             return render_template('step3.html', tipo_web=tipo)
 
     return render_template('step3.html', tipo_web=tipo)
+
 import mercadopago
 
 @app.route('/pagar', methods=['POST'])
@@ -608,11 +577,36 @@ def preview():
     print("🚀 Entrando a /preview")
     modo_admin = session.get('modo_admin') == True and request.args.get('admin') == 'true'
     modo_admin_intentado = request.args.get('admin') == 'true'
-    print("🔍 repo_creado:", session.get('repo_creado'))
-    print("🔍 repo_nombre:", session.get('repo_nombre'))
-    
+    email = session.get('email')
+
+    if not email:
+        print("❌ Sesión no iniciada")
+        return "Error: sesión no iniciada", 403
+
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
+    # 🔄 Obtener productos desde Firestore
+    productos = []
+    try:
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        productos_docs = productos_ref.stream()
+        productos = [doc.to_dict() for doc in productos_docs]
+        print(f"📦 Productos cargados desde Firestore: {len(productos)}")
+    except Exception as e:
+        print("❌ Error al obtener productos:", e)
+
+    # 🧱 Agrupar por grupo y subgrupo
+    grupos_dict = {}
+    for producto in productos:
+        grupo = producto.get('grupo', 'General').strip().title()
+        subgrupo = producto.get('subgrupo', 'Sin subgrupo').strip().title()
+        if grupo not in grupos_dict:
+            grupos_dict[grupo] = {}
+        if subgrupo not in grupos_dict[grupo]:
+            grupos_dict[grupo][subgrupo] = []
+        grupos_dict[grupo][subgrupo].append(producto)
+
+    # 🧠 Configuración visual
     config = {
         'titulo': session.get('titulo'),
         'descripcion': session.get('descripcion'),
@@ -636,32 +630,14 @@ def preview():
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
         'mercado_pago': session.get('mercado_pago'),
-        'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
+        'productos': productos,
         'bloques': [],
         'descargado': session.get('descargado', False),
         'usarFirestore': True
     }
 
-    for i, p in enumerate(config['productos']):
-        p['id_base'] = p['nombre'].replace(' ', '_') + f"_{i}"
-
-    grupos_dict = {}
-    for producto in config['productos']:
-        grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
-        subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
-
-        grupo = grupo.strip().title()
-        subgrupo = subgrupo.strip().title()
-
-        if grupo not in grupos_dict:
-            grupos_dict[grupo] = {}
-        if subgrupo not in grupos_dict[grupo]:
-            grupos_dict[grupo][subgrupo] = []
-        grupos_dict[grupo][subgrupo].append(producto)
-
     # ✅ Crear repo si no existe
     if not session.get('repo_creado'):
-        email = session.get('email') or "sin_email@appweb.com"
         nombre_repo = generar_nombre_repo(email)
         print("📦 Intentando crear repo con:", nombre_repo)
         token = os.getenv("GITHUB_TOKEN")
@@ -680,15 +656,14 @@ def preview():
         print("📤 Subiendo archivos al repo:", nombre_repo)
         subir_iconos_png(nombre_repo, token)
 
-
         # Subir index.html
         template = current_app.jinja_env.get_template('preview.html')
         html = template.render(config=config, grupos=grupos_dict, modoAdmin=modo_admin, modoAdminIntentado=modo_admin_intentado)
         subir_archivo(nombre_repo, html.encode("utf-8"), "index.html", token)
         print("📄 Subido: index.html")
 
-        # Subir imágenes
-        for producto in config['productos']:
+        # Subir imágenes de productos
+        for producto in productos:
             imagen = producto.get("imagen")
             if imagen:
                 ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
@@ -730,10 +705,38 @@ def preview():
 
     return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin, modoAdminIntentado=modo_admin_intentado)
 
+
 @app.route('/descargar')
 def descargar():
+    email = session.get('email')
+    if not email:
+        print("❌ Sesión no iniciada")
+        return "Error: sesión no iniciada", 403
+
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
+    # 🔄 Obtener productos desde Firestore
+    productos = []
+    try:
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        productos_docs = productos_ref.stream()
+        productos = [doc.to_dict() for doc in productos_docs]
+        print(f"📦 Productos cargados desde Firestore: {len(productos)}")
+    except Exception as e:
+        print("❌ Error al obtener productos:", e)
+
+    # 🧱 Agrupar por grupo y subgrupo
+    grupos = {}
+    for producto in productos:
+        grupo = producto.get('grupo', 'General').strip().title()
+        subgrupo = producto.get('subgrupo', 'Sin subgrupo').strip().title()
+        if grupo not in grupos:
+            grupos[grupo] = {}
+        if subgrupo not in grupos[grupo]:
+            grupos[grupo][subgrupo] = []
+        grupos[grupo][subgrupo].append(producto)
+
+    # 🧠 Configuración visual
     config = {
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
@@ -750,24 +753,9 @@ def descargar():
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
-        'productos': session.get('bloques') if session.get('tipo_web') == 'catálogo' else [],
+        'productos': productos,
         'bloques': []
     }
-
-    # ✅ Construir grupos y subgrupos con validación y normalización
-    grupos = {}
-    for producto in config['productos']:
-        grupo = producto.get('grupo') or producto.get('Grupo') or 'General'
-        subgrupo = producto.get('subgrupo') or producto.get('subGrupo') or 'Sin subgrupo'
-
-        grupo = grupo.strip().title()
-        subgrupo = subgrupo.strip().title()
-
-        if grupo not in grupos:
-            grupos[grupo] = {}
-        if subgrupo not in grupos[grupo]:
-            grupos[grupo][subgrupo] = []
-        grupos[grupo][subgrupo].append(producto)
 
     # ✅ Renderizar HTML con grupos incluidos
     html = render_template('preview.html', config=config, grupos=grupos)
@@ -784,18 +772,26 @@ def descargar():
             zip_file.write(fondo_path, arcname='img/' + fondo)
 
         # ✅ Incluir imágenes de productos
-        for producto in config['productos']:
+        for producto in productos:
             imagen = producto.get('imagen')
             if imagen:
                 imagen_path = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
                 if os.path.exists(imagen_path):
                     zip_file.write(imagen_path, arcname='img/' + imagen)
 
+        # ✅ Incluir logo si existe
+        logo = config.get("logo")
+        if logo:
+            logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
+            if os.path.exists(logo_path):
+                zip_file.write(logo_path, arcname='img/' + logo)
+
     limpiar_imagenes_usuario()
     session['descargado'] = True
 
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
+
 
 @app.template_filter('imgver')
 def imgver_filter(name):
