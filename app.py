@@ -42,6 +42,10 @@ app.config['SESSION_COOKIE_SECURE'] = not app.debug
 def too_large(e):
     return "Archivo demasiado grande (máx. 4 MB)", 413
 
+FIREBASE_PROJECT_ID = "appweb-bd7c8" 
+FIREBASE_API_KEY = "AIzaSyDde7U-pgzMHvhTbrckn4iUjXlmIWtbsjE" 
+FIREBASE_COLLECTION = "productos"
+
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -90,11 +94,6 @@ def subir_a_firestore(producto, email):
     except Exception as e:
         print(f"❌ Error al subir {nombre_original}:", e)
         return False
-
-
-UPLOAD_FOLDER = 'static/img'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ✅ Compresión y redimensionado
 def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad=80):
