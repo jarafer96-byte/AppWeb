@@ -562,16 +562,14 @@
     <ul id="listaCarrito"></ul>
     <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
     <div class="d-grid gap-2">
-      <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+  <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
 
-      {% if config.mercado_pago %}
-        <button class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
-      {% endif %}
-
-      <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
-    </div>
-  </div>
-
+  {% if config.mercado_pago %}
+    <button class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
+  {% else %}
+    <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+  {% endif %}
+</div>
 
   </div>
 <!-- Aviso flotante de precio actualizado -->
