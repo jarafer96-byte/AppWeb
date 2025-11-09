@@ -402,8 +402,11 @@ def step1():
 
         mercado_pago = request.form.get('mercado_pago')
         if mercado_pago and mercado_pago.startswith("APP_USR-"):
-          session['mercado_pago'] = mercado_pago.strip()
-          print("Credencial MP:", session.get('mercado_pago'))
+            session['mercado_pago'] = mercado_pago.strip()
+            print("✅ Credencial MP guardada:", session['mercado_pago'])
+        else:
+            session.pop('mercado_pago', None)
+            print("🧹 Credencial MP eliminada por estar vacía o inválida")
 
         logo = request.files.get('logo')
         if logo:
@@ -416,6 +419,7 @@ def step1():
 
         return redirect('/estilo')
     return render_template('step1.html')
+
 
 @app.route('/estilo', methods=['GET', 'POST'])
 def step2():
