@@ -431,6 +431,11 @@ def step2():
     return render_template('step2.html', config=session, imagenes=imagenes)
 
 # ... encabezado y configuraciones previas ...
+@app.route('/reset-mercado-pago')
+def reset_mercado_pago():
+    session.pop('mercado_pago', None)
+    print("🧹 Credencial Mercado Pago eliminada de la sesión")
+    return redirect('/preview')
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
