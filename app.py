@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, session, send_file, url_for, jsonify, current_app
+from flask import Flask, render_template, redirect, session, send_file, url_for, jsonify, current_app, request
 import requests
 import os
 import uuid
