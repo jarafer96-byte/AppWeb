@@ -603,7 +603,7 @@
     function mostrarGrupo(nombre, event, auto = false) {
   console.log("🧪 Grupo seleccionado:", nombre, "auto:", auto);
 
-  const grupoId = 'grupo_' + nombre.toLowerCase(); // 👈 blindado
+  const grupoId = 'grupo_' + nombre.toLowerCase().replace(/\s+/g, '_');
   const grupoActivo = document.getElementById(grupoId);
   document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
   if (grupoActivo) {
@@ -656,7 +656,7 @@
    function filtrarSubcategoria(grupo, subgrupo) {
   console.log("🎯 Filtrando grupo:", grupo, "por subgrupo:", subgrupo);
 
-  const grupoId = 'grupo_' + grupo.toLowerCase(); // 👈 blindado
+  const grupoId = 'grupo_' + grupo.toLowerCase().replace(/\s+/g, '_');
   const grupoDiv = document.getElementById(grupoId);
   if (!grupoDiv) {
     console.warn("⚠️ Grupo no encontrado:", grupoId);
