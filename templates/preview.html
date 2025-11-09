@@ -994,17 +994,15 @@ function eliminarProducto(id_base, talle, event) {
   lista.innerHTML = '';
   let suma = 0;
 
-carrito.forEach(item => {
-  const subtotal = item.precio * item.cantidad;
-  lista.innerHTML += `
-    <li style="display: flex; justify-content: space-between; align-items: center;">
-      <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
-      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
-    </li>`;
-  suma += subtotal;
-});
-
-
+  carrito.forEach(item => {
+    const subtotal = item.precio * item.cantidad;
+    lista.innerHTML += `
+      <li style="display: flex; justify-content: space-between; align-items: center;">
+        <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
+        <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
+      </li>`;
+    suma += subtotal;
+  });
 
   total.textContent = suma.toFixed(2);
 
@@ -1014,8 +1012,14 @@ carrito.forEach(item => {
     `\nTotal estimado: $${suma.toFixed(2)}`
   );
 
-  document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
+  const link = document.getElementById('enviarCarrito');
+  if (link) {
+    link.href = configWhatsApp + '?text=' + mensaje;
+  } else {
+    console.warn("⚠️ No se encontró el botón 'enviarCarrito' para actualizar el link de WhatsApp");
+  }
 }
+
 
     function mostrarTodos() {
       const panelGrupos = document.getElementById('panelGrupos');
