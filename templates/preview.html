@@ -603,7 +603,8 @@
     function mostrarGrupo(nombre, event, auto = false) {
   console.log("🧪 Grupo seleccionado:", nombre, "auto:", auto);
 
-  const grupoActivo = document.getElementById('grupo_' + nombre);
+  const grupoId = 'grupo_' + nombre.toLowerCase(); // 👈 blindado
+  const grupoActivo = document.getElementById(grupoId);
   document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
   if (grupoActivo) {
     grupoActivo.classList.add('active');
@@ -651,12 +652,14 @@
 }
 
 
-    function filtrarSubcategoria(grupo, subgrupo) {
+
+   function filtrarSubcategoria(grupo, subgrupo) {
   console.log("🎯 Filtrando grupo:", grupo, "por subgrupo:", subgrupo);
 
-  const grupoDiv = document.getElementById('grupo_' + grupo);
+  const grupoId = 'grupo_' + grupo.toLowerCase(); // 👈 blindado
+  const grupoDiv = document.getElementById(grupoId);
   if (!grupoDiv) {
-    console.warn("⚠️ Grupo no encontrado:", grupo);
+    console.warn("⚠️ Grupo no encontrado:", grupoId);
     return;
   }
 
@@ -673,6 +676,7 @@
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
+
 
     window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
