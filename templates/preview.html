@@ -557,24 +557,26 @@
 
   <button id="toggleCarrito">🛒</button>
 
- <div id="carrito">
-  <h5>🛒 Tu carrito</h5>
-  <ul id="listaCarrito"></ul>
-  <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
-  <div class="d-grid gap-2">
-    <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+  <div id="carrito">
+    <h5>🛒 Tu carrito</h5>
+    <ul id="listaCarrito"></ul>
+    <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+    <div class="d-grid gap-2">
+  <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
 
+  {% if config.mercado_pago %}
     <button class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
+  {% else %}
     <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
-  </div>
+  {% endif %}
 </div>
 
+  </div>
 <!-- Aviso flotante de precio actualizado -->
 <div id="avisoPrecio" class="alert alert-success text-center" role="alert"
      style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;">
   ✔ Precio actualizado
 </div>
-
 
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
@@ -1029,7 +1031,6 @@ carrito.forEach(item => {
       const contacto = document.getElementById('ubicacion');
       if (contacto) contacto.scrollIntoView({ behavior: 'auto' }); // Cambiado a 'auto'
     }
-    
     function ajustarPosicionesPaneles() {
       const panelGrupos = document.getElementById('panelGrupos');
       const panelSub = document.getElementById('panelSubcategorias');
@@ -1071,7 +1072,6 @@ carrito.forEach(item => {
   </script>
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
-  console.log("📦 usarFirestore:", usarFirestore);
   const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
 
   import {
@@ -1081,53 +1081,30 @@ carrito.forEach(item => {
     getFirestore,
     collection,
     getDocs,
-    onSnapshot,
-    doc
+    onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
-    // Al inicio del <script type="module">
-  const config = {
-    mercado_pago: {{ 'true' if config.mercado_pago else 'false' | safe }}
-  };
-
   const firebaseConfig = {
-    apiKey: "AIzaSyDde7U-pgzMHvhTbrckn4iUjXlmIWtbsjE",
-    authDomain: "appweb-bd7c8.firebaseapp.com",
-    projectId: "appweb-bd7c8",
-    storageBucket: "appweb-bd7c8.firebasestorage.app",
-    messagingSenderId: "553348257877",
-    appId: "1:553348257877:web:5a940631dd6729bd381cdc"
+    apiKey: "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM",
+    authDomain: "appweb-2167a.firebaseapp.com",
+    projectId: "appweb-2167a",
+    storageBucket: "appweb-2167a.firebasestorage.app",
+    messagingSenderId: "681717342631",
+    appId: "1:681717342631:web:f95e6c18b34bae5725d682"
   };
-    
-if (usarFirestore) {
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const usuario = "{{ session['usuario'] or 'anonimo' }}";
-  console.log("👤 Usuario activo:", usuario);
 
-  const productosRef = collection(doc(db, "usuarios", usuario), "productos");
+  if (usarFirestore) {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const productosRef = collection(db, "productos");
 
-  async function cargarProductos() {
-    try {
-      const snapshot = await getDocs(productosRef);
-      console.log("📦 Productos encontrados:", snapshot.size);
-
-      snapshot.forEach(doc => {
-        console.log("🧩 Producto:", doc.data());
+    getDocs(productosRef)
+      .then(snapshot => {
+        console.log("Documentos recibidos:", snapshot.size);
+      })
+      .catch(error => {
+        console.error("❌ Error al cargar productos:", error);
       });
-    } catch (error) {
-      console.error("❌ Error al cargar productos:", error);
-    }
-  }
-
-  cargarProductos();
-
-  // 🔒 Desactivar botón de Mercado Pago si no está habilitado
-const btnMP = document.querySelector("button[onclick='pagarConMercadoPago()']");
-if (!config.mercado_pago && btnMP) {
-  btnMP.style.display = "none";
-}
-
 
     onSnapshot(productosRef, snapshot => {
       const grupos = {};
@@ -1299,4 +1276,3 @@ if (!config.mercado_pago && btnMP) {
 </script>
 </body>
 </html>
-
