@@ -634,7 +634,7 @@ def preview():
         'productos': productos,
         'bloques': [],
         'descargado': session.get('descargado', False),
-        'usarFirestore': True
+        'usarFirestore': False
     }
 
     # ✅ Crear repo si no existe
