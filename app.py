@@ -20,12 +20,11 @@ from firebase_admin import credentials, firestore
 cred_dict = json.loads(os.getenv("FIREBASE_CREDENTIALS_JSON"))
 try:
     print("✅ JSON cargado correctamente:", cred_dict["project_id"])
+    cred = credentials.Certificate(cred_dict)
+    firebase_admin.initialize_app(cred)
+    print("✅ Firebase inicializado con:", firebase_admin.get_app().name)
 except Exception as e:
     print("❌ Error al cargar JSON:", e)
-    
-cred = credentials.Certificate(cred_dict)
-
-firebase_admin.initialize_app(cred)
 
 # Cliente Firestore con acceso total
 db = firestore.client()
@@ -224,6 +223,15 @@ def limpiar_imagenes_usuario():
                 print(f"Imagen eliminada: {nombre}")
         except Exception as e:
             print(f"Error al eliminar {nombre}: {e}")
+
+@app.route("/test-firestore")
+def test_firestore():
+    try:
+        db.collection("test").document("ping").set({"ok": True})
+        return "✅ Firestore funciona"
+    except Exception as e:
+        traceback.print_exc()
+        return f"❌ Error: {e}", 500
 
 @app.route('/crear-admin', methods=['POST'])
 def crear_admin():
