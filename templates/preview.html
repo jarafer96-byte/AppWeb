@@ -1076,7 +1076,10 @@ function eliminarProducto(id_base, talle, event) {
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
   const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
-
+  const config = {
+    mercado_pago: {{ 'true' if config.mercado_pago else 'false' | safe }}
+  };
+    
   import {
     initializeApp
   } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
@@ -1094,10 +1097,6 @@ function eliminarProducto(id_base, talle, event) {
     storageBucket: "appweb-bd7c8.firebasestorage.app",
     messagingSenderId: "553348257877",
     appId: "1:553348257877:web:5a940631dd6729bd381cdc"
-  };
-    
-  const config = {
-    mercado_pago: {{ 'true' if config.mercado_pago else 'false' | safe }}
   };
 
   if (usarFirestore) {
