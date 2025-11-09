@@ -580,6 +580,17 @@
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
 
+    const config = {
+      mercado_pago: {{ 'true' if config.mercado_pago else 'false' | safe }}
+    };
+
+    const btnMP = document.querySelector("button[onclick='pagarConMercadoPago()']");
+    if (!config.mercado_pago && btnMP) {
+      btnMP.style.display = "none";
+      btnMP.title = "⚠️ Mercado Pago no está configurado";
+    }
+
+
     window.addEventListener('scroll', () => {
       const btn = document.getElementById('volverArriba');
       btn.style.display = window.scrollY > 300 ? 'block' : 'none';
