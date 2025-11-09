@@ -59,11 +59,6 @@ def subir_a_firestore(producto):
     fecha = time.strftime("%Y%m%d")
     custom_id = f"{nombre_id}_{fecha}_{grupo_id}"
 
-    # URL con ID personalizado
-    doc_path = f"projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{FIREBASE_COLLECTION}/{custom_id}"
-    url = f"https://firestore.googleapis.com/v1/{doc_path}?key={FIREBASE_API_KEY}"
-    headers = {"Content-Type": "application/json"}
-
     try:
         precio = int(producto["precio"].replace("$", "").replace(".", "").strip())
         orden = int(producto.get("orden", 999))
@@ -71,33 +66,26 @@ def subir_a_firestore(producto):
         print(f"❌ Precio u orden inválido en producto: {producto['nombre']}")
         return False
 
-    data = {
-      "name": doc_path,
-      "fields": {
-        "nombre": {"stringValue": nombre_original},
-        "id_base": {"stringValue": f"{nombre_id}_{fecha}_{grupo_id}"},
-        "precio": {"integerValue": precio},
-        "grupo": {"stringValue": grupo_original},
-        "subgrupo": {"stringValue": subgrupo_original},
-        "descripcion": {"stringValue": producto.get("descripcion", "")},
-        "imagen": {"stringValue": producto["imagen"]},
-        "orden": {"integerValue": orden},
-        "talles": {
-            "arrayValue": {
-                "values": [{"stringValue": t} for t in producto.get("talles", [])]
-            }
-        }
-      }
- 
-    }
-
     try:
-        response = requests.patch(url, headers=headers, data=json.dumps(data), timeout=5)
-        print(f"📄 Firestore response: {response.status_code} → {response.text}")
-        return response.status_code in [200, 202]
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error de red al subir {producto['nombre']}: {e}")
+        db.collection("productos").document(custom_id).set({
+            "nombre": nombre_original,
+            "id_base": custom_id,
+            "precio": precio,
+            "grupo": grupo_original,
+            "subgrupo": subgrupo_original,
+            "descripcion": producto.get("descripcion", ""),
+            "imagen": producto["imagen"],
+            "orden": orden,
+            "talles": producto.get("talles", []),
+            "timestamp": firestore.SERVER_TIMESTAMP,
+            "admin": session.get("email")  # opcional, si querés trazabilidad
+        })
+        print(f"✅ Producto subido correctamente: {nombre_original}")
+        return True
+    except Exception as e:
+        print(f"❌ Error al subir {nombre_original}:", e)
         return False
+
 
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
