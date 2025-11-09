@@ -264,19 +264,22 @@ def login_admin():
 
     try:
         url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/usuarios/{usuario}?key={FIREBASE_API_KEY}"
+        print("🔗 URL:", url)
         r = requests.get(url)
         doc = r.json()
+        print("📦 Respuesta Firestore:", json.dumps(doc, indent=2))
 
-        clave_guardada = doc.get("fields", {}).get("clave_admin", {}).get("stringValue")
+        # Validación robusta del campo
+        fields = doc.get("fields", {})
+        clave_guardada = fields.get("clave_admin", {}).get("stringValue")
+
         print("🔐 Clave guardada en Firestore:", clave_guardada)
 
         if clave_guardada == clave_ingresada:
-            session.permanent = True  # ✅ Mantener sesión activa
+            session.permanent = True
             session['modo_admin'] = True
             session['email'] = usuario
-            print("🧠 session después del login:", dict(session))
             print("✅ Login exitoso → modo_admin activado")
-            print("🧠 session:", dict(session))
             return jsonify({'status': 'ok'})
         else:
             print("❌ Clave incorrecta")
@@ -284,8 +287,9 @@ def login_admin():
 
     except Exception as e:
         print("❌ Error al validar login:", e)
-        print("🧠 session después del login:", dict(session))
+        traceback.print_exc()
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 @app.route('/logout-admin')
 def logout_admin():
