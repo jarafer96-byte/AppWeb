@@ -323,14 +323,18 @@ def actualizar_precio():
         return jsonify({"error": "Datos incompletos"}), 400
 
     try:
-        db.collection("usuarios").document(email).collection("productos").document(id_base).update({
-            "precio": nuevo_precio
-        })
-        print("💰 Precio actualizado:", id_base)
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        query = productos_ref.where("id_base", "==", id_base).limit(1).get()
+
+        if not query:
+            print("❌ Producto no encontrado:", id_base)
+            return jsonify({"error": "Producto no encontrado"}), 404
+
+        doc = query[0]
+        doc.reference.update({"precio": nuevo_precio})
+        print("💰 Precio actualizado:", id_base, "→", nuevo_precio)
         return jsonify({"status": "ok"})
-    except Exception as e:
-        print("❌ Error al actualizar precio:", e)
-        return jsonify({"error": str(e)}), 500
+
 
 
 @app.route('/actualizar-talles', methods=['POST'])
