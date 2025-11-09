@@ -557,26 +557,24 @@
 
   <button id="toggleCarrito">🛒</button>
 
-  <div id="carrito">
-    <h5>🛒 Tu carrito</h5>
-    <ul id="listaCarrito"></ul>
-    <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
-    <div class="d-grid gap-2">
-  <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+ <div id="carrito">
+  <h5>🛒 Tu carrito</h5>
+  <ul id="listaCarrito"></ul>
+  <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+  <div class="d-grid gap-2">
+    <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
 
-  {% if config.mercado_pago %}
     <button class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
-  {% else %}
     <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
-  {% endif %}
+  </div>
 </div>
 
-  </div>
 <!-- Aviso flotante de precio actualizado -->
 <div id="avisoPrecio" class="alert alert-success text-center" role="alert"
      style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;">
   ✔ Precio actualizado
 </div>
+
 
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
@@ -1031,6 +1029,7 @@ carrito.forEach(item => {
       const contacto = document.getElementById('ubicacion');
       if (contacto) contacto.scrollIntoView({ behavior: 'auto' }); // Cambiado a 'auto'
     }
+    
     function ajustarPosicionesPaneles() {
       const panelGrupos = document.getElementById('panelGrupos');
       const panelSub = document.getElementById('panelSubcategorias');
@@ -1086,6 +1085,11 @@ carrito.forEach(item => {
     doc
   } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
+    // Al inicio del <script type="module">
+  const config = {
+    mercado_pago: {{ 'true' if config.mercado_pago else 'false' | safe }}
+  };
+
   const firebaseConfig = {
     apiKey: "AIzaSyDde7U-pgzMHvhTbrckn4iUjXlmIWtbsjE",
     authDomain: "appweb-bd7c8.firebaseapp.com",
@@ -1117,6 +1121,13 @@ if (usarFirestore) {
   }
 
   cargarProductos();
+
+  // 🔒 Desactivar botón de Mercado Pago si no está habilitado
+const btnMP = document.querySelector("button[onclick='pagarConMercadoPago()']");
+if (!config.mercado_pago && btnMP) {
+  btnMP.style.display = "none";
+}
+
 
     onSnapshot(productosRef, snapshot => {
       const grupos = {};
