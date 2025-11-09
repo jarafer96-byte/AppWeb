@@ -497,21 +497,27 @@
     </div>
   {% endif %}
 
-{% if config.usarFirestore %}
-  <div id="contenedor-grupos"></div> {# JS lo llenará dinámicamente si usás Firestore #}
-{% else %}
-  {% for grupo, subgrupos in grupos.items() %}
+{% for grupo, subgrupos in grupos.items() %}
+  <div id="grupo_{{ grupo | lower | replace(' ', '_') }}" class="grupo-section">
     {% for subgrupo, productos in subgrupos.items() %}
-      {% for producto in productos %}
-        {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
-        <span id="precio_{{ id_base }}">{{ producto.precio }}</span>
-        {% if modoAdmin %}
-          <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
-        {% endif %}
-      {% endfor %}
+      <div class="subgrupo-bloque" data-subgrupo="{{ subgrupo }}">
+        {% for producto in productos %}
+          {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">{{ producto.nombre }}</h5>
+              <span id="precio_{{ id_base }}">{{ producto.precio }}</span>
+              {% if modoAdmin %}
+                <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
     {% endfor %}
-  {% endfor %}
-{% endif %}
+  </div>
+{% endfor %}
+
 
 
 
