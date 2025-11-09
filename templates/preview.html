@@ -580,8 +580,6 @@
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
 
-    const configWhatsApp = "{{ config.whatsapp }}";
-
 const config = {
   mercado_pago: {{ config.mercado_pago is defined and config.mercado_pago.startswith("APP_USR-") | tojson }},
   usarFirestore: {{ 'true' if config.usarFirestore else 'false' }},
