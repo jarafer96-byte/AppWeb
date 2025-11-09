@@ -316,11 +316,20 @@ def crear_repo():
 def actualizar_precio():
     data = request.get_json()
     id_base = data.get("id")
-    nuevo_precio = int(data.get("nuevoPrecio", 0))
+    nuevo_precio_raw = data.get("nuevoPrecio", 0)
     email = session.get("email")
 
+    print("🔧 Intentando actualizar precio:", id_base, "→", nuevo_precio_raw)
+
     if not email or not id_base:
+        print("❌ Datos incompletos")
         return jsonify({"error": "Datos incompletos"}), 400
+
+    try:
+        nuevo_precio = int(nuevo_precio_raw)
+    except ValueError:
+        print("❌ Precio inválido:", nuevo_precio_raw)
+        return jsonify({"error": "Precio inválido"}), 400
 
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
@@ -334,7 +343,11 @@ def actualizar_precio():
         doc.reference.update({"precio": nuevo_precio})
         print("💰 Precio actualizado:", id_base, "→", nuevo_precio)
         return jsonify({"status": "ok"})
-
+    except Exception as e:
+        print("❌ Error al actualizar precio:", e)
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/actualizar-talles', methods=['POST'])
