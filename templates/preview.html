@@ -1115,40 +1115,6 @@ carrito.forEach(item => {
   appId: "1:553348257877:web:5a940631dd6729bd381cdc"
 };
 
-
-  if (usarFirestore) {
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const productosRef = collection(db, "productos");
-
-    getDocs(productosRef)
-      .then(snapshot => {
-        console.log("Documentos recibidos:", snapshot.size);
-      })
-      .catch(error => {
-        console.error("❌ Error al cargar productos:", error);
-      });
-
-    onSnapshot(productosRef, snapshot => {
-      const grupos = {};
-
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (!data.grupo || !data.grupo.trim()) return;
-        const grupo = data.grupo.trim();
-        const subgrupo = data.subgrupo?.trim() || "Sin subgrupo";
-
-        if (!grupos[grupo]) grupos[grupo] = {};
-        if (!grupos[grupo][subgrupo]) grupos[grupo][subgrupo] = [];
-        grupos[grupo][subgrupo].push({ ...data, id: doc.id });
-      });
-
-      window._gruposProductos = grupos;
-      renderizarProductos(grupos);
-      actualizarCarrito();
-    });
-  }
-
   function renderizarProductos(grupos) {
   const contenedorPrincipal = document.getElementById("contenedor-grupos");
   contenedorPrincipal.innerHTML = "";
