@@ -599,63 +599,81 @@
     document.getElementById('volverArriba').onclick = () => {
       window.scrollTo({ top: 0, behavior: 'auto' }); // Cambiado a 'auto' para evitar deslizamiento
     };
+    
     function mostrarGrupo(nombre, event, auto = false) {
-      const grupoActivo = document.getElementById('grupo_' + nombre);
-      document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
-      if (grupoActivo) {
-        grupoActivo.classList.add('active');
-        if (auto) grupoActivo.classList.add('initial-load');
-      }
+  console.log("🧪 Grupo seleccionado:", nombre, "auto:", auto);
 
-      document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
-      if (event?.target) event.target.classList.add('active');
+  const grupoActivo = document.getElementById('grupo_' + nombre);
+  document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
+  if (grupoActivo) {
+    grupoActivo.classList.add('active');
+    if (auto) grupoActivo.classList.add('initial-load');
+  }
 
-      const subcategorias = subcategoriasPorGrupo[nombre] || [];
-      const panel = document.getElementById('panelSubcategorias');
-      panel.innerHTML = '';
+  document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
+  if (event?.target) event.target.classList.add('active');
 
-      const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
+  const subcategorias = subcategoriasPorGrupo[nombre] || [];
+  const panel = document.getElementById('panelSubcategorias');
+  panel.innerHTML = '';
 
-      subcategorias.forEach(sub => {
-        if (!sub || sub.trim().toLowerCase() === 'general') return;
-        const btn = document.createElement('button');
-        btn.textContent = sub;
-        btn.className = 'btn-grupo';
-        btn.onclick = () => filtrarSubcategoria(nombre, sub);
-        panel.appendChild(btn);
-        console.log("Creando botón para subcategoría:", sub);
-      });
+  const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
+  console.log("🔍 Bloques encontrados:", bloques?.length || 0);
 
-      if (!auto) {
-        panel.classList.remove('oculta');
-        bloques?.forEach(bloque => {
-          bloque.style.display = 'block';
-        });
+  subcategorias.forEach(sub => {
+    if (!sub || sub.trim().toLowerCase() === 'general') return;
+    const btn = document.createElement('button');
+    btn.textContent = sub;
+    btn.className = 'btn-grupo';
+    btn.onclick = () => filtrarSubcategoria(nombre, sub);
+    panel.appendChild(btn);
+    console.log("🧱 Botón creado para subcategoría:", sub);
+  });
 
-        if (subcategorias.length > 0) {
-          filtrarSubcategoria(nombre, subcategorias[0]);
-        }
-      } else {
-        panel.classList.add('oculta');
-        if (subcategorias.length > 0) {
-          filtrarSubcategoria(nombre, subcategorias[0]);
-        }
-      }
+  if (!auto) {
+    panel.classList.remove('oculta');
+    bloques?.forEach((bloque, i) => {
+      bloque.style.display = 'block';
+      console.log(`🔄 Mostrando bloque ${i}:`, bloque.dataset.subgrupo);
+    });
+
+    if (subcategorias.length > 0) {
+      console.log("🎯 Aplicando filtro por primera subcategoría:", subcategorias[0]);
+      filtrarSubcategoria(nombre, subcategorias[0]);
     }
+  } else {
+    panel.classList.add('oculta');
+    if (subcategorias.length > 0) {
+      console.log("🎯 Auto-carga: filtrando por subcategoría inicial:", subcategorias[0]);
+      filtrarSubcategoria(nombre, subcategorias[0]);
+    }
+  }
+}
+
 
     function filtrarSubcategoria(grupo, subgrupo) {
-      const grupoDiv = document.getElementById('grupo_' + grupo);
-      if (!grupoDiv) return;
+  console.log("🎯 Filtrando grupo:", grupo, "por subgrupo:", subgrupo);
 
-      const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
-      bloques.forEach(bloque => {
-        const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
-        const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
-        bloque.style.display = mostrar ? 'block' : 'none';
-      });
+  const grupoDiv = document.getElementById('grupo_' + grupo);
+  if (!grupoDiv) {
+    console.warn("⚠️ Grupo no encontrado:", grupo);
+    return;
+  }
 
-      window.scrollTo({ top: 0, behavior: 'auto' });
-    }
+  const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
+  console.log("🔍 Bloques en grupo:", bloques.length);
+
+  bloques.forEach((bloque, i) => {
+    const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
+    const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
+    bloque.style.display = mostrar ? 'block' : 'none';
+
+    console.log(`🔎 Bloque ${i}: subgrupo=${subgrupoActual}, mostrar=${mostrar}`);
+  });
+
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
     window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
   const panelGrupos = document.getElementById('panelGrupos');
