@@ -381,10 +381,9 @@ def actualizar_firestore():
     if not email or not id_base or not campos:
         return jsonify({'status': 'error', 'message': 'Datos incompletos'}), 400
 
-    try:
+        try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         query = productos_ref.where("id_base", "==", id_base).limit(1).get()
-
         if not query:
             print("❌ Producto no encontrado:", id_base)
             return jsonify({'status': 'error', 'message': 'Producto no encontrado'}), 404
@@ -393,6 +392,12 @@ def actualizar_firestore():
         doc.reference.update(campos)
         print(f"✅ Firestore actualizado para {id_base}: {campos}")
         return jsonify({'status': 'ok'})
+    except Exception as e:
+        print("❌ Error al actualizar Firestore:", e)
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 
 @app.route('/', methods=['GET', 'POST'])
