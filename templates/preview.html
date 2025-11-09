@@ -558,25 +558,24 @@
   <button id="toggleCarrito">🛒</button>
 
   <div id="carrito">
-    <h5>🛒 Tu carrito</h5>
-    <ul id="listaCarrito"></ul>
-    <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
-    <div class="d-grid gap-2">
-  <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+  <h5>🛒 Tu carrito</h5>
+  <ul id="listaCarrito"></ul>
+  <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+  <div class="d-grid gap-2">
+    <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
 
-  {% if config.mercado_pago %}
+    <!-- Ambos botones visibles siempre -->
     <button class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
-  {% else %}
     <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
-  {% endif %}
+  </div>
 </div>
 
-  </div>
 <!-- Aviso flotante de precio actualizado -->
 <div id="avisoPrecio" class="alert alert-success text-center" role="alert"
      style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;">
   ✔ Precio actualizado
 </div>
+
 
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
@@ -1233,6 +1232,16 @@ function eliminarProducto(id_base, talle, event) {
     carritoDiv.style.display = 'none';
   }
 });
+    
+  const btnMP = document.querySelector("button[onclick='pagarConMercadoPago()']");
+  const btnWA = document.getElementById("enviarCarrito");
+
+  if (!config.mercado_pago && btnMP) {
+    btnMP.style.display = "none";
+  }
+  if (config.mercado_pago && btnWA) {
+    btnWA.style.display = "none";
+  }
 
   document.getElementById("ordenPrecio")?.addEventListener("change", () => {
     if (window._gruposProductos) {
