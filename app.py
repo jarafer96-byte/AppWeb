@@ -1,3 +1,5 @@
+
+
 from flask import Flask, render_template, request, redirect, session, send_file, url_for, jsonify, current_app
 import os
 import uuid
@@ -30,8 +32,8 @@ def too_large(e):
     return "Archivo demasiado grande (máx. 4 MB)", 413
 
 # 🔥 Configuración de Firestore 
-FIREBASE_PROJECT_ID = "appweb-bd7c8" 
-FIREBASE_API_KEY = "AIzaSyDde7U-pgzMHvhTbrckn4iUjXlmIWtbsjE" 
+FIREBASE_PROJECT_ID = "appweb-2167a" 
+FIREBASE_API_KEY = "AIzaSyALJLWb4tPUVq9UwZ9dB-L6P1AJX9TWCeM" 
 FIREBASE_COLLECTION = "productos"
 
 # ✅ Actualización en subir_a_firestore
@@ -431,11 +433,6 @@ def step2():
     return render_template('step2.html', config=session, imagenes=imagenes)
 
 # ... encabezado y configuraciones previas ...
-@app.route('/reset-mercado-pago')
-def reset_mercado_pago():
-    session.pop('mercado_pago', None)
-    print("🧹 Credencial Mercado Pago eliminada de la sesión")
-    return redirect('/preview')
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
