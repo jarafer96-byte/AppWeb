@@ -1100,7 +1100,7 @@ carrito.forEach(item => {
 if (usarFirestore) {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const usuario = "{{ session['usuario'] or 'anonimo' }}";
+  const usuario = "{{ session['email'] or 'anonimo' }}";
   console.log("👤 Usuario activo:", usuario);
 
   const productosRef = collection(doc(db, "usuarios", usuario), "productos");
