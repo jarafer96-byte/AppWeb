@@ -14,11 +14,15 @@ from datetime import datetime
 import shortuuid
 import mercadopago
 import base64
-from google.cloud import firestore
 import firebase_admin
 from firebase_admin import credentials, firestore
 
 cred_dict = json.loads(os.getenv("FIREBASE_CREDENTIALS_JSON"))
+try:
+    print("✅ JSON cargado correctamente:", cred_dict["project_id"])
+except Exception as e:
+    print("❌ Error al cargar JSON:", e)
+    
 cred = credentials.Certificate(cred_dict)
 
 firebase_admin.initialize_app(cred)
