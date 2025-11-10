@@ -872,11 +872,15 @@ function guardarPrecio(id) {
       if (data.status === "ok") {
         console.log("✅ Precio confirmado en Firestore para", id);
 
-        // ✅ Ahora sí: actualizar el DOM
+        // ✅ Actualizar el DOM solo si el backend responde OK
         const span = document.createElement("span");
         span.id = "precio_" + id;
         span.textContent = "$" + nuevoValor.toFixed(2);
         input.replaceWith(span);
+
+        // ✅ Feedback visual opcional
+        span.classList.add("text-success");
+        setTimeout(() => span.classList.remove("text-success"), 1000);
 
         if (typeof mostrarAvisoPrecio === "function") {
           console.log("🔔 Ejecutando mostrarAvisoPrecio()");
@@ -894,6 +898,7 @@ function guardarPrecio(id) {
       alert("❌ Error de conexión al guardar el precio");
     });
 }
+
 
 
 
