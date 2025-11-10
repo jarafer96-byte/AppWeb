@@ -199,6 +199,7 @@ label.btn-imagen {
   const contenedor = grupo.querySelector('.productos');
   contenedor.appendChild(crearFila(nombre, ordenGrupo));
 }
+    
 function crearSubgrupo(btn) {
   const grupo = btn.closest('.card'); // ✅ primero obtenemos el grupo
   const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ luego usamos grupo
@@ -226,6 +227,9 @@ function crearSubgrupo(btn) {
   const contenedor = subgrupo.querySelector('.productos');
   contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo)); // ✅ pasamos grupo también
 }
+    
+ 
+  const imagenesDisponibles = {{ session.imagenes_step0 | tojson }};
 
  function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
@@ -276,7 +280,7 @@ function crearSubgrupo(btn) {
   return fila;
 }
 
-}
+
 
 
 
