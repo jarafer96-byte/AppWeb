@@ -876,10 +876,9 @@ function guardarPrecio(id) {
         const span = document.createElement("span");
         span.id = "precio_" + id;
         span.textContent = "$" + nuevoValor.toFixed(2);
+        span.className = input.className;  // hereda estilos del input
+        span.classList.add("text-success");  // feedback visual
         input.replaceWith(span);
-
-        // ✅ Feedback visual opcional
-        span.classList.add("text-success");
         setTimeout(() => span.classList.remove("text-success"), 1000);
 
         if (typeof mostrarAvisoPrecio === "function") {
@@ -898,6 +897,7 @@ function guardarPrecio(id) {
       alert("❌ Error de conexión al guardar el precio");
     });
 }
+
 
 
 
