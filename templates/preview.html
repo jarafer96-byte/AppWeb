@@ -542,6 +542,9 @@
                           <option value="{{ t }}">{{ t }}</option>
                         {% endfor %}
                       </select>
+                      {% if modoAdmin %}
+                        <button onclick="editarTalles('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
+                      {% endif %}
                     </div>
                   {% endif %}
 
@@ -579,10 +582,6 @@
     {% endfor %}
   </div>
 {% endfor %}
-
-
-
-
 
 
   <div id="contenedor-grupos"></div>
@@ -718,8 +717,6 @@
   }
 }
 
-
-
    function filtrarSubcategoria(grupo, subgrupo) {
   console.log("🎯 Filtrando grupo:", grupo, "por subgrupo:", subgrupo);
 
@@ -743,7 +740,6 @@
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
-
 
     window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
@@ -797,8 +793,6 @@
   actualizarCarrito();
 }
 
-
-
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
   if (!span) {
@@ -833,7 +827,6 @@ function editarPrecio(id) {
   span.replaceWith(input);
   input.focus();
 }
-
   
 function guardarPrecio(id) {
   console.log("🟡 Iniciando guardarPrecio para:", id);
@@ -898,11 +891,6 @@ function guardarPrecio(id) {
     });
 }
 
-
-
-
-
-    
 function loginAdmin(event) {
   event.preventDefault();
   const usuario = document.getElementById("usuario_login").value.trim();
@@ -957,27 +945,7 @@ function editarTalles(id) {
   const tallesArray = nuevoTalle.split(',').map(t => t.trim()).filter(t => t);
   console.log("✅ Nuevos talles ingresados:", tallesArray);
 
-  // Actualizar visualmente
-  const nuevoSelect = document.createElement("select");
-  nuevoSelect.id = "talle_" + id;
-  nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
-  tallesArray.forEach(t => {
-    const option = document.createElement("option");
-    option.value = t;
-    option.textContent = t;
-    nuevoSelect.appendChild(option);
-  });
-
-  if (selector) {
-    selector.replaceWith(nuevoSelect);
-  } else if (span) {
-    const nuevoSpan = document.createElement("span");
-    nuevoSpan.id = "talles_" + id;
-    nuevoSpan.textContent = tallesArray.join(', ');
-    span.replaceWith(nuevoSpan);
-  }
-
-  // ✅ Actualizar Firestore vía backend
+  // ✅ Enviar al backend antes de modificar el DOM
   fetch('/actualizar-talles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -985,8 +953,33 @@ function editarTalles(id) {
   })
     .then(res => res.json())
     .then(data => {
+      console.log("📨 Payload recibido:", data);
       if (data.status === "ok") {
-        console.log("✅ Talles actualizados en Firestore para", id);
+        console.log("✅ Talles confirmados en Firestore para", id);
+
+        // ✅ Actualizar visualmente solo si el backend responde OK
+        const nuevoSelect = document.createElement("select");
+        nuevoSelect.id = "talle_" + id;
+        nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
+        tallesArray.forEach(t => {
+          const option = document.createElement("option");
+          option.value = t;
+          option.textContent = t;
+          nuevoSelect.appendChild(option);
+        });
+
+        if (selector) {
+          selector.replaceWith(nuevoSelect);
+        } else if (span) {
+          const nuevoSpan = document.createElement("span");
+          nuevoSpan.id = "talles_" + id;
+          nuevoSpan.textContent = tallesArray.join(', ');
+          span.replaceWith(nuevoSpan);
+        }
+
+        // ✅ Feedback visual
+        nuevoSelect.classList.add("text-success");
+        setTimeout(() => nuevoSelect.classList.remove("text-success"), 1000);
       } else {
         console.warn("❌ Error en respuesta del backend:", data);
         alert("❌ No se pudo actualizar los talles");
@@ -997,9 +990,10 @@ function editarTalles(id) {
       alert("❌ Error de conexión al guardar los talles");
     });
 }
-
  
 function guardarTalles(id) {
+  console.log("🟡 Iniciando guardarTalles para:", id);
+
   const input = document.getElementById("talles_" + id);
   if (!input) {
     console.warn("❌ No se encontró el input con id:", "talles_" + id);
@@ -1013,38 +1007,50 @@ function guardarTalles(id) {
 
   console.log("🧪 Talles capturados para", id, "→", nuevosTalles);
 
-  // Reemplazar el input por el nuevo <span>
-  const nuevoSpan = document.createElement("span");
-  nuevoSpan.id = "talles_" + id;
-  nuevoSpan.textContent = nuevosTalles.join(", ");
-  input.replaceWith(nuevoSpan);
+  // ✅ Enviar al backend antes de modificar el DOM
+  console.log("📡 Enviando fetch a /actualizar-talles con:", { id_base: id, nuevoTalles: nuevosTalles.join(',') });
 
-  // Enviar al backend con claves correctas
   fetch('/actualizar-talles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id_base: id, nuevoTalles: nuevosTalles.join(',') })
   })
     .then(res => {
-      console.log("📡 Respuesta del backend:", res.status);
+      console.log("📬 Respuesta recibida del backend:", res.status);
       return res.json();
     })
     .then(data => {
+      console.log("📨 Payload recibido:", data);
       if (data.status === "ok") {
-        console.log("✅ Talles actualizados en Firestore para", id);
+        console.log("✅ Talles confirmados en Firestore para", id);
+
+        // ✅ Actualizar el DOM solo si el backend responde OK
+        const nuevoSpan = document.createElement("span");
+        nuevoSpan.id = "talles_" + id;
+        nuevoSpan.textContent = nuevosTalles.join(", ");
+        nuevoSpan.className = input.className;
+        nuevoSpan.classList.add("text-success");
+        input.replaceWith(nuevoSpan);
+        setTimeout(() => nuevoSpan.classList.remove("text-success"), 1000);
       } else {
         console.warn("❌ Error en respuesta del backend:", data);
+        input.classList.add("is-invalid");
         alert("❌ No se pudo actualizar los talles");
       }
     })
     .catch(err => {
-      console.error("❌ Error en fetch al actualizar talles:", err);
+      console.error("❌ Error de red al actualizar talles:", err);
+      input.classList.add("is-invalid");
       alert("❌ Error de conexión al guardar los talles");
     });
 }
 
-
 function actualizarFirestore(id, datos) {
+  if (!id || typeof datos !== "object" || Object.keys(datos).length === 0) {
+    console.warn("⚠️ Datos incompletos para actualizar Firestore:", { id, datos });
+    return;
+  }
+
   console.log("📡 Enviando actualización a Firestore para", id, "→", datos);
 
   fetch("/actualizar-firestore", {
@@ -1053,21 +1059,27 @@ function actualizarFirestore(id, datos) {
     body: JSON.stringify({ id, ...datos })
   })
     .then(res => {
-      console.log("📡 Respuesta del backend:", res.status);
+      console.log("📬 Respuesta recibida del backend:", res.status);
       return res.json();
     })
     .then(data => {
+      console.log("📨 Payload recibido:", data);
       if (data.status === "ok") {
         console.log("✅ Firestore actualizado para", id);
+        if (typeof mostrarAvisoFirestore === "function") {
+          console.log("🔔 Ejecutando mostrarAvisoFirestore()");
+          mostrarAvisoFirestore();
+        }
       } else {
-        console.warn("❌ Error en respuesta:", data);
+        console.warn("❌ Error en respuesta del backend:", data);
+        alert("❌ No se pudo actualizar Firestore");
       }
     })
     .catch(err => {
-      console.error("❌ Error en fetch:", err);
+      console.error("❌ Error de red al actualizar Firestore:", err);
+      alert("❌ Error de conexión al guardar los datos");
     });
 }
-
 
 function mostrarAvisoPrecio() {
   const aviso = document.getElementById("avisoPrecio");
@@ -1105,46 +1117,60 @@ function eliminarProducto(id_base, talle, event) {
       actualizarCarrito();
     }
     function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
-      let cambio = false;
-      carrito.forEach(item => {
-        if (item.nombre === nombre && item.precio !== nuevoPrecio) {
-          item.precio = nuevoPrecio;
-          cambio = true;
-        }
-      });
-      if (cambio) actualizarCarrito();
+  let cambio = false;
+  carrito.forEach(item => {
+    if (item.nombre === nombre && item.precio !== nuevoPrecio) {
+      console.log(`🔄 Actualizando precio en carrito para ${nombre}: ${item.precio} → ${nuevoPrecio}`);
+      item.precio = nuevoPrecio;
+      cambio = true;
     }
-    function sincronizarPreciosDelCarrito() {
-      carrito.forEach(item => {
-        const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
-        const precioSpan = document.getElementById(idPrecio);
-        if (precioSpan) {
-          const precioActual = parseFloat(precioSpan.textContent);
-          if (!isNaN(precioActual)) {
-            item.precio = precioActual;
-          }
-        }
-      });
+  });
+  if (cambio) actualizarCarrito();
+}
+
+function sincronizarPreciosDelCarrito() {
+  carrito.forEach(item => {
+    const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
+    const precioSpan = document.getElementById(idPrecio);
+    if (precioSpan) {
+      const precioActual = parseFloat(precioSpan.textContent.replace("$", ""));
+      if (!isNaN(precioActual)) {
+        item.precio = precioActual;
+      } else {
+        console.warn("⚠️ Precio no numérico en DOM para", idPrecio);
+      }
+    } else {
+      console.warn("⚠️ No se encontró el span de precio para", idPrecio);
     }
-    function actualizarCarrito() {
+  });
+}
+
+function actualizarCarrito() {
   sincronizarPreciosDelCarrito();
 
   const lista = document.getElementById('listaCarrito');
   const total = document.getElementById('totalCarrito');
+  if (!lista || !total) {
+    console.warn("⚠️ No se encontró listaCarrito o totalCarrito en el DOM");
+    return;
+  }
+
   lista.innerHTML = '';
   let suma = 0;
 
-carrito.forEach(item => {
-  const subtotal = item.precio * item.cantidad;
-  lista.innerHTML += `
-    <li style="display: flex; justify-content: space-between; align-items: center;">
-      <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
-      <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">❌</button>
-    </li>`;
-  suma += subtotal;
-});
+  carrito.forEach(item => {
+    const subtotal = item.precio * item.cantidad;
+    suma += subtotal;
 
-
+    lista.innerHTML += `
+      <li style="display: flex; justify-content: space-between; align-items: center;">
+        <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
+        <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" 
+                style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">
+          ❌
+        </button>
+      </li>`;
+  });
 
   total.textContent = suma.toFixed(2);
 
@@ -1154,8 +1180,16 @@ carrito.forEach(item => {
     `\nTotal estimado: $${suma.toFixed(2)}`
   );
 
-  document.getElementById('enviarCarrito').href = configWhatsApp + '?text=' + mensaje;
+  const link = document.getElementById('enviarCarrito');
+  if (link) {
+    link.href = configWhatsApp + '?text=' + mensaje;
+  } else {
+    console.warn("⚠️ No se encontró el botón 'enviarCarrito' para actualizar el link de WhatsApp");
+  }
+
+  console.log("🛒 Carrito actualizado:", carrito);
 }
+
 
     function mostrarTodos() {
       const panelGrupos = document.getElementById('panelGrupos');
@@ -1233,81 +1267,6 @@ carrito.forEach(item => {
   appId: "1:553348257877:web:5a940631dd6729bd381cdc"
 };
 
-  function renderizarProductos(grupos) {
-  const contenedorPrincipal = document.getElementById("contenedor-grupos");
-  contenedorPrincipal.innerHTML = "";
-
-  Object.entries(grupos).forEach(([grupo, subgrupos]) => {
-    const grupoId = 'grupo_' + grupo.trim().toLowerCase().replace(/\s+/g, '_'); // 👈 blindado
-    const grupoDiv = document.createElement("div");
-    grupoDiv.className = "container mb-5 grupo-section";
-    grupoDiv.id = grupoId;
-
-    Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
-      if (!productos || productos.length === 0) return;
-
-      const subgrupoId = subgrupo.trim().toLowerCase(); // 👈 blindado
-      const subgrupoDiv = document.createElement("div");
-      subgrupoDiv.className = "subgrupo-bloque mb-4 bloque-producto";
-      subgrupoDiv.dataset.subgrupo = subgrupoId;
-      subgrupoDiv.dataset.grupo = grupo.trim().toLowerCase().replace(/\s+/g, '_');
-
-      const fila = document.createElement("div");
-      fila.className = "row";
-
-      const orden = document.getElementById("ordenPrecio")?.value || "asc";
-      productos.sort((a, b) => {
-        const pa = parseFloat(a.precio) || 0;
-        const pb = parseFloat(b.precio) || 0;
-        return orden === "asc" ? pa - pb : pb - pa;
-      });
-
-      productos.forEach((producto, i) => {
-        const idBase = producto.id_base;
-        const tarjeta = document.createElement("div");
-        tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
-        tarjeta.innerHTML = `
-          <div class="card p-3 h-100">
-            <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
-            <div class="card-body">
-              <h5 class="card-title">${producto.nombre}</h5>
-              <p class="card-text">${producto.descripcion || ""}</p>
-              <p><strong>Precio:</strong> $ 
-                <span id="precio_${idBase}">${producto.precio}</span>
-                ${modoAdmin ? `<button onclick="editarPrecio('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
-              </p>
-              <div class="mb-2">
-                <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-                ${producto.talles?.length ? `
-                  <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
-                    ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
-                  </select>
-                ` : `
-                  <span id="talles_${idBase}">Sin talles disponibles</span>
-                `}
-                ${modoAdmin ? `<button onclick="editarTalles('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
-              </div>
-              <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
-                <button type="button" class="btn btn-secondary"
-                  onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
-                  Agregar al carrito
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
-        fila.appendChild(tarjeta);
-      });
-
-      subgrupoDiv.appendChild(fila);
-      grupoDiv.appendChild(subgrupoDiv);
-    });
-
-    contenedorPrincipal.appendChild(grupoDiv);
-  });
 
   // Activar primer grupo y subgrupo
   setTimeout(() => {
