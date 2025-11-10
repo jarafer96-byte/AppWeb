@@ -733,7 +733,14 @@ def preview():
 
         # Subir index.html
         template = current_app.jinja_env.get_template('preview.html')
-        html = template.render(config=config, grupos=grupos_dict, modoAdmin=modo_admin, modoAdminIntentado=modo_admin_intentado)
+        html = template.render(
+            config=config,
+            grupos=grupos_dict,
+            modoAdmin=modo_admin,
+            modoAdminIntentado=modo_admin_intentado,
+            firebase_config=firebase_config  # 👈 esto es lo que falta
+        )
+
         subir_archivo(nombre_repo, html.encode("utf-8"), "index.html", token)
         print("📄 Subido: index.html")
 
