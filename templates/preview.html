@@ -458,11 +458,11 @@
     ↑
   </button>
 
-  <div class="text-center my-3">
+  {% if config.logo %}
     <img src="{{ url_for('static', filename='img/' + config.logo) }}"
          alt="Logo"
          class="img-fluid logo">
-  </div>
+  {% endif %}
 
   {% if modoAdminIntentado and not modoAdmin %}
     <div id="login-admin" class="container mt-4">
