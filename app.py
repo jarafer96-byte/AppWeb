@@ -117,19 +117,17 @@ def subir_a_firestore(producto, email):
         return False
 
 
-# ✅ Compresión y redimensionado
-def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad=80):
+def redimensionar_y_rellenar(ruta_origen, ruta_destino, tamaño=(300, 180)):
     try:
-        img = Image.open(imagen.stream).convert('RGBA')
+        img = Image.open(ruta_origen).convert("RGBA")
         img.thumbnail(tamaño, Image.LANCZOS)
-
-        fondo = Image.new('RGBA', tamaño, (0, 0, 0, 0))  # fondo transparente
-        offset = ((tamaño[0] - img.width) // 2, (tamaño[1] - img.height) // 2)
-        fondo.paste(img, offset, img)  # usa la imagen como máscara
-
-        fondo.save(destino, format='WEBP', quality=calidad)
+        fondo = Image.new("RGBA", tamaño, (0, 0, 0, 0))
+        x = (tamaño[0] - img.width) // 2
+        y = (tamaño[1] - img.height) // 2
+        fondo.paste(img, (x, y), img)
+        fondo.save(ruta_destino, "WEBP", lossless=True)
     except Exception as e:
-        print(f"Error al redimensionar con transparencia: {e}")
+        print("❌ Error al procesar imagen:", e)
 
 def necesita_redimension(src, dst):
     return not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst)
