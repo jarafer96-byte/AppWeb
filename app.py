@@ -50,7 +50,6 @@ UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ Subida de producto por usuario
 def subir_a_firestore(producto, email):
     if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio") or not producto.get("imagen"):
         print("❌ Producto incompleto, faltan campos obligatorios")
@@ -77,6 +76,8 @@ def subir_a_firestore(producto, email):
         talles = [t.strip() for t in talles.split(',') if t.strip()]
 
     try:
+        producto["id_base"] = custom_id  # ✅ Trazabilidad para frontend y edición
+
         db.collection("usuarios").document(email).collection("productos").document(custom_id).set({
             "nombre": nombre_original,
             "id_base": custom_id,
@@ -89,11 +90,12 @@ def subir_a_firestore(producto, email):
             "talles": talles,
             "timestamp": firestore.SERVER_TIMESTAMP
         })
-        print(f"✅ Producto subido correctamente: {nombre_original}")
+        print(f"✅ Producto subido correctamente: {nombre_original} | ID base: {custom_id}")
         return True
     except Exception as e:
         print(f"❌ Error al subir {nombre_original}:", e)
         return False
+
 
 # ✅ Compresión y redimensionado
 def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad=80):
