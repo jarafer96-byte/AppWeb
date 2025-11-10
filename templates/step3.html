@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Contenido del sitio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #000;
+      font-family: sans-serif;
+      color: white;
+    }
+
+    h2 {
+      color: white;
+    }
+
+    .form-control {
+      background-color: rgba(255,255,255,0.05);
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+
+    .form-control::placeholder {
+      color: #aaa;
+    }
+
+    .card {
+      background-color: rgba(255,255,255,0.05);
+      color: white;
+      border: none;
+      border-radius: 12px;
+    }
+
+    .btn-gradient {
+      background: linear-gradient(135deg, #8e2de2, #ff6f61);
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-gradient:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    }
+
+    label.btn-imagen {
+      display: block;
+      width: 100%;
+      background-color: rgba(255,255,255,0.05);
+      color: white;
+      border: 1px dashed #888;
+      border-radius: 8px;
+      padding: 6px 6px;
+      text-align: center;
+      font-size: 0.85em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    label.btn-imagen:hover {
+      background-color: rgba(255,255,255,0.15);
+      border-color: #ccc;
+    }
+
+    label.btn-imagen.cargado {
+      background-color: rgba(40,167,69,0.2);
+      border-color: #28a745;
+      color: #28a745;
+    }
+
+    label.btn-imagen.cargado::after {
+      content: " ✓";
+      color: #28a745;
+      margin-left: 4px;
+    }
+
+    textarea {
+      resize: none;
+    }
+
+    .mensaje-final {
+      margin-top: 30px;
+      font-style: italic;
+      text-align: center;
+      color: #ccc;
+    }
+
+    .mensaje-final span {
+      display: block;
+      margin-top: 10px;
+      color: #ffcc00;
+      font-weight: bold;
+    }
+    .card .row {
+  margin-bottom: 4px;
+}
+.card .form-control,
+.card textarea {
+  padding: 4px 8px;
+  font-size: 0.85em;
+}
+label.btn-imagen {
+  font-size: 0.75em;
+  padding: 4px 8px;
+}
+
+    .loader {
+      border: 8px solid rgba(255,255,255,0.1);
+      border-top: 8px solid #ff6f61;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+    }
+    .precio-chico {
+      width: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-5">
+    <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
+
+    <div class="mb-4 text-center">
+      <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" placeholder="Nombre del grupo (ej: Ropa Mujer)">
+      <button type="button" class="btn-gradient btn-sm" onclick="crearGrupo()">Crear grupo</button>
+    </div>
+
+    <form id="formulario" method="POST" enctype="multipart/form-data">
+      <div id="grupos"></div>
+
+      <div class="text-center mt-4">
+        <button type="button" class="btn-gradient px-5 py-2" onclick="validarYEnviar()">Continuar</button>
+      </div>
+    </form>
+
+    <div class="mensaje-final">
+      ¿Tenés mucho contenido? <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
+      <span>⚠️ Si continuás, perderás todo el contenido si intentás volver a esta página.</span>
+    </div>
+  </div>
+
+  <!-- Spinner visual -->
+  <div id="spinner" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
+    <div class="loader"></div>
+    <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
+  </div>
+
+  <script>
+    let grupoId = 0;
+    let contadorOrden = 1;
+    
+    window.onload = () => {
+      contadorOrden = 1;
+    };
+
+    function crearGrupo() {
+  const nombre = document.getElementById('nombreGrupo').value.trim();
+  if (!nombre) return alert("Ingresá un nombre para el grupo");
+
+  grupoId++;
+  const ordenGrupo = grupoId;
+
+  const grupo = document.createElement('div');
+  grupo.className = 'card p-3 mb-4';
+  grupo.id = 'grupo_' + grupoId;
+  grupo.setAttribute('data-orden', ordenGrupo);
+
+  grupo.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">${nombre}</h4>
+      <button type="button" class="btn btn-sm btn-danger" onclick="eliminarGrupo(this)">
+        ✕ <span style="font-size: 0.75em;">(Borrar grupo)</span>
+      </button>
+    </div>
+    <div class="subgrupos"></div>
+    <div class="text-center mt-2">
+      <input type="text" class="form-control w-50 d-inline-block" placeholder="Ej: Pantalones" id="inputSubgrupo_${grupoId}">
+      <button type="button" class="btn-gradient btn-sm" onclick="crearSubgrupo(this)">+ Crear subgrupo</button>
+    </div>
+  `;
+
+  document.getElementById('grupos').appendChild(grupo);
+  document.getElementById('nombreGrupo').value = '';
+
+  const contenedor = grupo.querySelector('.productos');
+  contenedor.appendChild(crearFila(nombre, ordenGrupo));
+}
+function crearSubgrupo(btn) {
+  const grupo = btn.closest('.card'); // ✅ primero obtenemos el grupo
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ luego usamos grupo
+  const subgruposContenedor = grupo.querySelector('.subgrupos');
+  const input = grupo.querySelector('input[id^="inputSubgrupo"]');
+  const nombreSubgrupo = input.value.trim();
+  if (!nombreSubgrupo) return alert("Ingresá un nombre para el subgrupo");
+
+  const subgrupo = document.createElement('div');
+  subgrupo.className = 'card p-2 mb-3 subgrupo';
+  subgrupo.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <strong>${nombreSubgrupo}</strong>
+      <button class="btn btn-sm btn-danger" onclick="eliminarSubgrupo(this)">✕ Borrar subgrupo</button>
+    </div>
+    <div class="productos"></div>
+    <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
+    <div class="text-center mt-2">
+      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+    </div>
+  `;
+  subgruposContenedor.appendChild(subgrupo);
+  input.value = '';
+
+  const contenedor = subgrupo.querySelector('.productos');
+  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo)); // ✅ pasamos grupo también
+}
+
+ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
+  const fila = document.createElement('div');
+  fila.className = 'row g-2 align-items-center mb-2';
+
+  fila.innerHTML = `
+  <div class="col-3">
+    <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre">
+  </div>
+  <div class="col-3">
+    <textarea name="descripcion" class="form-control form-control-sm" rows="1" placeholder="Descripción"></textarea>
+  </div>
+  <div class="col-2">
+    <input type="text" name="precio" class="form-control form-control-sm" style="width: 80px;" placeholder="$">
+  </div>
+  <div class="col-2">
+    <input type="text" name="talles" class="form-control form-control-sm" style="width: 200px;" placeholder="(Opcional) S,M,L,XL">
+  </div>
+  <div class="col-2 text-end">
+    <input type="hidden" name="grupo" value="${nombreGrupo}">
+    <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
+    <input type="hidden" name="orden" value="${contadorOrden++}">
+    <label class="btn-imagen btn-sm">
+      Seleccionar Imagen <input type="file" name="imagen" accept="image/*" class="d-none">
+    </label>
+    <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
+  </div>
+`;
+
+  activarSelectorImagen(fila.querySelector('label.btn-imagen'));
+  return fila;
+}
+
+
+
+
+    function agregarFila(btn) {
+  const subgrupo = btn.closest('.subgrupo');
+  const grupo = btn.closest('.card:not(.subgrupo)');
+  const contenedor = subgrupo.querySelector('.productos');
+  const nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ extraemos el nombre del grupo
+
+  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo));
+  actualizarContador(contenedor);
+}
+
+
+function eliminarSubgrupo(btn) {
+  const subgrupo = btn.closest('.subgrupo');
+  subgrupo.remove();
+}
+
+    function eliminarFila(btn) {
+      const fila = btn.closest('.row');
+      const contenedor = btn.closest('.card').querySelector('.productos');
+      if (contenedor.querySelectorAll('.row').length > 1) {
+        fila.remove();
+        actualizarContador(contenedor);
+      } else {
+        alert("No se puede eliminar la última fila");
+      }
+    }
+
+    function eliminarGrupo(btn) {
+      const grupo = btn.closest('.card');
+      grupo.remove();
+    }
+
+    function actualizarContador(contenedor) {
+      const contador = contenedor.closest('.card').querySelector('.contador');
+      contador.textContent = contenedor.querySelectorAll('.row').length;
+    }
+
+        function activarSelectorImagen(label) {
+  const input = label.querySelector('input[type="file"]');
+  const MAX_SIZE_MB = 4;
+  const formatosValidos = ['jpg', 'jpeg', 'png', 'webp'];
+
+  input.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) {
+      label.classList.remove('cargado');
+      return;
+    }
+
+    const extension = file.name.split('.').pop().toLowerCase();
+    const esFormatoValido = formatosValidos.includes(extension);
+    const esPesoValido = file.size <= MAX_SIZE_MB * 1024 * 1024;
+
+    if (esFormatoValido && esPesoValido) {
+      label.classList.add('cargado');
+    } else {
+      label.classList.remove('cargado');
+      alert(`⚠️ Archivo no válido:\n- Formatos permitidos: ${formatosValidos.join(', ')}\n- Peso máximo: ${MAX_SIZE_MB} MB`);
+      this.value = ""; // limpia el input
+    }
+  });
+}
+
+
+    function validarYEnviar() {
+  const grupos = document.querySelectorAll('.card');
+  if (grupos.length === 0) {
+    alert('Agregá al menos un grupo antes de continuar');
+    return;
+  }
+
+  let hayContenidoValido = false;
+  let imagenesInvalidas = false;
+
+  grupos.forEach(grupo => {
+    const filas = grupo.querySelectorAll('.row');
+    filas.forEach(fila => {
+      const nombre = fila.querySelector('input[name="nombre"]');
+      const precio = fila.querySelector('input[name="precio"]');
+      const labelImagen = fila.querySelector('label.btn-imagen');
+      const inputImagen = labelImagen.querySelector('input[type="file"]');
+
+      if (nombre && precio && nombre.value.trim() && precio.value.trim()) {
+        hayContenidoValido = true;
+      }
+
+      // Verificar si hay imagen cargada pero no válida (sin clase 'cargado')
+      if (inputImagen.files.length > 0 && !labelImagen.classList.contains('cargado')) {
+        imagenesInvalidas = true;
+      }
+    });
+  });
+
+  if (!hayContenidoValido) {
+    alert('Completá al menos una fila con nombre y precio antes de continuar');
+    return;
+  }
+
+  if (imagenesInvalidas) {
+    alert('⚠️ Hay imágenes seleccionadas que no cumplen con los requisitos. Revisalas antes de continuar.');
+    return;
+  }
+
+  // ✅ Mostrar spinner antes de enviar
+  document.getElementById('spinner').style.display = 'flex';
+  document.getElementById('formulario').submit();
+}
+  </script>
+</body>
+</html>
