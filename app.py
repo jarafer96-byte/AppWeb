@@ -253,6 +253,8 @@ def crear_admin():
 
 @app.route('/login-admin', methods=['POST'])
 def login_admin():
+    session.clear() 
+    
     data = request.get_json(silent=True) or {}
     usuario = data.get('usuario')
     clave_ingresada = data.get('clave')
