@@ -159,6 +159,15 @@ label.btn-imagen {
     <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
   </div>
 
+
+  <script>
+  {% if session.imagenes_step0 %}
+    const imagenesDisponibles = {{ session.imagenes_step0 | tojson }};
+  {% else %}
+    const imagenesDisponibles = [];
+  {% endif %}
+</script>
+
   <script>
     let grupoId = 0;
     let contadorOrden = 1;
@@ -231,6 +240,7 @@ function crearSubgrupo(btn) {
  
   const imagenesDisponibles = {{ session.imagenes_step0 | tojson }};
 
+    
  function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2';
