@@ -502,7 +502,7 @@ def step0():
         session['imagen_step0'] = f"{nombre_base}.webp"
         print("✅ Imagen procesada y guardada:", session['imagen_step0'])
 
-        return redirect('/preview')
+        return redirect('/step1')
 
     return render_template('step0.html')
 
