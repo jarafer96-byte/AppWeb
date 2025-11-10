@@ -1267,6 +1267,81 @@ function actualizarCarrito() {
   appId: "1:553348257877:web:5a940631dd6729bd381cdc"
 };
 
+    function renderizarProductos(grupos) {
+  const contenedorPrincipal = document.getElementById("contenedor-grupos");
+  contenedorPrincipal.innerHTML = "";
+
+  Object.entries(grupos).forEach(([grupo, subgrupos]) => {
+    const grupoId = 'grupo_' + grupo.trim().toLowerCase().replace(/\s+/g, '_'); // 👈 blindado
+    const grupoDiv = document.createElement("div");
+    grupoDiv.className = "container mb-5 grupo-section";
+    grupoDiv.id = grupoId;
+
+    Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
+      if (!productos || productos.length === 0) return;
+
+      const subgrupoId = subgrupo.trim().toLowerCase(); // 👈 blindado
+      const subgrupoDiv = document.createElement("div");
+      subgrupoDiv.className = "subgrupo-bloque mb-4 bloque-producto";
+      subgrupoDiv.dataset.subgrupo = subgrupoId;
+      subgrupoDiv.dataset.grupo = grupo.trim().toLowerCase().replace(/\s+/g, '_');
+
+      const fila = document.createElement("div");
+      fila.className = "row";
+
+      const orden = document.getElementById("ordenPrecio")?.value || "asc";
+      productos.sort((a, b) => {
+        const pa = parseFloat(a.precio) || 0;
+        const pb = parseFloat(b.precio) || 0;
+        return orden === "asc" ? pa - pb : pb - pa;
+      });
+
+      productos.forEach((producto, i) => {
+        const idBase = producto.id_base;
+        const tarjeta = document.createElement("div");
+        tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
+        tarjeta.innerHTML = `
+          <div class="card p-3 h-100">
+            <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
+            <div class="card-body">
+              <h5 class="card-title">${producto.nombre}</h5>
+              <p class="card-text">${producto.descripcion || ""}</p>
+              <p><strong>Precio:</strong> $ 
+                <span id="precio_${idBase}">${producto.precio}</span>
+                ${modoAdmin ? `<button onclick="editarPrecio('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
+              </p>
+              <div class="mb-2">
+                <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+                ${producto.talles?.length ? `
+                  <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
+                    ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
+                  </select>
+                ` : `
+                  <span id="talles_${idBase}">Sin talles disponibles</span>
+                `}
+                ${modoAdmin ? `<button onclick="editarTalles('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
+              </div>
+              <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
+                <button type="button" class="btn btn-secondary"
+                  onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
+                  Agregar al carrito
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        fila.appendChild(tarjeta);
+      });
+
+      subgrupoDiv.appendChild(fila);
+      grupoDiv.appendChild(subgrupoDiv);
+    });
+
+    contenedorPrincipal.appendChild(grupoDiv);
+  });
 
   // Activar primer grupo y subgrupo
   setTimeout(() => {
