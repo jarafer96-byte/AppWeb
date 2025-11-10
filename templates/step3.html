@@ -250,7 +250,7 @@ function crearSubgrupo(btn) {
     imagenesDisponibles.forEach((img, index) => {
       selectorImagenes += `
         <label style="margin:5px; text-align:center;">
-          <input type="radio" name="imagen_elegida" value="${img}">
+          <input type="radio" name="imagen_elegida_${contadorOrden}" value="${img}">
           <img src="/static/img/${img}" style="width:100px; height:60px; object-fit:contain; border:1px solid #ccc;">
         </label>
       `;
