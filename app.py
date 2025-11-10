@@ -582,6 +582,7 @@ def step2():
 def step3():
     tipo = session.get('tipo_web')
     email = session.get('email')
+    imagenes_disponibles = session.get('imagenes_step0') or []
 
     if not email:
         print("❌ Sesión no válida")
@@ -594,11 +595,16 @@ def step3():
         precios = request.form.getlist('precio')
         grupos = request.form.getlist('grupo')
         subgrupos = request.form.getlist('subgrupo')
-        imagenes = request.files.getlist('imagen')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
 
-        longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes), len(ordenes)]
+        # ✅ Capturar imagen seleccionada por fila
+        imagenes_elegidas = []
+        for i in range(len(nombres)):
+            imagen = request.form.get(f'imagen_elegida_{i+1}') or "fallback.webp"
+            imagenes_elegidas.append(imagen)
+
+        longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes_elegidas), len(ordenes)]
         min_len = min(longitudes)
         print("🧪 Longitudes:", longitudes)
 
@@ -606,44 +612,25 @@ def step3():
             print("❌ Desalineación en los datos del formulario")
             return "Error: los campos del formulario están desalineados", 500
 
-        formatos_validos = ('.jpg', '.jpeg', '.png', '.webp')
-        MAX_SIZE_MB = 4
-
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
             precio = precios[i].strip()
             grupo = grupos[i].strip() or 'Sin grupo'
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
-            img = imagenes[i]
-            nombre_archivo = secure_filename(img.filename)
-            nombre_unico = f"{uuid.uuid4().hex[:6]}_{nombre_archivo}"
-            webp_name = f"{os.path.splitext(nombre_unico)[0]}.webp"
-            destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
+            imagen = imagenes_elegidas[i].strip()
 
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
 
-            if not nombre or not precio or not grupo or not subgrupo or not nombre_archivo:
-                continue
-            if not nombre_archivo.lower().endswith(formatos_validos):
-                print(f"⚠️ Formato no soportado: {nombre_archivo}")
-                continue
-            if img.content_length and img.content_length > MAX_SIZE_MB * 1024 * 1024:
-                print(f"⚠️ Imagen demasiado pesada: {nombre_archivo}")
-                continue
-
-            try:
-                redimensionar_con_transparencia(img, destino)
-            except Exception as e:
-                print(f"❌ Error al guardar imagen {nombre_archivo}: {e}")
+            if not nombre or not precio or not grupo or not subgrupo:
                 continue
 
             bloques.append({
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'imagen': webp_name,
+                'imagen': imagen,
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
@@ -677,9 +664,10 @@ def step3():
         if exitos > 0:
             return redirect('/preview')
         else:
-            return render_template('step3.html', tipo_web=tipo)
+            return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
-    return render_template('step3.html', tipo_web=tipo)
+    return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 import mercadopago
 
