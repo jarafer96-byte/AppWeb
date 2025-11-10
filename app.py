@@ -5,6 +5,7 @@ import uuid
 import re
 import time
 import json
+import boto3
 import traceback
 from werkzeug.utils import secure_filename
 from zipfile import ZipFile
@@ -29,6 +30,9 @@ except Exception as e:
 
 # Cliente Firestore con acceso total
 db = firestore.client()
+
+s3 = boto3.client('s3', aws_access_key_id=..., aws_secret_access_key=..., region_name='us-east-1')
+BUCKET_NAME = 'tu-bucket'
 
 # GitHub y Flask config
 token = os.getenv("GITHUB_TOKEN")
@@ -486,7 +490,42 @@ def actualizar_firestore():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+@app.route('/step0', methods=['GET', 'POST'])
+def step0():
+    if request.method == 'POST':
+        archivos = request.files.getlist('imagenes')
+        email = session.get('email')
+        imagenes_subidas = []
 
+        for archivo in archivos:
+            if not archivo.filename:
+                continue
+
+            # Redimensionar
+            img = Image.open(archivo)
+            img = img.convert('RGB')
+            img.thumbnail((600, 600))
+
+            # Guardar en buffer
+            buffer = io.BytesIO()
+            img.save(buffer, format='WEBP')
+            buffer.seek(0)
+
+            # Nombre único
+            nombre = f"mini_{email}_{uuid.uuid4().hex[:8]}.webp"
+            ruta_s3 = f"usuarios/{email}/{nombre}"
+
+            # Subir a S3
+            s3.upload_fileobj(buffer, BUCKET_NAME, ruta_s3, ExtraArgs={'ContentType': 'image/webp'})
+            imagenes_subidas.append(f"https://{BUCKET_NAME}.s3.amazonaws.com/{ruta_s3}")
+
+        # Guardar en sesión
+        session['imagenes_step0'] = imagenes_subidas
+        print("✅ Imágenes disponibles:", imagenes_subidas)
+
+        return redirect('/contenido')
+
+    return render_template('step0.html')
 
 
 @app.route('/', methods=['GET', 'POST'])
