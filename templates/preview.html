@@ -750,6 +750,18 @@
   panelSubcategorias.classList.add('oculta');
   panelGrupos.classList.add('oculta');
 
+  // 🔄 Cargar productos del usuario actual
+  fetch('/ver-productos')
+    .then(res => res.json())
+    .then(productos => {
+      console.log("📦 Productos recibidos:", productos);
+      renderizarProductos(productos); // esta función debe existir
+    })
+    .catch(err => {
+      console.error("❌ Error al cargar productos:", err);
+    });
+
+  // 🔁 Inicializar vista con primer grupo/subgrupo
   const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
   const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
 
@@ -758,11 +770,13 @@
     filtrarSubcategoria(primerGrupo, primerSub);
   }
 
+  // 🛒 Toggle del carrito
   document.getElementById('toggleCarrito').onclick = function() {
     const carritoDiv = document.getElementById('carrito');
     carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
   };
 };
+
 
     let carrito = [];
 
@@ -1081,6 +1095,39 @@ function actualizarFirestore(id, datos) {
     .catch(err => {
       console.error("❌ Error de red al actualizar Firestore:", err);
       alert("❌ Error de conexión al guardar los datos");
+    });
+}
+
+    function guardarProducto(producto) {
+  fetch('/guardar-producto', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ producto })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'ok') {
+      console.log("✅ Producto guardado");
+      mostrarAviso("Producto guardado correctamente");
+    } else {
+      console.error("❌ Error al guardar:", data.message);
+      mostrarAviso("Error al guardar producto");
+    }
+  })
+  .catch(err => {
+    console.error("❌ Error de red:", err);
+    mostrarAviso("Error de conexión");
+  });
+}
+function cargarProductos() {
+  fetch('/ver-productos')
+    .then(res => res.json())
+    .then(productos => {
+      console.log("📦 Productos recibidos:", productos);
+      renderizarProductos(productos);
+    })
+    .catch(err => {
+      console.error("❌ Error al cargar productos:", err);
     });
 }
 
