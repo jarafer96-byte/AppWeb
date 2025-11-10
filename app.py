@@ -770,7 +770,8 @@ def preview():
         config=config,
         grupos=grupos_dict,
         modoAdmin=modo_admin,
-        modoAdminIntentado=modo_admin_intentado
+        modoAdminIntentado=modo_admin_intentado,
+        firebase_config=firebase_config   # 👈 agregado
     )
 
 
