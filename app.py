@@ -378,11 +378,22 @@ def actualizar_firestore():
     campos = {k: v for k, v in data.items() if k != 'id'}
     email = session.get("email")
 
+    print("📥 Datos recibidos en /actualizar-firestore:", data)
+    print("🧠 Email de sesión:", email)
+
     if not email or not id_base or not campos:
+        print("❌ Datos incompletos:", {"email": email, "id_base": id_base, "campos": campos})
         return jsonify({'status': 'error', 'message': 'Datos incompletos'}), 400
 
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
+
+        print("🔎 Buscando documento con id_base:", id_base)
+        print("📂 Documentos disponibles para usuario:", email)
+        for doc in productos_ref.stream():
+            doc_data = doc.to_dict()
+            print("📄 Documento:", doc.id, "| id_base:", doc_data.get("id_base"), "| nombre:", doc_data.get("nombre"))
+
         query = productos_ref.where("id_base", "==", id_base).limit(1).get()
 
         if not query:
@@ -398,6 +409,7 @@ def actualizar_firestore():
         import traceback
         traceback.print_exc()
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 
 
