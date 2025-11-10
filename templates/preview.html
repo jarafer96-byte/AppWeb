@@ -503,22 +503,28 @@
       <div class="subgrupo-bloque" data-subgrupo="{{ subgrupo }}">
         <div class="row">
           {% for producto in productos %}
-            {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
-
-            {% if modoAdmin %}
-              <div class="text-muted small mb-2">
-                <strong>ID base:</strong> {{ id_base }} |
-                <strong>Grupo:</strong> {{ grupo }} |
-                <strong>Subgrupo:</strong> {{ subgrupo }} |
-                <strong>Nombre:</strong> {{ producto.nombre }} |
-                <strong>Orden:</strong> {{ producto.orden }}
-              </div>
-            {% endif %}
+            {% set id_base = producto.id_base %}
 
             <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+              {% if modoAdmin %}
+                <div class="text-muted small mb-2">
+                  <strong>ID base:</strong> {{ id_base }} |
+                  <strong>Grupo:</strong> {{ grupo }} |
+                  <strong>Subgrupo:</strong> {{ subgrupo }} |
+                  <strong>Nombre:</strong> {{ producto.nombre }} |
+                  <strong>Orden:</strong> {{ producto.orden }}
+                </div>
+              {% endif %}
+
               <div class="card p-3 h-100">
                 <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
                 <div class="card-body">
+                  {% if modoAdmin %}
+                    <div class="text-muted small mb-2">
+                      <strong>ID base:</strong> {{ id_base }}
+                    </div>
+                  {% endif %}
+
                   <h5 class="card-title">{{ producto.nombre }}</h5>
                   <p class="card-text">{{ producto.descripcion }}</p>
 
@@ -573,6 +579,7 @@
     {% endfor %}
   </div>
 {% endfor %}
+
 
 
 
