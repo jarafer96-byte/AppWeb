@@ -260,6 +260,13 @@ def crear_admin():
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
 
     try:
+        # 🔄 Limpiar sesión anterior y activar nueva
+        session.clear()
+        session['email'] = usuario
+        session['modo_admin'] = True
+        print("🧠 Sesión iniciada para:", session['email'])
+
+        # 🔐 Guardar en Firestore
         doc_ref = db.collection("usuarios").document(usuario)
         doc_ref.set({
             "clave_admin": clave
@@ -271,12 +278,9 @@ def crear_admin():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-import re
-
 @app.route('/login-admin', methods=['POST'])
 def login_admin():
     session.clear()
-    session['email'] = usuario
 
     data = request.get_json(silent=True) or {}
     usuario = data.get('usuario')
@@ -289,7 +293,6 @@ def login_admin():
         print("❌ Faltan datos para login")
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
 
-    # ✅ Validar que el usuario tenga formato de email
     if not re.match(r"[^@]+@[^@]+\.[^@]+", usuario):
         print("❌ Usuario no tiene formato de email:", usuario)
         return jsonify({'status': 'error', 'message': 'El usuario debe tener formato de email'}), 400
@@ -308,7 +311,7 @@ def login_admin():
         if clave_guardada == clave_ingresada:
             session.permanent = True
             session['modo_admin'] = True
-            session['email'] = usuario
+            session['email'] = usuario  # ✅ Ahora sí, usuario ya está definido
             print("✅ Login exitoso → modo_admin activado")
             return jsonify({'status': 'ok'})
         else:
@@ -318,8 +321,6 @@ def login_admin():
     except Exception as e:
         print("❌ Error al validar login:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
-
 
 @app.route('/logout-admin')
 def logout_admin():
