@@ -495,16 +495,17 @@ def step0():
         ruta_temporal = os.path.join("tmp", archivo.filename)
         ruta_final = os.path.join("static", "img", f"{nombre_base}.webp")
 
+        os.makedirs("tmp", exist_ok=True)  # ✅ crea carpeta si no existe
         archivo.save(ruta_temporal)
         redimensionar_y_rellenar(ruta_temporal, ruta_final)
 
-        # Guardar en sesión para usar en step3
         session['imagen_step0'] = f"{nombre_base}.webp"
         print("✅ Imagen procesada y guardada:", session['imagen_step0'])
 
         return redirect('/preview')
 
     return render_template('step0.html')
+
 
 
 @app.route('/step1', methods=['GET', 'POST'])
