@@ -566,6 +566,8 @@ def step3():
     tipo = session.get('tipo_web')
     email = session.get('email')
     imagenes = session.get('imagenes_step0') or []
+    print("🖼️ Imágenes disponibles en sesión:", imagenes)
+
 
     if not email:
         print("❌ Sesión no válida")
