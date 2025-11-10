@@ -326,6 +326,30 @@ def logout_admin():
     print("🔓 Sesión admin cerrada")
     return redirect('/preview')
 
+@app.route('/guardar-producto', methods=['POST'])
+def guardar_producto():
+    usuario = session.get('email')
+    if not usuario:
+        print("❌ No hay usuario en sesión")
+        return jsonify({'status': 'error', 'message': 'No estás logueado'}), 403
+
+    data = request.get_json(silent=True) or {}
+    producto = data.get('producto')
+
+    if not producto:
+        print("⚠️ No se recibió producto válido")
+        return jsonify({'status': 'error', 'message': 'Producto inválido'}), 400
+
+    try:
+        ruta = f"usuarios/{usuario}/productos"
+        db.collection(ruta).add(producto)
+        print(f"✅ Producto guardado para {usuario}: {producto.get('nombre', 'sin nombre')}")
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        print("❌ Error al guardar producto:", e)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
     token = os.getenv("GITHUB_TOKEN")
