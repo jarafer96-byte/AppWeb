@@ -276,6 +276,7 @@ import re
 @app.route('/login-admin', methods=['POST'])
 def login_admin():
     session.clear()
+    session['email'] = usuario
 
     data = request.get_json(silent=True) or {}
     usuario = data.get('usuario')
