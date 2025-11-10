@@ -949,7 +949,7 @@ function editarTalles(id) {
   fetch('/actualizar-talles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id_base: id, nuevoTalles: tallesArray.join(',') })
+    body: JSON.stringify({ id: id, talles: tallesArray })
   })
     .then(res => res.json())
     .then(data => {
