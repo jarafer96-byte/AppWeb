@@ -555,10 +555,17 @@ def step2():
         session['vista_imagenes'] = request.form.get('vista_imagenes')
         session['estilo_visual'] = request.form.get('estilo_visual')
 
+        # ✅ Guardar imágenes redimensionadas en sesión
+        imagenes = os.listdir('static/img/webp')
+        imagenes = [img for img in imagenes if img.lower().endswith(('.webp', '.jpeg', '.jpg', '.png'))]
+        session['imagenes_step0'] = imagenes
+        print("✅ Imágenes cargadas en sesión:", imagenes)
+
         return redirect('/contenido')
 
     imagenes = os.listdir('static/img/webp')
     return render_template('step2.html', config=session, imagenes=imagenes)
+
 
 
 @app.route('/contenido', methods=['GET', 'POST'])
