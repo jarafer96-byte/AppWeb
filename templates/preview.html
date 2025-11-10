@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -18,8 +17,7 @@
   <!-- Google Fonts disponibles -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Fira+Code&family=Raleway&family=Quicksand&family=Pacifico&family=Source+Serif+4&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
-  
+
   {% set estilo = config.estilo_visual.lower() %}
   {% if 'claro' in estilo or 'esferas' in estilo or 'blanco' in estilo %}
     {% set modo_visual = 'modo-claro' %}
@@ -27,6 +25,417 @@
     {% set modo_visual = 'modo-oscuro' %}
   {% endif %}
 
+  <style>
+    body {
+      font-family: {{ config.fuente | safe }};
+      background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-position: center;
+      padding-top: 70px;
+    }
+    h1, h2, h3, .btn, .card {
+      font-family: {{ config.fuente | safe }};
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: -1;
+    }
+    .fondo-animado {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: -2;
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 40%),
+                  radial-gradient(circle at 80% 70%, rgba(255,255,255,0.06), transparent 40%);
+      animation: moverFondo 40s ease-in-out infinite;
+      background-size: 200% 200%;
+      pointer-events: none;
+    }
+    html {
+      scroll-behavior: auto;
+    }
+    .card {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.6s ease forwards;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border-radius: 12px;
+      overflow: hidden;
+      will-change: transform, box-shadow;
+      padding: 12px;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    .modo-oscuro .card:hover {
+      box-shadow: 0 8px 20px rgba(255,255,255,0.2);
+    }
+    .modo-claro .card:hover {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+    .card-img-top {
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .card-body {
+      padding: 10px;
+    }
+    .card-title {
+      font-size: 1rem;
+    }
+    .card-text {
+      font-size: 0.9rem;
+    }
+    .modo-claro .card {
+      background-color: #fff;
+      color: #333;
+      border: none;
+    }
+    .modo-oscuro .card {
+      background-color: rgba(0,0,0,0.6);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .color-principal {
+      color: None;
+    }
+    .bg-principal {
+      background-color: None;
+    }
+    .modo-oscuro {
+      color: white;
+    }
+    .modo-claro {
+      color: #333;
+    }
+    .barra-navegacion {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 12px 20px;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+    }
+    .barra-navegacion button {
+      font-family: {{ config.fuente | safe }};
+      font-weight: 600;
+      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    .barra-navegacion button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+    .barra-wrapper {
+      z-index: 1000;
+    }
+    .panel-grupos {
+      position: fixed;
+      max-height: 50vh; /* Altura máxima global */
+      overflow-y: auto; /* Desplazamiento vertical global */
+      left: 0;
+      right: 0;
+      z-index: 906;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      padding: 1px 0;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+    }
+    .panel-grupos button {
+      font-family: {{ config.fuente | safe }};
+      font-weight: 600;
+      margin: 6px;
+      padding: 2px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .panel-grupos button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+    .oculta {
+      display: none !important;
+    }
+    .logo { 
+      height: 10vw; 
+      max-height: 380px; 
+      filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
+      transition: filter 0.3s ease;
+      animation: pulsoLogo 4s ease-in-out infinite;
+    }
+    @keyframes pulsoLogo {
+      0%, 100% {
+        filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
+      }
+      50% {
+        filter: brightness(1.8) contrast(1.3) drop-shadow(0 0 20px None);
+      }
+    }
+    .descripcion-emprendimiento {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      display: inline-block;
+      max-width: 800px;
+      white-space: pre-line;
+      text-align: center;
+      text-indent: 20px;
+      font-size: 16px;
+      line-height: 1.6;
+      box-shadow: 0 0 6px rgba(255,255,255,0.3);
+    }
+    .btn-grupo {
+      position: relative;
+      padding: 8px 16px;
+      margin: 5px;
+      border-radius: 20px;
+      font-weight: bold;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 6px rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    .modo-claro .btn-grupo {
+      background-color: transparent;
+      color: white;
+      border: none;
+    }
+    .modo-oscuro .btn-grupo {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 4px rgba(255,255,255,0.1);
+    }
+    .btn-grupo::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      z-index: -1;
+    }
+    .modo-claro .btn-grupo::before {
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 70%);
+    }
+    .modo-oscuro .btn-grupo::before {
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%);
+    }
+    .btn-grupo:hover {
+      background-color: #fff;
+      color: None;
+      transform: scale(1.05);
+      box-shadow: 0 0 8px None;
+    }
+    .btn-grupo.active {
+      box-shadow: none;
+    }
+    .btn-whatsapp {
+      background-color: #25D366;
+      border: none;
+      padding: 8px 16px;
+      color: white;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .btn-volver-arriba {
+      background-color: white;
+      color: black;
+      border: none;
+      font-size: 20px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-volver-arriba:hover {
+      background-color: #f0f0f0;
+      transform: scale(1.1);
+    }
+    .btn-volver-arriba:focus,
+    .btn-volver-arriba:active,
+    .btn-volver-arriba:visited {
+      outline: none;
+      box-shadow: none;
+      background-color: white;
+      color: black;
+    }
+    .grupo-section {
+      display: none;
+      min-height: 100vh;
+    }
+    .grupo-section.active {
+      display: block !important;
+    }
+    .social-icons {
+      margin-top: 40px;
+      text-align: center;
+    }
+    .social-icons img {
+      width: 40px;
+      margin: 0 10px;
+      transition: transform 0.3s ease;
+      filter: drop-shadow(0 0 3px white);
+    }
+    .social-icons img:hover {
+      transform: scale(1.1);
+      filter: drop-shadow(0 0 0 transparent);
+    }
+    .bloque-ubicacion {
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 600px;
+      margin: 20px auto 0;
+      box-shadow: 0 0 6px rgba(255,255,255,0.3);
+    }
+    #carrito {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      width: 300px;
+      z-index: 999;
+      display: none;
+    }
+    .modo-oscuro #carrito {
+      background-color: rgba(0,0,0,0.85);
+      color: white;
+      border: 1px solid white;
+      box-shadow: 0 0 10px white;
+    }
+    .modo-claro #carrito {
+      background-color: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    #toggleCarrito {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      padding: 10px 14px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 5px white;
+    }
+    .modo-oscuro #toggleCarrito {
+      background-color: transparent;
+      color: black;
+      border: none;
+    }
+    .modo-claro #toggleCarrito {
+      background-color: transparent;
+      color: white;
+      border: none;
+    }
+    .panel-subcategorias {
+      position: fixed;
+      max-height: 50vh; /* Altura máxima global */
+      overflow-y: auto; /* Desplazamiento vertical global */
+      left: 0;
+      right: 0;
+      z-index: 908;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      padding: 1px 0;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button {
+      font-family: {{ config.fuente | safe }};
+      font-weight: 600;
+      margin: 6px;
+      padding: 1px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .panel-subcategorias button:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.05);
+    }
+    @media (max-width: 600px) {
+  .logo {
+    height: 140px !important;
+  }
+  .barra-navegacion {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .barra-navegacion button {
+    font-size: 14px;
+    padding: 8px 15px;
+  }
+  .panel-grupos {
+    padding: 1px 0;
+    max-height: 50vh; /* Altura máxima para que sea desplazable si hay muchos botones */
+    overflow-y: auto; /* Hace el panel desplazable verticalmente */
+  }
+  .panel-grupos button {
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 8px;
+   }
+  .panel-subcategorias {
+    padding: 1px 0;
+    max-height: 50vh; /* Altura máxima para el panel de subcategorías */
+    overflow-y: auto; /* Hace el panel desplazable verticalmente */
+  }
+  .panel-subcategorias button {
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+}
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes moverFondo {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+  </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
   <div class="barra-wrapper">
@@ -88,7 +497,92 @@
     </div>
   {% endif %}
 
-{% include "partials/productos.html" %}
+{% for grupo, subgrupos in grupos.items() %}
+  <div id="grupo_{{ grupo | lower | replace(' ', '_') }}" class="grupo-section">
+    {% for subgrupo, productos in subgrupos.items() %}
+      <div class="subgrupo-bloque" data-subgrupo="{{ subgrupo }}">
+        <div class="row">
+          {% for producto in productos %}
+            {% set id_base = producto.id_base %}
+
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+              {% if modoAdmin %}
+                <div class="text-muted small mb-2">
+                  <strong>ID base:</strong> {{ id_base }} |
+                  <strong>Grupo:</strong> {{ grupo }} |
+                  <strong>Subgrupo:</strong> {{ subgrupo }} |
+                  <strong>Nombre:</strong> {{ producto.nombre }} |
+                  <strong>Orden:</strong> {{ producto.orden }}
+                </div>
+              {% endif %}
+
+              <div class="card p-3 h-100">
+                <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+                <div class="card-body">
+                  {% if modoAdmin %}
+                    <div class="text-muted small mb-2">
+                      <strong>ID base:</strong> {{ id_base }}
+                    </div>
+                  {% endif %}
+
+                  <h5 class="card-title">{{ producto.nombre }}</h5>
+                  <p class="card-text">{{ producto.descripcion }}</p>
+
+                  <p><strong>Precio:</strong> $<span id="precio_{{ id_base }}">{{ producto.precio }}</span>
+                    {% if modoAdmin %}
+                      <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
+                    {% endif %}
+                  </p>
+
+                  {% if producto.talles %}
+                    <div class="mb-2">
+                      <label for="talle_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+                      <select id="talle_{{ id_base }}" class="form-select form-select-sm w-auto d-inline-block">
+                        {% for t in producto.talles %}
+                          <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                      </select>
+                      {% if modoAdmin %}
+                        <button onclick="editarTalles('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+
+                  {% if config.whatsapp %}
+                    <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
+                  {% endif %}
+
+                  <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                    <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                    <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ id_base }}">
+                    <button type="button" class="btn btn-secondary"
+                      onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ id_base }}', 'cantidad_{{ id_base }}', '{{ id_base }}')">
+                      Agregar al carrito
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <script>
+              console.log("🧩 Producto renderizado:", {
+                id_base: "{{ id_base }}",
+                grupo: "{{ grupo }}",
+                subgrupo: "{{ subgrupo }}",
+                nombre: "{{ producto.nombre }}",
+                orden: "{{ producto.orden }}",
+                precio: "{{ producto.precio }}",
+                talles: {{ producto.talles | tojson }}
+              });
+            </script>
+
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+
 
   <div id="contenedor-grupos"></div>
 
@@ -299,6 +793,129 @@
   actualizarCarrito();
 }
 
+function editarPrecio(id) {
+  const span = document.getElementById("precio_" + id);
+  if (!span) {
+    console.warn("❌ No se encontró el span con id:", "precio_" + id);
+    return;
+  }
+
+  const valorActual = span.textContent.replace("$", "").trim();
+  console.log("🧪 Editando precio para:", id, "| Valor actual:", valorActual);
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.value = valorActual;
+  input.className = "form-control form-control-sm d-inline-block";
+  input.style.width = "80px";
+  input.id = "input_precio_" + id;  // ✅ ID único para el input
+
+  // ✅ Guardar al salir del input
+  input.onblur = () => {
+    console.log("📤 onblur: guardando precio para", id, "con valor:", input.value);
+    guardarPrecio(id);
+  };
+
+  // ✅ Guardar al presionar Enter
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      console.log("⏎ Enter presionado: guardando precio para", id, "con valor:", input.value);
+      input.blur(); // dispara onblur
+    }
+  });
+
+  span.replaceWith(input);
+  input.focus();
+}
+  
+function guardarPrecio(id) {
+  console.log("🟡 Iniciando guardarPrecio para:", id);
+
+  const input = document.getElementById("input_precio_" + id);
+  if (!input) {
+    console.warn("❌ No se encontró el input con id:", "input_precio_" + id);
+    return;
+  }
+
+  const nuevoValor = parseFloat(input.value);
+  console.log("🔍 Valor ingresado:", input.value, "| Parseado:", nuevoValor);
+
+  if (isNaN(nuevoValor)) {
+    console.warn("⚠️ Valor ingresado no es un número válido:", input.value);
+    alert("❌ El precio ingresado no es válido");
+    return;
+  }
+
+  console.log("🧪 Precio validado para", id, "→", nuevoValor);
+
+  // ✅ Enviar al backend antes de modificar el DOM
+  console.log("📡 Enviando fetch a /actualizar-precio con:", { id, nuevoPrecio: nuevoValor });
+
+  fetch('/actualizar-precio', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
+  })
+    .then(res => {
+      console.log("📬 Respuesta recibida del backend:", res.status);
+      return res.json();
+    })
+    .then(data => {
+      console.log("📨 Payload recibido:", data);
+      if (data.status === "ok") {
+        console.log("✅ Precio confirmado en Firestore para", id);
+
+        // ✅ Actualizar el DOM solo si el backend responde OK
+        const span = document.createElement("span");
+        span.id = "precio_" + id;
+        span.textContent = "$" + nuevoValor.toFixed(2);
+        span.className = input.className;  // hereda estilos del input
+        span.classList.add("text-success");  // feedback visual
+        input.replaceWith(span);
+        setTimeout(() => span.classList.remove("text-success"), 1000);
+
+        if (typeof mostrarAvisoPrecio === "function") {
+          console.log("🔔 Ejecutando mostrarAvisoPrecio()");
+          mostrarAvisoPrecio();
+        }
+      } else {
+        console.warn("❌ Error en respuesta del backend:", data);
+        input.classList.add("is-invalid");
+        alert("❌ No se pudo actualizar el precio en el servidor");
+      }
+    })
+    .catch(err => {
+      console.error("❌ Error de red al actualizar precio:", err);
+      input.classList.add("is-invalid");
+      alert("❌ Error de conexión al guardar el precio");
+    });
+}
+
+function loginAdmin(event) {
+  event.preventDefault();
+  const usuario = document.getElementById("usuario_login").value.trim();
+  const clave = document.getElementById("clave_login").value.trim();
+
+  fetch("/login-admin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ usuario, clave })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "ok") {
+        alert("✅ Acceso concedido");
+        location.href = window.location.href;
+      } else {
+        alert("❌ " + data.message);
+      }
+    })
+    .catch(err => {
+      console.error("❌ Error en login:", err);
+      alert("❌ Error al intentar login");
+    });
+}
+
 // Detectar envío automático del formulario
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("form-login-admin");
@@ -307,7 +924,226 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
     
+function editarTalles(id) {
+  const selector = document.getElementById("talle_" + id);
+  const span = document.getElementById("talles_" + id);
 
+  let tallesActuales = "";
+
+  if (selector) {
+    tallesActuales = Array.from(selector.options).map(opt => opt.value).join(", ");
+  } else if (span) {
+    tallesActuales = span.textContent;
+  } else {
+    console.warn("❌ No se encontró selector ni span para:", id);
+    return;
+  }
+
+  const nuevoTalle = prompt("Modificar talles (separados por coma):", tallesActuales);
+  if (nuevoTalle === null) return;
+
+  const tallesArray = nuevoTalle.split(',').map(t => t.trim()).filter(t => t);
+  console.log("✅ Nuevos talles ingresados:", tallesArray);
+
+  // ✅ Enviar al backend antes de modificar el DOM
+  fetch('/actualizar-talles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: id, talles: tallesArray })
+  })
+    .then(res => res.json())
+    .then(data => {
+      console.log("📨 Payload recibido:", data);
+      if (data.status === "ok") {
+        console.log("✅ Talles confirmados en Firestore para", id);
+
+        // ✅ Actualizar visualmente solo si el backend responde OK
+        const nuevoSelect = document.createElement("select");
+        nuevoSelect.id = "talle_" + id;
+        nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
+        tallesArray.forEach(t => {
+          const option = document.createElement("option");
+          option.value = t;
+          option.textContent = t;
+          nuevoSelect.appendChild(option);
+        });
+
+        if (selector) {
+          selector.replaceWith(nuevoSelect);
+        } else if (span) {
+          const nuevoSpan = document.createElement("span");
+          nuevoSpan.id = "talles_" + id;
+          nuevoSpan.textContent = tallesArray.join(', ');
+          span.replaceWith(nuevoSpan);
+        }
+
+        // ✅ Feedback visual
+        nuevoSelect.classList.add("text-success");
+        setTimeout(() => nuevoSelect.classList.remove("text-success"), 1000);
+      } else {
+        console.warn("❌ Error en respuesta del backend:", data);
+        alert("❌ No se pudo actualizar los talles");
+      }
+    })
+    .catch(err => {
+      console.error("❌ Error en fetch al actualizar talles:", err);
+      alert("❌ Error de conexión al guardar los talles");
+    });
+}
+ 
+function guardarTalles(id) {
+  console.log("🟡 Iniciando guardarTalles para:", id);
+
+  const input = document.getElementById("talles_" + id);
+  if (!input) {
+    console.warn("❌ No se encontró el input con id:", "talles_" + id);
+    return;
+  }
+
+  const nuevosTalles = input.value
+    .split(",")
+    .map(t => t.trim())
+    .filter(t => t);
+
+  console.log("🧪 Talles capturados para", id, "→", nuevosTalles);
+
+  // ✅ Enviar al backend antes de modificar el DOM
+  console.log("📡 Enviando fetch a /actualizar-talles con:", { id_base: id, nuevoTalles: nuevosTalles.join(',') });
+
+  fetch('/actualizar-talles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_base: id, nuevoTalles: nuevosTalles.join(',') })
+  })
+    .then(res => {
+      console.log("📬 Respuesta recibida del backend:", res.status);
+      return res.json();
+    })
+    .then(data => {
+      console.log("📨 Payload recibido:", data);
+      if (data.status === "ok") {
+        console.log("✅ Talles confirmados en Firestore para", id);
+
+        // ✅ Actualizar el DOM solo si el backend responde OK
+        const nuevoSpan = document.createElement("span");
+        nuevoSpan.id = "talles_" + id;
+        nuevoSpan.textContent = nuevosTalles.join(", ");
+        nuevoSpan.className = input.className;
+        nuevoSpan.classList.add("text-success");
+        input.replaceWith(nuevoSpan);
+        setTimeout(() => nuevoSpan.classList.remove("text-success"), 1000);
+      } else {
+        console.warn("❌ Error en respuesta del backend:", data);
+        input.classList.add("is-invalid");
+        alert("❌ No se pudo actualizar los talles");
+      }
+    })
+    .catch(err => {
+      console.error("❌ Error de red al actualizar talles:", err);
+      input.classList.add("is-invalid");
+      alert("❌ Error de conexión al guardar los talles");
+    });
+}
+
+function actualizarFirestore(id, datos) {
+  if (!id || typeof datos !== "object" || Object.keys(datos).length === 0) {
+    console.warn("⚠️ Datos incompletos para actualizar Firestore:", { id, datos });
+    return;
+  }
+
+  console.log("📡 Enviando actualización a Firestore para", id, "→", datos);
+
+  fetch("/actualizar-firestore", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...datos })
+  })
+    .then(res => {
+      console.log("📬 Respuesta recibida del backend:", res.status);
+      return res.json();
+    })
+    .then(data => {
+      console.log("📨 Payload recibido:", data);
+      if (data.status === "ok") {
+        console.log("✅ Firestore actualizado para", id);
+        if (typeof mostrarAvisoFirestore === "function") {
+          console.log("🔔 Ejecutando mostrarAvisoFirestore()");
+          mostrarAvisoFirestore();
+        }
+      } else {
+        console.warn("❌ Error en respuesta del backend:", data);
+        alert("❌ No se pudo actualizar Firestore");
+      }
+    })
+    .catch(err => {
+      console.error("❌ Error de red al actualizar Firestore:", err);
+      alert("❌ Error de conexión al guardar los datos");
+    });
+}
+
+function mostrarAvisoPrecio() {
+  const aviso = document.getElementById("avisoPrecio");
+  aviso.style.display = "block";
+  setTimeout(() => {
+    aviso.style.display = "none";
+  }, 2000);
+}
+
+function pagarConMercadoPago() {
+  fetch('/pagar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ carrito })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.init_point) {
+      window.location.href = data.init_point;
+    } else {
+      alert("Error al generar pago");
+    }
+  });
+}
+
+function eliminarProducto(id_base, talle, event) {
+  event.stopPropagation(); // 👈 evita que el clic cierre el carrito
+  carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
+  actualizarCarrito();
+}
+
+
+    function vaciarCarrito() {
+      carrito = [];
+      actualizarCarrito();
+    }
+    function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
+  let cambio = false;
+  carrito.forEach(item => {
+    if (item.nombre === nombre && item.precio !== nuevoPrecio) {
+      console.log(`🔄 Actualizando precio en carrito para ${nombre}: ${item.precio} → ${nuevoPrecio}`);
+      item.precio = nuevoPrecio;
+      cambio = true;
+    }
+  });
+  if (cambio) actualizarCarrito();
+}
+
+function sincronizarPreciosDelCarrito() {
+  carrito.forEach(item => {
+    const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
+    const precioSpan = document.getElementById(idPrecio);
+    if (precioSpan) {
+      const precioActual = parseFloat(precioSpan.textContent.replace("$", ""));
+      if (!isNaN(precioActual)) {
+        item.precio = precioActual;
+      } else {
+        console.warn("⚠️ Precio no numérico en DOM para", idPrecio);
+      }
+    } else {
+      console.warn("⚠️ No se encontró el span de precio para", idPrecio);
+    }
+  });
+}
 
 function actualizarCarrito() {
   sincronizarPreciosDelCarrito();
@@ -354,7 +1190,6 @@ function actualizarCarrito() {
   console.log("🛒 Carrito actualizado:", carrito);
 }
 
-src="{{ url_for('static', filename='js/funciones_preview.js') }}"
 
     function mostrarTodos() {
       const panelGrupos = document.getElementById('panelGrupos');
