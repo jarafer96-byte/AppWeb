@@ -487,24 +487,27 @@ def actualizar_firestore():
 @app.route('/', methods=['GET', 'POST'])
 def step0():
     if request.method == 'POST':
-        archivo = request.files.get('imagen')
-        if not archivo:
-            return "❌ No se recibió imagen", 400
+        archivos = request.files.getlist('imagenes')  # input multiple
+        nombres = []
 
-        nombre_base = shortuuid.uuid()
-        ruta_temporal = os.path.join("tmp", archivo.filename)
-        ruta_final = os.path.join("static", "img", f"{nombre_base}.webp")
+        os.makedirs("tmp", exist_ok=True)
 
-        os.makedirs("tmp", exist_ok=True)  # ✅ crea carpeta si no existe
-        archivo.save(ruta_temporal)
-        redimensionar_y_rellenar(ruta_temporal, ruta_final)
+        for archivo in archivos:
+            nombre_base = shortuuid.uuid()
+            ruta_temporal = os.path.join("tmp", archivo.filename)
+            ruta_final = os.path.join("static", "img", f"{nombre_base}.webp")
 
-        session['imagen_step0'] = f"{nombre_base}.webp"
-        print("✅ Imagen procesada y guardada:", session['imagen_step0'])
+            archivo.save(ruta_temporal)
+            redimensionar_y_rellenar(ruta_temporal, ruta_final)
+            nombres.append(f"{nombre_base}.webp")
+
+        session['imagenes_step0'] = nombres
+        print("✅ Imágenes procesadas:", nombres)
 
         return redirect('/step1')
 
     return render_template('step0.html')
+
 
 
 
@@ -574,11 +577,11 @@ def step3():
         precios = request.form.getlist('precio')
         grupos = request.form.getlist('grupo')
         subgrupos = request.form.getlist('subgrupo')
-        imagenes = request.files.getlist('imagen')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
+        imagenes_elegidas = request.form.getlist('imagen_elegida')  # ✅ imágenes seleccionadas
 
-        longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes), len(ordenes)]
+        longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes_elegidas), len(ordenes)]
         min_len = min(longitudes)
         print("🧪 Longitudes:", longitudes)
 
@@ -586,44 +589,25 @@ def step3():
             print("❌ Desalineación en los datos del formulario")
             return "Error: los campos del formulario están desalineados", 500
 
-        formatos_validos = ('.jpg', '.jpeg', '.png', '.webp')
-        MAX_SIZE_MB = 4
-
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
             precio = precios[i].strip()
             grupo = grupos[i].strip() or 'Sin grupo'
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
-            img = imagenes[i]
-            nombre_archivo = secure_filename(img.filename)
-            nombre_unico = f"{uuid.uuid4().hex[:6]}_{nombre_archivo}"
-            webp_name = f"{os.path.splitext(nombre_unico)[0]}.webp"
-            destino = os.path.join(app.config['UPLOAD_FOLDER'], webp_name)
+            imagen = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else "fallback.webp"
 
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
 
-            if not nombre or not precio or not grupo or not subgrupo or not nombre_archivo:
-                continue
-            if not nombre_archivo.lower().endswith(formatos_validos):
-                print(f"⚠️ Formato no soportado: {nombre_archivo}")
-                continue
-            if img.content_length and img.content_length > MAX_SIZE_MB * 1024 * 1024:
-                print(f"⚠️ Imagen demasiado pesada: {nombre_archivo}")
-                continue
-
-            try:
-                redimensionar_con_transparencia(img, destino)
-            except Exception as e:
-                print(f"❌ Error al guardar imagen {nombre_archivo}: {e}")
+            if not nombre or not precio or not grupo or not subgrupo:
                 continue
 
             bloques.append({
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'imagen': webp_name,
+                'imagen': imagen,
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
@@ -660,6 +644,7 @@ def step3():
             return render_template('step3.html', tipo_web=tipo)
 
     return render_template('step3.html', tipo_web=tipo)
+
 
 import mercadopago
 
