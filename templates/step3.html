@@ -161,12 +161,13 @@ label.btn-imagen {
 
 
   <script>
-  {% if session.imagenes_step0 %}
-    const imagenesDisponibles = {{ session.imagenes_step0 | tojson }};
+  {% if imagenes_step0 %}
+    const imagenesDisponibles = {{ imagenes_step0 | tojson }};
   {% else %}
     const imagenesDisponibles = [];
   {% endif %}
 </script>
+
 
   <script>
     let grupoId = 0;
@@ -236,11 +237,7 @@ function crearSubgrupo(btn) {
   const contenedor = subgrupo.querySelector('.productos');
   contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo)); // ✅ pasamos grupo también
 }
-    
  
-  const imagenesDisponibles = {{ session.imagenes_step0 | tojson }};
-
-    
  function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2';
