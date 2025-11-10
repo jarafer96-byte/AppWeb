@@ -486,10 +486,30 @@ def actualizar_firestore():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-
-
-
 @app.route('/', methods=['GET', 'POST'])
+def step0():
+    if request.method == 'POST':
+        archivo = request.files.get('imagen')
+        if not archivo:
+            return "❌ No se recibió imagen", 400
+
+        nombre_base = shortuuid.uuid()
+        ruta_temporal = os.path.join("tmp", archivo.filename)
+        ruta_final = os.path.join("static", "img", f"{nombre_base}.webp")
+
+        archivo.save(ruta_temporal)
+        redimensionar_y_rellenar(ruta_temporal, ruta_final)
+
+        # Guardar en sesión para usar en step3
+        session['imagen_step0'] = f"{nombre_base}.webp"
+        print("✅ Imagen procesada y guardada:", session['imagen_step0'])
+
+        return redirect('/preview')
+
+    return render_template('step0.html')
+
+
+@app.route('/step1', methods=['GET', 'POST'])
 def step1():
     limpiar_imagenes_usuario()
     if request.method == 'POST':
