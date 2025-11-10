@@ -43,8 +43,14 @@ app.config['SESSION_COOKIE_SECURE'] = not app.debug
 def too_large(e):
     return "Archivo demasiado grande (máx. 4 MB)", 413
 
-FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID")
-FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY")
+firebase_config = {
+    "apiKey": os.getenv("FIREBASE_API_KEY"),
+    "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
+    "projectId": os.getenv("FIREBASE_PROJECT_ID"),
+    "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
+    "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
+    "appId": os.getenv("FIREBASE_APP_ID"),
+}
 
 
 UPLOAD_FOLDER = 'static/img'
@@ -759,7 +765,13 @@ def preview():
     print("🧠 modo_admin_intentado:", modo_admin_intentado)
     print("🧠 session completa:", dict(session))
 
-    return render_template('preview.html', config=config, grupos=grupos_dict, modoAdmin=modo_admin, modoAdminIntentado=modo_admin_intentado)
+    return render_template(
+        'preview.html',
+        config=config,
+        grupos=grupos_dict,
+        modoAdmin=modo_admin,
+        modoAdminIntentado=modo_admin_intentado
+    )
 
 
 @app.route('/descargar')
