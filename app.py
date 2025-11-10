@@ -565,6 +565,7 @@ def step2():
 def step3():
     tipo = session.get('tipo_web')
     email = session.get('email')
+    imagenes = session.get('imagenes_step0') or []
 
     if not email:
         print("❌ Sesión no válida")
@@ -579,7 +580,7 @@ def step3():
         subgrupos = request.form.getlist('subgrupo')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
-        imagenes_elegidas = request.form.getlist('imagen_elegida')  # ✅ imágenes seleccionadas
+        imagenes_elegidas = request.form.getlist('imagen_elegida')
 
         longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes_elegidas), len(ordenes)]
         min_len = min(longitudes)
@@ -641,9 +642,10 @@ def step3():
         if exitos > 0:
             return redirect('/preview')
         else:
-            return render_template('step3.html', tipo_web=tipo)
+            return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes)
 
-    return render_template('step3.html', tipo_web=tipo)
+    return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes)
+
 
 
 import mercadopago
