@@ -2,6 +2,7 @@ from flask import Flask, render_template, redirect, session, send_file, url_for,
 import requests
 import os
 import uuid
+import re
 import time
 import json
 import traceback
@@ -251,10 +252,12 @@ def crear_admin():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+import re
+
 @app.route('/login-admin', methods=['POST'])
 def login_admin():
-    session.clear() 
-    
+    session.clear()
+
     data = request.get_json(silent=True) or {}
     usuario = data.get('usuario')
     clave_ingresada = data.get('clave')
@@ -265,6 +268,11 @@ def login_admin():
     if not usuario or not clave_ingresada:
         print("❌ Faltan datos para login")
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
+
+    # ✅ Validar que el usuario tenga formato de email
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", usuario):
+        print("❌ Usuario no tiene formato de email:", usuario)
+        return jsonify({'status': 'error', 'message': 'El usuario debe tener formato de email'}), 400
 
     try:
         doc_ref = db.collection("usuarios").document(usuario)
@@ -290,6 +298,7 @@ def login_admin():
     except Exception as e:
         print("❌ Error al validar login:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 
 @app.route('/logout-admin')
