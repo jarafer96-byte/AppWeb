@@ -580,7 +580,11 @@ def step3():
         subgrupos = request.form.getlist('subgrupo')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
-        imagenes_elegidas = request.form.getlist('imagen_elegida')
+        imagenes_elegidas = []
+        for i in range(len(nombres)):
+            imagen = request.form.get(f'imagen_elegida_{i+1}') or "fallback.webp"
+            imagenes_elegidas.append(imagen)
+
 
         longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes_elegidas), len(ordenes)]
         min_len = min(longitudes)
