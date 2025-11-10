@@ -504,17 +504,30 @@
         <div class="row">
           {% for producto in productos %}
             {% set id_base = producto.nombre.replace(' ', '_') ~ '_' ~ loop.index0 %}
+
+            {% if modoAdmin %}
+              <div class="text-muted small mb-2">
+                <strong>ID base:</strong> {{ id_base }} |
+                <strong>Grupo:</strong> {{ grupo }} |
+                <strong>Subgrupo:</strong> {{ subgrupo }} |
+                <strong>Nombre:</strong> {{ producto.nombre }} |
+                <strong>Orden:</strong> {{ producto.orden }}
+              </div>
+            {% endif %}
+
             <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
               <div class="card p-3 h-100">
                 <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
                 <div class="card-body">
                   <h5 class="card-title">{{ producto.nombre }}</h5>
                   <p class="card-text">{{ producto.descripcion }}</p>
+
                   <p><strong>Precio:</strong> $<span id="precio_{{ id_base }}">{{ producto.precio }}</span>
                     {% if modoAdmin %}
                       <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
                     {% endif %}
                   </p>
+
                   {% if producto.talles %}
                     <div class="mb-2">
                       <label for="talle_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
@@ -525,9 +538,11 @@
                       </select>
                     </div>
                   {% endif %}
+
                   {% if config.whatsapp %}
                     <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
                   {% endif %}
+
                   <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                     <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
                     <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ id_base }}">
@@ -539,12 +554,26 @@
                 </div>
               </div>
             </div>
+
+            <script>
+              console.log("🧩 Producto renderizado:", {
+                id_base: "{{ id_base }}",
+                grupo: "{{ grupo }}",
+                subgrupo: "{{ subgrupo }}",
+                nombre: "{{ producto.nombre }}",
+                orden: "{{ producto.orden }}",
+                precio: "{{ producto.precio }}",
+                talles: {{ producto.talles | tojson }}
+              });
+            </script>
+
           {% endfor %}
         </div>
       </div>
     {% endfor %}
   </div>
 {% endfor %}
+
 
 
 
