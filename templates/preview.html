@@ -840,7 +840,7 @@ function guardarPrecio(id) {
 
   const input = document.getElementById("input_precio_" + id);
   if (!input) {
-    console.warn("❌ No se encontró el input con id:", "precio_" + id);
+    console.warn("❌ No se encontró el input con id:", "input_precio_" + id);
     return;
   }
 
@@ -855,16 +855,7 @@ function guardarPrecio(id) {
 
   console.log("🧪 Precio validado para", id, "→", nuevoValor);
 
-  // Reemplazar el input por el nuevo <span>
-  const span = document.createElement("span");
-  span.id = "precio_" + id;
-  span.textContent = "$" + nuevoValor.toFixed(2);
-  input.insertAdjacentElement("beforebegin", span);
-  input.remove();
-
-  console.log("🔄 DOM actualizado con nuevo precio para", id);
-
-  // ✅ Actualizar Firestore vía backend
+  // ✅ Enviar al backend antes de modificar el DOM
   console.log("📡 Enviando fetch a /actualizar-precio con:", { id, nuevoPrecio: nuevoValor });
 
   fetch('/actualizar-precio', {
@@ -880,20 +871,30 @@ function guardarPrecio(id) {
       console.log("📨 Payload recibido:", data);
       if (data.status === "ok") {
         console.log("✅ Precio confirmado en Firestore para", id);
+
+        // ✅ Ahora sí: actualizar el DOM
+        const span = document.createElement("span");
+        span.id = "precio_" + id;
+        span.textContent = "$" + nuevoValor.toFixed(2);
+        input.replaceWith(span);
+
         if (typeof mostrarAvisoPrecio === "function") {
           console.log("🔔 Ejecutando mostrarAvisoPrecio()");
           mostrarAvisoPrecio();
         }
       } else {
         console.warn("❌ Error en respuesta del backend:", data);
+        input.classList.add("is-invalid");
         alert("❌ No se pudo actualizar el precio en el servidor");
       }
     })
     .catch(err => {
       console.error("❌ Error de red al actualizar precio:", err);
+      input.classList.add("is-invalid");
       alert("❌ Error de conexión al guardar el precio");
     });
 }
+
 
 
     
