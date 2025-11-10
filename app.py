@@ -98,6 +98,19 @@ def subir_a_firestore(producto, email):
             "timestamp": firestore.SERVER_TIMESTAMP
         })
         print(f"✅ Producto subido correctamente: {nombre_original} | ID base: {custom_id}")
+        print("📄 Documento Firestore:")
+        print(json.dumps({
+            "nombre": nombre_original,
+            "id_base": custom_id,
+            "precio": precio,
+            "grupo": grupo_original,
+            "subgrupo": subgrupo_original,
+            "descripcion": producto.get("descripcion", ""),
+            "imagen": producto["imagen"],
+            "orden": orden,
+            "talles": talles
+        }, indent=2))
+
         return True
     except Exception as e:
         print(f"❌ Error al subir {nombre_original}:", e)
