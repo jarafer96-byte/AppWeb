@@ -158,6 +158,13 @@ label.btn-imagen {
     <div class="loader"></div>
     <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
   </div>
+  <script>
+    {% if imagenes_step0 %}
+      const imagenesDisponibles = {{ imagenes_step0 | tojson }};
+    {% else %}
+      const imagenesDisponibles = [];
+    {% endif %}
+  </script>
 
   <script>
     let grupoId = 0;
@@ -231,33 +238,50 @@ function crearSubgrupo(btn) {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2';
 
-  fila.innerHTML = `
-  <div class="col-3">
-    <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre">
-  </div>
-  <div class="col-3">
-    <textarea name="descripcion" class="form-control form-control-sm" rows="1" placeholder="Descripción"></textarea>
-  </div>
-  <div class="col-2">
-    <input type="text" name="precio" class="form-control form-control-sm" style="width: 80px;" placeholder="$">
-  </div>
-  <div class="col-2">
-    <input type="text" name="talles" class="form-control form-control-sm" style="width: 200px;" placeholder="(Opcional) S,M,L,XL">
-  </div>
-  <div class="col-2 text-end">
-    <input type="hidden" name="grupo" value="${nombreGrupo}">
-    <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
-    <input type="hidden" name="orden" value="${contadorOrden++}">
-    <label class="btn-imagen btn-sm">
-      Seleccionar Imagen <input type="file" name="imagen" accept="image/*" class="d-none">
-    </label>
-    <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
-  </div>
-`;
+  // ✅ Selector visual por fila
+  let selectorImagenes = '<div class="selector-imagenes mb-2"><p class="mb-1">Elegí una imagen:</p>';
+  if (Array.isArray(imagenesDisponibles) && imagenesDisponibles.length > 0) {
+    selectorImagenes += '<div class="d-flex flex-wrap justify-content-start">';
+    imagenesDisponibles.forEach((url, index) => {
+      selectorImagenes += `
+        <label style="margin:5px; text-align:center;">
+          <input type="radio" name="imagen_elegida_${contadorOrden}" value="${url}">
+          <img src="${url}" style="width:100px; height:60px; object-fit:contain; border:1px solid #ccc;">
+        </label>
+      `;
+    });
+    selectorImagenes += '</div>';
+  } else {
+    selectorImagenes += '<p class="text-warning">⚠️ No hay imágenes disponibles</p>';
+  }
+  selectorImagenes += '</div>';
 
-  activarSelectorImagen(fila.querySelector('label.btn-imagen'));
+  // ✅ HTML completo de la fila
+  fila.innerHTML = `
+    <div class="col-3">
+      <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre">
+    </div>
+    <div class="col-3">
+      <textarea name="descripcion" class="form-control form-control-sm" rows="1" placeholder="Descripción"></textarea>
+    </div>
+    <div class="col-2">
+      <input type="text" name="precio" class="form-control form-control-sm" style="width: 80px;" placeholder="$">
+    </div>
+    <div class="col-2">
+      <input type="text" name="talles" class="form-control form-control-sm" style="width: 200px;" placeholder="(Opcional) S,M,L,XL">
+    </div>
+    <div class="col-2 text-end">
+      <input type="hidden" name="grupo" value="${nombreGrupo}">
+      <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
+      <input type="hidden" name="orden" value="${contadorOrden++}">
+      ${selectorImagenes}
+      <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
+    </div>
+  `;
+
   return fila;
 }
+
 
 
 
