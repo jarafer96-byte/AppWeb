@@ -799,6 +799,8 @@ function editarPrecio(id) {
 }
   
 function guardarPrecio(id) {
+  console.log("🟡 Iniciando guardarPrecio para:", id);
+
   const input = document.getElementById("precio_" + id);
   if (!input) {
     console.warn("❌ No se encontró el input con id:", "precio_" + id);
@@ -806,36 +808,43 @@ function guardarPrecio(id) {
   }
 
   const nuevoValor = parseFloat(input.value);
+  console.log("🔍 Valor ingresado:", input.value, "| Parseado:", nuevoValor);
+
   if (isNaN(nuevoValor)) {
     console.warn("⚠️ Valor ingresado no es un número válido:", input.value);
     alert("❌ El precio ingresado no es válido");
     return;
   }
 
-  console.log("🧪 Precio capturado para", id, "→", nuevoValor);
+  console.log("🧪 Precio validado para", id, "→", nuevoValor);
 
   // Reemplazar el input por el nuevo <span>
   const span = document.createElement("span");
   span.id = "precio_" + id;
   span.textContent = "$" + nuevoValor.toFixed(2);
-
   input.insertAdjacentElement("beforebegin", span);
   input.remove();
 
+  console.log("🔄 DOM actualizado con nuevo precio para", id);
+
   // ✅ Actualizar Firestore vía backend
+  console.log("📡 Enviando fetch a /actualizar-precio con:", { id, nuevoPrecio: nuevoValor });
+
   fetch('/actualizar-precio', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
   })
     .then(res => {
-      console.log("📡 Respuesta recibida del backend:", res.status);
+      console.log("📬 Respuesta recibida del backend:", res.status);
       return res.json();
     })
     .then(data => {
+      console.log("📨 Payload recibido:", data);
       if (data.status === "ok") {
-        console.log("✅ Precio actualizado en Firestore para", id);
+        console.log("✅ Precio confirmado en Firestore para", id);
         if (typeof mostrarAvisoPrecio === "function") {
+          console.log("🔔 Ejecutando mostrarAvisoPrecio()");
           mostrarAvisoPrecio();
         }
       } else {
@@ -848,6 +857,7 @@ function guardarPrecio(id) {
       alert("❌ Error de conexión al guardar el precio");
     });
 }
+
 
     
 function loginAdmin(event) {
