@@ -1259,14 +1259,17 @@ function actualizarCarrito() {
   } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
   const firebaseConfig = {
-  apiKey: "AIzaSyDde7U-pgzMHvhTbrckn4iUjXlmIWtbsjE",
-  authDomain: "appweb-bd7c8.firebaseapp.com",
-  projectId: "appweb-bd7c8",
-  storageBucket: "appweb-bd7c8.firebasestorage.app",
-  messagingSenderId: "553348257877",
-  appId: "1:553348257877:web:5a940631dd6729bd381cdc"
-};
-
+    apiKey: "{{ firebase_config.apiKey }}",
+    authDomain: "{{ firebase_config.authDomain }}",
+    projectId: "{{ firebase_config.projectId }}",
+    storageBucket: "{{ firebase_config.storageBucket }}",
+    messagingSenderId: "{{ firebase_config.messagingSenderId }}",
+    appId: "{{ firebase_config.appId }}"
+  };
+    
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+    
     function renderizarProductos(grupos) {
   const contenedorPrincipal = document.getElementById("contenedor-grupos");
   contenedorPrincipal.innerHTML = "";
