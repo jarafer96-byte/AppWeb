@@ -349,6 +349,23 @@ def guardar_producto():
         print("❌ Error al guardar producto:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/ver-productos')
+def ver_productos():
+    usuario = session.get('email')
+    if not usuario:
+        print("❌ No hay usuario en sesión")
+        return jsonify([])
+
+    try:
+        ruta = f"usuarios/{usuario}/productos"
+        docs = db.collection(ruta).get()
+        productos = [doc.to_dict() for doc in docs]
+        print(f"📦 Productos cargados para {usuario}: {len(productos)}")
+        return jsonify(productos)
+    except Exception as e:
+        print("❌ Error al cargar productos:", e)
+        return jsonify([])
+
 
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
