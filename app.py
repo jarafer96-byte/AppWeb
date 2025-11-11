@@ -554,7 +554,8 @@ def actualizar_firestore():
 
 @app.route('/step1', methods=['GET', 'POST'])
 def step1():
-    limpiar_imagenes_usuario()
+    limpiar_imagenes_usuario()  # ✅ ahora preserva las imágenes
+
     if request.method == 'POST':
         session['tipo_web'] = 'catálogo'
         session['facebook'] = request.form.get('facebook')
@@ -582,10 +583,11 @@ def step1():
         else:
             session['logo'] = None
 
-        print("🧪 En step1, imágenes en sesión:", session.get('imagenes_step0'))  # ✅ acá
+        print("🧪 En step1, imágenes en sesión:", session.get('imagenes_step0'))  # ✅ validación
         return redirect('/estilo')
 
     return render_template('step1.html')
+
 
 
 
