@@ -280,8 +280,10 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer d-flex justify-content-between">
         <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
+        <!-- ✅ Nuevo botón para agregar fila directamente al grupo -->
+        <button type="button" class="btn btn-gradient" onclick="agregarFila(this)">+ Agregar fila</button>
       </div>
     </div>
   </div>
@@ -289,10 +291,6 @@
 
 
 
-
-
-
-  
   <script>
     let grupoId = 0;
     let contadorOrden = 1;
@@ -486,9 +484,6 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
 
   return fila;
 }
-
-
-
 
     function agregarFila(btn) {
   const subgrupo = btn.closest('.subgrupo');
