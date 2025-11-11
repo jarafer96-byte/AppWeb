@@ -140,22 +140,7 @@ label.btn-imagen {
   <div class="container py-5">
     <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
 
-  <div class="row">
-  {% for imagen in imagenes_step0 %}
-    <div class="col-md-3 mb-3">
-      <label class="d-block">
-        <input type="radio" name="imagen_elegida_preview" value="{{ imagen }}" class="d-none">
-        <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ imagen }}"
-             class="img-thumbnail"
-             alt="Imagen {{ loop.index }}"
-             loading="lazy"
-             onerror="this.src='/static/img/fallback.webp';">
-      </label>
-    </div>
-  {% endfor %}
-</div>
 
-<p style="color:yellow;">Debug: {{ imagenes_step0 }}</p>
 
     <div class="mb-4 text-center">
       <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" placeholder="Nombre del grupo (ej: Ropa Mujer)">
