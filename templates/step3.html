@@ -122,6 +122,17 @@ label.btn-imagen {
   font-size: 0.75em;
   padding: 4px 8px;
 }
+#carouselGlobal .row {
+  margin: 0;
+}
+#carouselGlobal .col {
+  padding: 4px;
+}
+#carouselGlobal img {
+  max-height: 100px;
+  object-fit: contain;
+  cursor: pointer;
+}
 
     .loader {
       border: 8px solid rgba(255,255,255,0.1);
@@ -185,13 +196,14 @@ label.btn-imagen {
             {% for img in imagenes_step0 %}
               {% if loop.index0 % 8 == 0 %}
                 <div class="carousel-item {% if loop.first %}active{% endif %}">
-                  <div class="row row-cols-4 g-2">
+                  <div class="row row-cols-4 gx-2 gy-2">
               {% endif %}
 
                     <div class="col">
                       <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ img }}"
-                           class="img-fluid rounded"
+                           class="img-fluid rounded imagen-carrusel"
                            alt="Imagen {{ loop.index }}"
+                           onclick="seleccionarImagen(this)"
                            onerror="this.src='/static/img/fallback.webp';">
                     </div>
 
@@ -217,6 +229,7 @@ label.btn-imagen {
 </div>
 
 
+
   
   <script>
     let grupoId = 0;
@@ -235,34 +248,46 @@ function eliminarProducto(boton) {
   fila.remove();
   actualizarContador(grupo);
 }
+let imagenSeleccionada = null;
+
+function seleccionarImagen(img) {
+  // desmarcar todas
+  document.querySelectorAll('.imagen-carrusel').forEach(i => {
+    i.style.border = '';
+    i.style.boxShadow = '';
+  });
+
+  // marcar la seleccionada
+  img.style.border = '2px solid #ff6f61';
+  img.style.boxShadow = '0 0 5px #ff6f61';
+  imagenSeleccionada = img;
+}
 
     function confirmarImagen() {
-  // obtener la imagen activa del carrusel
-  const activa = document.querySelector('#carouselGlobal .carousel-item.active img');
-  
-  if (activa && filaActual) {
-    // guardar la URL en el hidden de la fila
+  if (imagenSeleccionada && filaActual) {
     const hiddenInput = filaActual.querySelector('input[name="imagen_elegida"]');
-    hiddenInput.value = activa.src;
+    hiddenInput.value = imagenSeleccionada.src;
 
-    // mostrar preview en la fila
     let preview = filaActual.querySelector('.preview-imagen');
     if (!preview) {
       preview = document.createElement('div');
       preview.className = 'preview-imagen mt-2';
       filaActual.querySelector('.col-2.text-end').prepend(preview);
     }
-    preview.innerHTML = `
-      <img src="${activa.src}" 
-           style="width:80px; height:60px; object-fit:contain; border:1px solid #ccc; border-radius:4px;"
-           onerror="this.src='/static/img/fallback.webp';">
-    `;
+    preview.innerHTML = `<img src="${imagenSeleccionada.src}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+
+    // marcar como usada
+    imagenSeleccionada.classList.add('usada');
+    imagenSeleccionada.style.opacity = "0.3";
+    imagenSeleccionada.style.pointerEvents = "none";
+
+    imagenSeleccionada = null;
   }
 
-  // cerrar modal
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   modal.hide();
 }
+
 
     function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
