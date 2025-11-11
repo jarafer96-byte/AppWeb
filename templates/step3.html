@@ -439,34 +439,33 @@ function activarSelectorImagen(label) {
   let imagenesInvalidas = false;
 
   grupos.forEach(grupo => {
-  const filas = grupo.querySelectorAll('.row');
-  filas.forEach(fila => {
-    const nombre = fila.querySelector('input[name="nombre"]');
-    const precio = fila.querySelector('input[name="precio"]');
-    const imagenSeleccionada = fila.querySelector('input[type="radio"]:checked');
+    const filas = grupo.querySelectorAll('.fila-producto');
+    filas.forEach(fila => {
+      const nombre = fila.querySelector('input[name="nombre"]');
+      const precio = fila.querySelector('input[name="precio"]');
+      const imagenSeleccionada = fila.querySelector('input[name="imagen_elegida"]');
 
-    const nombreValido = nombre && nombre.value.trim();
-    const precioValido = precio && precio.value.trim();
-    const imagenValida = imagenSeleccionada !== null;
+      const nombreValido = nombre && nombre.value.trim();
+      const precioValido = precio && precio.value.trim();
+      const imagenValida = imagenSeleccionada && imagenSeleccionada.value.trim() !== "";
 
-    if (nombreValido && precioValido && imagenValida) {
-      hayContenidoValido = true;
-    }
+      if (nombreValido && precioValido && imagenValida) {
+        hayContenidoValido = true;
+      }
 
-    if ((nombreValido || precioValido) && !imagenValida) {
-      imagenesInvalidas = true;
-    }
+      if ((nombreValido || precioValido) && !imagenValida) {
+        imagenesInvalidas = true;
+      }
+    });
   });
-});
-
 
   if (!hayContenidoValido) {
-    alert('Completá al menos una fila con nombre y precio antes de continuar');
+    alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
     return;
   }
 
   if (imagenesInvalidas) {
-    alert('⚠️ Hay imágenes seleccionadas que no cumplen con los requisitos. Revisalas antes de continuar.');
+    alert('⚠️ Hay filas con nombre/precio pero sin imagen seleccionada. Revisalas antes de continuar.');
     return;
   }
 
@@ -474,6 +473,7 @@ function activarSelectorImagen(label) {
   document.getElementById('spinner').style.display = 'flex';
   document.getElementById('formulario').submit();
 }
+
   </script>
 </body>
 </html>
