@@ -317,32 +317,6 @@ function abrirCarrusel(btn) {
   modal.show();
 }
 
-function confirmarImagen() {
-  const activa = document.querySelector('#carouselGlobal .carousel-item.active img');
-  if (activa && filaActual) {
-    const hiddenInput = filaActual.querySelector('input[name="imagen_elegida"]');
-    hiddenInput.value = activa.src;
-
-    // preview en la fila
-    let preview = filaActual.querySelector('.preview-imagen');
-    if (!preview) {
-      preview = document.createElement('div');
-      preview.className = 'preview-imagen mt-2';
-      filaActual.querySelector('.col-2.text-end').prepend(preview);
-    }
-    preview.innerHTML = `<img src="${activa.src}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
-
-    // ✅ marcar imagen como usada
-    activa.classList.add('usada');
-    activa.style.opacity = "0.3"; // se ve grisada
-    activa.style.pointerEvents = "none"; // no se puede volver a elegir
-  }
-
-  const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
-  modal.hide();
-}
-
-
 function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
   const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
@@ -469,34 +443,6 @@ function actualizarContador(contenedor) {
   const contador = contenedor.closest('.card').querySelector('.contador');
   contador.textContent = contenedor.querySelectorAll('.fila-producto').length; // ✅ cuenta filas reales
 }
-
-function activarSelectorImagen(label) {
-  const input = label.querySelector('input[type="file"]');
-  const MAX_SIZE_MB = 4;
-  const formatosValidos = ['jpg', 'jpeg', 'png', 'webp'];
-
-  input.addEventListener('change', function () {
-    const file = this.files[0];
-    if (!file) {
-      label.classList.remove('cargado');
-      return;
-    }
-
-    const extension = file.name.split('.').pop().toLowerCase();
-    const esFormatoValido = formatosValidos.includes(extension);
-    const esPesoValido = file.size <= MAX_SIZE_MB * 1024 * 1024;
-
-    if (esFormatoValido && esPesoValido) {
-      label.classList.add('cargado');
-    } else {
-      label.classList.remove('cargado');
-      alert(`⚠️ Archivo no válido:\n- Formatos permitidos: ${formatosValidos.join(', ')}\n- Peso máximo: ${MAX_SIZE_MB} MB`);
-      this.value = ""; // limpia el input
-    }
-  });
-}
-
-
 
     function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
