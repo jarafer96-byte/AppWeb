@@ -33,11 +33,11 @@ db = firestore.client()
 
 s3 = boto3.client(
     's3',
-    endpoint_url='https://s3.us-west-004.backblazeb2.com',
+    endpoint_url='https://s3.us-east-005.backblazeb2.com',
     aws_access_key_id=os.getenv('ACCESS_KEY'),
     aws_secret_access_key=os.getenv('SECRET_KEY')
 )
-BUCKET = 'imagenes-appweb'
+BUCKET = os.getenv('BUCKET') or 'imagenes-appweb'
 
 # GitHub y Flask config
 token = os.getenv("GITHUB_TOKEN")
