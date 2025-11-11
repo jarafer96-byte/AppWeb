@@ -133,6 +133,16 @@ label.btn-imagen {
   object-fit: contain;
   cursor: pointer;
 }
+.imagen-carrusel {
+  max-height: 100px;
+  object-fit: contain;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, border 0.2s ease;
+}
+.imagen-carrusel.seleccionada {
+  border: 2px solid #ff6f61;
+  box-shadow: 0 0 5px #ff6f61;
+}
 
     .loader {
       border: 8px solid rgba(255,255,255,0.1);
