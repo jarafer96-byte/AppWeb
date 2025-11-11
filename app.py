@@ -270,28 +270,20 @@ def redimensionar_y_subir(imagen, email):
         print(f"❌ Error al subir {imagen.filename}: {e}")
         return None
 
-def normalizar_url(url):
-    # Si viene con S3 endpoint viejo, lo convertimos a Friendly URL
-    if "s3.us-west-004.backblazeb2.com" in url:
-        # Extraer la parte relativa después del bucket
+def normalizar_url(url: str) -> str:
+    """
+    Convierte cualquier URL completa en una ruta relativa usable en el template.
+    Ejemplo:
+    https://f005.backblazeb2.com/file/imagenes-appweb/usuarios/.../mini_xxx.webp
+    → usuarios/.../mini_xxx.webp
+    """
+    if "/file/imagenes-appweb/" in url:
+        return url.split("/file/imagenes-appweb/")[1]
+    elif "s3.us-west-004.backblazeb2.com" in url or "s3.us-east-005.backblazeb2.com" in url:
+        # extraer después del bucket
         if "/usuarios/" in url:
-            ruta_relativa = url.split("/usuarios/")[1]
-            return f"usuarios/{ruta_relativa}"
-    elif "file/imagenes-appweb/" in url:
-        return url.split("file/imagenes-appweb/")[1]
-    return url  # fallback
-
-# En step0:
-urls = []
-with ThreadPoolExecutor(max_workers=5) as executor:
-    futures = [executor.submit(redimensionar_y_subir, img, email) for img in imagenes if img and img.filename]
-    for f in futures:
-        url = f.result()
-        if url:
-            urls.append(normalizar_url(url))
-
-session['imagenes_step0'].extend(urls)
-
+            return "usuarios/" + url.split("/usuarios/")[1]
+    return url  # fallback si no coincide
 
 @app.route('/step0', methods=['GET', 'POST'])
 def step0():
@@ -311,26 +303,19 @@ def step0():
             print("⚠️ Límite de 60 imágenes alcanzado")
             return "Límite de imágenes alcanzado", 400
 
-        rutas_relativas = []
+        urls = []
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(redimensionar_y_subir, img, email) for img in imagenes if img and img.filename]
             for f in futures:
                 url = f.result()
                 if url:
-                    # ✅ Extraer solo la parte relativa después del bucket
-                    if "/file/imagenes-appweb/" in url:
-                        ruta = url.split("/file/imagenes-appweb/")[1]
-                        rutas_relativas.append(ruta)
-                    else:
-                        rutas_relativas.append(url)  # fallback si no coincide
+                    urls.append(normalizar_url(url))  # ✅ siempre normalizamos
 
-        session['imagenes_step0'].extend(rutas_relativas)
+        session['imagenes_step0'].extend(urls)
         print(f"🧠 Total acumulado en sesión: {len(session['imagenes_step0'])}")
         return redirect('/estilo')
 
     return render_template('step0.html')
-
-
 
 
 @app.route("/test-firestore")
