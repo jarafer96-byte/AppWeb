@@ -79,6 +79,26 @@
 <body>
   <h2>Subí tus imágenes (máx. 4 MB cada una)</h2>
 
+  <input type="file" id="fileInput" multiple>
+
+<script>
+let archivosAcumulados = [];
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  // convertir FileList en array
+  const nuevos = Array.from(e.target.files);
+
+  // acumular
+  archivosAcumulados = archivosAcumulados.concat(nuevos);
+
+  // mostrar nombres
+  const lista = archivosAcumulados.map(f => f.name).join('<br>');
+  document.getElementById('preview').innerHTML = lista;
+});
+</script>
+
+<div id="preview"></div>
+
   <form method="POST" action="/step0" enctype="multipart/form-data">
     <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
     <br>
