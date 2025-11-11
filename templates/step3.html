@@ -166,14 +166,8 @@ label.btn-imagen {
     <div class="loader"></div>
     <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
   </div>
-  <script>
-    {% if imagenes_step0 %}
-      const imagenesDisponibles = {{ imagenes_step0 | tojson }};
-    {% else %}
-      const imagenesDisponibles = [];
-    {% endif %}
-  </script>
 
+  
   <script>
     let grupoId = 0;
     let contadorOrden = 1;
@@ -181,7 +175,10 @@ label.btn-imagen {
     window.onload = () => {
       contadorOrden = 1;
     };
-
+    
+  const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
+  console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
+    
     function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
   if (!nombre) return alert("Ingresá un nombre para el grupo");
