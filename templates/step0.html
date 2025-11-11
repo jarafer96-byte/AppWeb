@@ -34,6 +34,7 @@
       border-radius: 6px;
       cursor: pointer;
       font-weight: bold;
+      margin: 5px;
     }
 
     button:hover {
@@ -46,7 +47,7 @@
       text-align: center;
     }
 
-    .preview, .preview-subidas {
+    .preview {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
@@ -54,13 +55,34 @@
       margin-top: 20px;
     }
 
-    .preview img, .preview-subidas img {
+    .preview-item {
+      position: relative;
+      display: inline-block;
+    }
+
+    .preview img {
       width: 150px;
       height: auto;
       border: 1px solid #ccc;
       border-radius: 4px;
       object-fit: contain;
       background-color: #111;
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(255,0,0,0.7);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 20px;
+      text-align: center;
     }
 
     .preview-subidas {
@@ -79,27 +101,15 @@
 <body>
   <h2>Subí tus imágenes (máx. 4 MB cada una)</h2>
 
-  <script>
-    let archivosAcumulados = [];
-
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-      const nuevos = Array.from(e.target.files);
-      archivosAcumulados = archivosAcumulados.concat(nuevos);
-
-      const lista = archivosAcumulados.map(f => f.name).join('<br>');
-      document.getElementById('preview-nombres').innerHTML = lista;
-    });
-  </script>
-
-  <!-- Formulario real de subida -->
   <form method="POST" action="/step0" enctype="multipart/form-data">
     <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
     <br>
     <button type="submit">Subir y continuar</button>
+    <button type="button" id="clearBtn">Quitar todas</button>
   </form>
 
   <div class="error" id="error"></div>
-  <div class="preview" id="preview-imagenes"></div>
+  <div class="preview" id="preview"></div>
 
   {% if imagenes_step0 %}
     <div class="preview-subidas">
@@ -114,29 +124,60 @@
 
   <script>
     const input = document.getElementById('imagenes');
-    const preview = document.getElementById('preview-imagenes');
+    const preview = document.getElementById('preview');
     const error = document.getElementById('error');
+    const clearBtn = document.getElementById('clearBtn');
+
+    let archivosAcumulados = [];
 
     input.addEventListener('change', () => {
       error.textContent = '';
-      const files = input.files;
+      const files = Array.from(input.files);
 
       for (let file of files) {
         if (file.size > 4 * 1024 * 1024) {
           error.textContent = `La imagen "${file.name}" supera los 4 MB.`;
           input.value = '';
-          break;
+          return;
         }
+      }
 
+      archivosAcumulados = archivosAcumulados.concat(files);
+      renderPreview();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      archivosAcumulados = [];
+      preview.innerHTML = '';
+      input.value = '';
+    });
+
+    function renderPreview() {
+      preview.innerHTML = '';
+      archivosAcumulados.forEach((file, index) => {
         const reader = new FileReader();
         reader.onload = e => {
+          const item = document.createElement('div');
+          item.className = 'preview-item';
+
           const img = document.createElement('img');
           img.src = e.target.result;
-          preview.appendChild(img); // ✅ se acumulan miniaturas
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'remove-btn';
+          removeBtn.textContent = '✖';
+          removeBtn.onclick = () => {
+            archivosAcumulados.splice(index, 1);
+            renderPreview();
+          };
+
+          item.appendChild(img);
+          item.appendChild(removeBtn);
+          preview.appendChild(item);
         };
         reader.readAsDataURL(file);
-      }
-    });
+      });
+    }
   </script>
 </body>
 </html>
