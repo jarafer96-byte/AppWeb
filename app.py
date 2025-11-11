@@ -692,7 +692,10 @@ def step3():
         else:
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
+    print("🧪 tipo:", tipo)
+    print("🧪 imagenes_step0 en render:", imagenes_disponibles)
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 
 import mercadopago
