@@ -520,7 +520,7 @@
               {% endif %}
 
               <div class="card p-3 h-100">
-                <img src="/static/img/{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
+                <img src="{{ producto.imagen }}" class="card-img-top" alt="{{ producto.nombre }}" loading="lazy">
                 <div class="card-body">
                   {% if modoAdmin %}
                     <div class="text-muted small mb-2">
