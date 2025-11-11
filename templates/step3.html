@@ -141,16 +141,20 @@ label.btn-imagen {
     <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
 
   <div class="row">
-    {% for imagen in imagenes_step0 %}
-      <div class="col-md-3 mb-3">
-        <label class="d-block">
-          <input type="radio" name="imagen_elegida_preview" value="{{ imagen }}" class="d-none">
-          <img src="{{ imagen }}" class="img-thumbnail" alt="Imagen {{ loop.index }}" loading="lazy">
-        </label>
-      </div>
-    {% endfor %}
-  </div>
-    
+  {% for imagen in imagenes_step0 %}
+    <div class="col-md-3 mb-3">
+      <label class="d-block">
+        <input type="radio" name="imagen_elegida_preview" value="{{ imagen }}" class="d-none">
+        <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ imagen }}"
+             class="img-thumbnail"
+             alt="Imagen {{ loop.index }}"
+             loading="lazy"
+             onerror="this.src='/static/img/fallback.webp';">
+      </label>
+    </div>
+  {% endfor %}
+</div>
+
 <p style="color:yellow;">Debug: {{ imagenes_step0 }}</p>
 
     <div class="mb-4 text-center">
@@ -189,6 +193,14 @@ label.btn-imagen {
     
   const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
   console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
+
+function eliminarProducto(boton) {
+  const fila = boton.closest('.fila-producto');
+  const grupo = boton.closest('.card');
+  fila.remove();
+  actualizarContador(grupo);
+}
+
     
     function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
@@ -209,9 +221,9 @@ label.btn-imagen {
         ✕ <span style="font-size: 0.75em;">(Borrar grupo)</span>
       </button>
     </div>
-    <div class="productos"></div> <!-- ✅ agregado -->
+    <div class="productos"></div>
     <div class="subgrupos"></div>
-    <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
+    <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
     <div class="text-center mt-2">
       <input type="text" class="form-control w-50 d-inline-block" placeholder="Ej: Pantalones" id="inputSubgrupo_${grupoId}">
       <button type="button" class="btn-gradient btn-sm" onclick="crearSubgrupo(this)">+ Crear subgrupo</button>
@@ -222,8 +234,21 @@ label.btn-imagen {
   document.getElementById('nombreGrupo').value = '';
 
   const contenedor = grupo.querySelector('.productos');
-  contenedor.appendChild(crearFila(nombre, ordenGrupo));
+  const fila = crearFila(nombre, ordenGrupo);
+  contenedor.appendChild(fila);
+
+  // ✅ actualizar contador dinámicamente
+  actualizarContador(grupo);
 }
+
+// Función auxiliar para mantener el contador sincronizado
+function actualizarContador(grupo) {
+  const contador = grupo.querySelector('.contador');
+  const productos = grupo.querySelectorAll('.productos > .fila-producto');
+  contador.textContent = productos.length;
+}
+
+
 
 function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
@@ -240,8 +265,8 @@ function crearSubgrupo(btn) {
       <strong>${nombreSubgrupo}</strong>
       <button class="btn btn-sm btn-danger" onclick="eliminarSubgrupo(this)">✕ Borrar subgrupo</button>
     </div>
-    <div class="productos"></div> <!-- ✅ presente -->
-    <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
+    <div class="productos"></div>
+    <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
     <div class="text-center mt-2">
       <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
     </div>
@@ -250,23 +275,37 @@ function crearSubgrupo(btn) {
   input.value = '';
 
   const contenedor = subgrupo.querySelector('.productos');
-  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo));
+  const fila = crearFila(nombreSubgrupo, nombreGrupo);
+  contenedor.appendChild(fila);
+
+  // ✅ actualizar contador dinámicamente
+  actualizarContador(subgrupo);
 }
+
+// Función auxiliar para mantener el contador sincronizado
+function actualizarContador(bloque) {
+  const contador = bloque.querySelector('.contador');
+  const productos = bloque.querySelectorAll('.productos > .fila-producto');
+  contador.textContent = productos.length;
+}
+
 
 
  function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
-  fila.className = 'row g-2 align-items-center mb-2';
+  fila.className = 'row g-2 align-items-center mb-2 fila-producto'; // ✅ clase añadida para contador
 
   // ✅ Selector visual por fila
   let selectorImagenes = '<div class="selector-imagenes mb-2"><p class="mb-1">Elegí una imagen:</p>';
   if (Array.isArray(imagenesDisponibles) && imagenesDisponibles.length > 0) {
     selectorImagenes += '<div class="d-flex flex-wrap justify-content-start">';
-    imagenesDisponibles.forEach((url, index) => {
+    imagenesDisponibles.forEach((rutaRelativa, index) => {
+      const url = `https://f005.backblazeb2.com/file/imagenes-appweb/${rutaRelativa}`; // ✅ prefijo Friendly URL
       selectorImagenes += `
         <label style="margin:5px; text-align:center;">
           <input type="radio" name="imagen_elegida_${contadorOrden}" value="${url}">
-          <img src="${url}" style="width:100px; height:60px; object-fit:contain; border:1px solid #ccc;">
+          <img src="${url}" style="width:100px; height:60px; object-fit:contain; border:1px solid #ccc;" 
+               onerror="this.src='/static/img/fallback.webp';">
         </label>
       `;
     });
@@ -303,48 +342,46 @@ function crearSubgrupo(btn) {
 }
 
 
-
-
-
     function agregarFila(btn) {
   const subgrupo = btn.closest('.subgrupo');
   const grupo = btn.closest('.card:not(.subgrupo)');
   const contenedor = subgrupo.querySelector('.productos');
   const nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
-  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ extraemos el nombre del grupo
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
 
-  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo));
+  const fila = crearFila(nombreSubgrupo, nombreGrupo);
+  contenedor.appendChild(fila);
+
   actualizarContador(contenedor);
 }
-
 
 function eliminarSubgrupo(btn) {
   const subgrupo = btn.closest('.subgrupo');
   subgrupo.remove();
 }
 
-    function eliminarFila(btn) {
-      const fila = btn.closest('.row');
-      const contenedor = btn.closest('.card').querySelector('.productos');
-      if (contenedor.querySelectorAll('.row').length > 1) {
-        fila.remove();
-        actualizarContador(contenedor);
-      } else {
-        alert("No se puede eliminar la última fila");
-      }
-    }
+function eliminarFila(btn) {
+  const fila = btn.closest('.fila-producto'); // ✅ usamos la clase para identificar filas
+  const contenedor = btn.closest('.card').querySelector('.productos');
+  if (contenedor.querySelectorAll('.fila-producto').length > 1) {
+    fila.remove();
+    actualizarContador(contenedor);
+  } else {
+    alert("No se puede eliminar la última fila");
+  }
+}
 
-    function eliminarGrupo(btn) {
-      const grupo = btn.closest('.card');
-      grupo.remove();
-    }
+function eliminarGrupo(btn) {
+  const grupo = btn.closest('.card');
+  grupo.remove();
+}
 
-    function actualizarContador(contenedor) {
-      const contador = contenedor.closest('.card').querySelector('.contador');
-      contador.textContent = contenedor.querySelectorAll('.row').length;
-    }
+function actualizarContador(contenedor) {
+  const contador = contenedor.closest('.card').querySelector('.contador');
+  contador.textContent = contenedor.querySelectorAll('.fila-producto').length; // ✅ cuenta filas reales
+}
 
-        function activarSelectorImagen(label) {
+function activarSelectorImagen(label) {
   const input = label.querySelector('input[type="file"]');
   const MAX_SIZE_MB = 4;
   const formatosValidos = ['jpg', 'jpeg', 'png', 'webp'];
@@ -369,6 +406,7 @@ function eliminarSubgrupo(btn) {
     }
   });
 }
+
 
 
     function validarYEnviar() {
