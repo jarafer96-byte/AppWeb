@@ -297,18 +297,47 @@ function actualizarContador(grupo) {
 
 
 let filaActual = null;
+let imagenesUsadas = []; // lista global de imágenes ya asignadas
 
 function abrirCarrusel(btn) {
-  filaActual = btn.closest('.fila-producto'); // guardamos la fila que abrió el carrusel
+  filaActual = btn.closest('.fila-producto');
   const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
+
+  // ✅ deshabilitar imágenes ya usadas antes de mostrar el carrusel
+  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+    if (imagenesUsadas.includes(img.src)) {
+      img.style.opacity = "0.3";
+      img.style.pointerEvents = "none";
+    } else {
+      img.style.opacity = "1";
+      img.style.pointerEvents = "auto";
+    }
+  });
+
   modal.show();
 }
 
 function confirmarImagen() {
   const activa = document.querySelector('#carouselGlobal .carousel-item.active img');
   if (activa && filaActual) {
-    filaActual.querySelector('input[name="imagen_elegida"]').value = activa.src;
+    const hiddenInput = filaActual.querySelector('input[name="imagen_elegida"]');
+    hiddenInput.value = activa.src;
+
+    // preview en la fila
+    let preview = filaActual.querySelector('.preview-imagen');
+    if (!preview) {
+      preview = document.createElement('div');
+      preview.className = 'preview-imagen mt-2';
+      filaActual.querySelector('.col-2.text-end').prepend(preview);
+    }
+    preview.innerHTML = `<img src="${activa.src}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+
+    // ✅ marcar imagen como usada
+    activa.classList.add('usada');
+    activa.style.opacity = "0.3"; // se ve grisada
+    activa.style.pointerEvents = "none"; // no se puede volver a elegir
   }
+
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   modal.hide();
 }
@@ -408,8 +437,20 @@ function eliminarSubgrupo(btn) {
 }
 
 function eliminarFila(btn) {
-  const fila = btn.closest('.fila-producto'); // ✅ usamos la clase para identificar filas
+  const fila = btn.closest('.fila-producto');
   const contenedor = btn.closest('.card').querySelector('.productos');
+
+  // liberar imagen usada si existía
+  const hiddenInput = fila.querySelector('input[name="imagen_elegida"]');
+  if (hiddenInput && hiddenInput.value) {
+    const img = document.querySelector(`#carouselGlobal img[src="${hiddenInput.value}"]`);
+    if (img) {
+      img.classList.remove('usada');
+      img.style.opacity = "1";
+      img.style.pointerEvents = "auto";
+    }
+  }
+
   if (contenedor.querySelectorAll('.fila-producto').length > 1) {
     fila.remove();
     actualizarContador(contenedor);
@@ -417,6 +458,7 @@ function eliminarFila(btn) {
     alert("No se puede eliminar la última fila");
   }
 }
+
 
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
