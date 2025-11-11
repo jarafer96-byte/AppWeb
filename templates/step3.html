@@ -139,6 +139,17 @@ label.btn-imagen {
 <body>
   <div class="container py-5">
     <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
+
+  <div class="row">
+    {% for imagen in imagenes_step0 %}
+      <div class="col-md-3 mb-3">
+        <label class="d-block">
+          <input type="radio" name="imagen_elegida_preview" value="{{ imagen }}" class="d-none">
+          <img src="{{ imagen }}" class="img-thumbnail" alt="Imagen {{ loop.index }}" loading="lazy">
+        </label>
+      </div>
+    {% endfor %}
+  </div>
     
 <p style="color:yellow;">Debug: {{ imagenes_step0 }}</p>
 
