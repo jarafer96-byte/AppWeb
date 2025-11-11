@@ -15,7 +15,7 @@
     h2 {
       color: white;
     }
-
+    
     #carouselGlobal img {
       max-height: 120px;
       object-fit: contain;
@@ -133,16 +133,21 @@ label.btn-imagen {
   object-fit: contain;
   cursor: pointer;
 }
-.imagen-carrusel {
-  max-height: 100px;
-  object-fit: contain;
-  cursor: pointer;
-  transition: box-shadow 0.2s ease, border 0.2s ease;
-}
-.imagen-carrusel.seleccionada {
-  border: 2px solid #ff6f61;
-  box-shadow: 0 0 5px #ff6f61;
-}
+
+    .imagen-carrusel {
+      max-height: 100px;
+      object-fit: contain;
+      cursor: pointer;
+      transition: box-shadow 0.2s ease, border 0.2s ease;
+    }
+    .imagen-carrusel.seleccionada {
+      border: 2px solid #ff6f61;
+      box-shadow: 0 0 5px #ff6f61;
+    }
+    .col.invisible {
+      visibility: hidden;
+    }
+
 
     .loader {
       border: 8px solid rgba(255,255,255,0.1);
@@ -218,6 +223,10 @@ label.btn-imagen {
                     </div>
 
               {% if loop.index0 % 8 == 7 or loop.last %}
+                  {% set faltantes = 8 - (loop.index0 % 8 + 1) %}
+                  {% for i in range(faltantes) %}
+                    <div class="col invisible"></div>
+                  {% endfor %}
                   </div>
                 </div>
               {% endif %}
@@ -237,6 +246,7 @@ label.btn-imagen {
     </div>
   </div>
 </div>
+
 
 
 
