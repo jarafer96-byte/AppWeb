@@ -79,26 +79,23 @@
 <body>
   <h2>Subí tus imágenes (máx. 4 MB cada una)</h2>
 
+  <!-- Input para acumular nombres -->
   <input type="file" id="fileInput" multiple>
+  <div id="preview-nombres"></div>
 
-<script>
-let archivosAcumulados = [];
+  <script>
+    let archivosAcumulados = [];
 
-document.getElementById('fileInput').addEventListener('change', function(e) {
-  // convertir FileList en array
-  const nuevos = Array.from(e.target.files);
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const nuevos = Array.from(e.target.files);
+      archivosAcumulados = archivosAcumulados.concat(nuevos);
 
-  // acumular
-  archivosAcumulados = archivosAcumulados.concat(nuevos);
+      const lista = archivosAcumulados.map(f => f.name).join('<br>');
+      document.getElementById('preview-nombres').innerHTML = lista;
+    });
+  </script>
 
-  // mostrar nombres
-  const lista = archivosAcumulados.map(f => f.name).join('<br>');
-  document.getElementById('preview').innerHTML = lista;
-});
-</script>
-
-<div id="preview"></div>
-
+  <!-- Formulario real de subida -->
   <form method="POST" action="/step0" enctype="multipart/form-data">
     <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
     <br>
@@ -106,7 +103,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
   </form>
 
   <div class="error" id="error"></div>
-  <div class="preview" id="preview"></div>
+  <div class="preview" id="preview-imagenes"></div>
 
   {% if imagenes_step0 %}
     <div class="preview-subidas">
@@ -121,7 +118,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 
   <script>
     const input = document.getElementById('imagenes');
-    const preview = document.getElementById('preview');
+    const preview = document.getElementById('preview-imagenes');
     const error = document.getElementById('error');
 
     input.addEventListener('change', () => {
@@ -139,7 +136,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
         reader.onload = e => {
           const img = document.createElement('img');
           img.src = e.target.result;
-          preview.appendChild(img); // ✅ se acumulan, no se borran
+          preview.appendChild(img); // ✅ se acumulan miniaturas
         };
         reader.readAsDataURL(file);
       }
