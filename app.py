@@ -270,6 +270,29 @@ def redimensionar_y_subir(imagen, email):
         print(f"❌ Error al subir {imagen.filename}: {e}")
         return None
 
+def normalizar_url(url):
+    # Si viene con S3 endpoint viejo, lo convertimos a Friendly URL
+    if "s3.us-west-004.backblazeb2.com" in url:
+        # Extraer la parte relativa después del bucket
+        if "/usuarios/" in url:
+            ruta_relativa = url.split("/usuarios/")[1]
+            return f"usuarios/{ruta_relativa}"
+    elif "file/imagenes-appweb/" in url:
+        return url.split("file/imagenes-appweb/")[1]
+    return url  # fallback
+
+# En step0:
+urls = []
+with ThreadPoolExecutor(max_workers=5) as executor:
+    futures = [executor.submit(redimensionar_y_subir, img, email) for img in imagenes if img and img.filename]
+    for f in futures:
+        url = f.result()
+        if url:
+            urls.append(normalizar_url(url))
+
+session['imagenes_step0'].extend(urls)
+
+
 @app.route('/step0', methods=['GET', 'POST'])
 def step0():
     if request.method == 'POST':
@@ -611,14 +634,6 @@ def step2():
 
     imagenes = os.listdir('static/img/webp')
     return render_template('step2.html', config=session, imagenes=imagenes)
-
-def normalizar_urls(imagenes):
-    urls_corregidas = []
-    for url in imagenes:
-        if "us-west-004" in url:
-            url = url.replace("us-west-004", "us-east-005")
-        urls_corregidas.append(url)
-    return urls_corregidas 
     
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
