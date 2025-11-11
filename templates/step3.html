@@ -199,7 +199,9 @@ label.btn-imagen {
         ✕ <span style="font-size: 0.75em;">(Borrar grupo)</span>
       </button>
     </div>
+    <div class="productos"></div> <!-- ✅ agregado -->
     <div class="subgrupos"></div>
+    <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
     <div class="text-center mt-2">
       <input type="text" class="form-control w-50 d-inline-block" placeholder="Ej: Pantalones" id="inputSubgrupo_${grupoId}">
       <button type="button" class="btn-gradient btn-sm" onclick="crearSubgrupo(this)">+ Crear subgrupo</button>
@@ -212,9 +214,10 @@ label.btn-imagen {
   const contenedor = grupo.querySelector('.productos');
   contenedor.appendChild(crearFila(nombre, ordenGrupo));
 }
+
 function crearSubgrupo(btn) {
-  const grupo = btn.closest('.card'); // ✅ primero obtenemos el grupo
-  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General'; // ✅ luego usamos grupo
+  const grupo = btn.closest('.card');
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
   const subgruposContenedor = grupo.querySelector('.subgrupos');
   const input = grupo.querySelector('input[id^="inputSubgrupo"]');
   const nombreSubgrupo = input.value.trim();
@@ -227,7 +230,7 @@ function crearSubgrupo(btn) {
       <strong>${nombreSubgrupo}</strong>
       <button class="btn btn-sm btn-danger" onclick="eliminarSubgrupo(this)">✕ Borrar subgrupo</button>
     </div>
-    <div class="productos"></div>
+    <div class="productos"></div> <!-- ✅ presente -->
     <div class="text-end text-white">Productos cargados: <span class="contador">1</span></div>
     <div class="text-center mt-2">
       <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
@@ -237,8 +240,9 @@ function crearSubgrupo(btn) {
   input.value = '';
 
   const contenedor = subgrupo.querySelector('.productos');
-  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo)); // ✅ pasamos grupo también
+  contenedor.appendChild(crearFila(nombreSubgrupo, nombreGrupo));
 }
+
 
  function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
