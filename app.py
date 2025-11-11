@@ -608,6 +608,8 @@ def step3():
     email = session.get('email')
     imagenes_disponibles = session.get('imagenes_step0') or []
 
+    print(f"🧠 Imágenes disponibles en sesión: {imagenes_disponibles}")  # ← acá
+    
     if not email:
         print("❌ Sesión no válida")
         return "Error: sesión no iniciada", 403
