@@ -606,7 +606,14 @@ def step2():
     imagenes = os.listdir('static/img/webp')
     return render_template('step2.html', config=session, imagenes=imagenes)
 
-
+def normalizar_urls(imagenes):
+    urls_corregidas = []
+    for url in imagenes:
+        if "us-west-004" in url:
+            url = url.replace("us-west-004", "us-east-005")
+        urls_corregidas.append(url)
+    return urls_corregidas 
+    
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
     tipo = session.get('tipo_web')
