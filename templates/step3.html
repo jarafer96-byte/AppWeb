@@ -16,6 +16,11 @@
       color: white;
     }
 
+    #carouselGlobal img {
+      max-height: 120px;
+      object-fit: contain;
+    }
+
     .selector-imagenes label input[type="radio"]:checked + img {
       border: 2px solid #ff6f61;
       box-shadow: 0 0 5px #ff6f61;
@@ -178,12 +183,22 @@ label.btn-imagen {
         <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
           <div class="carousel-inner">
             {% for img in imagenes_step0 %}
-              <div class="carousel-item {% if loop.first %}active{% endif %}">
-                <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ img }}"
-                     class="d-block w-100"
-                     alt="Imagen {{ loop.index }}"
-                     onerror="this.src='/static/img/fallback.webp';">
-              </div>
+              {% if loop.index0 % 8 == 0 %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                  <div class="row row-cols-4 g-2">
+              {% endif %}
+
+                    <div class="col">
+                      <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ img }}"
+                           class="img-fluid rounded"
+                           alt="Imagen {{ loop.index }}"
+                           onerror="this.src='/static/img/fallback.webp';">
+                    </div>
+
+              {% if loop.index0 % 8 == 7 or loop.last %}
+                  </div>
+                </div>
+              {% endif %}
             {% endfor %}
           </div>
           <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
@@ -200,6 +215,7 @@ label.btn-imagen {
     </div>
   </div>
 </div>
+
 
   
   <script>
