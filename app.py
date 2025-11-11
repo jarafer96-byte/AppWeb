@@ -288,19 +288,25 @@ def step0():
             print("⚠️ Límite de 60 imágenes alcanzado")
             return "Límite de imágenes alcanzado", 400
 
-        urls = []
+        rutas_relativas = []
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(redimensionar_y_subir, img, email) for img in imagenes if img and img.filename]
             for f in futures:
                 url = f.result()
                 if url:
-                    urls.append(url)
+                    # ✅ Extraer solo la parte relativa después del bucket
+                    if "/file/imagenes-appweb/" in url:
+                        ruta = url.split("/file/imagenes-appweb/")[1]
+                        rutas_relativas.append(ruta)
+                    else:
+                        rutas_relativas.append(url)  # fallback si no coincide
 
-        session['imagenes_step0'].extend(urls)
+        session['imagenes_step0'].extend(rutas_relativas)
         print(f"🧠 Total acumulado en sesión: {len(session['imagenes_step0'])}")
         return redirect('/estilo')
 
     return render_template('step0.html')
+
 
 
 
