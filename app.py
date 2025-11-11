@@ -250,6 +250,7 @@ def limpiar_imagenes_usuario():
 
 def redimensionar_y_subir(imagen, email):
     try:
+        print(f"📥 Recibida imagen: {imagen.filename}")
         pil = Image.open(imagen)
         pil = pil.convert("RGB")
         pil.thumbnail((300, 300))
@@ -262,9 +263,11 @@ def redimensionar_y_subir(imagen, email):
         ruta_s3 = f"usuarios/{email}/{nombre}"
 
         s3.upload_fileobj(buffer, BUCKET, ruta_s3, ExtraArgs={'ContentType': 'image/webp'})
-        return f"https://{BUCKET}.s3.us-west-004.backblazeb2.com/{ruta_s3}"
+        url_final = f"https://{BUCKET}.s3.us-west-004.backblazeb2.com/{ruta_s3}"
+        print(f"✅ Subida exitosa: {url_final}")
+        return url_final
     except Exception as e:
-        print(f"Error al subir {imagen.filename}: {e}")
+        print(f"❌ Error al subir {imagen.filename}: {e}")
         return None
 
 @app.route('/', methods=['GET', 'POST'])
@@ -272,8 +275,20 @@ def step0():
     if request.method == 'POST':
         email = session.get('email', 'anonimo')
         imagenes = request.files.getlist('imagenes')
-        urls = []
+        print(f"📦 Tanda recibida: {len(imagenes)} archivos")
 
+        if not imagenes:
+            print("⚠️ No se recibieron imágenes")
+            return "No se recibieron imágenes", 400
+
+        if 'imagenes_step0' not in session:
+            session['imagenes_step0'] = []
+
+        if len(session['imagenes_step0']) + len(imagenes) > 60:
+            print("⚠️ Límite de 60 imágenes alcanzado")
+            return "Límite de imágenes alcanzado", 400
+
+        urls = []
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(redimensionar_y_subir, img, email) for img in imagenes if img and img.filename]
             for f in futures:
@@ -281,10 +296,12 @@ def step0():
                 if url:
                     urls.append(url)
 
-        session['imagenes_step0'] = urls
+        session['imagenes_step0'].extend(urls)
+        print(f"🧠 Total acumulado en sesión: {len(session['imagenes_step0'])}")
         return redirect('/step1')
 
     return render_template('step0.html')
+
 
 
 @app.route("/test-firestore")
