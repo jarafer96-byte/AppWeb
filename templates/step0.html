@@ -47,6 +47,13 @@
       text-align: center;
     }
 
+    .meta {
+      text-align: center;
+      color: #ccc;
+      font-size: 0.9em;
+      margin-top: 8px;
+    }
+
     .preview {
       display: flex;
       flex-wrap: wrap;
@@ -109,6 +116,7 @@
   </form>
 
   <div class="error" id="error"></div>
+  <div class="meta" id="meta"></div>
   <div class="preview" id="preview"></div>
 
   {% if imagenes_step0 %}
@@ -127,14 +135,16 @@
     const preview = document.getElementById('preview');
     const error = document.getElementById('error');
     const clearBtn = document.getElementById('clearBtn');
+    const meta = document.getElementById('meta');
 
     let archivosAcumulados = [];
 
     input.addEventListener('change', () => {
       error.textContent = '';
-      const files = Array.from(input.files);
+      const nuevos = Array.from(input.files);
 
-      for (let file of files) {
+      // Validación de tamaño
+      for (const file of nuevos) {
         if (file.size > 4 * 1024 * 1024) {
           error.textContent = `La imagen "${file.name}" supera los 4 MB.`;
           input.value = '';
@@ -142,17 +152,39 @@
         }
       }
 
-      archivosAcumulados = archivosAcumulados.concat(files);
+      // Acumular evitando duplicados
+      nuevos.forEach(f => {
+        const existe = archivosAcumulados.some(a =>
+          a.name === f.name && a.size === f.size && a.lastModified === f.lastModified
+        );
+        if (!existe) archivosAcumulados.push(f);
+      });
+
+      syncInputWithAccumulated();
       renderPreview();
     });
 
     clearBtn.addEventListener('click', () => {
       archivosAcumulados = [];
-      preview.innerHTML = '';
-      input.value = '';
+      syncInputWithAccumulated();
+      renderPreview();
     });
 
+    function syncInputWithAccumulated() {
+      const dt = new DataTransfer();
+      archivosAcumulados.forEach(file => dt.items.add(file));
+      input.files = dt.files; // el formulario enviará todos los acumulados
+    }
+
     function renderPreview() {
+      // Mostrar meta info
+      const totalBytes = archivosAcumulados.reduce((sum, f) => sum + f.size, 0);
+      const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
+      meta.textContent = archivosAcumulados.length
+        ? `${archivosAcumulados.length} archivo(s) — ${totalMB} MB`
+        : '';
+
+      // Render miniaturas
       preview.innerHTML = '';
       archivosAcumulados.forEach((file, index) => {
         const reader = new FileReader();
@@ -168,6 +200,7 @@
           removeBtn.textContent = '✖';
           removeBtn.onclick = () => {
             archivosAcumulados.splice(index, 1);
+            syncInputWithAccumulated();
             renderPreview();
           };
 
@@ -181,3 +214,4 @@
   </script>
 </body>
 </html>
+
