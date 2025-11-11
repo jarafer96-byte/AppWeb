@@ -582,8 +582,11 @@ def step1():
         else:
             session['logo'] = None
 
+        print("🧪 En step1, imágenes en sesión:", session.get('imagenes_step0'))  # ✅ acá
         return redirect('/estilo')
+
     return render_template('step1.html')
+
 
 
 @app.route('/estilo', methods=['GET', 'POST'])
