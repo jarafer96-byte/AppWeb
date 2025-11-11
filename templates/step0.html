@@ -2,102 +2,52 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Configurá tu catálogo</title>
+  <title>Step 0 - Subir imágenes</title>
   <style>
-    body {
-      background: linear-gradient(135deg, #000, #1a1a1a);
-      color: white;
-      font-family: sans-serif;
-      padding: 40px;
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .form-control {
-      background-color: rgba(255,255,255,0.05);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px;
-      width: 100%;
-    }
-
-    .form-control::placeholder {
-      color: #aaa;
-    }
-
-    .btn-gradient {
-      background: linear-gradient(135deg, #8e2de2, #ff6f61);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 50px;
-      font-weight: bold;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      cursor: pointer;
-    }
-
-    .btn-gradient:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(255,255,255,0.5);
-    }
-
-    .mensaje-final {
-      margin-top: 30px;
-      font-style: italic;
-      text-align: center;
-      color: #ccc;
-    }
-
-    .mensaje-final span {
-      display: block;
-      margin-top: 10px;
-      color: #ffcc00;
-      font-weight: bold;
-    }
-
-    .preview-imagenes {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 20px;
-      justify-content: center;
-    }
-
-    .preview-imagenes img {
-      width: 120px;
-      height: 80px;
-      object-fit: contain;
-      border: 1px solid #555;
-      border-radius: 6px;
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    .preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .preview img { width: 150px; height: auto; border: 1px solid #ccc; border-radius: 4px; }
+    .error { color: red; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h2>Subí las imágenes de tu catálogo</h2>
+  <h2>Subí tus imágenes (máx. 4 MB cada una)</h2>
 
-  <form method="POST" enctype="multipart/form-data">
-    <input type="file" name="imagenes" multiple accept="image/*" class="form-control mb-3" placeholder="Seleccioná tus imágenes">
-    <div class="text-center">
-      <button type="submit" class="btn-gradient">Procesar imágenes</button>
-    </div>
+  <form method="POST" action="/step0" enctype="multipart/form-data">
+    <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
+    <button type="submit">Subir y continuar</button>
   </form>
 
-  {% if imagenes %}
-    <div class="preview-imagenes">
-      {% for img in imagenes %}
-        <img src="{{ img }}" alt="Imagen subida">
-      {% endfor %}
-    </div>
-  {% endif %}
+  <div class="error" id="error"></div>
+  <div class="preview" id="preview"></div>
 
-  <div class="mensaje-final">
-    ¿Tenés muchas imágenes? <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
-    <span>⚠️ Las imágenes serán redimensionadas automáticamente para optimizar tu sitio.</span>
-  </div>
+  <script>
+    const input = document.getElementById('imagenes');
+    const preview = document.getElementById('preview');
+    const error = document.getElementById('error');
+
+    input.addEventListener('change', () => {
+      preview.innerHTML = '';
+      error.textContent = '';
+      const files = input.files;
+
+      for (let file of files) {
+        if (file.size > 4 * 1024 * 1024) {
+          error.textContent = `La imagen "${file.name}" supera los 4 MB.`;
+          input.value = '';
+          preview.innerHTML = '';
+          break;
+        }
+
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>
 </body>
 </html>
