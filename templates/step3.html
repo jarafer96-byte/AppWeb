@@ -221,7 +221,34 @@ function eliminarProducto(boton) {
   actualizarContador(grupo);
 }
 
-    
+    function confirmarImagen() {
+  // obtener la imagen activa del carrusel
+  const activa = document.querySelector('#carouselGlobal .carousel-item.active img');
+  
+  if (activa && filaActual) {
+    // guardar la URL en el hidden de la fila
+    const hiddenInput = filaActual.querySelector('input[name="imagen_elegida"]');
+    hiddenInput.value = activa.src;
+
+    // mostrar preview en la fila
+    let preview = filaActual.querySelector('.preview-imagen');
+    if (!preview) {
+      preview = document.createElement('div');
+      preview.className = 'preview-imagen mt-2';
+      filaActual.querySelector('.col-2.text-end').prepend(preview);
+    }
+    preview.innerHTML = `
+      <img src="${activa.src}" 
+           style="width:80px; height:60px; object-fit:contain; border:1px solid #ccc; border-radius:4px;"
+           onerror="this.src='/static/img/fallback.webp';">
+    `;
+  }
+
+  // cerrar modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
+  modal.hide();
+}
+
     function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
   if (!nombre) return alert("Ingresá un nombre para el grupo");
@@ -350,6 +377,7 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
       <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
       <input type="hidden" name="orden" value="${contadorOrden++}">
       <input type="hidden" name="imagen_elegida" value="">
+      <div class="preview-imagen mb-2"></div>
       <button type="button" class="btn btn-sm btn-gradient px-2 py-1" onclick="abrirCarrusel(this)">Elegir imagen</button>
       <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
     </div>
