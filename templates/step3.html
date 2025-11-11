@@ -141,10 +141,20 @@ label.btn-imagen {
   object-fit: contain;
   cursor: pointer;
 }
-.carousel-control-prev,
+.carousel-control-prev {
+  left: -40px;       /* lo corre hacia afuera del carrusel */
+  width: 40px;       /* achica el área clickeable */
+  height: 100px;     /* limita la altura para que no tape verticalmente */
+  top: 50%;          /* lo centra verticalmente */
+  transform: translateY(-50%);
+}
+
 .carousel-control-next {
-  width: 6%;
-  z-index: 10;
+  right: -40px;      /* lo corre hacia afuera del carrusel */
+  width: 40px;
+  height: 100px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .carousel-control-prev-icon,
