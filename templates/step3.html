@@ -133,6 +133,17 @@ label.btn-imagen {
   object-fit: contain;
   cursor: pointer;
 }
+.carousel-control-prev,
+.carousel-control-next {
+  width: 6%;
+  z-index: 10;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  background-size: 80% 80%;
+  filter: drop-shadow(0 0 2px #000);
+}
 
     .imagen-carrusel {
       max-height: 100px;
@@ -206,38 +217,40 @@ label.btn-imagen {
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
-          <div class="carousel-inner">
-            {% for img in imagenes_step0 %}
-              {% if loop.index0 % 8 == 0 %}
-                <div class="carousel-item {% if loop.first %}active{% endif %}">
-                  <div class="row row-cols-4 gx-2 gy-2">
-              {% endif %}
+        <div style="padding: 0 40px;">
+          <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+              {% for img in imagenes_step0 %}
+                {% if loop.index0 % 8 == 0 %}
+                  <div class="carousel-item {% if loop.first %}active{% endif %}">
+                    <div class="row row-cols-4 gx-2 gy-2">
+                {% endif %}
 
-                    <div class="col">
-                      <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ img }}"
-                           class="img-fluid rounded imagen-carrusel"
-                           alt="Imagen {{ loop.index }}"
-                           onclick="seleccionarImagen(this)"
-                           onerror="this.src='/static/img/fallback.webp';">
+                      <div class="col">
+                        <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ img }}"
+                             class="img-fluid rounded imagen-carrusel"
+                             alt="Imagen {{ loop.index }}"
+                             onclick="seleccionarImagen(this)"
+                             onerror="this.src='/static/img/fallback.webp';">
+                      </div>
+
+                {% if loop.index0 % 8 == 7 or loop.last %}
+                    {% set faltantes = 8 - (loop.index0 % 8 + 1) %}
+                    {% for i in range(faltantes) %}
+                      <div class="col invisible"></div>
+                    {% endfor %}
                     </div>
-
-              {% if loop.index0 % 8 == 7 or loop.last %}
-                  {% set faltantes = 8 - (loop.index0 % 8 + 1) %}
-                  {% for i in range(faltantes) %}
-                    <div class="col invisible"></div>
-                  {% endfor %}
                   </div>
-                </div>
-              {% endif %}
-            {% endfor %}
+                {% endif %}
+              {% endfor %}
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselGlobal" data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+            </button>
           </div>
-          <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon"></span>
-          </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#carouselGlobal" data-bs-slide="next">
-            <span class="carousel-control-next-icon"></span>
-          </button>
         </div>
       </div>
       <div class="modal-footer">
@@ -246,6 +259,7 @@ label.btn-imagen {
     </div>
   </div>
 </div>
+
 
 
 
