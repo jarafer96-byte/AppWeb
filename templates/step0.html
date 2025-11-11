@@ -4,10 +4,76 @@
   <meta charset="UTF-8">
   <title>Step 0 - Subir imágenes</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-    .preview img { width: 150px; height: auto; border: 1px solid #ccc; border-radius: 4px; }
-    .error { color: red; margin-top: 10px; }
+    body {
+      background-color: #000;
+      color: white;
+      font-family: 'Raleway', sans-serif;
+      padding: 40px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    form {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input[type="file"] {
+      margin-bottom: 10px;
+      color: white;
+    }
+
+    button {
+      background: linear-gradient(135deg, #ff0080, #7928ca);
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .error {
+      color: #ff4d4d;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .preview, .preview-subidas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .preview img, .preview-subidas img {
+      width: 150px;
+      height: auto;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      object-fit: contain;
+      background-color: #111;
+    }
+
+    .preview-subidas {
+      border-top: 1px solid #444;
+      padding-top: 20px;
+    }
+
+    .preview-subidas h4 {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 10px;
+      color: #ccc;
+    }
   </style>
 </head>
 <body>
@@ -15,11 +81,23 @@
 
   <form method="POST" action="/step0" enctype="multipart/form-data">
     <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
+    <br>
     <button type="submit">Subir y continuar</button>
   </form>
 
   <div class="error" id="error"></div>
   <div class="preview" id="preview"></div>
+
+  {% if imagenes_step0 %}
+    <div class="preview-subidas">
+      <h4>Imágenes ya subidas</h4>
+      {% for img in imagenes_step0 %}
+        <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ img }}"
+             alt="Imagen subida"
+             onerror="this.src='/static/img/fallback.webp';">
+      {% endfor %}
+    </div>
+  {% endif %}
 
   <script>
     const input = document.getElementById('imagenes');
