@@ -255,7 +255,7 @@ def redimensionar_y_subir(imagen, email):
         pil = pil.convert("RGB")
         pil.thumbnail((300, 300))
 
-        buffer = io.BytesIO()
+        buffer = BytesIO()
         pil.save(buffer, format='WEBP')
         buffer.seek(0)
 
