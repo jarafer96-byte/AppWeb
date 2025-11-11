@@ -270,7 +270,7 @@ def redimensionar_y_subir(imagen, email):
         print(f"❌ Error al subir {imagen.filename}: {e}")
         return None
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/step0', methods=['GET', 'POST'])
 def step0():
     if request.method == 'POST':
         email = session.get('email', 'anonimo')
@@ -298,7 +298,7 @@ def step0():
 
         session['imagenes_step0'].extend(urls)
         print(f"🧠 Total acumulado en sesión: {len(session['imagenes_step0'])}")
-        return redirect('/step1')
+        return redirect('/estilo')
 
     return render_template('step0.html')
 
@@ -552,7 +552,7 @@ def actualizar_firestore():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-@app.route('/step1', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
 def step1():
     limpiar_imagenes_usuario()  # ✅ ahora preserva las imágenes
 
@@ -584,7 +584,7 @@ def step1():
             session['logo'] = None
 
         print("🧪 En step1, imágenes en sesión:", session.get('imagenes_step0'))  # ✅ validación
-        return redirect('/estilo')
+        return redirect('/step0')
 
     return render_template('step1.html')
 
