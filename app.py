@@ -31,8 +31,13 @@ except Exception as e:
 # Cliente Firestore con acceso total
 db = firestore.client()
 
-s3 = boto3.client('s3', aws_access_key_id=..., aws_secret_access_key=..., region_name='us-east-1')
-BUCKET_NAME = 'tu-bucket'
+s3 = boto3.client(
+    's3',
+    endpoint_url='https://s3.us-west-004.backblazeb2.com',
+    aws_access_key_id=os.getenv('ACCESS_KEY'),
+    aws_secret_access_key=os.getenv('SECRET_KEY')
+)
+BUCKET = 'imagenes-appweb'
 
 # GitHub y Flask config
 token = os.getenv("GITHUB_TOKEN")
@@ -241,6 +246,46 @@ def limpiar_imagenes_usuario():
                 print(f"Imagen eliminada: {nombre}")
         except Exception as e:
             print(f"Error al eliminar {nombre}: {e}")
+
+
+def redimensionar_y_subir(imagen, email):
+    try:
+        pil = Image.open(imagen)
+        pil = pil.convert("RGB")
+        pil.thumbnail((300, 300))
+
+        buffer = io.BytesIO()
+        pil.save(buffer, format='WEBP')
+        buffer.seek(0)
+
+        nombre = f"mini_{uuid.uuid4().hex}.webp"
+        ruta_s3 = f"usuarios/{email}/{nombre}"
+
+        s3.upload_fileobj(buffer, BUCKET, ruta_s3, ExtraArgs={'ContentType': 'image/webp'})
+        return f"https://{BUCKET}.s3.us-west-004.backblazeb2.com/{ruta_s3}"
+    except Exception as e:
+        print(f"Error al subir {imagen.filename}: {e}")
+        return None
+
+@app.route('/step0', methods=['GET', 'POST'])
+def step0():
+    if request.method == 'POST':
+        email = session.get('email', 'anonimo')
+        imagenes = request.files.getlist('imagenes')
+        urls = []
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(redimensionar_y_subir, img, email) for img in imagenes if img and img.filename]
+            for f in futures:
+                url = f.result()
+                if url:
+                    urls.append(url)
+
+        session['imagenes_step0'] = urls
+        return redirect('/step3')
+
+    return render_template('step0.html')
+
 
 @app.route("/test-firestore")
 def test_firestore():
