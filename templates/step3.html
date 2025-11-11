@@ -16,6 +16,12 @@
       color: white;
     }
 
+    .selector-imagenes label input[type="radio"]:checked + img {
+      border: 2px solid #ff6f61;
+      box-shadow: 0 0 5px #ff6f61;
+      border-radius: 6px;
+    }
+
     .form-control {
       background-color: rgba(255,255,255,0.05);
       color: white;
@@ -362,23 +368,26 @@ function eliminarSubgrupo(btn) {
   let imagenesInvalidas = false;
 
   grupos.forEach(grupo => {
-    const filas = grupo.querySelectorAll('.row');
-    filas.forEach(fila => {
-      const nombre = fila.querySelector('input[name="nombre"]');
-      const precio = fila.querySelector('input[name="precio"]');
-      const labelImagen = fila.querySelector('label.btn-imagen');
-      const inputImagen = labelImagen.querySelector('input[type="file"]');
+  const filas = grupo.querySelectorAll('.row');
+  filas.forEach(fila => {
+    const nombre = fila.querySelector('input[name="nombre"]');
+    const precio = fila.querySelector('input[name="precio"]');
+    const imagenSeleccionada = fila.querySelector('input[type="radio"]:checked');
 
-      if (nombre && precio && nombre.value.trim() && precio.value.trim()) {
-        hayContenidoValido = true;
-      }
+    const nombreValido = nombre && nombre.value.trim();
+    const precioValido = precio && precio.value.trim();
+    const imagenValida = imagenSeleccionada !== null;
 
-      // Verificar si hay imagen cargada pero no válida (sin clase 'cargado')
-      if (inputImagen.files.length > 0 && !labelImagen.classList.contains('cargado')) {
-        imagenesInvalidas = true;
-      }
-    });
+    if (nombreValido && precioValido && imagenValida) {
+      hayContenidoValido = true;
+    }
+
+    if ((nombreValido || precioValido) && !imagenValida) {
+      imagenesInvalidas = true;
+    }
   });
+});
+
 
   if (!hayContenidoValido) {
     alert('Completá al menos una fila con nombre y precio antes de continuar');
