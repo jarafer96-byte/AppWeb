@@ -267,7 +267,7 @@ def redimensionar_y_subir(imagen, email):
         print(f"Error al subir {imagen.filename}: {e}")
         return None
 
-@app.route('/step0', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
 def step0():
     if request.method == 'POST':
         email = session.get('email', 'anonimo')
@@ -535,7 +535,7 @@ def actualizar_firestore():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/step1', methods=['GET', 'POST'])
 def step1():
     limpiar_imagenes_usuario()
     if request.method == 'POST':
