@@ -653,9 +653,16 @@ def step2():
 def step3():
     tipo = session.get('tipo_web')
     email = session.get('email')
-    imagenes_disponibles = session.get('imagenes_step0') or []
+    imagenes_session = session.get('imagenes_step0') or []
 
-    print(f"🧠 Imágenes disponibles en sesión: {imagenes_disponibles}")
+    # 🔧 Normalizar las rutas a URLs completas para el carrusel
+    imagenes_disponibles = [
+        f"https://f005.backblazeb2.com/file/imagenes-appweb/{img}"
+        for img in imagenes_session
+    ]
+
+    print(f"🧠 Imágenes disponibles en sesión (raw): {imagenes_session}")
+    print(f"🧠 Imágenes normalizadas para render: {imagenes_disponibles}")
 
     if not email:
         print("❌ Sesión no válida")
@@ -764,11 +771,10 @@ def step3():
         else:
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
+    # GET
     print("🧪 tipo:", tipo)
     print("🧪 imagenes_step0 en render:", imagenes_disponibles)
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
-
-
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
