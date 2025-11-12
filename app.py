@@ -774,6 +774,9 @@ def step3():
     # GET
     print("🧪 tipo:", tipo)
     print("🧪 imagenes_step0 en render:", imagenes_disponibles)
+    for idx, img in enumerate(imagenes_disponibles, start=1):
+        print(f"🔎 Imagen {idx} enviada al template: {img}")
+
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
 @app.route('/pagar', methods=['POST'])
