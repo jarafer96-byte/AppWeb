@@ -712,7 +712,7 @@ def step3():
                 continue
 
             # ✅ Backblaze: usar URL directa
-            url_backblaze = f"https://f005.backblazeb2.com/file/imagenes-appweb/{imagen}"
+            url_backblaze = f"https://f005.backblazeb2.com/file/imagenes-appweb/{imagen.strip()}"
 
             # ✅ GitHub: usar copia en /tmp
             ruta_tmp = os.path.join("/tmp", os.path.basename(imagen))
