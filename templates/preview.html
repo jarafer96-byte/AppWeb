@@ -751,9 +751,6 @@
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
-import { onSnapshot, collection } from "firebase/firestore";
-import { db } from "./firebase-config.js"; // tu inicialización
-
 window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
   const panelGrupos = document.getElementById('panelGrupos');
@@ -761,22 +758,25 @@ window.onload = function() {
   panelGrupos.classList.add('oculta');
 
   // 🔄 Suscripción en vivo a productos
-  onSnapshot(collection(db, "productos"), (snapshot) => {
-    const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log("📦 Productos recibidos en vivo:", productos);
+  if (window.db) {
+    window.onSnapshot(window.collection(window.db, "productos"), (snapshot) => {
+      const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log("📦 Productos recibidos en vivo:", productos);
 
-    // ⚠️ No llamamos a renderizarProductos, porque Jinja ya los muestra.
-    // Si querés refrescar precios/talles en DOM:
-    productos.forEach(p => {
-      const precioSpan = document.getElementById("precio_" + p.id_base);
-      if (precioSpan) precioSpan.textContent = p.precio;
+      productos.forEach(p => {
+        const precioSpan = document.getElementById("precio_" + p.id_base);
+        if (precioSpan) {
+          const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          precioSpan.textContent = fmt.format(p.precio);
+        }
 
-      const talleSelect = document.getElementById("talle_" + p.id_base);
-      if (talleSelect && p.talles) {
-        talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
-      }
+        const talleSelect = document.getElementById("talle_" + p.id_base);
+        if (talleSelect && p.talles) {
+          talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
+        }
+      });
     });
-  });
+  }
 
   // 🔁 Inicializar vista con primer grupo/subgrupo
   const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
@@ -794,9 +794,6 @@ window.onload = function() {
     const carritoDiv = document.getElementById('carrito');
     carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
   };
-};
-
-
 
 
     let carrito = [];
@@ -1278,15 +1275,8 @@ function actualizarCarrito() {
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
   const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
 
-  import {
-    initializeApp
-  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    getDocs,
-    onSnapshot
-  } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "{{ firebase_config.apiKey }}",
@@ -1300,8 +1290,26 @@ function actualizarCarrito() {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
     
+  // 🔄 Suscripción en vivo a productos
+  onSnapshot(collection(db, "productos"), (snapshot) => {
+    const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log("📦 Productos recibidos en vivo:", productos);
 
-  // Activar primer grupo y subgrupo
+    productos.forEach(p => {
+      const precioSpan = document.getElementById("precio_" + p.id_base);
+      if (precioSpan) {
+        const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        precioSpan.textContent = fmt.format(p.precio);
+      }
+
+      const talleSelect = document.getElementById("talle_" + p.id_base);
+      if (talleSelect && p.talles) {
+        talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
+      }
+    });
+  });
+
+  // 🔁 Activar primer grupo y subgrupo
   setTimeout(() => {
     const grupoKeys = Object.keys(grupos);
     if (grupoKeys.length === 0) return;
@@ -1314,67 +1322,64 @@ function actualizarCarrito() {
     const primerSubgrupoNombre = subgrupos[0]?.trim().toLowerCase();
 
     if (primerGrupoId && primerSubgrupoNombre) {
-      filtrarSubcategoria(grupoKeys[0], subgrupos[0]); // se puede blindar también si querés
+      filtrarSubcategoria(grupoKeys[0], subgrupos[0]); // 👈 blindado también
     }
   }, 100);
-}
 
+  // 🛒 Cerrar carrito al hacer clic fuera
   document.addEventListener('click', function(event) {
-  const carritoDiv = document.getElementById('carrito');
-  const toggleBtn = document.getElementById('toggleCarrito');
+    const carritoDiv = document.getElementById('carrito');
+    const toggleBtn = document.getElementById('toggleCarrito');
 
-  // Si el carrito está visible y el clic fue fuera del carrito y del botón
-  if (
-    carritoDiv.style.display === 'block' &&
-    !carritoDiv.contains(event.target) &&
-    !toggleBtn.contains(event.target)
-  ) {
-    carritoDiv.style.display = 'none';
-  }
-});
-
-  document.getElementById("ordenPrecio")?.addEventListener("change", () => {
-    if (window._gruposProductos) {
-      renderizarProductos(window._gruposProductos);
+    if (
+      carritoDiv.style.display === 'block' &&
+      !carritoDiv.contains(event.target) &&
+      !toggleBtn.contains(event.target)
+    ) {
+      carritoDiv.style.display = 'none';
     }
   });
-  document.addEventListener('click', function(event) {
-  const panelGrupos = document.getElementById('panelGrupos');
-  const panelSub = document.getElementById('panelSubcategorias');
 
-  const esClickDentroGrupos = panelGrupos.contains(event.target);
-  const esClickDentroSub = panelSub.contains(event.target);
-  const esBotonGrupo = event.target.classList.contains('btn-grupo');
-  const esBotonNavegacion = event.target.closest('.barra-navegacion');
+  // 🔄 Ordenar productos por precio
+  document.getElementById('ordenPrecio')?.addEventListener('change', function () {
+    const orden = this.value;
+    const grupoActivo = document.querySelector('.grupo-section.active');
+    if (!grupoActivo) return;
 
-  // Si el clic no fue dentro de los paneles ni en botones de grupo o navegación
-  if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
-    panelGrupos.classList.add('oculta');
-    panelSub.classList.add('oculta');
-  }
-});
-  document.getElementById('ordenPrecio').addEventListener('change', function () {
-  const orden = this.value;
-  const grupoActivo = document.querySelector('.grupo-section.active');
-  if (!grupoActivo) return;
+    const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
+    bloques.forEach(bloque => {
+      const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
+      const contenedor = bloque.querySelector('.row');
+      if (!contenedor) return;
 
-  const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
-  bloques.forEach(bloque => {
-    const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
-    const contenedor = bloque.querySelector('.row');
-    if (!contenedor) return;
+      productos.sort((a, b) => {
+        const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent) || 0;
+        const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent) || 0;
+        return orden === 'asc' ? precioA - precioB : precioB - precioA;
+      });
 
-    productos.sort((a, b) => {
-      const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent) || 0;
-      const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent) || 0;
-      return orden === 'asc' ? precioA - precioB : precioB - precioA;
+      contenedor.innerHTML = '';
+      productos.forEach(p => contenedor.appendChild(p));
     });
-
-    contenedor.innerHTML = '';
-    productos.forEach(p => contenedor.appendChild(p));
   });
-});
-   console.log("🧪 modoAdmin:", {{ modoAdmin|tojson }});
+
+  // 🔄 Ocultar paneles al hacer clic fuera
+  document.addEventListener('click', function(event) {
+    const panelGrupos = document.getElementById('panelGrupos');
+    const panelSub = document.getElementById('panelSubcategorias');
+
+    const esClickDentroGrupos = panelGrupos.contains(event.target);
+    const esClickDentroSub = panelSub.contains(event.target);
+    const esBotonGrupo = event.target.classList.contains('btn-grupo');
+    const esBotonNavegacion = event.target.closest('.barra-navegacion');
+
+    if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
+      panelGrupos.classList.add('oculta');
+      panelSub.classList.add('oculta');
+    }
+  });
+
+  console.log("🧪 modoAdmin:", {{ modoAdmin|tojson }});
   console.log("🧪 modoAdminIntentado:", {{ modoAdminIntentado|tojson }});
 </script>
 </body>
