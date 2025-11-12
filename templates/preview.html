@@ -521,11 +521,10 @@
 
               <div class="card p-3 h-100">
                 <!-- ✅ Imagen con Backblaze + fallback GitHub -->
-                <img src="{{ producto.imagen_backblaze }}"
-                     onerror="this.onerror=null; this.src='{{ producto.imagen_github }}'"
-                     class="card-img-top"
-                     alt="{{ producto.nombre }}"
-                     loading="lazy">
+                <img src="{{ producto.imagen_backblaze or producto.imagen_github or '/static/img/fallback.webp' }}"
+                    class="card-img-top"
+                    alt="{{ producto.nombre }}"
+                    loading="lazy">
 
                 <div class="card-body">
                   {% if modoAdmin %}
