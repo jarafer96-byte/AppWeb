@@ -293,11 +293,26 @@
   }
 
   function seleccionarImagen(img) {
-    document.querySelectorAll('.thumb-wrapper.seleccionada')
-    .forEach(el => el.classList.remove('seleccionada'));
-    img.closest('.thumb-wrapper').classList.add('seleccionada');
-    window.imagenSeleccionada = img.getAttribute("src").split("/").pop();
-  }
+  console.log("🖱️ Imagen clickeada:", img.src);
+
+  // Quitar selección previa
+  document.querySelectorAll('.thumb-wrapper').forEach(wrapper => {
+    wrapper.classList.remove('seleccionada');
+  });
+
+  // Marcar nueva selección
+  const wrapper = img.closest('.thumb-wrapper');
+  wrapper.classList.add('seleccionada');
+
+  // Guardar nombre y URL completa
+  window.imagenSeleccionada = img.src.split("/").pop();
+  window.imagenSeleccionadaUrl = img.src;
+
+  console.log("✅ Imagen seleccionada:", window.imagenSeleccionada);
+  console.log("🔗 URL seleccionada:", window.imagenSeleccionadaUrl);
+  console.log("🎯 Wrapper marcado como seleccionada:", wrapper);
+}
+
 
   function crearGrupo() {
     const nombre = document.getElementById('nombreGrupo').value.trim();
@@ -345,19 +360,26 @@
   filaActual = btn.closest('.fila-producto');
   const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
 
+  // Reset selección visual previa
+  document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
+
+  // Refrescar estado de usadas
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
     const nombre = img.getAttribute("src").split("/").pop();
     if (imagenesUsadas.includes(nombre)) {
       img.style.opacity = "0.3";
+      img.style.filter = "grayscale(100%) brightness(0.6)";
       img.style.pointerEvents = "none";
     } else {
       img.style.opacity = "1";
+      img.style.filter = "none";
       img.style.pointerEvents = "auto";
     }
   });
 
   modal.show();
 }
+
 
 
   function crearSubgrupo(btn) {
@@ -535,7 +557,7 @@ function confirmarImagen() {
     imagenesUsadas.push(hiddenInput.value);
     console.log("📦 Lista de imágenes usadas:", imagenesUsadas);
 
-    // Buscar la imagen en el carrusel por nombre de archivo
+    // Bloquear imagen en carrusel (por nombre de archivo)
     document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
       const nombre = img.getAttribute("src").split("/").pop();
       if (nombre === hiddenInput.value) {
@@ -557,12 +579,13 @@ function confirmarImagen() {
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   if (modal) {
     modal.hide();
-    document.activeElement.blur(); // 🔧 evita warning aria-hidden
+    document.activeElement.blur(); // evita warning aria-hidden
     console.log("🔒 Modal cerrado correctamente.");
   } else {
     console.warn("⚠️ No se encontró instancia del modal.");
   }
 }
+
 
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
