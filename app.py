@@ -684,7 +684,8 @@ def step3():
         subgrupos = request.form.getlist('subgrupo')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
-        imagenes_elegidas = request.form.getlist('imagen_elegida')
+        imagenes_elegidas = request.form.getlist('imagen_elegida')       # URL completa
+        imagenes_basename = request.form.getlist('imagen_basename')      # basename real
 
         longitudes = [len(nombres), len(precios), len(descripciones), len(grupos),
                       len(subgrupos), len(ordenes), len(talles), len(imagenes_elegidas)]
@@ -697,12 +698,14 @@ def step3():
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
 
-            imagen = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
-            if not imagen:
+            imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
+            imagen_base = imagenes_basename[i].strip() if i < len(imagenes_basename) else ''
+
+            if not imagen_url:
                 print(f"⚠️ No se recibió imagen para fila {i+1}, se omite producto")
                 continue
             else:
-                print(f"🖼️ Imagen recibida para fila {i+1}: {imagen}")
+                print(f"🖼️ Imagen recibida para fila {i+1}: {imagen_url} | basename: {imagen_base}")
 
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
@@ -711,11 +714,11 @@ def step3():
                 print(f"⚠️ Campos incompletos en fila {i+1}, se omite producto")
                 continue
 
-            # ✅ Backblaze: usar URL directa
-            url_backblaze = f"https://f005.backblazeb2.com/file/imagenes-appweb/{imagen.strip()}"
+            # ✅ Backblaze: usar URL directa (ya viene completa del hidden)
+            url_backblaze = imagen_url
 
-            # ✅ GitHub: usar copia en /tmp
-            ruta_tmp = os.path.join("/tmp", os.path.basename(imagen))
+            # ✅ GitHub: usar copia en /tmp con basename real
+            ruta_tmp = os.path.join("/tmp", imagen_base)
             if os.path.exists(ruta_tmp):
                 try:
                     with open(ruta_tmp, "rb") as f:
@@ -723,13 +726,13 @@ def step3():
                     resultado_github = subir_archivo(
                         "AppWeb",
                         contenido_bytes,
-                        f"static/img/{os.path.basename(imagen)}",
+                        f"static/img/{imagen_base}",
                         GITHUB_TOKEN
                     )
-                    url_github = f"/static/img/{os.path.basename(imagen)}" if resultado_github.get("ok") else ""
+                    url_github = f"/static/img/{imagen_base}" if resultado_github.get("ok") else ""
                     print(f"🌐 URL GitHub generada: {url_github}")
                 except Exception as e:
-                    print(f"❌ Error al subir a GitHub {imagen}: {e}")
+                    print(f"❌ Error al subir a GitHub {imagen_base}: {e}")
                     url_github = ""
             else:
                 print(f"⚠️ No existe en tmp: {ruta_tmp}")
@@ -784,6 +787,7 @@ def step3():
         print(f"🔎 Imagen {idx} enviada al template: {img}")
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 
 
