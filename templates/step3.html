@@ -540,51 +540,51 @@ function seleccionarImagen(img) {
 
 
 function confirmarImagen() {
+  console.log("🚀 Entrando a confirmarImagen()");
+  console.log("👉 Estado actual:", {
+    seleccionada: window.imagenSeleccionada,
+    seleccionadaUrl: window.imagenSeleccionadaUrl,
+    filaActual: filaActual
+  });
+
+  if (!window.imagenSeleccionada) {
+    console.error("❌ No hay imagenSeleccionada definida");
+  }
+  if (!window.imagenSeleccionadaUrl) {
+    console.error("❌ No hay imagenSeleccionadaUrl definida");
+  }
+  if (!filaActual) {
+    console.error("❌ No hay filaActual definida");
+  }
+
   if (window.imagenSeleccionada && window.imagenSeleccionadaUrl && filaActual) {
-    console.log("✅ Confirmando imagen:", window.imagenSeleccionada, "para fila:", filaActual);
-
     const hiddenInput = filaActual.querySelector("input[name='imagen_elegida']");
-    hiddenInput.value = window.imagenSeleccionada;
-    console.log("📥 Hidden input actualizado con:", hiddenInput.value);
+    if (!hiddenInput) {
+      console.error("❌ No se encontró hiddenInput en la fila");
+    } else {
+      hiddenInput.value = window.imagenSeleccionada;
+      console.log("📥 Hidden input actualizado con:", hiddenInput.value);
+    }
 
-    // Mostrar miniatura en la fila con la URL completa
     const preview = filaActual.querySelector(".preview-imagen");
-    preview.innerHTML =
-      `<img src="${window.imagenSeleccionadaUrl}" style="width:80px;height:60px;">`;
-    console.log("🖼️ Miniatura renderizada en fila:", preview.innerHTML);
-
-    // Registrar imagen como usada
-    imagenesUsadas.push(hiddenInput.value);
-    console.log("📦 Lista de imágenes usadas:", imagenesUsadas);
-
-    // Bloquear imagen en carrusel (por nombre de archivo)
-    document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-      const nombre = img.getAttribute("src").split("/").pop();
-      if (nombre === hiddenInput.value) {
-        console.log("🚫 Marcando imagen como usada en carrusel:", nombre);
-        img.classList.add("usada");
-        img.style.opacity = "0.3";
-        img.style.filter = "grayscale(100%) brightness(0.6)";
-        img.style.pointerEvents = "none";
-      }
-    });
-
-    window.imagenSeleccionada = null;
-    window.imagenSeleccionadaUrl = null;
-    console.log("♻️ Reset de imagenSeleccionada →", window.imagenSeleccionada);
-  } else {
-    console.warn("⚠️ No hay imagen seleccionada o filaActual no está definida.");
+    if (!preview) {
+      console.error("❌ No se encontró contenedor .preview-imagen en la fila");
+    } else {
+      preview.innerHTML =
+        `<img src="${window.imagenSeleccionadaUrl}" style="width:80px;height:60px;" 
+              onerror="console.error('❌ Error cargando miniatura:', this.src)">`;
+      console.log("🖼️ Miniatura renderizada en fila:", preview.innerHTML);
+    }
   }
 
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   if (modal) {
     modal.hide();
-    document.activeElement.blur(); // evita warning aria-hidden
+    document.activeElement.blur();
     console.log("🔒 Modal cerrado correctamente.");
-  } else {
-    console.warn("⚠️ No se encontró instancia del modal.");
   }
 }
+
 
 
 function validarYEnviar() {
