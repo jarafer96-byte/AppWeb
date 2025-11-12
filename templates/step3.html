@@ -142,9 +142,9 @@
     box-shadow: 0 0 5px #ff6f61;
   }
   .imagen-carrusel.usada {
-    opacity: 0.4;
-    filter: grayscale(100%);
-    pointer-events: none; /* no se puede volver a seleccionar */
+    opacity: 0.25;              /* más oscura (antes 0.4) */
+    filter: grayscale(100%) brightness(0.6); /* escala de grises + menos brillo */
+    pointer-events: none;
   }
 
   .col.invisible {
@@ -465,22 +465,27 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
     <div class="col-2">
       <input type="text" name="precio" class="form-control form-control-sm" style="width: 80px;" placeholder="$">
     </div>
+    <!-- 🔄 Talles más a la izquierda -->
     <div class="col-2">
-      <input type="text" name="talles" class="form-control form-control-sm" style="width: 200px;" placeholder="(Opcional) S,M,L,XL">
+      <input type="text" name="talles" class="form-control form-control-sm" style="width: 160px;" placeholder="(Opcional) S,M,L,XL">
     </div>
-    <div class="col-2 text-end">
+    <!-- 🔄 Miniatura alineada con los botones -->
+    <div class="col-2">
+      <div class="d-flex align-items-center justify-content-end gap-2">
+        <div class="preview-imagen" style="width:80px;height:60px;"></div>
+        <button type="button" class="btn btn-sm btn-gradient px-2 py-1" onclick="abrirCarrusel(this)">Elegir imagen</button>
+        <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
+      </div>
       <input type="hidden" name="grupo" value="${nombreGrupo}">
       <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
       <input type="hidden" name="orden" value="${contadorOrden++}">
       <input type="hidden" name="imagen_elegida" value="">
-      <div class="preview-imagen mb-2"></div>
-      <button type="button" class="btn btn-sm btn-gradient px-2 py-1" onclick="abrirCarrusel(this)">Elegir imagen</button>
-      <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
     </div>
   `;
 
   return fila;
 }
+
 
     function agregarFila(btn) {
   const subgrupo = btn.closest('.subgrupo');
