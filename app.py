@@ -126,10 +126,6 @@ def subir_a_firestore(producto, email):
         print(f"❌ Error al subir {nombre_original}:", e)
         return False
 
-
-
-
-
 # ✅ Compresión y redimensionado
 def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad=80):
     try:
@@ -188,7 +184,6 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
     except Exception as e:
         print(f"❌ Error inesperado al subir {ruta_remota}: {e}")
         return {"ok": False, "error": str(e)}
-
 
 
 def subir_iconos_png(repo, token):
@@ -885,8 +880,8 @@ def preview():
         'usarFirestore': False
     }
 
-    # ✅ Crear repo si no existe
-    if not session.get('repo_creado'):
+    # ✅ Crear repo solo si el usuario lo pidió
+    if session.get("crear_repo") and not session.get("repo_creado"):
         nombre_repo = generar_nombre_repo(email)
         print("📦 Intentando crear repo con:", nombre_repo)
         token = os.getenv("GITHUB_TOKEN")
@@ -897,22 +892,13 @@ def preview():
             session['repo_nombre'] = nombre_repo
         else:
             print("⚠️ No se pudo crear el repositorio:", resultado.get("error"))
-
-    # ✅ Crear repo solo si el usuario lo pidió
-if session.get("crear_repo") and not session.get("repo_creado"):
-    nombre_repo = generar_nombre_repo(email)
-    print("📦 Intentando crear repo con:", nombre_repo)
-    token = os.getenv("GITHUB_TOKEN")
-    resultado = crear_repo_github(nombre_repo, token)
-    print("📦 Resultado:", resultado)
-    if "url" in resultado:
-        session['repo_creado'] = resultado["url"]
-        session['repo_nombre'] = nombre_repo
     else:
-        print("⚠️ No se pudo crear el repositorio:", resultado.get("error"))
-else:
-    print("ℹ️ Creación de repo omitida (no solicitada o ya existe).")
+        print("ℹ️ Creación de repo omitida (no solicitada o ya existe).")
 
+    # ✅ Subir archivos si el repo existe
+    if session.get('repo_creado') and session.get('repo_nombre'):
+        nombre_repo = session['repo_nombre']
+        token = os.getenv("GITHUB_TOKEN")
 
         # Subir imágenes de productos
         for producto in productos:
@@ -963,7 +949,6 @@ else:
         modoAdminIntentado=modo_admin_intentado,
         firebase_config=firebase_config   # 👈 agregado
     )
-
 
 @app.route('/descargar')
 def descargar():
