@@ -235,7 +235,7 @@
                                class="imagen-carrusel"
                                alt="Imagen {{ loop.index }}"
                                onclick="seleccionarImagen(this)"
-                               onerror="console.error('❌ Error cargando imagen:', this.src); this.src='/static/img/fallback.webp';">
+                               onerror="this.onerror=null; this.src='/static/img/fallback.webp';">
                         </div>
                       </div>
                       <script>
@@ -264,12 +264,12 @@
         </div>
       </div>
       <div class="modal-footer d-flex justify-content-between">
+        <!-- ✅ Al confirmar, se actualiza el hidden input y la miniatura en la fila -->
         <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
       </div>
     </div>
   </div>
 </div>
-
 
   <script>
   let grupoId = 0;
@@ -292,28 +292,7 @@
     actualizarContador(grupo);
   }
 
-  function seleccionarImagen(img) {
-  console.log("🖱️ Imagen clickeada:", img.src);
-
-  // Quitar selección previa
-  document.querySelectorAll('.thumb-wrapper').forEach(wrapper => {
-    wrapper.classList.remove('seleccionada');
-  });
-
-  // Marcar nueva selección
-  const wrapper = img.closest('.thumb-wrapper');
-  wrapper.classList.add('seleccionada');
-
-  // Guardar nombre y URL completa
-  window.imagenSeleccionada = img.src.split("/").pop();
-  window.imagenSeleccionadaUrl = img.src;
-
-  console.log("✅ Imagen seleccionada:", window.imagenSeleccionada);
-  console.log("🔗 URL seleccionada:", window.imagenSeleccionadaUrl);
-  console.log("🎯 Wrapper marcado como seleccionada:", wrapper);
-}
-
-
+  
   function crearGrupo() {
     const nombre = document.getElementById('nombreGrupo').value.trim();
     if (!nombre) return alert("Ingresá un nombre para el grupo");
@@ -523,8 +502,6 @@ function actualizarContador(contenedor) {
     
 function seleccionarImagen(img) {
   console.log("🚀 Entrando a seleccionarImagen()");
-  console.log("👉 Imagen clickeada src:", img.src);
-
   if (!img) {
     console.error("❌ No se recibió elemento img en la función");
     return;
@@ -548,19 +525,9 @@ function seleccionarImagen(img) {
   window.imagenSeleccionada = img.src.split("/").pop();
   window.imagenSeleccionadaUrl = img.src;
 
-  if (!window.imagenSeleccionada) {
-    console.error("❌ No se pudo extraer nombre de archivo de:", img.src);
-  } else {
-    console.log("✅ Nombre de archivo guardado:", window.imagenSeleccionada);
-  }
-
-  if (!window.imagenSeleccionadaUrl) {
-    console.error("❌ No se guardó la URL completa");
-  } else {
-    console.log("🔗 URL completa guardada:", window.imagenSeleccionadaUrl);
-  }
+  console.log("✅ Nombre de archivo guardado:", window.imagenSeleccionada);
+  console.log("🔗 URL completa guardada:", window.imagenSeleccionadaUrl);
 }
-
 
 
 function confirmarImagen() {
@@ -571,36 +538,34 @@ function confirmarImagen() {
     filaActual: filaActual
   });
 
-  if (!window.imagenSeleccionada) {
-    console.error("❌ No hay imagenSeleccionada definida");
-  }
-  if (!window.imagenSeleccionadaUrl) {
-    console.error("❌ No hay imagenSeleccionadaUrl definida");
-  }
-  if (!filaActual) {
-    console.error("❌ No hay filaActual definida");
+  if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) {
+    console.error("❌ Faltan datos para confirmar imagen");
+    return;
   }
 
-  if (window.imagenSeleccionada && window.imagenSeleccionadaUrl && filaActual) {
-    const hiddenInput = filaActual.querySelector("input[name='imagen_elegida']");
-    if (!hiddenInput) {
-      console.error("❌ No se encontró hiddenInput en la fila");
-    } else {
-      hiddenInput.value = window.imagenSeleccionada;
-      console.log("📥 Hidden input actualizado con:", hiddenInput.value);
-    }
-
-    const preview = filaActual.querySelector(".preview-imagen");
-    if (!preview) {
-      console.error("❌ No se encontró contenedor .preview-imagen en la fila");
-    } else {
-      preview.innerHTML =
-        `<img src="${window.imagenSeleccionadaUrl}" style="width:80px;height:60px;" 
-              onerror="console.error('❌ Error cargando miniatura:', this.src)">`;
-      console.log("🖼️ Miniatura renderizada en fila:", preview.innerHTML);
-    }
+  // Actualizar hidden input en la fila
+  const hiddenInput = filaActual.querySelector("input[name='imagen_elegida']");
+  if (!hiddenInput) {
+    console.error("❌ No se encontró hiddenInput en la fila");
+  } else {
+    hiddenInput.value = window.imagenSeleccionada;
+    console.log("📥 Hidden input actualizado con:", hiddenInput.value);
   }
 
+  // Actualizar miniatura en la fila
+  let preview = filaActual.querySelector(".preview-imagen");
+  if (!preview) {
+    preview = document.createElement("div");
+    preview.className = "preview-imagen mt-2";
+    filaActual.querySelector(".col-2.text-end").prepend(preview);
+  }
+  preview.innerHTML =
+    `<img src="${window.imagenSeleccionadaUrl}" 
+          style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;" 
+          onerror="console.error('❌ Error cargando miniatura:', this.src)">`;
+  console.log("🖼️ Miniatura renderizada en fila:", preview.innerHTML);
+
+  // Cerrar modal
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   if (modal) {
     modal.hide();
@@ -608,7 +573,6 @@ function confirmarImagen() {
     console.log("🔒 Modal cerrado correctamente.");
   }
 }
-
 
 
 function validarYEnviar() {
