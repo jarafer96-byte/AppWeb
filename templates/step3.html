@@ -377,13 +377,8 @@ function confirmarImagen() {
 
   document.getElementById('grupos').appendChild(grupo);
   document.getElementById('nombreGrupo').value = '';
-
-  const contenedor = grupo.querySelector('.productos');
-  const fila = crearFila('General', nombre); // ✅ nombreSubgrupo = 'General', nombreGrupo = nombre
-  contenedor.appendChild(fila);
-
-  actualizarContador(grupo);
 }
+
 
 
 // Función auxiliar para mantener el contador sincronizado
