@@ -116,12 +116,16 @@ def subir_a_firestore(producto, email):
 
         print(f"✅ Producto subido correctamente: {nombre_original} | ID base: {custom_id}")
         print("📄 Documento Firestore:")
-        print(json.dumps(doc, indent=2))
+
+        # ✅ Evitar error de Sentinel en el log
+        log_doc = {k: v for k, v in doc.items() if k != "timestamp"}
+        print(json.dumps(log_doc, indent=2))
 
         return True
     except Exception as e:
         print(f"❌ Error al subir {nombre_original}:", e)
         return False
+
 
 
 
@@ -635,8 +639,6 @@ def step1():
     return render_template('step1.html')
 
 
-
-
 @app.route('/estilo', methods=['GET', 'POST'])
 def step2():
     if request.method == 'POST':
@@ -674,20 +676,9 @@ def step3():
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
 
-        # ✅ Capturar imagen seleccionada por fila
-        imagenes_elegidas = []
-        for i in range(len(nombres)):
-            imagen = request.form.get(f'imagen_elegida_{i+1}') or "fallback.webp"
-            imagenes_elegidas.append(imagen)
-
         longitudes = [len(nombres), len(precios), len(descripciones), len(grupos),
-                      len(subgrupos), len(imagenes_elegidas), len(ordenes)]
-        min_len = min(longitudes)
+                      len(subgrupos), len(ordenes), len(talles)]
         print("🧪 Longitudes:", longitudes)
-
-        if not all(l == min_len for l in longitudes):
-            print("❌ Desalineación en los datos del formulario")
-            return "Error: los campos del formulario están desalineados", 500
 
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
@@ -695,7 +686,14 @@ def step3():
             grupo = grupos[i].strip() or 'Sin grupo'
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
-            imagen = imagenes_elegidas[i].strip()
+
+            # ✅ Capturar imagen seleccionada por fila
+            imagen = request.form.get(f'imagen_elegida_{i+1}')
+            if not imagen:
+                print(f"⚠️ No se recibió imagen para fila {i+1}, usando fallback")
+                imagen = "fallback.webp"
+            else:
+                print(f"🖼️ Imagen recibida para fila {i+1}: {imagen}")
 
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
@@ -705,11 +703,11 @@ def step3():
 
             # 🔄 Subir imagen a Backblaze y GitHub
             try:
-                ruta_tmp = os.path.join("/tmp", imagen)
+                ruta_tmp = os.path.join("/tmp", os.path.basename(imagen))
                 print(f"📂 Verificando archivo en tmp: {ruta_tmp} → {os.path.exists(ruta_tmp)}")
 
                 # Backblaze con boto3
-                url_backblaze = subir_a_backblaze(ruta_tmp, imagen)
+                url_backblaze = subir_a_backblaze(ruta_tmp, os.path.basename(imagen))
                 print(f"🌐 URL Backblaze generada: {url_backblaze}")
 
                 # GitHub
@@ -718,10 +716,10 @@ def step3():
                 resultado_github = subir_archivo(
                     "AppWeb",
                     contenido_bytes,
-                    f"static/img/{imagen}",
+                    f"static/img/{os.path.basename(imagen)}",
                     GITHUB_TOKEN
                 )
-                url_github = f"/static/img/{imagen}" if resultado_github.get("ok") else "fallback.webp"
+                url_github = f"/static/img/{os.path.basename(imagen)}" if resultado_github.get("ok") else "fallback.webp"
                 print(f"🌐 URL GitHub generada: {url_github}")
 
             except Exception as e:
@@ -774,8 +772,6 @@ def step3():
     print("🧪 tipo:", tipo)
     print("🧪 imagenes_step0 en render:", imagenes_disponibles)
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
-
-
 
 
 
