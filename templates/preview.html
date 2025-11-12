@@ -106,10 +106,10 @@
       border: 1px solid rgba(255,255,255,0.2);
     }
     .color-principal {
-      color: None;
+      color: inherit; /* o un color fijo, ej. #ff6f61 */
     }
     .bg-principal {
-      background-color: None;
+      background-color: transparent; /* o un color fijo */
     }
     .modo-oscuro {
       color: white;
@@ -188,7 +188,7 @@
     .logo { 
       height: 10vw; 
       max-height: 380px; 
-      filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px None);
+      filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px White);
       transition: filter 0.3s ease;
       animation: pulsoLogo 4s ease-in-out infinite;
     }
@@ -253,7 +253,7 @@
     }
     .btn-grupo:hover {
       background-color: #fff;
-      color: None;
+      color: #333;
       transform: scale(1.05);
       box-shadow: 0 0 8px None;
     }
@@ -1287,7 +1287,8 @@ function actualizarCarrito() {
       });
     });
   }
-
+    
+  const grupos = {{ grupos|tojson }};
   // Activar primer grupo y subgrupo (con grupos ya serializado)
   setTimeout(() => {
     const grupoKeys = Object.keys(grupos);
