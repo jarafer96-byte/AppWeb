@@ -526,6 +526,15 @@ function confirmarImagen() {
     filaActual.querySelector(".preview-imagen").innerHTML =
       `<img src="https://f005.backblazeb2.com/file/imagenes-appweb/${window.imagenSeleccionada}" style="width:80px;height:60px;">`;
 
+    // 👉 marcar imagen como usada y guardarla en la lista global
+    imagenesUsadas.push(hiddenInput.value);
+    const img = document.querySelector(`#carouselGlobal img[src*="${hiddenInput.value}"]`);
+    if (img) {
+      img.classList.add("usada");
+      img.style.opacity = "0.3";
+      img.style.pointerEvents = "none";
+    }
+
     // limpiar selección global
     window.imagenSeleccionada = null;
   }
@@ -533,6 +542,7 @@ function confirmarImagen() {
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   modal.hide();
 }
+
 
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
