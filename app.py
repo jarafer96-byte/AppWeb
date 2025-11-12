@@ -898,25 +898,21 @@ def preview():
         else:
             print("⚠️ No se pudo crear el repositorio:", resultado.get("error"))
 
-    # ✅ Subir archivos si el repo existe
-    if session.get('repo_creado') and session.get('repo_nombre'):
-        nombre_repo = session['repo_nombre']
-        token = os.getenv("GITHUB_TOKEN")
-        print("📤 Subiendo archivos al repo:", nombre_repo)
-        subir_iconos_png(nombre_repo, token)
+    # ✅ Crear repo solo si el usuario lo pidió
+if session.get("crear_repo") and not session.get("repo_creado"):
+    nombre_repo = generar_nombre_repo(email)
+    print("📦 Intentando crear repo con:", nombre_repo)
+    token = os.getenv("GITHUB_TOKEN")
+    resultado = crear_repo_github(nombre_repo, token)
+    print("📦 Resultado:", resultado)
+    if "url" in resultado:
+        session['repo_creado'] = resultado["url"]
+        session['repo_nombre'] = nombre_repo
+    else:
+        print("⚠️ No se pudo crear el repositorio:", resultado.get("error"))
+else:
+    print("ℹ️ Creación de repo omitida (no solicitada o ya existe).")
 
-        # Subir index.html
-        template = current_app.jinja_env.get_template('preview.html')
-        html = template.render(
-            config=config,
-            grupos=grupos_dict,
-            modoAdmin=modo_admin,
-            modoAdminIntentado=modo_admin_intentado,
-            firebase_config=firebase_config  # 👈 esto es lo que falta
-        )
-
-        subir_archivo(nombre_repo, html.encode("utf-8"), "index.html", token)
-        print("📄 Subido: index.html")
 
         # Subir imágenes de productos
         for producto in productos:
