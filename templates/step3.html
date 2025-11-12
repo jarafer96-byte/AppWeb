@@ -543,16 +543,25 @@ function confirmarImagen() {
     return;
   }
 
-  // Actualizar hidden input en la fila
-  const hiddenInput = filaActual.querySelector("input[name='imagen_elegida']");
-  if (!hiddenInput) {
-    console.error("❌ No se encontró hiddenInput en la fila");
-  } else {
-    hiddenInput.value = window.imagenSeleccionada;
-    console.log("📥 Hidden input actualizado con:", hiddenInput.value);
+  // Hidden input para URL completa (Backblaze)
+  const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
+  if (hiddenUrl) {
+    hiddenUrl.value = window.imagenSeleccionadaUrl;
+    console.log("📥 Hidden URL actualizado con:", hiddenUrl.value);
   }
 
-  // Actualizar miniatura en la fila
+  // Hidden input extra para basename (GitHub)
+  let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
+  if (!hiddenBase) {
+    hiddenBase = document.createElement("input");
+    hiddenBase.type = "hidden";
+    hiddenBase.name = "imagen_basename";
+    filaActual.appendChild(hiddenBase);
+  }
+  hiddenBase.value = window.imagenSeleccionada;
+  console.log("📥 Hidden basename actualizado con:", hiddenBase.value);
+
+  // Actualizar miniatura
   let preview = filaActual.querySelector(".preview-imagen");
   if (!preview) {
     preview = document.createElement("div");
@@ -563,7 +572,6 @@ function confirmarImagen() {
     `<img src="${window.imagenSeleccionadaUrl}" 
           style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;" 
           onerror="console.error('❌ Error cargando miniatura:', this.src)">`;
-  console.log("🖼️ Miniatura renderizada en fila:", preview.innerHTML);
 
   // Cerrar modal
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
