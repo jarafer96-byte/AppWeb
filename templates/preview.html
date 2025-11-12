@@ -751,26 +751,38 @@
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
-    window.onload = function() {
+import { onSnapshot, collection } from "firebase/firestore";
+import { db } from "./firebase-config.js"; // tu inicialización
+
+window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
   const panelGrupos = document.getElementById('panelGrupos');
   panelSubcategorias.classList.add('oculta');
   panelGrupos.classList.add('oculta');
 
-  // 🔄 Cargar productos del usuario actual
-  fetch('/ver-productos')
-    .then(res => res.json())
-    .then(productos => {
-      console.log("📦 Productos recibidos:", productos);
-      renderizarProductos(productos); // esta función debe existir
-    })
-    .catch(err => {
-      console.error("❌ Error al cargar productos:", err);
+  // 🔄 Suscripción en vivo a productos
+  onSnapshot(collection(db, "productos"), (snapshot) => {
+    const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log("📦 Productos recibidos en vivo:", productos);
+
+    // ⚠️ No llamamos a renderizarProductos, porque Jinja ya los muestra.
+    // Si querés refrescar precios/talles en DOM:
+    productos.forEach(p => {
+      const precioSpan = document.getElementById("precio_" + p.id_base);
+      if (precioSpan) precioSpan.textContent = p.precio;
+
+      const talleSelect = document.getElementById("talle_" + p.id_base);
+      if (talleSelect && p.talles) {
+        talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
+      }
     });
+  });
 
   // 🔁 Inicializar vista con primer grupo/subgrupo
   const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
-  const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
+  const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(
+    s => s.toLowerCase() !== 'general'
+  ) || '';
 
   if (primerGrupo && primerSub) {
     mostrarGrupo(primerGrupo, null, true);
@@ -783,6 +795,8 @@
     carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
   };
 };
+
+
 
 
     let carrito = [];
@@ -832,15 +846,15 @@ function editarPrecio(id) {
   input.value = valorActual;
   input.className = "form-control form-control-sm d-inline-block";
   input.style.width = "80px";
-  input.id = "input_precio_" + id;  // ✅ ID único para el input
+  input.id = "input_precio_" + id;
 
-  // ✅ Guardar al salir del input
+  // Guardar al salir del input
   input.onblur = () => {
     console.log("📤 onblur: guardando precio para", id, "con valor:", input.value);
     guardarPrecio(id);
   };
 
-  // ✅ Guardar al presionar Enter
+  // Guardar al presionar Enter
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       console.log("⏎ Enter presionado: guardando precio para", id, "con valor:", input.value);
@@ -851,6 +865,7 @@ function editarPrecio(id) {
   span.replaceWith(input);
   input.focus();
 }
+
   
 function guardarPrecio(id) {
   console.log("🟡 Iniciando guardarPrecio para:", id);
@@ -862,59 +877,44 @@ function guardarPrecio(id) {
   }
 
   const nuevoValor = parseFloat(input.value);
-  console.log("🔍 Valor ingresado:", input.value, "| Parseado:", nuevoValor);
-
   if (isNaN(nuevoValor)) {
-    console.warn("⚠️ Valor ingresado no es un número válido:", input.value);
     alert("❌ El precio ingresado no es válido");
     return;
   }
 
-  console.log("🧪 Precio validado para", id, "→", nuevoValor);
-
-  // ✅ Enviar al backend antes de modificar el DOM
-  console.log("📡 Enviando fetch a /actualizar-precio con:", { id, nuevoPrecio: nuevoValor });
+  console.log("📡 Enviando a Firestore:", { id, nuevoPrecio: nuevoValor });
 
   fetch('/actualizar-precio', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
   })
-    .then(res => {
-      console.log("📬 Respuesta recibida del backend:", res.status);
-      return res.json();
-    })
+    .then(res => res.json())
     .then(data => {
-      console.log("📨 Payload recibido:", data);
       if (data.status === "ok") {
         console.log("✅ Precio confirmado en Firestore para", id);
 
-        // ✅ Actualizar el DOM solo si el backend responde OK
+        // Feedback visual inmediato en DOM
         const span = document.createElement("span");
         span.id = "precio_" + id;
-        const fmt = new Intl.NumberFormat('es-AR');
+        const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         span.textContent = fmt.format(nuevoValor);
-        span.className = input.className;  // hereda estilos del input
-        span.classList.add("text-success");  // feedback visual
+        span.className = input.className;
+        span.classList.add("text-success");
         input.replaceWith(span);
         setTimeout(() => span.classList.remove("text-success"), 1000);
 
-        if (typeof mostrarAvisoPrecio === "function") {
-          console.log("🔔 Ejecutando mostrarAvisoPrecio()");
-          mostrarAvisoPrecio();
-        }
+        if (typeof mostrarAvisoPrecio === "function") mostrarAvisoPrecio();
       } else {
-        console.warn("❌ Error en respuesta del backend:", data);
-        input.classList.add("is-invalid");
         alert("❌ No se pudo actualizar el precio en el servidor");
       }
     })
     .catch(err => {
-      console.error("❌ Error de red al actualizar precio:", err);
-      input.classList.add("is-invalid");
+      console.error("❌ Error de red:", err);
       alert("❌ Error de conexión al guardar el precio");
     });
 }
+
 
 function loginAdmin(event) {
   event.preventDefault();
@@ -968,96 +968,78 @@ document.addEventListener("DOMContentLoaded", () => {
 
     
 function editarTalles(id) {
-  const selector = document.getElementById("talle_" + id);
   const span = document.getElementById("talles_" + id);
-
-  let tallesActuales = "";
-
-  if (selector) {
-    tallesActuales = Array.from(selector.options).map(opt => opt.value).join(", ");
-  } else if (span) {
-    tallesActuales = span.textContent;
-  } else {
-    console.warn("❌ No se encontró selector ni span para:", id);
+  if (!span) {
+    console.warn("❌ No se encontró el span con id:", "talles_" + id);
     return;
   }
 
-  const nuevoTalle = prompt("Modificar talles (separados por coma):", tallesActuales);
-  if (nuevoTalle === null) return;
+  const valorActual = span.textContent.trim();
+  console.log("🧪 Editando talles para:", id, "| Valor actual:", valorActual);
 
-  const tallesArray = nuevoTalle.split(',').map(t => t.trim()).filter(t => t);
-  console.log("✅ Nuevos talles ingresados:", tallesArray);
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = valorActual;
+  input.className = "form-control form-control-sm d-inline-block";
+  input.style.width = "200px";
+  input.id = "input_talles_" + id;
 
-  // ✅ Enviar al backend antes de modificar el DOM
+  // Guardar al salir del input
+  input.onblur = () => {
+    console.log("📤 onblur: guardando talles para", id, "con valor:", input.value);
+    guardarTalles(id);
+  };
+
+  // Guardar al presionar Enter
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      console.log("⏎ Enter presionado: guardando talles para", id, "con valor:", input.value);
+      input.blur(); // dispara onblur
+    }
+  });
+
+  span.replaceWith(input);
+  input.focus();
+}
+
+ 
+function guardarTalles(id) {
+  const input = document.getElementById("input_talles_" + id);
+  if (!input) {
+    console.warn("❌ No se encontró el input de talles:", "input_talles_" + id);
+    return;
+  }
+
+  const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
+  console.log("📡 Enviando talles a Firestore:", { id, talles: nuevosTalles });
+
   fetch('/actualizar-talles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: id, talles: tallesArray })
+    body: JSON.stringify({ id, talles: nuevosTalles }) // ✅ unificado con backend
   })
     .then(res => res.json())
     .then(data => {
-      console.log("📨 Payload recibido:", data);
       if (data.status === "ok") {
         console.log("✅ Talles confirmados en Firestore para", id);
 
-        // ✅ Actualizar visualmente solo si el backend responde OK
-        const nuevoSelect = document.createElement("select");
-        nuevoSelect.id = "talle_" + id;
-        nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
-        tallesArray.forEach(t => {
-          const option = document.createElement("option");
-          option.value = t;
-          option.textContent = t;
-          nuevoSelect.appendChild(option);
-        });
-
-        if (selector) {
-          selector.replaceWith(nuevoSelect);
-        } else if (span) {
-          const nuevoSpan = document.createElement("span");
-          nuevoSpan.id = "talles_" + id;
-          nuevoSpan.textContent = tallesArray.join(', ');
-          span.replaceWith(nuevoSpan);
-        }
-
-        // ✅ Feedback visual
-        nuevoSelect.classList.add("text-success");
-        setTimeout(() => nuevoSelect.classList.remove("text-success"), 1000);
+        // Feedback visual inmediato en DOM
+        const nuevoSpan = document.createElement("span");
+        nuevoSpan.id = "talles_" + id;
+        nuevoSpan.textContent = nuevosTalles.join(", ");
+        input.replaceWith(nuevoSpan);
+        nuevoSpan.classList.add("text-success");
+        setTimeout(() => nuevoSpan.classList.remove("text-success"), 1000);
       } else {
-        console.warn("❌ Error en respuesta del backend:", data);
-        alert("❌ No se pudo actualizar los talles");
+        alert("❌ No se pudo actualizar los talles en el servidor");
       }
     })
     .catch(err => {
-      console.error("❌ Error en fetch al actualizar talles:", err);
+      console.error("❌ Error de red:", err);
       alert("❌ Error de conexión al guardar los talles");
     });
 }
- 
-function guardarTalles(id) {
-  const input = document.getElementById("talles_" + id);
-  const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
 
-  const nuevoSpan = document.createElement("span");
-  nuevoSpan.id = "talles_" + id;
-  nuevoSpan.textContent = nuevosTalles.join(", ");
-  input.replaceWith(nuevoSpan);
-
-  fetch('/actualizar-talles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: id, talles: nuevosTalles }) // ✅ unificado
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === "ok") {
-      console.log("✅ Talles actualizados en Firestore");
-    } else {
-      console.warn("❌ Error en respuesta:", data);
-    }
-  })
-  .catch(err => console.error("❌ Error en fetch:", err));
-}
 
 
 function actualizarFirestore(id, datos) {
@@ -1318,81 +1300,6 @@ function actualizarCarrito() {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
     
-    function renderizarProductos(grupos) {
-  const contenedorPrincipal = document.getElementById("contenedor-grupos");
-  contenedorPrincipal.innerHTML = "";
-
-  Object.entries(grupos).forEach(([grupo, subgrupos]) => {
-    const grupoId = 'grupo_' + grupo.trim().toLowerCase().replace(/\s+/g, '_'); // 👈 blindado
-    const grupoDiv = document.createElement("div");
-    grupoDiv.className = "container mb-5 grupo-section";
-    grupoDiv.id = grupoId;
-
-    Object.entries(subgrupos).forEach(([subgrupo, productos]) => {
-      if (!productos || productos.length === 0) return;
-
-      const subgrupoId = subgrupo.trim().toLowerCase(); // 👈 blindado
-      const subgrupoDiv = document.createElement("div");
-      subgrupoDiv.className = "subgrupo-bloque mb-4 bloque-producto";
-      subgrupoDiv.dataset.subgrupo = subgrupoId;
-      subgrupoDiv.dataset.grupo = grupo.trim().toLowerCase().replace(/\s+/g, '_');
-
-      const fila = document.createElement("div");
-      fila.className = "row";
-
-      const orden = document.getElementById("ordenPrecio")?.value || "asc";
-      productos.sort((a, b) => {
-        const pa = parseFloat(a.precio) || 0;
-        const pb = parseFloat(b.precio) || 0;
-        return orden === "asc" ? pa - pb : pb - pa;
-      });
-
-      productos.forEach((producto, i) => {
-        const idBase = producto.id_base;
-        const tarjeta = document.createElement("div");
-        tarjeta.className = "col-lg-4 col-md-6 col-sm-12 mb-4";
-        tarjeta.innerHTML = `
-          <div class="card p-3 h-100">
-            <img src="/static/img/${producto.imagen}" class="card-img-top" alt="${producto.nombre}" loading="lazy">
-            <div class="card-body">
-              <h5 class="card-title">${producto.nombre}</h5>
-              <p class="card-text">${producto.descripcion || ""}</p>
-              <p><strong>Precio:</strong> $ 
-                <span id="precio_${idBase}">${producto.precio}</span>
-                ${modoAdmin ? `<button onclick="editarPrecio('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
-              </p>
-              <div class="mb-2">
-                <label for="talle_${idBase}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-                ${producto.talles?.length ? `
-                  <select id="talle_${idBase}" class="form-select form-select-sm w-auto d-inline-block">
-                    ${producto.talles.map(t => `<option value="${t}">${t}</option>`).join('')}
-                  </select>
-                ` : `
-                  <span id="talles_${idBase}">Sin talles disponibles</span>
-                `}
-                ${modoAdmin ? `<button onclick="editarTalles('${idBase}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>` : ''}
-              </div>
-              <a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                <label for="cantidad_${idBase}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_${idBase}">
-                <button type="button" class="btn btn-secondary"
-                  onclick="agregarAlCarritoDOM('${producto.nombre}', 'precio_${idBase}', 'cantidad_${idBase}', '${idBase}')">
-                  Agregar al carrito
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
-        fila.appendChild(tarjeta);
-      });
-
-      subgrupoDiv.appendChild(fila);
-      grupoDiv.appendChild(subgrupoDiv);
-    });
-
-    contenedorPrincipal.appendChild(grupoDiv);
-  });
 
   // Activar primer grupo y subgrupo
   setTimeout(() => {
