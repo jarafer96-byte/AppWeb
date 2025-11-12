@@ -757,43 +757,19 @@ window.onload = function() {
   panelSubcategorias.classList.add('oculta');
   panelGrupos.classList.add('oculta');
 
-  // 🔄 Suscripción en vivo a productos
-  if (window.db) {
-    window.onSnapshot(window.collection(window.db, "productos"), (snapshot) => {
-      const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      console.log("📦 Productos recibidos en vivo:", productos);
-
-      productos.forEach(p => {
-        const precioSpan = document.getElementById("precio_" + p.id_base);
-        if (precioSpan) {
-          const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          precioSpan.textContent = fmt.format(p.precio);
-        }
-
-        const talleSelect = document.getElementById("talle_" + p.id_base);
-        if (talleSelect && p.talles) {
-          talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
-        }
-      });
-    });
-  }
-
-  // 🔁 Inicializar vista con primer grupo/subgrupo
   const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
-  const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(
-    s => s.toLowerCase() !== 'general'
-  ) || '';
-
+  const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
   if (primerGrupo && primerSub) {
     mostrarGrupo(primerGrupo, null, true);
     filtrarSubcategoria(primerGrupo, primerSub);
   }
 
-  // 🛒 Toggle del carrito
   document.getElementById('toggleCarrito').onclick = function() {
     const carritoDiv = document.getElementById('carrito');
+    if (!carritoDiv) return;
     carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
   };
+};
 
 
     let carrito = [];
@@ -1274,6 +1250,7 @@ function actualizarCarrito() {
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
   const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
+  const grupos = {{ grupos|tojson }};
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
   import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
@@ -1286,35 +1263,37 @@ function actualizarCarrito() {
     messagingSenderId: "{{ firebase_config.messagingSenderId }}",
     appId: "{{ firebase_config.appId }}"
   };
-    
+
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-    
-  // 🔄 Suscripción en vivo a productos
-  onSnapshot(collection(db, "productos"), (snapshot) => {
-    const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log("📦 Productos recibidos en vivo:", productos);
 
-    productos.forEach(p => {
-      const precioSpan = document.getElementById("precio_" + p.id_base);
-      if (precioSpan) {
-        const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        precioSpan.textContent = fmt.format(p.precio);
-      }
+  // Suscripción única (evitá duplicar en bloque normal)
+  if (usarFirestore) {
+    onSnapshot(collection(db, "productos"), (snapshot) => {
+      const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log("📦 Productos en vivo:", productos);
 
-      const talleSelect = document.getElementById("talle_" + p.id_base);
-      if (talleSelect && p.talles) {
-        talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
-      }
+      productos.forEach(p => {
+        const precioSpan = document.getElementById("precio_" + p.id_base);
+        if (precioSpan) {
+          const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          precioSpan.textContent = fmt.format(p.precio);
+        }
+
+        const talleSelect = document.getElementById("talle_" + p.id_base);
+        if (talleSelect && Array.isArray(p.talles)) {
+          talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
+        }
+      });
     });
-  });
+  }
 
-  // 🔁 Activar primer grupo y subgrupo
+  // Activar primer grupo y subgrupo (con grupos ya serializado)
   setTimeout(() => {
     const grupoKeys = Object.keys(grupos);
     if (grupoKeys.length === 0) return;
 
-    const primerGrupoId = grupoKeys[0].trim().toLowerCase().replace(/\s+/g, '_'); // 👈 blindado
+    const primerGrupoId = grupoKeys[0].trim().toLowerCase().replace(/\s+/g, '_');
     const primerGrupoDiv = document.getElementById('grupo_' + primerGrupoId);
     if (primerGrupoDiv) primerGrupoDiv.classList.add('active');
 
@@ -1322,25 +1301,24 @@ function actualizarCarrito() {
     const primerSubgrupoNombre = subgrupos[0]?.trim().toLowerCase();
 
     if (primerGrupoId && primerSubgrupoNombre) {
-      filtrarSubcategoria(grupoKeys[0], subgrupos[0]); // 👈 blindado también
+      filtrarSubcategoria(grupoKeys[0], subgrupos[0]);
     }
   }, 100);
 
-  // 🛒 Cerrar carrito al hacer clic fuera
+  // Cerrar carrito al hacer clic fuera (listener único)
   document.addEventListener('click', function(event) {
     const carritoDiv = document.getElementById('carrito');
     const toggleBtn = document.getElementById('toggleCarrito');
+    if (!carritoDiv || !toggleBtn) return;
 
-    if (
-      carritoDiv.style.display === 'block' &&
-      !carritoDiv.contains(event.target) &&
-      !toggleBtn.contains(event.target)
-    ) {
+    const visible = carritoDiv.style.display === 'block';
+    const clicFuera = !carritoDiv.contains(event.target) && !toggleBtn.contains(event.target);
+    if (visible && clicFuera) {
       carritoDiv.style.display = 'none';
     }
   });
 
-  // 🔄 Ordenar productos por precio
+  // Ordenar productos por precio (listener único)
   document.getElementById('ordenPrecio')?.addEventListener('change', function () {
     const orden = this.value;
     const grupoActivo = document.querySelector('.grupo-section.active');
@@ -1363,15 +1341,16 @@ function actualizarCarrito() {
     });
   });
 
-  // 🔄 Ocultar paneles al hacer clic fuera
+  // Ocultar paneles al hacer clic fuera (listener único)
   document.addEventListener('click', function(event) {
     const panelGrupos = document.getElementById('panelGrupos');
     const panelSub = document.getElementById('panelSubcategorias');
+    if (!panelGrupos || !panelSub) return;
 
     const esClickDentroGrupos = panelGrupos.contains(event.target);
     const esClickDentroSub = panelSub.contains(event.target);
     const esBotonGrupo = event.target.classList.contains('btn-grupo');
-    const esBotonNavegacion = event.target.closest('.barra-navegacion');
+    const esBotonNavegacion = !!event.target.closest('.barra-navegacion');
 
     if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
       panelGrupos.classList.add('oculta');
