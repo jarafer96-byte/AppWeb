@@ -235,13 +235,16 @@
 
                       <div class="col">
                         <div class="thumb-wrapper">
-                          <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ img }}"
+                          <img src="{{ img }}"
                                class="imagen-carrusel"
                                alt="Imagen {{ loop.index }}"
                                onclick="seleccionarImagen(this)"
-                               onerror="this.src='/static/img/fallback.webp';">
+                               onerror="console.error('❌ Error cargando imagen:', this.src); this.src='/static/img/fallback.webp';">
                         </div>
                       </div>
+                      <script>
+                        console.log("🎨 Renderizando miniatura:", "{{ img }}");
+                      </script>
 
                 {% if loop.index0 % 8 == 7 or loop.last %}
                     {% set faltantes = 8 - (loop.index0 % 8 + 1) %}
@@ -270,6 +273,7 @@
     </div>
   </div>
 </div>
+
 
   <script>
   let grupoId = 0;
@@ -457,21 +461,36 @@ function eliminarFila(btn) {
 
   const hiddenInput = fila.querySelector('input[name="imagen_elegida"]');
   if (hiddenInput && hiddenInput.value) {
-    const img = document.querySelector(`#carouselGlobal img[src="${hiddenInput.value}"]`);
-    if (img) {
-      img.classList.remove('usada');
-      img.style.opacity = "1";
-      img.style.pointerEvents = "auto";
-    }
+    const nombreArchivo = hiddenInput.value;
+    console.log("🗑️ Eliminando fila con imagen:", nombreArchivo);
+
+    // Liberar imagen en el carrusel
+    document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+      const nombre = img.getAttribute("src").split("/").pop();
+      if (nombre === nombreArchivo) {
+        console.log("🔓 Liberando imagen en carrusel:", nombre);
+        img.classList.remove('usada');
+        img.style.opacity = "1";
+        img.style.pointerEvents = "auto";
+      }
+    });
+
+    // Quitar de la lista global de usadas
+    imagenesUsadas = imagenesUsadas.filter(img => img !== nombreArchivo);
+    console.log("📦 Lista de imágenes usadas actualizada:", imagenesUsadas);
   }
 
+  // Eliminar fila si hay más de una
   if (contenedor.querySelectorAll('.fila-producto').length > 1) {
     fila.remove();
+    console.log("✅ Fila eliminada. Actualizando contador...");
     actualizarContador(contenedor);
   } else {
     alert("No se puede eliminar la última fila");
+    console.warn("⚠️ Intento de eliminar la última fila bloqueado.");
   }
 }
+
 
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
@@ -491,20 +510,27 @@ function seleccionarImagen(img) {
 
 function confirmarImagen() {
   if (window.imagenSeleccionada && filaActual) {
+    console.log("✅ Confirmando imagen:", window.imagenSeleccionada, "para fila:", filaActual);
+
     const hiddenInput = filaActual.querySelector("input[name='imagen_elegida']");
     hiddenInput.value = window.imagenSeleccionada;
+    console.log("📥 Hidden input actualizado con:", hiddenInput.value);
 
     // Mostrar miniatura en la fila
-    filaActual.querySelector(".preview-imagen").innerHTML =
+    const preview = filaActual.querySelector(".preview-imagen");
+    preview.innerHTML =
       `<img src="https://f005.backblazeb2.com/file/imagenes-appweb/${window.imagenSeleccionada}" style="width:80px;height:60px;">`;
+    console.log("🖼️ Miniatura renderizada en fila:", preview.innerHTML);
 
     // Registrar imagen como usada
     imagenesUsadas.push(hiddenInput.value);
+    console.log("📦 Lista de imágenes usadas:", imagenesUsadas);
 
     // Buscar la imagen en el carrusel por nombre de archivo
     document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
       const nombre = img.getAttribute("src").split("/").pop();
       if (nombre === hiddenInput.value) {
+        console.log("🚫 Marcando imagen como usada en carrusel:", nombre);
         img.classList.add("usada");
         img.style.opacity = "0.3";
         img.style.pointerEvents = "none";
@@ -512,10 +538,18 @@ function confirmarImagen() {
     });
 
     window.imagenSeleccionada = null;
+    console.log("♻️ Reset de imagenSeleccionada →", window.imagenSeleccionada);
+  } else {
+    console.warn("⚠️ No hay imagen seleccionada o filaActual no está definida.");
   }
 
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
-  modal.hide();
+  if (modal) {
+    modal.hide();
+    console.log("🔒 Modal cerrado correctamente.");
+  } else {
+    console.warn("⚠️ No se encontró instancia del modal.");
+  }
 }
 
 
