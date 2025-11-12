@@ -443,7 +443,7 @@
       <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
       <button id="btnContacto" onclick="irAContacto()">Contacto</button>
     </nav>
-    <div id="panelGrupos" class="panel-grupos oculto">
+    <div id="panelGrupos" class="panel-grupos oculta">
       {% for grupo in grupos.keys() %}
         <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
           {{ grupo }}
@@ -503,7 +503,7 @@
 {% for grupo, subgrupos in grupos.items() %}
   <div id="grupo_{{ grupo | lower | replace(' ', '_') }}" class="grupo-section">
     {% for subgrupo, productos in subgrupos.items() %}
-      <div class="subgrupo-bloque" data-subgrupo="{{ subgrupo }}">
+      <div class="subgrupo-bloque" data-subgrupo="{{ subgrupo | lower | trim }}">
         <div class="row">
           {% for producto in productos %}
             {% set id_base = producto.id_base %}
@@ -522,10 +522,11 @@
               <div class="card p-3 h-100">
                 <!-- ✅ Imagen con Backblaze + fallback GitHub -->
                 <img src="{{ producto.imagen_backblaze }}"
-                     onerror="this.src='{{ producto.imagen_github }}'"
+                     onerror="this.onerror=null; this.src='{{ producto.imagen_github }}'"
                      class="card-img-top"
                      alt="{{ producto.nombre }}"
                      loading="lazy">
+
                 <div class="card-body">
                   {% if modoAdmin %}
                     <div class="text-muted small mb-2">
@@ -891,7 +892,8 @@ function guardarPrecio(id) {
         // ✅ Actualizar el DOM solo si el backend responde OK
         const span = document.createElement("span");
         span.id = "precio_" + id;
-        span.textContent = "$" + nuevoValor.toFixed(2);
+        const fmt = new Intl.NumberFormat('es-AR');
+        span.textContent = fmt.format(nuevoValor);
         span.className = input.className;  // hereda estilos del input
         span.classList.add("text-success");  // feedback visual
         input.replaceWith(span);
@@ -916,9 +918,19 @@ function guardarPrecio(id) {
 
 function loginAdmin(event) {
   event.preventDefault();
+
+  // Capturar usuario y clave
   const usuario = document.getElementById("usuario_login").value.trim();
   const clave = document.getElementById("clave_login").value.trim();
 
+  // Referencia al botón de submit
+  const btn = event.target.querySelector('button[type="submit"]');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Entrando...'; // feedback visual
+  }
+
+  // Llamada al backend
   fetch("/login-admin", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -928,7 +940,7 @@ function loginAdmin(event) {
     .then(data => {
       if (data.status === "ok") {
         alert("✅ Acceso concedido");
-        location.href = window.location.href;
+        location.href = window.location.href; // recarga la vista
       } else {
         alert("❌ " + data.message);
       }
@@ -936,6 +948,13 @@ function loginAdmin(event) {
     .catch(err => {
       console.error("❌ Error en login:", err);
       alert("❌ Error al intentar login");
+    })
+    .finally(() => {
+      // Restaurar el botón siempre al terminar
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+      }
     });
 }
 
@@ -946,6 +965,7 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", loginAdmin);
   }
 });
+
     
 function editarTalles(id) {
   const selector = document.getElementById("talle_" + id);
@@ -1015,58 +1035,30 @@ function editarTalles(id) {
 }
  
 function guardarTalles(id) {
-  console.log("🟡 Iniciando guardarTalles para:", id);
-
   const input = document.getElementById("talles_" + id);
-  if (!input) {
-    console.warn("❌ No se encontró el input con id:", "talles_" + id);
-    return;
-  }
+  const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
 
-  const nuevosTalles = input.value
-    .split(",")
-    .map(t => t.trim())
-    .filter(t => t);
-
-  console.log("🧪 Talles capturados para", id, "→", nuevosTalles);
-
-  // ✅ Enviar al backend antes de modificar el DOM
-  console.log("📡 Enviando fetch a /actualizar-talles con:", { id_base: id, nuevoTalles: nuevosTalles.join(',') });
+  const nuevoSpan = document.createElement("span");
+  nuevoSpan.id = "talles_" + id;
+  nuevoSpan.textContent = nuevosTalles.join(", ");
+  input.replaceWith(nuevoSpan);
 
   fetch('/actualizar-talles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id_base: id, nuevoTalles: nuevosTalles.join(',') })
+    body: JSON.stringify({ id: id, talles: nuevosTalles }) // ✅ unificado
   })
-    .then(res => {
-      console.log("📬 Respuesta recibida del backend:", res.status);
-      return res.json();
-    })
-    .then(data => {
-      console.log("📨 Payload recibido:", data);
-      if (data.status === "ok") {
-        console.log("✅ Talles confirmados en Firestore para", id);
-
-        // ✅ Actualizar el DOM solo si el backend responde OK
-        const nuevoSpan = document.createElement("span");
-        nuevoSpan.id = "talles_" + id;
-        nuevoSpan.textContent = nuevosTalles.join(", ");
-        nuevoSpan.className = input.className;
-        nuevoSpan.classList.add("text-success");
-        input.replaceWith(nuevoSpan);
-        setTimeout(() => nuevoSpan.classList.remove("text-success"), 1000);
-      } else {
-        console.warn("❌ Error en respuesta del backend:", data);
-        input.classList.add("is-invalid");
-        alert("❌ No se pudo actualizar los talles");
-      }
-    })
-    .catch(err => {
-      console.error("❌ Error de red al actualizar talles:", err);
-      input.classList.add("is-invalid");
-      alert("❌ Error de conexión al guardar los talles");
-    });
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "ok") {
+      console.log("✅ Talles actualizados en Firestore");
+    } else {
+      console.warn("❌ Error en respuesta:", data);
+    }
+  })
+  .catch(err => console.error("❌ Error en fetch:", err));
 }
+
 
 function actualizarFirestore(id, datos) {
   if (!id || typeof datos !== "object" || Object.keys(datos).length === 0) {
@@ -1189,7 +1181,7 @@ function sincronizarPreciosDelCarrito() {
     const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
     const precioSpan = document.getElementById(idPrecio);
     if (precioSpan) {
-      const precioActual = parseFloat(precioSpan.textContent.replace("$", ""));
+      const precioActual = parseFloat(precioSpan.textContent);
       if (!isNaN(precioActual)) {
         item.precio = precioActual;
       } else {
@@ -1284,7 +1276,7 @@ function actualizarCarrito() {
         panelSub.style.left = '0';
         panelSub.style.right = '0';
       } else {
-        panelSub.style.top = '100%';
+        panelSub.style.top = '';
       }
     }
     // Recalcular posiciones al cargar y al cambiar el tamaño de la ventana
