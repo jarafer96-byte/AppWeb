@@ -708,6 +708,7 @@ def step3():
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
 
             if not nombre or not precio or not grupo or not subgrupo:
+                print(f"⚠️ Campos incompletos en fila {i+1}, se omite producto")
                 continue
 
             # ✅ Backblaze: usar URL directa
@@ -739,7 +740,7 @@ def step3():
                 'descripcion': descripciones[i],
                 'precio': precio,
                 'imagen_backblaze': url_backblaze,
-                'imagen_github': url_github,
+                'imagen_github': url_github or '/static/img/fallback.webp',
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
@@ -783,6 +784,7 @@ def step3():
         print(f"🔎 Imagen {idx} enviada al template: {img}")
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 
 @app.route('/pagar', methods=['POST'])
