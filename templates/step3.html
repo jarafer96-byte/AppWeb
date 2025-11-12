@@ -282,8 +282,6 @@
       </div>
       <div class="modal-footer d-flex justify-content-between">
         <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
-        <!-- ✅ Nuevo botón para agregar fila directamente al grupo -->
-        <button type="button" class="btn btn-gradient" onclick="agregarFila(this)">+ Agregar fila</button>
       </div>
     </div>
   </div>
@@ -365,6 +363,10 @@ function confirmarImagen() {
       </button>
     </div>
     <div class="productos"></div>
+    <!-- ✅ Botón para agregar fila directamente al grupo -->
+    <div class="text-center mt-2">
+      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+    </div>
     <div class="subgrupos"></div>
     <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
     <div class="text-center mt-2">
@@ -377,12 +379,12 @@ function confirmarImagen() {
   document.getElementById('nombreGrupo').value = '';
 
   const contenedor = grupo.querySelector('.productos');
-  const fila = crearFila(nombre, ordenGrupo);
+  const fila = crearFila('General', nombre); // ✅ nombreSubgrupo = 'General', nombreGrupo = nombre
   contenedor.appendChild(fila);
 
-  // ✅ actualizar contador dinámicamente
   actualizarContador(grupo);
 }
+
 
 // Función auxiliar para mantener el contador sincronizado
 function actualizarContador(grupo) {
@@ -488,15 +490,26 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
     function agregarFila(btn) {
   const subgrupo = btn.closest('.subgrupo');
   const grupo = btn.closest('.card:not(.subgrupo)');
-  const contenedor = subgrupo.querySelector('.productos');
-  const nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
-  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+  let contenedor, nombreSubgrupo, nombreGrupo;
+
+  if (subgrupo) {
+    // Caso: botón dentro de un subgrupo
+    contenedor = subgrupo.querySelector('.productos');
+    nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
+    nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+  } else {
+    // Caso: botón dentro del grupo principal
+    contenedor = grupo.querySelector('.productos');
+    nombreSubgrupo = 'General'; // o podés dejar vacío
+    nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+  }
 
   const fila = crearFila(nombreSubgrupo, nombreGrupo);
   contenedor.appendChild(fila);
 
   actualizarContador(contenedor);
 }
+
 
 function eliminarSubgrupo(btn) {
   const subgrupo = btn.closest('.subgrupo');
