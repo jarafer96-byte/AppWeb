@@ -290,165 +290,134 @@
 
 
   <script>
-    let grupoId = 0;
-    let contadorOrden = 1;
-    
-    window.onload = () => {
-      contadorOrden = 1;
-    };
-    
+  let grupoId = 0;
+  let contadorOrden = 1;
+
+  window.onload = () => {
+    contadorOrden = 1;
+  };
+
   const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
   console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
 
-function eliminarProducto(boton) {
-  const fila = boton.closest('.fila-producto');
-  const grupo = boton.closest('.card');
-  fila.remove();
-  actualizarContador(grupo);
-}
-let imagenSeleccionada = null;
-
-function seleccionarImagen(img) {
-  // limpiar selección previa
-  document.querySelectorAll('.imagen-carrusel.seleccionada')
-    .forEach(el => el.classList.remove('seleccionada'));
-
-  // marcar nueva selección
-  img.classList.add('seleccionada');
-  imagenSeleccionada = img;
-}
-
-function confirmarImagen() {
-  if (imagenSeleccionada && filaActual) {
-    const hiddenInput = filaActual.querySelector('input[name="imagen_elegida"]');
-    hiddenInput.value = imagenSeleccionada.src;
-
-    let preview = filaActual.querySelector('.preview-imagen');
-    if (!preview) {
-      preview = document.createElement('div');
-      preview.className = 'preview-imagen mt-2';
-      filaActual.querySelector('.col-2.text-end').prepend(preview);
-    }
-    preview.innerHTML = `<img src="${imagenSeleccionada.src}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
-
-    // 👉 pasar de seleccionada a usada
-    imagenSeleccionada.classList.remove('seleccionada');
-    imagenSeleccionada.classList.add('usada');
-
-    imagenSeleccionada = null;
+  // ✅ Eliminar fila de producto y actualizar contador
+  function eliminarProducto(boton) {
+    const fila = boton.closest('.fila-producto');
+    const grupo = boton.closest('.card');
+    fila.remove();
+    actualizarContador(grupo);
   }
 
-  const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
-  modal.hide();
-}
+  // ✅ Guardar nombre de imagen seleccionada
+  let imagenSeleccionada = null;
 
+  function seleccionarImagen(img) {
+    // limpiar selección previa
+    document.querySelectorAll('.imagen-carrusel.seleccionada')
+      .forEach(el => el.classList.remove('seleccionada'));
 
-    function crearGrupo() {
-  const nombre = document.getElementById('nombreGrupo').value.trim();
-  if (!nombre) return alert("Ingresá un nombre para el grupo");
+    // marcar nueva selección
+    img.classList.add('seleccionada');
+    // guardar solo el nombre del archivo (ej: mini_xxx.webp)
+    imagenSeleccionada = img.getAttribute("src").split("/").pop();
+  }
 
-  grupoId++;
-  const ordenGrupo = grupoId;
+  // ✅ Crear grupo dinámicamente
+  function crearGrupo() {
+    const nombre = document.getElementById('nombreGrupo').value.trim();
+    if (!nombre) return alert("Ingresá un nombre para el grupo");
 
-  const grupo = document.createElement('div');
-  grupo.className = 'card p-3 mb-4';
-  grupo.id = 'grupo_' + grupoId;
-  grupo.setAttribute('data-orden', ordenGrupo);
+    grupoId++;
+    const ordenGrupo = grupoId;
 
-  grupo.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h4 class="mb-0">${nombre}</h4>
-      <button type="button" class="btn btn-sm btn-danger" onclick="eliminarGrupo(this)">
-        ✕ <span style="font-size: 0.75em;">(Borrar grupo)</span>
-      </button>
-    </div>
-    <div class="productos"></div>
-    <!-- ✅ Botón para agregar fila directamente al grupo -->
-    <div class="text-center mt-2">
-      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
-    </div>
-    <div class="subgrupos"></div>
-    <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
-    <div class="text-center mt-2">
-      <input type="text" class="form-control w-50 d-inline-block" placeholder="Ej: Pantalones" id="inputSubgrupo_${grupoId}">
-      <button type="button" class="btn-gradient btn-sm" onclick="crearSubgrupo(this)">+ Crear subgrupo</button>
-    </div>
-  `;
+    const grupo = document.createElement('div');
+    grupo.className = 'card p-3 mb-4';
+    grupo.id = 'grupo_' + grupoId;
+    grupo.setAttribute('data-orden', ordenGrupo);
 
-  document.getElementById('grupos').appendChild(grupo);
-  document.getElementById('nombreGrupo').value = '';
-}
+    grupo.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">${nombre}</h4>
+        <button type="button" class="btn btn-sm btn-danger" onclick="eliminarGrupo(this)">
+          ✕ <span style="font-size: 0.75em;">(Borrar grupo)</span>
+        </button>
+      </div>
+      <div class="productos"></div>
+      <!-- ✅ Botón para agregar fila directamente al grupo -->
+      <div class="text-center mt-2">
+        <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+      </div>
+      <div class="subgrupos"></div>
+      <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
+      <div class="text-center mt-2">
+        <input type="text" class="form-control w-50 d-inline-block" placeholder="Ej: Pantalones" id="inputSubgrupo_${grupoId}">
+        <button type="button" class="btn-gradient btn-sm" onclick="crearSubgrupo(this)">+ Crear subgrupo</button>
+      </div>
+    `;
 
+    document.getElementById('grupos').appendChild(grupo);
+    document.getElementById('nombreGrupo').value = '';
+  }
 
+  // ✅ Función única para mantener el contador sincronizado
+  function actualizarContador(bloque) {
+    const contador = bloque.querySelector('.contador');
+    const productos = bloque.querySelectorAll('.productos > .fila-producto');
+    contador.textContent = productos.length;
+  }
 
-// Función auxiliar para mantener el contador sincronizado
-function actualizarContador(grupo) {
-  const contador = grupo.querySelector('.contador');
-  const productos = grupo.querySelectorAll('.productos > .fila-producto');
-  contador.textContent = productos.length;
-}
+  let filaActual = null;
+  let imagenesUsadas = []; // lista global de imágenes ya asignadas
 
+  function abrirCarrusel(btn) {
+    filaActual = btn.closest('.fila-producto');
+    const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
 
-let filaActual = null;
-let imagenesUsadas = []; // lista global de imágenes ya asignadas
+    // ✅ deshabilitar imágenes ya usadas antes de mostrar el carrusel
+    document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+      if (imagenesUsadas.includes(img.src)) {
+        img.style.opacity = "0.3";
+        img.style.pointerEvents = "none";
+      } else {
+        img.style.opacity = "1";
+        img.style.pointerEvents = "auto";
+      }
+    });
 
-function abrirCarrusel(btn) {
-  filaActual = btn.closest('.fila-producto');
-  const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
+    modal.show();
+  }
 
-  // ✅ deshabilitar imágenes ya usadas antes de mostrar el carrusel
-  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-    if (imagenesUsadas.includes(img.src)) {
-      img.style.opacity = "0.3";
-      img.style.pointerEvents = "none";
-    } else {
-      img.style.opacity = "1";
-      img.style.pointerEvents = "auto";
-    }
-  });
+  function crearSubgrupo(btn) {
+    const grupo = btn.closest('.card');
+    const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+    const subgruposContenedor = grupo.querySelector('.subgrupos');
+    const input = grupo.querySelector('input[id^="inputSubgrupo"]');
+    const nombreSubgrupo = input.value.trim();
+    if (!nombreSubgrupo) return alert("Ingresá un nombre para el subgrupo");
 
-  modal.show();
-}
+    const subgrupo = document.createElement('div');
+    subgrupo.className = 'card p-2 mb-3 subgrupo';
+    subgrupo.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <strong>${nombreSubgrupo}</strong>
+        <button class="btn btn-sm btn-danger" onclick="eliminarSubgrupo(this)">✕ Borrar subgrupo</button>
+      </div>
+      <div class="productos"></div>
+      <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
+      <div class="text-center mt-2">
+        <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+      </div>
+    `;
+    subgruposContenedor.appendChild(subgrupo);
+    input.value = '';
 
-function crearSubgrupo(btn) {
-  const grupo = btn.closest('.card');
-  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
-  const subgruposContenedor = grupo.querySelector('.subgrupos');
-  const input = grupo.querySelector('input[id^="inputSubgrupo"]');
-  const nombreSubgrupo = input.value.trim();
-  if (!nombreSubgrupo) return alert("Ingresá un nombre para el subgrupo");
+    const contenedor = subgrupo.querySelector('.productos');
+    const fila = crearFila(nombreSubgrupo, nombreGrupo);
+    contenedor.appendChild(fila);
 
-  const subgrupo = document.createElement('div');
-  subgrupo.className = 'card p-2 mb-3 subgrupo';
-  subgrupo.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <strong>${nombreSubgrupo}</strong>
-      <button class="btn btn-sm btn-danger" onclick="eliminarSubgrupo(this)">✕ Borrar subgrupo</button>
-    </div>
-    <div class="productos"></div>
-    <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
-    <div class="text-center mt-2">
-      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
-    </div>
-  `;
-  subgruposContenedor.appendChild(subgrupo);
-  input.value = '';
-
-  const contenedor = subgrupo.querySelector('.productos');
-  const fila = crearFila(nombreSubgrupo, nombreGrupo);
-  contenedor.appendChild(fila);
-
-  // ✅ actualizar contador dinámicamente
-  actualizarContador(subgrupo);
-}
-
-// Función auxiliar para mantener el contador sincronizado
-function actualizarContador(bloque) {
-  const contador = bloque.querySelector('.contador');
-  const productos = bloque.querySelectorAll('.productos > .fila-producto');
-  contador.textContent = productos.length;
-}
-
+    // ✅ actualizar contador dinámicamente
+    actualizarContador(subgrupo);
+  }
 
 
 function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
@@ -465,11 +434,9 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
     <div class="col-2">
       <input type="text" name="precio" class="form-control form-control-sm" style="width: 80px;" placeholder="$">
     </div>
-    <!-- 🔄 Talles más a la izquierda -->
     <div class="col-2">
       <input type="text" name="talles" class="form-control form-control-sm" style="width: 160px;" placeholder="(Opcional) S,M,L,XL">
     </div>
-    <!-- 🔄 Miniatura alineada con los botones -->
     <div class="col-2">
       <div class="d-flex align-items-center justify-content-end gap-2">
         <div class="preview-imagen" style="width:80px;height:60px;"></div>
@@ -486,21 +453,18 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   return fila;
 }
 
-
-    function agregarFila(btn) {
+function agregarFila(btn) {
   const subgrupo = btn.closest('.subgrupo');
   const grupo = btn.closest('.card:not(.subgrupo)');
   let contenedor, nombreSubgrupo, nombreGrupo;
 
   if (subgrupo) {
-    // Caso: botón dentro de un subgrupo
     contenedor = subgrupo.querySelector('.productos');
     nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
     nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
   } else {
-    // Caso: botón dentro del grupo principal
     contenedor = grupo.querySelector('.productos');
-    nombreSubgrupo = 'General'; // o podés dejar vacío
+    nombreSubgrupo = 'General';
     nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
   }
 
@@ -509,7 +473,6 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
 
   actualizarContador(contenedor);
 }
-
 
 function eliminarSubgrupo(btn) {
   const subgrupo = btn.closest('.subgrupo');
@@ -520,7 +483,6 @@ function eliminarFila(btn) {
   const fila = btn.closest('.fila-producto');
   const contenedor = btn.closest('.card').querySelector('.productos');
 
-  // liberar imagen usada si existía
   const hiddenInput = fila.querySelector('input[name="imagen_elegida"]');
   if (hiddenInput && hiddenInput.value) {
     const img = document.querySelector(`#carouselGlobal img[src="${hiddenInput.value}"]`);
@@ -539,7 +501,6 @@ function eliminarFila(btn) {
   }
 }
 
-
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
   grupo.remove();
@@ -547,28 +508,33 @@ function eliminarGrupo(btn) {
 
 function actualizarContador(contenedor) {
   const contador = contenedor.closest('.card').querySelector('.contador');
-  contador.textContent = contenedor.querySelectorAll('.fila-producto').length; // ✅ cuenta filas reales
+  contador.textContent = contenedor.querySelectorAll('.fila-producto').length;
 }
+
     
 function seleccionarImagen(img) {
-  // Guardar la imagen seleccionada en el modal
+  // Guardar solo el nombre del archivo seleccionado
   window.imagenSeleccionada = img.getAttribute("src").split("/").pop();
 }
 
 function confirmarImagen() {
-  if (window.imagenSeleccionada) {
-    // Buscar el input hidden de la fila activa
-    const filaActiva = document.querySelector(".fila-producto.activa");
-    const hiddenInput = filaActiva.querySelector("input[name='imagen_elegida']");
+  if (window.imagenSeleccionada && filaActual) {
+    const hiddenInput = filaActual.querySelector("input[name='imagen_elegida']");
     hiddenInput.value = window.imagenSeleccionada;
 
     // Mostrar miniatura
-    filaActiva.querySelector(".preview-imagen").innerHTML =
+    filaActual.querySelector(".preview-imagen").innerHTML =
       `<img src="https://f005.backblazeb2.com/file/imagenes-appweb/${window.imagenSeleccionada}" style="width:80px;height:60px;">`;
+
+    // limpiar selección global
+    window.imagenSeleccionada = null;
   }
+
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
+  modal.hide();
 }
 
-    function validarYEnviar() {
+function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
   if (grupos.length === 0) {
     alert('Agregá al menos un grupo antes de continuar');
@@ -583,11 +549,11 @@ function confirmarImagen() {
     filas.forEach(fila => {
       const nombre = fila.querySelector('input[name="nombre"]');
       const precio = fila.querySelector('input[name="precio"]');
-      const imagenSeleccionada = fila.querySelector('input[name="imagen_elegida"]');
+      const inputImagen = fila.querySelector('input[name="imagen_elegida"]');
 
       const nombreValido = nombre && nombre.value.trim();
       const precioValido = precio && precio.value.trim();
-      const imagenValida = imagenSeleccionada && imagenSeleccionada.value.trim() !== "";
+      const imagenValida = inputImagen && inputImagen.value.trim() !== "";
 
       if (nombreValido && precioValido && imagenValida) {
         hayContenidoValido = true;
@@ -613,6 +579,7 @@ function confirmarImagen() {
   document.getElementById('spinner').style.display = 'flex';
   document.getElementById('formulario').submit();
 }
+
     
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
