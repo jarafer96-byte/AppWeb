@@ -467,6 +467,7 @@ function eliminarFila(btn) {
         console.log("🔓 Liberando imagen en carrusel:", nombre);
         img.classList.remove('usada');
         img.style.opacity = "1";
+        img.style.filter = "none";   // ✅ restaurar color
         img.style.pointerEvents = "auto";
       }
     });
@@ -486,7 +487,6 @@ function eliminarFila(btn) {
     console.warn("⚠️ Intento de eliminar la última fila bloqueado.");
   }
 }
-
 
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
@@ -518,17 +518,17 @@ function seleccionarImagen(img) {
 
 
 function confirmarImagen() {
-  if (window.imagenSeleccionada && filaActual) {
+  if (window.imagenSeleccionada && window.imagenSeleccionadaUrl && filaActual) {
     console.log("✅ Confirmando imagen:", window.imagenSeleccionada, "para fila:", filaActual);
 
     const hiddenInput = filaActual.querySelector("input[name='imagen_elegida']");
     hiddenInput.value = window.imagenSeleccionada;
     console.log("📥 Hidden input actualizado con:", hiddenInput.value);
 
-    // Mostrar miniatura en la fila
+    // Mostrar miniatura en la fila con la URL completa
     const preview = filaActual.querySelector(".preview-imagen");
     preview.innerHTML =
-      `<img src="https://f005.backblazeb2.com/file/imagenes-appweb/${window.imagenSeleccionada}" style="width:80px;height:60px;">`;
+      `<img src="${window.imagenSeleccionadaUrl}" style="width:80px;height:60px;">`;
     console.log("🖼️ Miniatura renderizada en fila:", preview.innerHTML);
 
     // Registrar imagen como usada
@@ -542,11 +542,13 @@ function confirmarImagen() {
         console.log("🚫 Marcando imagen como usada en carrusel:", nombre);
         img.classList.add("usada");
         img.style.opacity = "0.3";
+        img.style.filter = "grayscale(100%) brightness(0.6)";
         img.style.pointerEvents = "none";
       }
     });
 
     window.imagenSeleccionada = null;
+    window.imagenSeleccionadaUrl = null;
     console.log("♻️ Reset de imagenSeleccionada →", window.imagenSeleccionada);
   } else {
     console.warn("⚠️ No hay imagen seleccionada o filaActual no está definida.");
@@ -555,13 +557,12 @@ function confirmarImagen() {
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   if (modal) {
     modal.hide();
+    document.activeElement.blur(); // 🔧 evita warning aria-hidden
     console.log("🔒 Modal cerrado correctamente.");
   } else {
     console.warn("⚠️ No se encontró instancia del modal.");
   }
 }
-
-
 
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
