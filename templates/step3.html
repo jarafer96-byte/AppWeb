@@ -504,9 +504,22 @@ function actualizarContador(contenedor) {
 
     
 function seleccionarImagen(img) {
-  // Guardar solo el nombre del archivo seleccionado
-  window.imagenSeleccionada = img.getAttribute("src").split("/").pop();
+  console.log("🖱️ Imagen clickeada:", img.src);
+
+  // Quitar selección previa
+  document.querySelectorAll('.thumb-wrapper').forEach(wrapper => {
+    wrapper.classList.remove('seleccionada');
+  });
+
+  // Marcar nueva selección
+  const wrapper = img.closest('.thumb-wrapper');
+  wrapper.classList.add('seleccionada');
+  window.imagenSeleccionada = img.src.split("/").pop();
+
+  console.log("✅ Imagen seleccionada:", window.imagenSeleccionada);
+  console.log("🎯 Wrapper marcado como seleccionada:", wrapper);
 }
+
 
 function confirmarImagen() {
   if (window.imagenSeleccionada && filaActual) {
