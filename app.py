@@ -177,7 +177,11 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
         r = requests.put(url, headers=headers, json=data, timeout=10)
         if r.status_code in (200, 201):
             print(f"✅ Subido/actualizado: {ruta_remota}")
-            return {"ok": True, "url": r.json().get("content", {}).get("html_url")}
+            return {
+                "ok": True,
+                "url": r.json().get("content", {}).get("html_url"),
+                "status": r.status_code
+            }
         else:
             print(f"❌ Error al subir {ruta_remota}: {r.status_code} → {r.text}")
             return {"ok": False, "status": r.status_code, "error": r.text}
@@ -185,14 +189,6 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
         print(f"❌ Error inesperado al subir {ruta_remota}: {e}")
         return {"ok": False, "error": str(e)}
 
-
-def subir_a_backblaze(ruta_tmp, nombre_archivo):
-    try:
-        s3.upload_file(ruta_tmp, BUCKET, nombre_archivo)
-        return f"https://f005.backblazeb2.com/file/{BUCKET}/{nombre_archivo}"
-    except Exception as e:
-        print(f"❌ Error al subir a Backblaze: {e}")
-        return "fallback.webp"
 
 
 def subir_iconos_png(repo, token):
@@ -727,7 +723,7 @@ def step3():
                     f"static/img/{imagen}",
                     GITHUB_TOKEN
                 )
-                url_github = f"/static/img/{imagen}" if resultado_github else "fallback.webp"
+                url_github = f"/static/img/{imagen}" if resultado_github.get("ok") else "fallback.webp"
 
             except Exception as e:
                 print(f"❌ Error al subir imagen {imagen}: {e}")
@@ -778,6 +774,7 @@ def step3():
     print("🧪 tipo:", tipo)
     print("🧪 imagenes_step0 en render:", imagenes_disponibles)
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 
 
