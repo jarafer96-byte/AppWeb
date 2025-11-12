@@ -67,7 +67,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def subir_a_firestore(producto, email):
-    if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio") or not producto.get("imagen"):
+    if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio"):
         print("❌ Producto incompleto, faltan campos obligatorios")
         return False
 
@@ -101,7 +101,9 @@ def subir_a_firestore(producto, email):
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
-            "imagen": producto["imagen"],
+            # ✅ Guardar ambas imágenes
+            "imagen_backblaze": producto.get("imagen_backblaze", "fallback.webp"),
+            "imagen_github": producto.get("imagen_github", "fallback.webp"),
             "orden": orden,
             "talles": talles,
             "timestamp": firestore.SERVER_TIMESTAMP
@@ -115,7 +117,8 @@ def subir_a_firestore(producto, email):
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
-            "imagen": producto["imagen"],
+            "imagen_backblaze": producto.get("imagen_backblaze", "fallback.webp"),
+            "imagen_github": producto.get("imagen_github", "fallback.webp"),
             "orden": orden,
             "talles": talles
         }, indent=2))
@@ -124,6 +127,7 @@ def subir_a_firestore(producto, email):
     except Exception as e:
         print(f"❌ Error al subir {nombre_original}:", e)
         return False
+
 
 
 # ✅ Compresión y redimensionado
@@ -174,13 +178,15 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token):
         print(f"❌ Error al subir {ruta_remota}: {r.status_code} → {r.text}")
         return {"ok": False, "error": r.text}
 
-def subir_a_backblaze(ruta_tmp, nombre_archivo, bucket_url, auth_token):
-    with open(ruta_tmp, "rb") as f:
-        files = {"file": (nombre_archivo, f)}
-        headers = {"Authorization": auth_token}
-        r = requests.post(bucket_url, headers=headers, files=files)
-        r.raise_for_status()
-        return f"https://f005.backblazeb2.com/file/imagenes-appweb/{nombre_archivo}"
+
+def subir_a_backblaze(ruta_tmp, nombre_archivo):
+    try:
+        s3.upload_file(ruta_tmp, BUCKET, nombre_archivo)
+        return f"https://f005.backblazeb2.com/file/{BUCKET}/{nombre_archivo}"
+    except Exception as e:
+        print(f"❌ Error al subir a Backblaze: {e}")
+        return "fallback.webp"
+
 
 def subir_iconos_png(repo, token):
     carpeta = os.path.join("static", "img")
@@ -702,13 +708,8 @@ def step3():
             try:
                 ruta_tmp = os.path.join("/tmp", imagen)
 
-                # Backblaze
-                url_backblaze = subir_a_backblaze(
-                    ruta_tmp,
-                    imagen,
-                    BACKBLAZE_BUCKET_URL,
-                    BACKBLAZE_TOKEN
-                )
+                # Backblaze con boto3
+                url_backblaze = subir_a_backblaze(ruta_tmp, imagen)
 
                 # GitHub
                 with open(ruta_tmp, "rb") as f:
@@ -770,6 +771,7 @@ def step3():
     print("🧪 tipo:", tipo)
     print("🧪 imagenes_step0 en render:", imagenes_disponibles)
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 
 
