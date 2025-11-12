@@ -282,8 +282,7 @@ def limpiar_imagenes_usuario():
 def redimensionar_y_subir(imagen, email):
     try:
         print(f"📥 Recibida imagen: {imagen.filename}")
-        pil = Image.open(imagen)
-        pil = pil.convert("RGB")
+        pil = Image.open(imagen).convert("RGB")
         pil.thumbnail((300, 300))
 
         buffer = BytesIO()
@@ -293,13 +292,21 @@ def redimensionar_y_subir(imagen, email):
         nombre = f"mini_{uuid.uuid4().hex}.webp"
         ruta_s3 = f"usuarios/{email}/{nombre}"
 
+        # ✅ Guardar también en /tmp para GitHub
+        ruta_tmp = os.path.join("/tmp", nombre)
+        with open(ruta_tmp, "wb") as f:
+            f.write(buffer.getvalue())
+        print(f"💾 Copia guardada en tmp: {ruta_tmp}")
+
+        # Subir a Backblaze
         s3.upload_fileobj(buffer, BUCKET, ruta_s3, ExtraArgs={'ContentType': 'image/webp'})
         url_final = f"https://{BUCKET}.s3.us-west-004.backblazeb2.com/{ruta_s3}"
-        print(f"✅ Subida exitosa: {url_final}")
+        print(f"✅ Subida exitosa a Backblaze: {url_final}")
         return url_final
     except Exception as e:
         print(f"❌ Error al subir {imagen.filename}: {e}")
         return None
+
 
 def normalizar_url(url: str) -> str:
     """
@@ -677,9 +684,10 @@ def step3():
         subgrupos = request.form.getlist('subgrupo')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
+        imagenes_elegidas = request.form.getlist('imagen_elegida')
 
         longitudes = [len(nombres), len(precios), len(descripciones), len(grupos),
-                      len(subgrupos), len(ordenes), len(talles)]
+                      len(subgrupos), len(ordenes), len(talles), len(imagenes_elegidas)]
         print("🧪 Longitudes:", longitudes)
 
         for i in range(len(nombres)):
@@ -689,11 +697,10 @@ def step3():
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
 
-            # ✅ Capturar imagen seleccionada por fila
-            imagen = request.form.get(f'imagen_elegida_{i+1}')
+            imagen = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
             if not imagen:
-                print(f"⚠️ No se recibió imagen para fila {i+1}, usando fallback")
-                imagen = "fallback.webp"
+                print(f"⚠️ No se recibió imagen para fila {i+1}, se omite producto")
+                continue
             else:
                 print(f"🖼️ Imagen recibida para fila {i+1}: {imagen}")
 
@@ -703,31 +710,29 @@ def step3():
             if not nombre or not precio or not grupo or not subgrupo:
                 continue
 
-            # 🔄 Subir imagen a Backblaze y GitHub
-            try:
-                ruta_tmp = os.path.join("/tmp", os.path.basename(imagen))
-                print(f"📂 Verificando archivo en tmp: {ruta_tmp} → {os.path.exists(ruta_tmp)}")
+            # ✅ Backblaze: usar URL directa
+            url_backblaze = f"https://f005.backblazeb2.com/file/imagenes-appweb/{imagen}"
 
-                # Backblaze con boto3
-                url_backblaze = subir_a_backblaze(ruta_tmp, os.path.basename(imagen))
-                print(f"🌐 URL Backblaze generada: {url_backblaze}")
-
-                # GitHub
-                with open(ruta_tmp, "rb") as f:
-                    contenido_bytes = f.read()
-                resultado_github = subir_archivo(
-                    "AppWeb",
-                    contenido_bytes,
-                    f"static/img/{os.path.basename(imagen)}",
-                    GITHUB_TOKEN
-                )
-                url_github = f"/static/img/{os.path.basename(imagen)}" if resultado_github.get("ok") else "fallback.webp"
-                print(f"🌐 URL GitHub generada: {url_github}")
-
-            except Exception as e:
-                print(f"❌ Error al subir imagen {imagen}: {e}")
-                url_backblaze = "fallback.webp"
-                url_github = "fallback.webp"
+            # ✅ GitHub: usar copia en /tmp
+            ruta_tmp = os.path.join("/tmp", os.path.basename(imagen))
+            if os.path.exists(ruta_tmp):
+                try:
+                    with open(ruta_tmp, "rb") as f:
+                        contenido_bytes = f.read()
+                    resultado_github = subir_archivo(
+                        "AppWeb",
+                        contenido_bytes,
+                        f"static/img/{os.path.basename(imagen)}",
+                        GITHUB_TOKEN
+                    )
+                    url_github = f"/static/img/{os.path.basename(imagen)}" if resultado_github.get("ok") else ""
+                    print(f"🌐 URL GitHub generada: {url_github}")
+                except Exception as e:
+                    print(f"❌ Error al subir a GitHub {imagen}: {e}")
+                    url_github = ""
+            else:
+                print(f"⚠️ No existe en tmp: {ruta_tmp}")
+                url_github = ""
 
             bloques.append({
                 'nombre': nombre,
@@ -778,6 +783,7 @@ def step3():
         print(f"🔎 Imagen {idx} enviada al template: {img}")
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
