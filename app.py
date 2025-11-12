@@ -148,7 +148,7 @@ def necesita_redimension(src, dst):
     return not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst)
 
 
-def subir_archivo(repo, contenido_bytes, ruta_remota, token):
+def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo}/contents/{ruta_remota}"
     headers = {
         "Authorization": f"token {token}",
@@ -156,27 +156,34 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token):
     }
 
     # Primero obtenemos el SHA si el archivo ya existe
-    r_get = requests.get(url, headers=headers)
-    sha = None
-    if r_get.status_code == 200:
-        sha = r_get.json().get("sha")
+    try:
+        r_get = requests.get(url, headers=headers, timeout=10)
+        sha = None
+        if r_get.status_code == 200:
+            sha = r_get.json().get("sha")
+    except Exception as e:
+        print(f"⚠️ Error al verificar existencia de {ruta_remota}: {e}")
+        sha = None
 
     data = {
-        "message": f"Subida de {ruta_remota}",
+        "message": f"Actualización automática de {ruta_remota}",
         "content": base64.b64encode(contenido_bytes).decode("utf-8"),
-        "branch": "main"
+        "branch": branch
     }
     if sha:
         data["sha"] = sha  # necesario para actualizar
 
-    r = requests.put(url, headers=headers, json=data)
-
-    if r.status_code in (200, 201):
-        print(f"✅ Subido/actualizado: {ruta_remota}")
-        return {"ok": True, "url": r.json().get("content", {}).get("html_url")}
-    else:
-        print(f"❌ Error al subir {ruta_remota}: {r.status_code} → {r.text}")
-        return {"ok": False, "error": r.text}
+    try:
+        r = requests.put(url, headers=headers, json=data, timeout=10)
+        if r.status_code in (200, 201):
+            print(f"✅ Subido/actualizado: {ruta_remota}")
+            return {"ok": True, "url": r.json().get("content", {}).get("html_url")}
+        else:
+            print(f"❌ Error al subir {ruta_remota}: {r.status_code} → {r.text}")
+            return {"ok": False, "status": r.status_code, "error": r.text}
+    except Exception as e:
+        print(f"❌ Error inesperado al subir {ruta_remota}: {e}")
+        return {"ok": False, "error": str(e)}
 
 
 def subir_a_backblaze(ruta_tmp, nombre_archivo):
