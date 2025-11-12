@@ -94,39 +94,35 @@ def subir_a_firestore(producto, email):
     try:
         producto["id_base"] = custom_id  # ✅ Trazabilidad para frontend y edición
 
-        db.collection("usuarios").document(email).collection("productos").document(custom_id).set({
+        # 🔍 Logs de depuración
+        print(f"🖼️ Imagen Backblaze a guardar: {producto.get('imagen_backblaze')}")
+        print(f"🖼️ Imagen GitHub a guardar: {producto.get('imagen_github')}")
+
+        doc = {
             "nombre": nombre_original,
             "id_base": custom_id,
             "precio": precio,
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
-            # ✅ Guardar ambas imágenes
-            "imagen_backblaze": producto.get("imagen_backblaze", "fallback.webp"),
-            "imagen_github": producto.get("imagen_github", "fallback.webp"),
+            "imagen_backblaze": producto.get("imagen_backblaze"),
+            "imagen_github": producto.get("imagen_github"),
             "orden": orden,
             "talles": talles,
             "timestamp": firestore.SERVER_TIMESTAMP
-        })
+        }
+
+        db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
+
         print(f"✅ Producto subido correctamente: {nombre_original} | ID base: {custom_id}")
         print("📄 Documento Firestore:")
-        print(json.dumps({
-            "nombre": nombre_original,
-            "id_base": custom_id,
-            "precio": precio,
-            "grupo": grupo_original,
-            "subgrupo": subgrupo_original,
-            "descripcion": producto.get("descripcion", ""),
-            "imagen_backblaze": producto.get("imagen_backblaze", "fallback.webp"),
-            "imagen_github": producto.get("imagen_github", "fallback.webp"),
-            "orden": orden,
-            "talles": talles
-        }, indent=2))
+        print(json.dumps(doc, indent=2))
 
         return True
     except Exception as e:
         print(f"❌ Error al subir {nombre_original}:", e)
         return False
+
 
 
 
@@ -710,9 +706,11 @@ def step3():
             # 🔄 Subir imagen a Backblaze y GitHub
             try:
                 ruta_tmp = os.path.join("/tmp", imagen)
+                print(f"📂 Verificando archivo en tmp: {ruta_tmp} → {os.path.exists(ruta_tmp)}")
 
                 # Backblaze con boto3
                 url_backblaze = subir_a_backblaze(ruta_tmp, imagen)
+                print(f"🌐 URL Backblaze generada: {url_backblaze}")
 
                 # GitHub
                 with open(ruta_tmp, "rb") as f:
@@ -724,6 +722,7 @@ def step3():
                     GITHUB_TOKEN
                 )
                 url_github = f"/static/img/{imagen}" if resultado_github.get("ok") else "fallback.webp"
+                print(f"🌐 URL GitHub generada: {url_github}")
 
             except Exception as e:
                 print(f"❌ Error al subir imagen {imagen}: {e}")
@@ -748,6 +747,7 @@ def step3():
 
         def subir_con_resultado(producto):
             try:
+                print(f"📤 Subiendo a Firestore: {producto}")
                 return subir_a_firestore(producto, email)
             except Exception as e:
                 print(f"❌ Error inesperado al subir {producto['nombre']}: {e}")
