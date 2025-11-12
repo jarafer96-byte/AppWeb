@@ -549,6 +549,24 @@ function actualizarContador(contenedor) {
   const contador = contenedor.closest('.card').querySelector('.contador');
   contador.textContent = contenedor.querySelectorAll('.fila-producto').length; // ✅ cuenta filas reales
 }
+    
+function seleccionarImagen(img) {
+  // Guardar la imagen seleccionada en el modal
+  window.imagenSeleccionada = img.getAttribute("src").split("/").pop();
+}
+
+function confirmarImagen() {
+  if (window.imagenSeleccionada) {
+    // Buscar el input hidden de la fila activa
+    const filaActiva = document.querySelector(".fila-producto.activa");
+    const hiddenInput = filaActiva.querySelector("input[name='imagen_elegida']");
+    hiddenInput.value = window.imagenSeleccionada;
+
+    // Mostrar miniatura
+    filaActiva.querySelector(".preview-imagen").innerHTML =
+      `<img src="https://f005.backblazeb2.com/file/imagenes-appweb/${window.imagenSeleccionada}" style="width:80px;height:60px;">`;
+  }
+}
 
     function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
