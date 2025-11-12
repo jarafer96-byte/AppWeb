@@ -143,24 +143,44 @@ def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad
 def necesita_redimension(src, dst):
     return not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst)
 
+
 def subir_archivo(repo, contenido_bytes, ruta_remota, token):
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo}/contents/{ruta_remota}"
     headers = {
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github+json"
     }
+
+    # Primero obtenemos el SHA si el archivo ya existe
+    r_get = requests.get(url, headers=headers)
+    sha = None
+    if r_get.status_code == 200:
+        sha = r_get.json().get("sha")
+
     data = {
         "message": f"Subida de {ruta_remota}",
         "content": base64.b64encode(contenido_bytes).decode("utf-8"),
         "branch": "main"
     }
-    r = requests.put(url, headers=headers, json=data)
-    if r.status_code != 201:
-        print(f"❌ Error al subir {ruta_remota}: {r.status_code} → {r.text}")
-    else:
-        print(f"✅ Subido: {ruta_remota}")
+    if sha:
+        data["sha"] = sha  # necesario para actualizar
 
-    return r.status_code == 201
+    r = requests.put(url, headers=headers, json=data)
+
+    if r.status_code in (200, 201):
+        print(f"✅ Subido/actualizado: {ruta_remota}")
+        return {"ok": True, "url": r.json().get("content", {}).get("html_url")}
+    else:
+        print(f"❌ Error al subir {ruta_remota}: {r.status_code} → {r.text}")
+        return {"ok": False, "error": r.text}
+
+def subir_a_backblaze(ruta_tmp, nombre_archivo, bucket_url, auth_token):
+    with open(ruta_tmp, "rb") as f:
+        files = {"file": (nombre_archivo, f)}
+        headers = {"Authorization": auth_token}
+        r = requests.post(bucket_url, headers=headers, files=files)
+        r.raise_for_status()
+        return f"https://f005.backblazeb2.com/file/imagenes-appweb/{nombre_archivo}"
 
 def subir_iconos_png(repo, token):
     carpeta = os.path.join("static", "img")
@@ -181,6 +201,13 @@ def generar_nombre_repo(email):
     fecha = time.strftime("%Y%m%d")
     return f"{base}_{fecha}"
 
+
+def guardar_redimensionada(file, nombre_archivo):
+    ruta_tmp = os.path.join("/tmp", nombre_archivo)
+    img = Image.open(file)
+    img.thumbnail((800, 800))  # ejemplo de redimensión
+    img.save(ruta_tmp, "WEBP")
+    return ruta_tmp
 
 def crear_repo_github(nombre_repo, token):
     if not token:
@@ -626,8 +653,8 @@ def step3():
     email = session.get('email')
     imagenes_disponibles = session.get('imagenes_step0') or []
 
-    print(f"🧠 Imágenes disponibles en sesión: {imagenes_disponibles}")  # ← acá
-    
+    print(f"🧠 Imágenes disponibles en sesión: {imagenes_disponibles}")
+
     if not email:
         print("❌ Sesión no válida")
         return "Error: sesión no iniciada", 403
@@ -648,7 +675,8 @@ def step3():
             imagen = request.form.get(f'imagen_elegida_{i+1}') or "fallback.webp"
             imagenes_elegidas.append(imagen)
 
-        longitudes = [len(nombres), len(precios), len(descripciones), len(grupos), len(subgrupos), len(imagenes_elegidas), len(ordenes)]
+        longitudes = [len(nombres), len(precios), len(descripciones), len(grupos),
+                      len(subgrupos), len(imagenes_elegidas), len(ordenes)]
         min_len = min(longitudes)
         print("🧪 Longitudes:", longitudes)
 
@@ -670,11 +698,40 @@ def step3():
             if not nombre or not precio or not grupo or not subgrupo:
                 continue
 
+            # 🔄 Subir imagen a Backblaze y GitHub
+            try:
+                ruta_tmp = os.path.join("/tmp", imagen)
+
+                # Backblaze
+                url_backblaze = subir_a_backblaze(
+                    ruta_tmp,
+                    imagen,
+                    BACKBLAZE_BUCKET_URL,
+                    BACKBLAZE_TOKEN
+                )
+
+                # GitHub
+                with open(ruta_tmp, "rb") as f:
+                    contenido_bytes = f.read()
+                resultado_github = subir_archivo(
+                    "AppWeb",
+                    contenido_bytes,
+                    f"static/img/{imagen}",
+                    GITHUB_TOKEN
+                )
+                url_github = f"/static/img/{imagen}" if resultado_github else "fallback.webp"
+
+            except Exception as e:
+                print(f"❌ Error al subir imagen {imagen}: {e}")
+                url_backblaze = "fallback.webp"
+                url_github = "fallback.webp"
+
             bloques.append({
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'imagen': imagen,
+                'imagen_backblaze': url_backblaze,
+                'imagen_github': url_github,
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
@@ -715,8 +772,6 @@ def step3():
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
 
-
-import mercadopago
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
