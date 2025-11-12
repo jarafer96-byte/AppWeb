@@ -287,8 +287,6 @@
   </div>
 </div>
 
-
-
   <script>
   let grupoId = 0;
   let contadorOrden = 1;
@@ -312,15 +310,17 @@
   let imagenSeleccionada = null;
 
   function seleccionarImagen(img) {
-    // limpiar selección previa
-    document.querySelectorAll('.imagen-carrusel.seleccionada')
-      .forEach(el => el.classList.remove('seleccionada'));
+  // limpiar selección previa
+  document.querySelectorAll('.imagen-carrusel.seleccionada')
+    .forEach(el => el.classList.remove('seleccionada'));
 
-    // marcar nueva selección
-    img.classList.add('seleccionada');
-    // guardar solo el nombre del archivo (ej: mini_xxx.webp)
-    imagenSeleccionada = img.getAttribute("src").split("/").pop();
-  }
+  // marcar nueva selección
+  img.classList.add('seleccionada');
+
+  // guardar solo el nombre del archivo (ej: mini_xxx.webp)
+  window.imagenSeleccionada = img.getAttribute("src").split("/").pop();
+}
+
 
   // ✅ Crear grupo dinámicamente
   function crearGrupo() {
