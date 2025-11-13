@@ -91,20 +91,27 @@
 
     <form id="form-crear-admin" onsubmit="crearAdmin(event)" 
       style="display:flex; align-items:center; gap:10px; flex-direction:row;">
-      <label for="usuario_admin" style="font-weight:bold;">Paso 1:</label>
-      <input type="text" id="usuario_admin" required placeholder="Ingresá tu email" style="width:180px;">
-      <label for="clave_admin">Contraseña:</label>
-      <input type="password" id="clave_admin" required style="width:120px;">
-      <button type="submit">Crear admin</button>
-    </form>
+  <label for="usuario_admin" style="font-weight:bold;">Paso 1:</label>
+  <input type="text" id="usuario_admin" required placeholder="Ingresá tu email" style="width:180px;">
+  
+  <label for="clave_admin">Contraseña:</label>
+  <input type="password" id="clave_admin" required style="width:120px;">
+  
+  <!-- ✅ Botón con estilo -->
+  <button type="submit" class="btn-gradient">Crear admin</button>
+</form>
 
 
-    <div style="display:flex; align-items:center; gap:10px;">
-      <label for="email" style="font-weight:bold;">Paso 2:</label>
-      <input type="email" id="email" required placeholder="Ingresá tu email" style="width:180px;">
-      <button onclick="crearRepositorio()">Crear repositorio</button>
-      <span id="resultado-repo" style="margin-left:10px;"></span>
-    </div>
+<div style="display:flex; align-items:center; gap:10px;">
+  <label for="email" style="font-weight:bold;">Paso 2:</label>
+  <input type="email" id="email" required placeholder="Ingresá tu email" style="width:180px;">
+  
+  <!-- ✅ Botón con estilo -->
+  <button onclick="crearRepositorio()" class="btn-gradient">Crear repositorio</button>
+  
+  <span id="resultado-repo" style="margin-left:10px;"></span>
+</div>
+
     
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="tipo_web" value="catálogo">
