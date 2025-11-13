@@ -89,17 +89,17 @@
   <div class="container py-5">
     <h2 class="mb-4 text-center">Creá tu sitio tipo catálogo</h2>
 
-    <h3>Paso 1:</h3>
-    <form id="form-crear-admin" onsubmit="crearAdmin(event)">
-      <label>Email:</label>
-      <input type="text" id="usuario_admin" required placeholder="Ingresá tu email">
+    <form id="form-crear-admin" onsubmit="crearAdmin(event)" style="display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <label for="usuario_admin" style="font-weight:bold;">Paso 1:</label>
+        <input type="text" id="usuario_admin" required placeholder="Ingresá tu email">
+      </div>
   
       <label>Contraseña:</label>
       <input type="password" id="clave_admin" required>
   
       <button type="submit">Crear admin</button>
     </form>
-
 
     <div style="display: flex; align-items: center; gap: 10px;">
       <label for="email" style="font-weight: bold;">Paso 2:</label>
