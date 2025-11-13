@@ -522,9 +522,9 @@
               <div class="card p-3 h-100">
                 <!-- ✅ Imagen con Backblaze + fallback GitHub -->
                 <img src="{{ producto.imagen_backblaze or producto.imagen_github or '/static/img/fallback.webp' }}"
-                    class="card-img-top"
-                    alt="{{ producto.nombre }}"
-                    loading="lazy">
+                     class="card-img-top"
+                     alt="{{ producto.nombre }}"
+                     loading="lazy">
 
                 <div class="card-body">
                   {% if modoAdmin %}
@@ -568,9 +568,14 @@
 
                   <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
                     <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                    <input type="number" min="1" max="100" value="1" class="form-control form-control-sm" style="width: 70px;" id="cantidad_{{ id_base }}">
+                    <input type="number" min="1" max="100" value="1"
+                           class="form-control form-control-sm" style="width: 70px;"
+                           id="cantidad_{{ id_base }}">
                     <button type="button" class="btn btn-secondary"
-                      onclick="agregarAlCarritoDOM('{{ producto.nombre }}', 'precio_{{ id_base }}', 'cantidad_{{ id_base }}', '{{ id_base }}')">
+                      onclick="agregarAlCarritoDOM('{{ producto.nombre }}',
+                                                   'precio_{{ id_base }}',
+                                                   'cantidad_{{ id_base }}',
+                                                   '{{ id_base }}')">
                       Agregar al carrito
                     </button>
                   </div>
@@ -596,6 +601,7 @@
     {% endfor %}
   </div>
 {% endfor %}
+
 
 
 
@@ -780,13 +786,13 @@ window.onload = function() {
     let carrito = [];
 
    function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
-  const cantidadInput = document.getElementById(idCantidad); 
+  const cantidadInput = document.getElementById(idCantidad);
   const precioSpan = document.getElementById(idPrecioSpan);
-  const talleSpan = document.getElementById("talles_" + id_base);
+  const talleSelect = document.getElementById("talle_" + id_base);
 
-  const cantidad = parseInt(cantidadInput?.value) || 1; 
+  const cantidad = parseInt(cantidadInput?.value) || 1;
   const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
-  const talleElegido = talleSpan?.textContent.trim() || "";
+  const talleElegido = talleSelect?.value || "";
 
   console.log("🛒 Intentando agregar al carrito:", {
     nombre,
@@ -808,6 +814,7 @@ window.onload = function() {
 
   actualizarCarrito();
 }
+
 
 
 function editarPrecio(id) {
@@ -947,15 +954,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     
 function editarTalles(id) {
-  const span = document.getElementById("talles_" + id);
-  if (!span) {
-    console.warn("❌ No se encontró el span con id:", "talles_" + id);
+  // 1) Buscar el select de talles
+  const select = document.getElementById("talle_" + id);
+  if (!select) {
+    console.warn("❌ No se encontró el select de talles:", "talle_" + id);
     return;
   }
 
-  const valorActual = span.textContent.trim();
+  // 2) Construir el valor actual como texto "S, M, L"
+  const opciones = Array.from(select.options).map(opt => opt.value).filter(Boolean);
+  const valorActual = opciones.join(", ");
   console.log("🧪 Editando talles para:", id, "| Valor actual:", valorActual);
 
+  // 3) Crear input texto
   const input = document.createElement("input");
   input.type = "text";
   input.value = valorActual;
@@ -963,25 +974,22 @@ function editarTalles(id) {
   input.style.width = "200px";
   input.id = "input_talles_" + id;
 
-  // Guardar al salir del input
+  // Guardar al salir
   input.onblur = () => {
     console.log("📤 onblur: guardando talles para", id, "con valor:", input.value);
     guardarTalles(id);
   };
 
-  // Guardar al presionar Enter
+  // Guardar con Enter
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      console.log("⏎ Enter presionado: guardando talles para", id, "con valor:", input.value);
-      input.blur(); // dispara onblur
-    }
+    if (e.key === "Enter") input.blur();
   });
 
-  span.replaceWith(input);
+  // 4) Reemplazar select por el input
+  select.replaceWith(input);
   input.focus();
 }
 
- 
 function guardarTalles(id) {
   const input = document.getElementById("input_talles_" + id);
   if (!input) {
@@ -989,37 +997,53 @@ function guardarTalles(id) {
     return;
   }
 
+  // 1) Parsear "S, M, L" → ["S","M","L"]
   const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
   console.log("📡 Enviando talles a Firestore:", { id, talles: nuevosTalles });
 
+  // 2) Enviar al backend
   fetch('/actualizar-talles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, talles: nuevosTalles }) // ✅ unificado con backend
+    body: JSON.stringify({ id, talles: nuevosTalles })
   })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === "ok") {
-        console.log("✅ Talles confirmados en Firestore para", id);
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "ok") {
+      console.log("✅ Talles confirmados en Firestore para", id);
 
-        // Feedback visual inmediato en DOM
-        const nuevoSpan = document.createElement("span");
-        nuevoSpan.id = "talles_" + id;
-        nuevoSpan.textContent = nuevosTalles.join(", ");
-        input.replaceWith(nuevoSpan);
-        nuevoSpan.classList.add("text-success");
-        setTimeout(() => nuevoSpan.classList.remove("text-success"), 1000);
+      // 3) Regenerar el select con las nuevas opciones
+      const nuevoSelect = document.createElement("select");
+      nuevoSelect.id = "talle_" + id;
+      nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
+
+      if (nuevosTalles.length > 0) {
+        nuevosTalles.forEach(t => {
+          const opt = document.createElement("option");
+          opt.value = t;
+          opt.textContent = t;
+          nuevoSelect.appendChild(opt);
+        });
       } else {
-        alert("❌ No se pudo actualizar los talles en el servidor");
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "Sin talles";
+        nuevoSelect.appendChild(opt);
       }
-    })
-    .catch(err => {
-      console.error("❌ Error de red:", err);
-      alert("❌ Error de conexión al guardar los talles");
-    });
+
+      // Reemplazar input por select y feedback
+      input.replaceWith(nuevoSelect);
+      nuevoSelect.classList.add("text-success");
+      setTimeout(() => nuevoSelect.classList.remove("text-success"), 1000);
+    } else {
+      alert("❌ No se pudo actualizar los talles en el servidor");
+    }
+  })
+  .catch(err => {
+    console.error("❌ Error de red:", err);
+    alert("❌ Error de conexión al guardar los talles");
+  });
 }
-
-
 
 function actualizarFirestore(id, datos) {
   if (!id || typeof datos !== "object" || Object.keys(datos).length === 0) {
