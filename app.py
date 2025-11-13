@@ -653,6 +653,8 @@ def step2():
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
+    import gc
+
     tipo = session.get('tipo_web')
     email = session.get('email')
     imagenes_session = session.get('imagenes_step0') or []
@@ -784,6 +786,53 @@ def step3():
 
         print(f"🧮 Subidos correctamente: {exitos} / Fallidos: {fallos}")
 
+        # ✅ Subir index.html y los íconos PNG al repo
+        if github_token and repo_name:
+            try:
+                # Renderizar index.html con los datos actuales
+                html = render_template(
+                    'preview.html',
+                    config=session,
+                    grupos={},  # puedes pasar grupos_dict si lo tenés armado aquí
+                    modoAdmin=False,
+                    modoAdminIntentado=False,
+                    firebase_config=firebase_config
+                )
+                resultado_index = subir_archivo(
+                    repo_name,
+                    html.encode('utf-8'),
+                    'index.html',
+                    github_token
+                )
+                print("🧾 index.html subido:", resultado_index)
+            except Exception as e:
+                print("⚠️ No se pudo subir index.html:", e)
+
+            try:
+                subir_iconos_png(repo_name, github_token)
+                print("🎨 Íconos PNG subidos correctamente")
+            except Exception as e:
+                print("⚠️ No se pudieron subir los íconos PNG:", e)
+
+            # Subir logo
+            logo = session.get('logo')
+            if logo:
+                logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
+                if os.path.exists(logo_path):
+                    with open(logo_path, "rb") as f:
+                        contenido = f.read()
+                    subir_archivo(repo_name, contenido, f"static/img/{logo}", github_token)
+                    print(f"🎯 Subido logo: {logo}")
+
+            # Subir fondo visual
+            estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+            fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{estilo_visual}.jpeg")
+            if os.path.exists(fondo_path):
+                with open(fondo_path, "rb") as f:
+                    contenido = f.read()
+                subir_archivo(repo_name, contenido, f"static/img/{estilo_visual}.jpeg", github_token)
+                print(f"🌄 Subido fondo visual: {estilo_visual}.jpeg")
+
         try:
             if exitos > 0:
                 return redirect('/preview')
@@ -802,6 +851,7 @@ def step3():
         print(f"🔎 Imagen {idx} enviada al template: {img}")
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
