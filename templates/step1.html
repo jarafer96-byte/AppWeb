@@ -89,17 +89,26 @@
   <div class="container py-5">
     <h2 class="mb-4 text-center">Creá tu sitio tipo catálogo</h2>
 
+    <h3>Paso 1:</h3>
     <form id="form-crear-admin" onsubmit="crearAdmin(event)">
       <label>Email:</label>
       <input type="text" id="usuario_admin" required placeholder="Ingresá tu email">
+  
       <label>Contraseña:</label>
       <input type="password" id="clave_admin" required>
+  
       <button type="submit">Crear admin</button>
     </form>
 
-    <input type="email" id="email" required placeholder="Ingresá tu email">
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <label for="email" style="font-weight: bold;">Paso 2:</label>
+      <input type="email" id="email" required placeholder="Ingresá tu email">
+    </div>
+
     <button onclick="crearRepositorio()">Crear repositorio</button>
     <div id="resultado-repo" style="margin-top: 10px;"></div>
+
     
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="tipo_web" value="catálogo">
