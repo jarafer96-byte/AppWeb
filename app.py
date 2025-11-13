@@ -79,7 +79,10 @@ def subir_a_firestore(producto, email):
     grupo_id = grupo_original.replace(" ", "_").lower()
     nombre_id = nombre_original.replace(" ", "_").lower()
     fecha = time.strftime("%Y%m%d")
-    custom_id = f"{nombre_id}_{fecha}_{grupo_id}"
+
+    # ✅ Sufijo único para evitar colisiones sin perder trazabilidad
+    sufijo = uuid.uuid4().hex[:6]
+    custom_id = f"{nombre_id}_{fecha}_{grupo_id}_{sufijo}"
 
     try:
         precio = int(producto["precio"].replace("$", "").replace(".", "").strip())
@@ -126,6 +129,7 @@ def subir_a_firestore(producto, email):
     except Exception as e:
         print(f"❌ Error al subir {nombre_original}:", e)
         return False
+
 
 
 def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
