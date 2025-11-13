@@ -779,11 +779,11 @@ window.onload = function() {
    function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
   const cantidadInput = document.getElementById(idCantidad); 
   const precioSpan = document.getElementById(idPrecioSpan);
-  const talleSelect = document.getElementById("talle_" + id_base);
+  const talleSpan = document.getElementById("talles_" + id_base);
 
   const cantidad = parseInt(cantidadInput?.value) || 1; 
   const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
-  const talleElegido = talleSelect?.value || "";
+  const talleElegido = talleSpan?.textContent.trim() || "";
 
   console.log("🛒 Intentando agregar al carrito:", {
     nombre,
@@ -805,6 +805,7 @@ window.onload = function() {
 
   actualizarCarrito();
 }
+
 
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
