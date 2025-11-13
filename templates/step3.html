@@ -456,15 +456,17 @@ function eliminarFila(btn) {
   const fila = btn.closest('.fila-producto');
   const contenedor = btn.closest('.card').querySelector('.productos');
 
-  const hiddenInput = fila.querySelector('input[name="imagen_elegida"]');
-  if (hiddenInput && hiddenInput.value) {
-    const nombreArchivo = hiddenInput.value;
-    console.log("🗑️ Eliminando fila con imagen:", nombreArchivo);
+  // ✅ Usar el hidden 'imagen_basename' para comparar y liberar
+  const hiddenBase = fila.querySelector('input[name="imagen_basename"]');
+  const basename = hiddenBase ? hiddenBase.value : "";
+
+  if (basename) {
+    console.log("🗑️ Eliminando fila con imagen (basename):", basename);
 
     // Liberar imagen en el carrusel
     document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
       const nombre = img.getAttribute("src").split("/").pop();
-      if (nombre === nombreArchivo) {
+      if (nombre === basename) {
         console.log("🔓 Liberando imagen en carrusel:", nombre);
         img.classList.remove('usada');
         img.style.opacity = "1";
@@ -474,7 +476,7 @@ function eliminarFila(btn) {
     });
 
     // Quitar de la lista global de usadas
-    imagenesUsadas = imagenesUsadas.filter(img => img !== nombreArchivo);
+    imagenesUsadas = imagenesUsadas.filter(img => img !== basename);
     console.log("📦 Lista de imágenes usadas actualizada:", imagenesUsadas);
   }
 
@@ -488,6 +490,7 @@ function eliminarFila(btn) {
     console.warn("⚠️ Intento de eliminar la última fila bloqueado.");
   }
 }
+
 
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
@@ -561,7 +564,7 @@ function confirmarImagen() {
   hiddenBase.value = window.imagenSeleccionada;
   console.log("📥 Hidden basename actualizado con:", hiddenBase.value);
 
-  // Actualizar miniatura
+  // Actualizar miniatura en la fila
   let preview = filaActual.querySelector(".preview-imagen");
   if (!preview) {
     preview = document.createElement("div");
@@ -573,6 +576,25 @@ function confirmarImagen() {
           style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;" 
           onerror="console.error('❌ Error cargando miniatura:', this.src)">`;
 
+  // ✅ Marcar imagen como usada
+  const nombreSeleccionado = window.imagenSeleccionada; // basename
+  if (!imagenesUsadas.includes(nombreSeleccionado)) {
+    imagenesUsadas.push(nombreSeleccionado);
+    console.log("📦 Imagen agregada a usadas:", imagenesUsadas);
+  }
+
+  // Aplicar estilo "usada" al thumbnail coincidente
+  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+    const nombre = img.getAttribute("src").split("/").pop();
+    if (nombre === nombreSeleccionado) {
+      img.classList.add('usada'); // usa la clase CSS ya definida
+      img.style.opacity = "0.25";
+      img.style.filter = "grayscale(100%) brightness(0.6)";
+      img.style.pointerEvents = "none";
+      console.log("🚫 Imagen marcada como usada en carrusel:", nombre);
+    }
+  });
+
   // Cerrar modal
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   if (modal) {
@@ -581,7 +603,6 @@ function confirmarImagen() {
     console.log("🔒 Modal cerrado correctamente.");
   }
 }
-
 
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
