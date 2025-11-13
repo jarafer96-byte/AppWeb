@@ -712,7 +712,7 @@ def step3():
                         "AppWeb",
                         contenido_bytes,
                         f"static/img/{imagen_base}",
-                        GITHUB_TOKEN   # ✅ ahora siempre la misma variable
+                        token   # ✅ ahora siempre la misma variable
                     )
                     url_github = f"/static/img/{imagen_base}" if resultado_github.get("ok") else ""
                     print(f"🌐 URL GitHub generada: {url_github}")
