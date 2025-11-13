@@ -322,7 +322,7 @@ def step0():
         if 'imagenes_step0' not in session:
             session['imagenes_step0'] = []
 
-        if len(session['imagenes_step0']) + len(imagenes) > 60:
+        if len(session['imagenes_step0']) + len(imagenes) > 120:
             print("⚠️ Límite de 60 imágenes alcanzado")
             return "Límite de imágenes alcanzado", 400
 
@@ -333,7 +333,7 @@ def step0():
 
         urls = []
         # Procesar en tandas de 10 imágenes, con 3 workers simultáneos por tanda
-        for lote in chunks([img for img in imagenes if img and img.filename], 10):
+        for lote in chunks([img for img in imagenes if img and img.filename], 40):
             print(f"🚚 Procesando lote de {len(lote)} imágenes")
             with ThreadPoolExecutor(max_workers=3) as executor:
                 futures = [executor.submit(redimensionar_y_subir, img, email) for img in lote]
