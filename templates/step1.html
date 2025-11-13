@@ -89,10 +89,6 @@
   <div class="container py-5">
     <h2 class="mb-4 text-center">Creá tu sitio tipo catálogo</h2>
 
-    <input type="email" id="email" required placeholder="Ingresá tu email">
-    <button onclick="crearRepositorio()">Crear repositorio</button>
-    <div id="resultado-repo" style="margin-top: 10px;"></div>
-    
     <form id="form-crear-admin" onsubmit="crearAdmin(event)">
       <label>Email:</label>
       <input type="text" id="usuario_admin" required placeholder="Ingresá tu email">
@@ -101,6 +97,10 @@
       <button type="submit">Crear admin</button>
     </form>
 
+    <input type="email" id="email" required placeholder="Ingresá tu email">
+    <button onclick="crearRepositorio()">Crear repositorio</button>
+    <div id="resultado-repo" style="margin-top: 10px;"></div>
+    
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="tipo_web" value="catálogo">
 
@@ -213,7 +213,7 @@ function toggleCampoMP() {
   const activo = document.getElementById('activarMP').checked;
   document.getElementById('campoMP').style.display = activo ? 'block' : 'none';
 }
-
+  
 async function crearRepositorio() {
   const email = document.getElementById("email").value;
   if (!email) return alert("Ingresá un email válido");
@@ -228,7 +228,7 @@ async function crearRepositorio() {
   const resultado = document.getElementById("resultado-repo");
 
   if (data.url) {
-    resultado.innerHTML = `✅ Repositorio creado: <a href="${data.url}" target="_blank">${data.url}</a>`;
+    resultado.innerHTML = "<span style='color:green;font-size:20px;'>✔ Repositorio creado correctamente</span>";
   } else {
     resultado.innerHTML = `❌ Error: ${data.error || "No se pudo crear el repositorio"}`;
   }
