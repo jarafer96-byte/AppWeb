@@ -325,19 +325,28 @@ def step0():
             print("⚠️ Límite de 60 imágenes alcanzado")
             return "Límite de imágenes alcanzado", 400
 
+        # ✅ Función auxiliar para dividir en lotes
+        def chunks(lista, n):
+            for i in range(0, len(lista), n):
+                yield lista[i:i+n]
+
         urls = []
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = [executor.submit(redimensionar_y_subir, img, email) for img in imagenes if img and img.filename]
-            for f in futures:
-                url = f.result()
-                if url:
-                    urls.append(normalizar_url(url))  # ✅ siempre normalizamos
+        # Procesar en tandas de 10 imágenes, con 3 workers simultáneos por tanda
+        for lote in chunks([img for img in imagenes if img and img.filename], 10):
+            print(f"🚚 Procesando lote de {len(lote)} imágenes")
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                futures = [executor.submit(redimensionar_y_subir, img, email) for img in lote]
+                for f in futures:
+                    url = f.result()
+                    if url:
+                        urls.append(normalizar_url(url))  # ✅ siempre normalizamos
 
         session['imagenes_step0'].extend(urls)
         print(f"🧠 Total acumulado en sesión: {len(session['imagenes_step0'])}")
         return redirect('/estilo')
 
     return render_template('step0.html')
+
 
 
 @app.route("/test-firestore")
@@ -676,6 +685,10 @@ def step3():
                       len(subgrupos), len(ordenes), len(talles), len(imagenes_elegidas)]
         print("🧪 Longitudes:", longitudes)
 
+        # ✅ Factorizar repo_name y token una sola vez
+        repo_name = session.get('repo_nombre') or "AppWeb"
+        github_token = os.getenv("GITHUB_TOKEN")
+
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
             precio = precios[i].strip()
@@ -708,14 +721,12 @@ def step3():
                 try:
                     with open(ruta_tmp, "rb") as f:
                         contenido_bytes = f.read()
-                        
-                    repo_name = session.get('repo_nombre') or "AppWeb"
-                    
+
                     resultado_github = subir_archivo(
                         repo_name,
                         contenido_bytes,
                         f"static/img/{imagen_base}",
-                        token   # ✅ ahora siempre la misma variable
+                        github_token   # ✅ token factorado
                     )
                     url_github = f"/static/img/{imagen_base}" if resultado_github.get("ok") else ""
                     print(f"🌐 URL GitHub generada: {url_github}")
@@ -754,10 +765,15 @@ def step3():
         try:
             for inicio in range(0, len(bloques), bloques_por_lote):
                 lote = bloques[inicio:inicio + bloques_por_lote]
-                with ThreadPoolExecutor(max_workers=5) as executor:
+                print(f"🚚 Subiendo lote {inicio//bloques_por_lote + 1} ({len(lote)} productos)")
+                # ✅ Limitar a 3 workers simultáneos
+                with ThreadPoolExecutor(max_workers=3) as executor:
                     resultados = list(executor.map(subir_con_resultado, lote))
-                    exitos += sum(resultados)
-                    fallos += len(resultados) - sum(resultados)
+                ok = sum(1 for r in resultados if r)
+                fail = len(resultados) - ok
+                exitos += ok
+                fallos += fail
+                print(f"📊 Resultado lote: ok={ok}, fail={fail}")
         except Exception as lote_error:
             print(f"🔥 Error crítico en lote de subida: {lote_error}")
 
@@ -775,6 +791,7 @@ def step3():
         print(f"🔎 Imagen {idx} enviada al template: {img}")
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
