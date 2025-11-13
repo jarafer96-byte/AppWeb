@@ -656,6 +656,7 @@ def step2():
     imagenes = os.listdir('static/img/webp')
     return render_template('step2.html', config=session, imagenes=imagenes)
     
+
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
     tipo = session.get('tipo_web')
@@ -727,7 +728,7 @@ def step3():
                         "AppWeb",
                         contenido_bytes,
                         f"static/img/{imagen_base}",
-                        GITHUB_TOKEN
+                        GITHUB_TOKEN   # ✅ ahora siempre la misma variable
                     )
                     url_github = f"/static/img/{imagen_base}" if resultado_github.get("ok") else ""
                     print(f"🌐 URL GitHub generada: {url_github}")
@@ -787,9 +788,6 @@ def step3():
         print(f"🔎 Imagen {idx} enviada al template: {img}")
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
-
-
-
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
