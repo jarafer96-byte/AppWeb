@@ -545,16 +545,18 @@
                   </p>
 
                   <div class="mb-2">
-                    <label for="talles_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;">
+                    <label for="talle_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;">
                       <strong>Talle:</strong>
                     </label>
-                    <span id="talles_{{ id_base }}">
+                    <select id="talle_{{ id_base }}" class="form-select form-select-sm w-auto d-inline-block">
                       {% if producto.talles %}
-                        {{ producto.talles|join(', ') }}
+                        {% for t in producto.talles %}
+                          <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
                       {% else %}
-                        Sin talles
+                        <option value="">Sin talles</option>
                       {% endif %}
-                    </span>
+                    </select>
                     {% if modoAdmin %}
                       <button onclick="editarTalles('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
                     {% endif %}
@@ -594,6 +596,7 @@
     {% endfor %}
   </div>
 {% endfor %}
+
 
 
   <div id="contenedor-grupos"></div>
