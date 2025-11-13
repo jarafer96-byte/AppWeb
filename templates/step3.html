@@ -186,6 +186,11 @@
   <div class="container py-5">
     <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
 
+  <div class="text-center mb-4">
+    <input type="file" id="archivoProductos" accept=".csv,.txt" class="form-control w-50 mx-auto mb-2">
+    <button type="button" class="btn-gradient btn-sm" onclick="leerArchivoProductos()">📂 Importar lista de productos</button>
+  </div>
+
 
     <div class="mb-4 text-center">
       <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" placeholder="Nombre del grupo (ej: Ropa Mujer)">
@@ -390,6 +395,63 @@ function guardarNombreGrupo(card, nuevoNombre) {
   });
 
   modal.show();
+}
+
+    function leerArchivoProductos() {
+  const input = document.getElementById("archivoProductos");
+  if (!input.files.length) {
+    alert("⚠️ Seleccioná un archivo primero");
+    return;
+  }
+
+  const file = input.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    const contenido = e.target.result;
+    const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
+
+    lineas.forEach(linea => {
+      // Ejemplo CSV: nombre;descripcion;precio;grupo;subgrupo;talles
+      const partes = linea.split(";");
+      if (partes.length < 6) {
+        console.warn("⚠️ Línea inválida:", linea);
+        return;
+      }
+
+      const [nombre, descripcion, precio, grupo, subgrupo, talles] = partes.map(p => p.trim());
+
+      // Buscar o crear grupo
+      let grupoCard = [...document.querySelectorAll(".card")].find(c => c.querySelector("h4")?.textContent.trim() === grupo);
+      if (!grupoCard) {
+        document.getElementById("nombreGrupo").value = grupo;
+        crearGrupo();
+        grupoCard = [...document.querySelectorAll(".card")].find(c => c.querySelector("h4")?.textContent.trim() === grupo);
+      }
+
+      // Buscar o crear subgrupo
+      let subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(s => s.querySelector("strong")?.textContent.trim() === subgrupo);
+      if (!subgrupoCard) {
+        grupoCard.querySelector(`#inputSubgrupo_${grupoCard.id.split("_")[1]}`).value = subgrupo;
+        crearSubgrupo(grupoCard.querySelector("button[onclick^='crearSubgrupo']"));
+        subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(s => s.querySelector("strong")?.textContent.trim() === subgrupo);
+      }
+
+      // Crear fila y rellenar datos
+      const fila = crearFila(subgrupo, grupo);
+      fila.querySelector("input[name='nombre']").value = nombre;
+      fila.querySelector("textarea[name='descripcion']").value = descripcion;
+      fila.querySelector("input[name='precio']").value = precio;
+      fila.querySelector("input[name='talles']").value = talles;
+
+      subgrupoCard.querySelector(".productos").appendChild(fila);
+      actualizarContador(subgrupoCard);
+    });
+
+    alert("✅ Productos importados correctamente");
+  };
+
+  reader.readAsText(file);
 }
 
   function crearSubgrupo(btn) {
