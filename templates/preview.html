@@ -542,19 +542,19 @@
                     {% endif %}
                   </p>
 
-                  {% if producto.talles %}
-                    <div class="mb-2">
-                      <label for="talle_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-                      <select id="talle_{{ id_base }}" class="form-select form-select-sm w-auto d-inline-block">
-                        {% for t in producto.talles %}
-                          <option value="{{ t }}">{{ t }}</option>
-                        {% endfor %}
-                      </select>
-                      {% if modoAdmin %}
-                        <button onclick="editarTalles('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
-                      {% endif %}
-                    </div>
-                  {% endif %}
+                   {% if producto.talles %}
+                     <div class="mb-2">
+                       <label for="talles_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;">
+                        <strong>Talle:</strong>
+                       </label>
+                       <span id="talles_{{ id_base }}">
+                         {{ producto.talles|join(', ') }}
+                       </span>
+                       {% if modoAdmin %}
+                         <button onclick="editarTalles('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
+                       {% endif %}
+                     </div>
+                   {% endif %}
 
                   {% if config.whatsapp %}
                     <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
