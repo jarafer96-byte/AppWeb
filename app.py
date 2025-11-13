@@ -5,6 +5,7 @@ import uuid
 import re
 import time
 import json
+import gc
 import boto3
 import traceback
 from werkzeug.utils import secure_filename
@@ -717,7 +718,7 @@ def step3():
 
             # ✅ GitHub: usar copia en /tmp con basename real
             ruta_tmp = os.path.join("/tmp", imagen_base)
-            if os.path.exists(ruta_tmp):
+            if os.path.exists(ruta_tmp) and github_token:
                 try:
                     with open(ruta_tmp, "rb") as f:
                         contenido_bytes = f.read()
@@ -726,15 +727,19 @@ def step3():
                         repo_name,
                         contenido_bytes,
                         f"static/img/{imagen_base}",
-                        github_token   # ✅ token factorado
+                        github_token
                     )
                     url_github = f"/static/img/{imagen_base}" if resultado_github.get("ok") else ""
                     print(f"🌐 URL GitHub generada: {url_github}")
+
+                    # ✅ liberar buffer y memoria
+                    del contenido_bytes
+                    gc.collect()
                 except Exception as e:
                     print(f"❌ Error al subir a GitHub {imagen_base}: {e}")
                     url_github = ""
             else:
-                print(f"⚠️ No existe en tmp: {ruta_tmp}")
+                print(f"⚠️ No existe en tmp o token ausente: {ruta_tmp}")
                 url_github = ""
 
             bloques.append({
@@ -779,9 +784,15 @@ def step3():
 
         print(f"🧮 Subidos correctamente: {exitos} / Fallidos: {fallos}")
 
-        if exitos > 0:
-            return redirect('/preview')
-        else:
+        try:
+            if exitos > 0:
+                return redirect('/preview')
+            else:
+                return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+        except Exception as e:
+            import traceback
+            print("🔥 Error al redirigir/renderizar preview:", e)
+            traceback.print_exc()
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
     # GET
@@ -791,7 +802,6 @@ def step3():
         print(f"🔎 Imagen {idx} enviada al template: {img}")
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
-
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
@@ -923,55 +933,80 @@ def preview():
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
 
-        # Subir imágenes de productos
-        for producto in productos:
-            imagen = producto.get("imagen")
-            if imagen:
-                ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
-                if os.path.exists(ruta_local):
-                    with open(ruta_local, "rb") as f:
-                        contenido = f.read()
-                    subir_archivo(nombre_repo, contenido, f"static/img/{imagen}", token)
-                    print(f"🖼️ Subida imagen: {imagen}")
-                else:
-                    print(f"⚠️ Imagen no encontrada: {imagen}")
-
-        # Subir logo
-        logo = config.get("logo")
-        if logo:
-            logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
-            if os.path.exists(logo_path):
-                with open(logo_path, "rb") as f:
-                    contenido = f.read()
-                subir_archivo(nombre_repo, contenido, f"static/img/{logo}", token)
-                print(f"🎯 Subido logo: {logo}")
-            else:
-                print(f"⚠️ Logo no encontrado: {logo}")
-
-        # Subir fondo visual
-        fondo = f"{estilo_visual}.jpeg"
-        fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
-        if os.path.exists(fondo_path):
-            with open(fondo_path, "rb") as f:
-                contenido = f.read()
-            subir_archivo(nombre_repo, contenido, f"static/img/{fondo}", token)
-            print(f"🌄 Subido fondo visual: {fondo}")
+        if not token:
+            print("❌ GITHUB_TOKEN ausente, se omite subida de archivos.")
         else:
-            print(f"⚠️ Fondo visual no encontrado: {fondo}")
+            # Subir imágenes de productos
+            for producto in productos:
+                imagen = producto.get("imagen")
+                if imagen:
+                    ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
+                    if os.path.exists(ruta_local):
+                        try:
+                            with open(ruta_local, "rb") as f:
+                                contenido = f.read()
+                            subir_archivo(nombre_repo, contenido, f"static/img/{imagen}", token)
+                            print(f"🖼️ Subida imagen: {imagen}")
+                            del contenido
+                            gc.collect()
+                        except Exception as e:
+                            print(f"❌ Error al subir imagen {imagen}: {e}")
+                    else:
+                        print(f"⚠️ Imagen no encontrada: {imagen}")
+
+            # Subir logo
+            logo = config.get("logo")
+            if logo:
+                logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
+                if os.path.exists(logo_path):
+                    try:
+                        with open(logo_path, "rb") as f:
+                            contenido = f.read()
+                        subir_archivo(nombre_repo, contenido, f"static/img/{logo}", token)
+                        print(f"🎯 Subido logo: {logo}")
+                        del contenido
+                        gc.collect()
+                    except Exception as e:
+                        print(f"❌ Error al subir logo {logo}: {e}")
+                else:
+                    print(f"⚠️ Logo no encontrado: {logo}")
+
+            # Subir fondo visual
+            fondo = f"{estilo_visual}.jpeg"
+            fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
+            if os.path.exists(fondo_path):
+                try:
+                    with open(fondo_path, "rb") as f:
+                        contenido = f.read()
+                    subir_archivo(nombre_repo, contenido, f"static/img/{fondo}", token)
+                    print(f"🌄 Subido fondo visual: {fondo}")
+                    del contenido
+                    gc.collect()
+                except Exception as e:
+                    print(f"❌ Error al subir fondo visual {fondo}: {e}")
+            else:
+                print(f"⚠️ Fondo visual no encontrado: {fondo}")
 
     print("🧠 session['modo_admin']:", session.get('modo_admin'))
     print("🧠 modo_admin:", modo_admin)
     print("🧠 modo_admin_intentado:", modo_admin_intentado)
     print("🧠 session completa:", dict(session))
 
-    return render_template(
-        'preview.html',
-        config=config,
-        grupos=grupos_dict,
-        modoAdmin=modo_admin,
-        modoAdminIntentado=modo_admin_intentado,
-        firebase_config=firebase_config   # 👈 agregado
-    )
+    try:
+        return render_template(
+            'preview.html',
+            config=config,
+            grupos=grupos_dict,
+            modoAdmin=modo_admin,
+            modoAdminIntentado=modo_admin_intentado,
+            firebase_config=firebase_config
+        )
+    except Exception as e:
+        import traceback
+        print("🔥 Error renderizando preview.html:", e)
+        traceback.print_exc()
+        return "Internal Server Error al renderizar preview", 500
+
 
 @app.route('/descargar')
 def descargar():
