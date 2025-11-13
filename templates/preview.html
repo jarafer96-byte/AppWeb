@@ -536,25 +536,29 @@
                   <h5 class="card-title">{{ producto.nombre }}</h5>
                   <p class="card-text">{{ producto.descripcion }}</p>
 
-                  <p><strong>Precio:</strong> $<span id="precio_{{ id_base }}">{{ producto.precio }}</span>
+                  <p>
+                    <strong>Precio:</strong> 
+                    $<span id="precio_{{ id_base }}">{{ producto.precio }}</span>
                     {% if modoAdmin %}
                       <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
                     {% endif %}
                   </p>
 
-                   {% if producto.talles %}
-                     <div class="mb-2">
-                       <label for="talles_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;">
-                        <strong>Talle:</strong>
-                       </label>
-                       <span id="talles_{{ id_base }}">
-                         {{ producto.talles|join(', ') }}
-                       </span>
-                       {% if modoAdmin %}
-                         <button onclick="editarTalles('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
-                       {% endif %}
-                     </div>
-                   {% endif %}
+                  <div class="mb-2">
+                    <label for="talles_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;">
+                      <strong>Talle:</strong>
+                    </label>
+                    <span id="talles_{{ id_base }}">
+                      {% if producto.talles %}
+                        {{ producto.talles|join(', ') }}
+                      {% else %}
+                        Sin talles
+                      {% endif %}
+                    </span>
+                    {% if modoAdmin %}
+                      <button onclick="editarTalles('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
+                    {% endif %}
+                  </div>
 
                   {% if config.whatsapp %}
                     <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
@@ -590,7 +594,6 @@
     {% endfor %}
   </div>
 {% endfor %}
-
 
 
   <div id="contenedor-grupos"></div>
