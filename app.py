@@ -45,13 +45,13 @@ token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
+app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 4 MB
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
 
 @app.errorhandler(413)
 def too_large(e):
-    return "Archivo demasiado grande (máx. 4 MB)", 413
+    return "Archivo demasiado grande (máx. 200 MB)", 413
 
 firebase_config = {
     "apiKey": os.getenv("FIREBASE_API_KEY"),
