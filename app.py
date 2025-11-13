@@ -709,10 +709,10 @@ def step3():
                     with open(ruta_tmp, "rb") as f:
                         contenido_bytes = f.read()
                         
-                    repo_name = session.get('repo_nombre') or "AppWeb"
+                    repo_nombre = session.get('repo_nombre') or "AppWeb"
                     
                     resultado_github = subir_archivo(
-                        repo_name,
+                        repo_nombre,
                         contenido_bytes,
                         f"static/img/{imagen_base}",
                         token   # ✅ ahora siempre la misma variable
