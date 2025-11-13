@@ -126,23 +126,6 @@ def subir_a_firestore(producto, email):
         print(f"❌ Error al subir {nombre_original}:", e)
         return False
 
-# ✅ Compresión y redimensionado
-def redimensionar_con_transparencia(imagen, destino, tamaño=(300, 180), calidad=80):
-    try:
-        img = Image.open(imagen.stream).convert('RGBA')
-        img.thumbnail(tamaño, Image.LANCZOS)
-
-        fondo = Image.new('RGBA', tamaño, (0, 0, 0, 0))  # fondo transparente
-        offset = ((tamaño[0] - img.width) // 2, (tamaño[1] - img.height) // 2)
-        fondo.paste(img, offset, img)  # usa la imagen como máscara
-
-        fondo.save(destino, format='WEBP', quality=calidad)
-    except Exception as e:
-        print(f"Error al redimensionar con transparencia: {e}")
-
-def necesita_redimension(src, dst):
-    return not os.path.exists(dst) or os.path.getmtime(src) > os.path.getmtime(dst)
-
 
 def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo}/contents/{ruta_remota}"
@@ -244,27 +227,6 @@ def crear_repo_github(nombre_repo, token):
         return {"error": str(e)}
 
 
-def redimensionar_webp_en_static():
-    carpeta = 'static/img/webp'
-    os.makedirs(carpeta, exist_ok=True)
-    for nombre in os.listdir(carpeta):
-        if nombre.endswith('.webp'):
-            ruta = os.path.join(carpeta, nombre)
-            try:
-                img = Image.open(ruta).convert('RGBA')
-                tamaño = (300, 180)
-
-                img.thumbnail(tamaño, Image.LANCZOS)
-                fondo = Image.new('RGBA', tamaño, (0, 0, 0, 0))
-                offset = ((tamaño[0] - img.width) // 2, (tamaño[1] - img.height) // 2)
-                fondo.paste(img, offset, img)
-
-                fondo.save(ruta, format='WEBP', quality=80)
-                print(f"Redimensionado con transparencia: {nombre}")
-            except Exception as e:
-                print(f"Error al redimensionar {nombre}: {e}")
-
-
 # ✅ Limpia imágenes subidas por el usuario si el flujo se abandona o después de descargar
 def limpiar_imagenes_usuario():
     carpeta = 'static/img/uploads'
@@ -282,11 +244,32 @@ def limpiar_imagenes_usuario():
 def redimensionar_y_subir(imagen, email):
     try:
         print(f"📥 Recibida imagen: {imagen.filename}")
-        pil = Image.open(imagen).convert("RGB")
-        pil.thumbnail((300, 300))
+        pil = Image.open(imagen).convert("RGBA")
+
+        # Tamaño fijo
+        target_size = (300, 200)
+
+        # Calcular proporciones
+        img_ratio = pil.width / pil.height
+        target_ratio = target_size[0] / target_size[1]
+
+        if img_ratio > target_ratio:
+            new_width = target_size[0]
+            new_height = int(new_width / img_ratio)
+        else:
+            new_height = target_size[1]
+            new_width = int(new_height * img_ratio)
+
+        # Redimensionar manteniendo proporción
+        pil = pil.resize((new_width, new_height), Image.LANCZOS)
+
+        # Crear lienzo transparente fijo
+        fondo = Image.new("RGBA", target_size, (0, 0, 0, 0))
+        offset = ((target_size[0] - new_width) // 2, (target_size[1] - new_height) // 2)
+        fondo.paste(pil, offset, pil)
 
         buffer = BytesIO()
-        pil.save(buffer, format='WEBP')
+        fondo.save(buffer, format="WEBP", quality=80)
         buffer.seek(0)
 
         nombre = f"mini_{uuid.uuid4().hex}.webp"
@@ -306,6 +289,7 @@ def redimensionar_y_subir(imagen, email):
     except Exception as e:
         print(f"❌ Error al subir {imagen.filename}: {e}")
         return None
+
 
 
 def normalizar_url(url: str) -> str:
