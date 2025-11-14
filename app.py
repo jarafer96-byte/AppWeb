@@ -862,8 +862,9 @@ def pagar():
     try:
         data = request.get_json(silent=True) or {}
         carrito = data.get('carrito', [])
-        access_token = session.get('mercado_pago')
 
+        # ✅ Usar variable de entorno en lugar de session
+        access_token = os.getenv("MERCADO_PAGO_TOKEN")
         if not access_token:
             return jsonify({'error': 'Credencial de Mercado Pago no configurada'}), 400
 
@@ -898,10 +899,9 @@ def pagar():
     except Exception as e:
         import traceback
         print("⚠️ Error en /pagar:", e)
-        traceback.print_exc()  # ✅ muestra el traceback completo en los logs
+        traceback.print_exc()
         return jsonify({'error': 'Error interno al generar el pago'}), 500
 
-    return jsonify({"init_point": preference["init_point"]})
 
 @app.route('/preview')
 def preview():
