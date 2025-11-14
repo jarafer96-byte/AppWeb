@@ -304,20 +304,6 @@ def step0():
 
     return render_template('step0.html')
 
-
-def get_token_vendedor_por_external(external_reference: str) -> str:
-    try:
-        orden = db.collection("ordenes").document(external_reference).get()
-        if orden.exists:
-            data = orden.to_dict()
-            vendedor_id = data.get("vendedor_id")
-            vendedor = db.collection("vendedores").document(vendedor_id).get()
-            if vendedor.exists:
-                return vendedor.to_dict().get("access_token")
-    except Exception as e:
-        log_event("get_token_vendedor_error", str(e))
-    return None
-
 def get_mp_public_key(email: str):
     """Obtiene la public key de Mercado Pago del vendedor desde Firestore o entorno."""
     try:
@@ -355,56 +341,25 @@ def pago_pending():
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
-    log_event("mp_webhook", event)  # auditoría
+    # ✅ Registrar el evento crudo para auditoría (opcional)
+    log_event("mp_webhook", event)
 
+    # Podés inspeccionar si querés ver qué llega
     topic = event.get("type") or event.get("action")
-    payment_id = None
-    if topic == "payment" and event.get("data", {}).get("id"):
-        payment_id = event["data"]["id"]
+    payment_id = event.get("data", {}).get("id")
 
-    if payment_id:
+    if topic == "payment" and payment_id:
         try:
-            # Primero consultamos el detalle del pago con un token "plataforma"
-            # para obtener el external_reference y saber a qué vendedor pertenece
+            # Consultar detalle del pago solo para auditar (opcional)
             detail = requests.get(
                 f"https://api.mercadopago.com/v1/payments/{payment_id}",
                 headers={"Authorization": f"Bearer {get_platform_token()}"}
             ).json()
-
-            ext_ref = detail.get("external_reference")
-            status = detail.get("status")
-            payer = detail.get("payer", {})
-            seller_user_id = detail.get("sponsor_id") or detail.get("collector_id")
-
-            # 🔑 Buscar el access_token del vendedor según el external_reference
-            seller_token = get_token_vendedor_por_external(ext_ref)
-            if seller_token:
-                # Reconsultar el detalle con el token del vendedor para trazabilidad completa
-                detail = requests.get(
-                    f"https://api.mercadopago.com/v1/payments/{payment_id}",
-                    headers={"Authorization": f"Bearer {seller_token}"}
-                ).json()
-                status = detail.get("status") or status
-                seller_user_id = detail.get("collector_id") or seller_user_id
-
-            # Actualizar tu orden interna con toda la info relevante
-            actualizar_orden_por_external_reference(
-                ext_ref,
-                {
-                    "payment_id": payment_id,
-                    "status": status,
-                    "seller_user_id": seller_user_id,
-                    "payer": payer,
-                    "transaction_amount": detail.get("transaction_amount"),
-                    "payment_method_id": detail.get("payment_method_id"),
-                    "date_approved": detail.get("date_approved"),
-                    "raw": detail
-                }
-            )
-
+            log_event("mp_payment_detail", detail)
         except Exception as e:
             log_event("mp_webhook_error", str(e))
 
+    # ✅ No se guarda nada en Firestore, solo respondemos OK
     return "OK", 200
 
 
