@@ -941,14 +941,14 @@ def callback_mp():
             print(f"🔑 Token de Mercado Pago guardado en Firestore para: {email}")
 
         flash("✅ Mercado Pago conectado correctamente")
-        return redirect(url_for('index', admin='true'))
+        return redirect(url_for('preview', admin='true'))
 
     except Exception as e:
         import traceback
         print("❌ Error en callback_mp:", e)
         traceback.print_exc()
         flash("Error al conectar con Mercado Pago")
-        return redirect(url_for('index', admin='true'))
+        return redirect(url_for('preview', admin='true'))
 
 
 @app.route('/pagar', methods=['POST'])
