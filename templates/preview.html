@@ -815,13 +815,15 @@ async function pagarConMercadoPago() {
 
     if (data.preference_id && mp) {
       // ✅ Abrir checkout con MercadoPago.js V2
-      mp.checkout({
-        preference: { id: data.preference_id },
-        autoOpen: true
-      }).catch(err => {
+      try {
+        mp.checkout({
+          preference: { id: data.preference_id },
+          autoOpen: true
+        });
+      } catch (err) {
         console.error("⚠️ Error en checkout:", err);
         alert("No se pudo abrir el checkout");
-      });
+      }
     } else if (data.init_point) {
       // ✅ Fallback al checkout clásico
       window.location.href = data.init_point;
@@ -833,6 +835,7 @@ async function pagarConMercadoPago() {
     alert("Error interno al intentar pagar");
   }
 }
+
 
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
