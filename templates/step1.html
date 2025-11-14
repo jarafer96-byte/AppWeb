@@ -181,29 +181,7 @@
       <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/tu_usuario">
     </div>
 
-    <!-- Activar Mercado Pago -->
-    <div>
-      <label class="form-label text-white">
-        <input type="checkbox" id="activarMP" onchange="toggleCampoMP()"> Usar Mercado Pago
-      </label>
-    </div>
-
-    <!-- Campo credencial oculto por defecto -->
-    <div id="campoMP" style="display: none;">
-      <label class="form-label text-white">
-        <img src="/static/img/mercadopago.png" class="icono" alt="Mercado Pago"> Credencial Mercado Pago 
-      </label>
-      <input type="password" name="mercado_pago" class="form-control"
-             placeholder="APP_USR-..." autocomplete="off"
-             oninput="validarCredencialMP(this)">
-      <div id="avisoMP" class="text-warning mt-1" style="display: none; font-size: 0.9em;">
-        ⚠️ La credencial debe comenzar con <strong>APP_USR-</strong>
-      </div>
-    </div>
-
-  </div>
-</div>
-
+ 
 
       <div class="mb-3">
         <label for="ubicacion" class="form-label">Dirección</label>
