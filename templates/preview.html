@@ -596,18 +596,6 @@
               </div>
             </div>
 
-            <script>
-              console.log("🧩 Producto renderizado:", {
-                id_base: "{{ id_base }}",
-                grupo: "{{ grupo }}",
-                subgrupo: "{{ subgrupo }}",
-                nombre: "{{ producto.nombre }}",
-                orden: "{{ producto.orden }}",
-                precio: "{{ producto.precio }}",
-                talles: {{ producto.talles | tojson }}
-              });
-            </script>
-
           {% endfor %}
         </div>
       </div>
@@ -704,26 +692,29 @@
       window.scrollTo({ top: 0, behavior: 'auto' }); // Cambiado a 'auto' para evitar deslizamiento
     };
     
-    function mostrarGrupo(nombre, event, auto = false) {
-  console.log("🧪 Grupo seleccionado:", nombre, "auto:", auto);
-
+   function mostrarGrupo(nombre, event, auto = false) {
   const grupoId = 'grupo_' + nombre.toLowerCase().replace(/\s+/g, '_');
   const grupoActivo = document.getElementById(grupoId);
-  document.querySelectorAll('.grupo-section').forEach(div => div.classList.remove('active', 'initial-load'));
+
+  // Resetear estado de grupos
+  document.querySelectorAll('.grupo-section').forEach(div => 
+    div.classList.remove('active', 'initial-load')
+  );
   if (grupoActivo) {
     grupoActivo.classList.add('active');
     if (auto) grupoActivo.classList.add('initial-load');
   }
 
+  // Resetear botones de grupo
   document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
   if (event?.target) event.target.classList.add('active');
 
+  // Subcategorías dinámicas
   const subcategorias = subcategoriasPorGrupo[nombre] || [];
   const panel = document.getElementById('panelSubcategorias');
   panel.innerHTML = '';
 
   const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
-  console.log("🔍 Bloques encontrados:", bloques?.length || 0);
 
   subcategorias.forEach(sub => {
     if (!sub || sub.trim().toLowerCase() === 'general') return;
@@ -732,31 +723,26 @@
     btn.className = 'btn-grupo';
     btn.onclick = () => filtrarSubcategoria(nombre, sub);
     panel.appendChild(btn);
-    console.log("🧱 Botón creado para subcategoría:", sub);
   });
 
   if (!auto) {
     panel.classList.remove('oculta');
-    bloques?.forEach((bloque, i) => {
+    bloques?.forEach(bloque => {
       bloque.style.display = 'block';
-      console.log(`🔄 Mostrando bloque ${i}:`, bloque.dataset.subgrupo);
     });
 
     if (subcategorias.length > 0) {
-      console.log("🎯 Aplicando filtro por primera subcategoría:", subcategorias[0]);
       filtrarSubcategoria(nombre, subcategorias[0]);
     }
   } else {
     panel.classList.add('oculta');
     if (subcategorias.length > 0) {
-      console.log("🎯 Auto-carga: filtrando por subcategoría inicial:", subcategorias[0]);
       filtrarSubcategoria(nombre, subcategorias[0]);
     }
   }
 }
 
    function filtrarSubcategoria(grupo, subgrupo) {
-  console.log("🎯 Filtrando grupo:", grupo, "por subgrupo:", subgrupo);
 
   const grupoId = 'grupo_' + grupo.toLowerCase().replace(/\s+/g, '_');
   const grupoDiv = document.getElementById(grupoId);
@@ -764,16 +750,12 @@
     console.warn("⚠️ Grupo no encontrado:", grupoId);
     return;
   }
-
   const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
-  console.log("🔍 Bloques en grupo:", bloques.length);
 
   bloques.forEach((bloque, i) => {
     const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
     const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
     bloque.style.display = mostrar ? 'block' : 'none';
-
-    console.log(`🔎 Bloque ${i}: subgrupo=${subgrupoActual}, mostrar=${mostrar}`);
   });
 
   window.scrollTo({ top: 0, behavior: 'auto' });
@@ -811,22 +793,12 @@ window.onload = function() {
   const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
   const talleElegido = talleSelect?.value || "";
 
-  console.log("🛒 Intentando agregar al carrito:", {
-    nombre,
-    precio,
-    cantidad,
-    talle: talleElegido,
-    id_base
-  });
-
   const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
   if (existente) {
     existente.cantidad += cantidad;
-    console.log("🔁 Producto ya en carrito, sumando cantidad:", existente);
   } else {
     const nuevoItem = { nombre, precio, cantidad, id_base, talle: talleElegido };
     carrito.push(nuevoItem);
-    console.log("✅ Producto agregado al carrito:", nuevoItem);
   }
 
   actualizarCarrito();
@@ -862,12 +834,10 @@ async function pagarConMercadoPago() {
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
   if (!span) {
-    console.warn("❌ No se encontró el span con id:", "precio_" + id);
-    return;
+    return; // si no existe el span, no hace nada
   }
 
   const valorActual = span.textContent.replace("$", "").trim();
-  console.log("🧪 Editando precio para:", id, "| Valor actual:", valorActual);
 
   const input = document.createElement("input");
   input.type = "number";
@@ -878,14 +848,12 @@ function editarPrecio(id) {
 
   // Guardar al salir del input
   input.onblur = () => {
-    console.log("📤 onblur: guardando precio para", id, "con valor:", input.value);
     guardarPrecio(id);
   };
 
   // Guardar al presionar Enter
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
-      console.log("⏎ Enter presionado: guardando precio para", id, "con valor:", input.value);
       input.blur(); // dispara onblur
     }
   });
@@ -894,14 +862,10 @@ function editarPrecio(id) {
   input.focus();
 }
 
-  
 function guardarPrecio(id) {
-  console.log("🟡 Iniciando guardarPrecio para:", id);
-
   const input = document.getElementById("input_precio_" + id);
   if (!input) {
-    console.warn("❌ No se encontró el input con id:", "input_precio_" + id);
-    return;
+    return; // si no existe el input, no hace nada
   }
 
   const nuevoValor = parseFloat(input.value);
@@ -909,8 +873,6 @@ function guardarPrecio(id) {
     alert("❌ El precio ingresado no es válido");
     return;
   }
-
-  console.log("📡 Enviando a Firestore:", { id, nuevoPrecio: nuevoValor });
 
   fetch('/actualizar-precio', {
     method: 'POST',
@@ -920,8 +882,6 @@ function guardarPrecio(id) {
     .then(res => res.json())
     .then(data => {
       if (data.status === "ok") {
-        console.log("✅ Precio confirmado en Firestore para", id);
-
         // Feedback visual inmediato en DOM
         const span = document.createElement("span");
         span.id = "precio_" + id;
@@ -937,28 +897,23 @@ function guardarPrecio(id) {
         alert("❌ No se pudo actualizar el precio en el servidor");
       }
     })
-    .catch(err => {
-      console.error("❌ Error de red:", err);
+    .catch(() => {
       alert("❌ Error de conexión al guardar el precio");
     });
 }
 
-
 function loginAdmin(event) {
   event.preventDefault();
 
-  // Capturar usuario y clave
   const usuario = document.getElementById("usuario_login").value.trim();
   const clave = document.getElementById("clave_login").value.trim();
 
-  // Referencia al botón de submit
   const btn = event.target.querySelector('button[type="submit"]');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Entrando...'; // feedback visual
+    btn.textContent = 'Entrando...';
   }
 
-  // Llamada al backend
   fetch("/login-admin", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -968,17 +923,15 @@ function loginAdmin(event) {
     .then(data => {
       if (data.status === "ok") {
         alert("✅ Acceso concedido");
-        location.href = window.location.href; // recarga la vista
+        location.href = window.location.href;
       } else {
         alert("❌ " + data.message);
       }
     })
-    .catch(err => {
-      console.error("❌ Error en login:", err);
+    .catch(() => {
       alert("❌ Error al intentar login");
     })
     .finally(() => {
-      // Restaurar el botón siempre al terminar
       if (btn) {
         btn.disabled = false;
         btn.textContent = 'Entrar';
@@ -986,7 +939,6 @@ function loginAdmin(event) {
     });
 }
 
-// Detectar envío automático del formulario
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("form-login-admin");
   if (form) {
@@ -994,21 +946,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-    
 function editarTalles(id) {
-  // 1) Buscar el select de talles
   const select = document.getElementById("talle_" + id);
   if (!select) {
-    console.warn("❌ No se encontró el select de talles:", "talle_" + id);
-    return;
+    return; // si no existe el select, no hace nada
   }
 
-  // 2) Construir el valor actual como texto "S, M, L"
   const opciones = Array.from(select.options).map(opt => opt.value).filter(Boolean);
   const valorActual = opciones.join(", ");
-  console.log("🧪 Editando talles para:", id, "| Valor actual:", valorActual);
 
-  // 3) Crear input texto
   const input = document.createElement("input");
   input.type = "text";
   input.value = valorActual;
@@ -1016,18 +962,14 @@ function editarTalles(id) {
   input.style.width = "200px";
   input.id = "input_talles_" + id;
 
-  // Guardar al salir
   input.onblur = () => {
-    console.log("📤 onblur: guardando talles para", id, "con valor:", input.value);
     guardarTalles(id);
   };
 
-  // Guardar con Enter
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") input.blur();
   });
 
-  // 4) Reemplazar select por el input
   select.replaceWith(input);
   input.focus();
 }
@@ -1035,93 +977,74 @@ function editarTalles(id) {
 function guardarTalles(id) {
   const input = document.getElementById("input_talles_" + id);
   if (!input) {
-    console.warn("❌ No se encontró el input de talles:", "input_talles_" + id);
-    return;
+    return; // si no existe el input, no hace nada
   }
 
-  // 1) Parsear "S, M, L" → ["S","M","L"]
   const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
-  console.log("📡 Enviando talles a Firestore:", { id, talles: nuevosTalles });
 
-  // 2) Enviar al backend
   fetch('/actualizar-talles', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, talles: nuevosTalles })
   })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === "ok") {
-      console.log("✅ Talles confirmados en Firestore para", id);
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "ok") {
+        const nuevoSelect = document.createElement("select");
+        nuevoSelect.id = "talle_" + id;
+        nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
 
-      // 3) Regenerar el select con las nuevas opciones
-      const nuevoSelect = document.createElement("select");
-      nuevoSelect.id = "talle_" + id;
-      nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
-
-      if (nuevosTalles.length > 0) {
-        nuevosTalles.forEach(t => {
+        if (nuevosTalles.length > 0) {
+          nuevosTalles.forEach(t => {
+            const opt = document.createElement("option");
+            opt.value = t;
+            opt.textContent = t;
+            nuevoSelect.appendChild(opt);
+          });
+        } else {
           const opt = document.createElement("option");
-          opt.value = t;
-          opt.textContent = t;
+          opt.value = "";
+          opt.textContent = "Sin talles";
           nuevoSelect.appendChild(opt);
-        });
-      } else {
-        const opt = document.createElement("option");
-        opt.value = "";
-        opt.textContent = "Sin talles";
-        nuevoSelect.appendChild(opt);
-      }
+        }
 
-      // Reemplazar input por select y feedback
-      input.replaceWith(nuevoSelect);
-      nuevoSelect.classList.add("text-success");
-      setTimeout(() => nuevoSelect.classList.remove("text-success"), 1000);
-    } else {
-      alert("❌ No se pudo actualizar los talles en el servidor");
-    }
-  })
-  .catch(err => {
-    console.error("❌ Error de red:", err);
-    alert("❌ Error de conexión al guardar los talles");
-  });
+        input.replaceWith(nuevoSelect);
+        nuevoSelect.classList.add("text-success");
+        setTimeout(() => nuevoSelect.classList.remove("text-success"), 1000);
+      } else {
+        alert("❌ No se pudo actualizar los talles en el servidor");
+      }
+    })
+    .catch(() => {
+      alert("❌ Error de conexión al guardar los talles");
+    });
 }
 
 function actualizarFirestore(id, datos) {
   if (!id || typeof datos !== "object" || Object.keys(datos).length === 0) {
-    console.warn("⚠️ Datos incompletos para actualizar Firestore:", { id, datos });
-    return;
+    return; // no hace nada si los datos son inválidos
   }
-
-  console.log("📡 Enviando actualización a Firestore para", id, "→", datos);
 
   fetch("/actualizar-firestore", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, ...datos })
   })
-    .then(res => {
-      console.log("📬 Respuesta recibida del backend:", res.status);
-      return res.json();
-    })
+    .then(res => res.json())
     .then(data => {
-      console.log("📨 Payload recibido:", data);
       if (data.status === "ok") {
-        console.log("✅ Firestore actualizado para", id);
         if (typeof mostrarAvisoFirestore === "function") {
-          console.log("🔔 Ejecutando mostrarAvisoFirestore()");
           mostrarAvisoFirestore();
         }
       } else {
-        console.warn("❌ Error en respuesta del backend:", data);
         alert("❌ No se pudo actualizar Firestore");
       }
     })
-    .catch(err => {
-      console.error("❌ Error de red al actualizar Firestore:", err);
+    .catch(() => {
       alert("❌ Error de conexión al guardar los datos");
     });
 }
+
 
     function guardarProducto(producto) {
   fetch('/guardar-producto', {
@@ -1129,30 +1052,27 @@ function actualizarFirestore(id, datos) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ producto })
   })
-  .then(res => res.json())
-  .then(data => {
-    if (data.status === 'ok') {
-      console.log("✅ Producto guardado");
-      mostrarAviso("Producto guardado correctamente");
-    } else {
-      console.error("❌ Error al guardar:", data.message);
-      mostrarAviso("Error al guardar producto");
-    }
-  })
-  .catch(err => {
-    console.error("❌ Error de red:", err);
-    mostrarAviso("Error de conexión");
-  });
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        mostrarAviso("Producto guardado correctamente");
+      } else {
+        mostrarAviso("❌ Error al guardar producto");
+      }
+    })
+    .catch(() => {
+      mostrarAviso("❌ Error de conexión");
+    });
 }
+
 function cargarProductos() {
   fetch('/ver-productos')
     .then(res => res.json())
     .then(productos => {
-      console.log("📦 Productos recibidos:", productos);
       renderizarProductos(productos);
     })
-    .catch(err => {
-      console.error("❌ Error al cargar productos:", err);
+    .catch(() => {
+      mostrarAviso("❌ Error al cargar productos");
     });
 }
 
@@ -1164,23 +1084,21 @@ function mostrarAvisoPrecio() {
   }, 2000);
 }
 
-
 function eliminarProducto(id_base, talle, event) {
-  event.stopPropagation(); // 👈 evita que el clic cierre el carrito
+  event.stopPropagation();
   carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
   actualizarCarrito();
 }
 
+function vaciarCarrito() {
+  carrito = [];
+  actualizarCarrito();
+}
 
-    function vaciarCarrito() {
-      carrito = [];
-      actualizarCarrito();
-    }
-    function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
+function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
   let cambio = false;
   carrito.forEach(item => {
     if (item.nombre === nombre && item.precio !== nuevoPrecio) {
-      console.log(`🔄 Actualizando precio en carrito para ${nombre}: ${item.precio} → ${nuevoPrecio}`);
       item.precio = nuevoPrecio;
       cambio = true;
     }
@@ -1196,14 +1114,11 @@ function sincronizarPreciosDelCarrito() {
       const precioActual = parseFloat(precioSpan.textContent);
       if (!isNaN(precioActual)) {
         item.precio = precioActual;
-      } else {
-        console.warn("⚠️ Precio no numérico en DOM para", idPrecio);
       }
-    } else {
-      console.warn("⚠️ No se encontró el span de precio para", idPrecio);
     }
   });
 }
+
 
 function actualizarCarrito() {
   sincronizarPreciosDelCarrito();
@@ -1211,8 +1126,7 @@ function actualizarCarrito() {
   const lista = document.getElementById('listaCarrito');
   const total = document.getElementById('totalCarrito');
   if (!lista || !total) {
-    console.warn("⚠️ No se encontró listaCarrito o totalCarrito en el DOM");
-    return;
+    return; // si no existen los elementos, no hace nada
   }
 
   lista.innerHTML = '';
@@ -1243,13 +1157,8 @@ function actualizarCarrito() {
   const link = document.getElementById('enviarCarrito');
   if (link) {
     link.href = configWhatsApp + '?text=' + mensaje;
-  } else {
-    console.warn("⚠️ No se encontró el botón 'enviarCarrito' para actualizar el link de WhatsApp");
   }
-
-  console.log("🛒 Carrito actualizado:", carrito);
 }
-
 
     function mostrarTodos() {
       const panelGrupos = document.getElementById('panelGrupos');
@@ -1328,7 +1237,6 @@ function actualizarCarrito() {
   if (usarFirestore) {
     onSnapshot(collection(db, "productos"), (snapshot) => {
       const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      console.log("📦 Productos en vivo:", productos);
 
       productos.forEach(p => {
         const precioSpan = document.getElementById("precio_" + p.id_base);
@@ -1415,8 +1323,6 @@ function actualizarCarrito() {
     }
   });
 
-  console.log("🧪 modoAdmin:", {{ modoAdmin|tojson }});
-  console.log("🧪 modoAdminIntentado:", {{ modoAdminIntentado|tojson }});
 </script>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script>
