@@ -40,8 +40,15 @@ s3 = boto3.client(
 )
 BUCKET = os.getenv('BUCKET') or 'imagenes-appweb'
 
+# 🔑 Inicialización segura de Mercado Pago
 access_token = os.getenv("MERCADO_PAGO_TOKEN")
-sdk = mercadopago.SDK(access_token)
+if access_token and isinstance(access_token, str):
+    sdk = mercadopago.SDK(access_token.strip())
+    print("✅ SDK de Mercado Pago inicializado globalmente")
+else:
+    sdk = None
+    print("⚠️ MERCADO_PAGO_TOKEN no configurado, SDK no inicializado")
+
 
 # GitHub y Flask config
 token = os.getenv("GITHUB_TOKEN")
@@ -964,13 +971,17 @@ def pagar():
 
         # ✅ Construir items desde el carrito
         items = []
-        for item in carrito:
-            items.append({
-                "title": item['nombre'] + (f" ({item['talle']})" if item.get('talle') else ""),
-                "quantity": int(item.get('cantidad', 1)),
-                "unit_price": float(item.get('precio', 0)),
-                "currency_id": "ARS"
-            })
+        if isinstance(carrito, list):
+            for item in carrito:
+                try:
+                    items.append({
+                        "title": item.get('nombre', 'Producto') + (f" ({item.get('talle')})" if item.get('talle') else ""),
+                        "quantity": int(item.get('cantidad', 1)),
+                        "unit_price": float(item.get('precio', 0)),
+                        "currency_id": "ARS"
+                    })
+                except Exception as e:
+                    print("⚠️ Error procesando item del carrito:", e)
 
         preference_data = {
             "items": items,
@@ -985,9 +996,9 @@ def pagar():
         }
 
         preference_response = sdk.preference().create(preference_data)
-        preference = preference_response.get("response", {})
+        preference = preference_response.get("response", {}) or {}
 
-        if "init_point" not in preference:
+        if not preference.get("init_point"):
             print("⚠️ No se generó init_point en la preferencia:", preference)
             return jsonify({'error': 'No se pudo generar el link de pago'}), 500
 
@@ -999,7 +1010,6 @@ def pagar():
         print("⚠️ Error en /pagar:", e)
         traceback.print_exc()
         return jsonify({'error': 'Error interno al generar el pago'}), 500
-
 
 @app.route('/preview')
 def preview():
