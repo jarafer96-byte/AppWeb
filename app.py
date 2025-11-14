@@ -318,6 +318,25 @@ def get_token_vendedor_por_external(external_reference: str) -> str:
         log_event("get_token_vendedor_error", str(e))
     return None
 
+def get_mp_public_key(email: str):
+    """Obtiene la public key de Mercado Pago del vendedor desde Firestore o entorno."""
+    try:
+        if email:
+            doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
+            if doc.exists:
+                data = doc.to_dict()
+                pk = data.get("public_key")
+                if pk and isinstance(pk, str):
+                    return pk.strip()
+    except Exception:
+        pass
+
+    # Fallback opcional desde entorno (útil para pruebas locales)
+    pk_env = os.getenv("MP_PUBLIC_KEY")
+    if pk_env and isinstance(pk_env, str):
+        return pk_env.strip()
+
+    return None
 
 # Rutas de retorno (back_urls)
 @app.route('/success')
@@ -845,26 +864,36 @@ def callback_mp():
             flash("❌ Error al obtener token de Mercado Pago")
             return redirect(url_for('preview', admin='true'))
 
-        # ✅ Guardar en Firestore en subcolección config/mercado_pago
+        # Intentar obtener la public_key asociada a la cuenta
+        public_key = None
+        try:
+            cred_resp = requests.get(
+                "https://api.mercadopago.com/v1/account/credentials",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10
+            )
+            if cred_resp.status_code == 200:
+                cred_data = cred_resp.json() or {}
+                public_key = cred_data.get("public_key") or cred_data.get("web", {}).get("public_key")
+        except Exception:
+            public_key = None
+
+        # Guardar credenciales en Firestore
         email = session.get('email')
         if email:
             db.collection("usuarios").document(email).collection("config").document("mercado_pago").set({
                 "access_token": access_token,
                 "refresh_token": refresh_token,
+                "public_key": public_key,
                 "created_at": datetime.now().isoformat()
-            })
-            print(f"🔑 Token de Mercado Pago guardado en Firestore para: {email}")
+            }, merge=True)
 
         flash("✅ Mercado Pago conectado correctamente")
         return redirect(url_for('preview', admin='true'))
 
-    except Exception as e:
-        import traceback
-        print("❌ Error en callback_mp:", e)
-        traceback.print_exc()
+    except Exception:
         flash("Error al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
-
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
@@ -947,6 +976,7 @@ def preview():
 
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
+    # Obtener productos desde Firestore
     productos = []
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
@@ -955,14 +985,18 @@ def preview():
     except Exception:
         productos = []
 
+    # Agrupar por grupo y subgrupo
     grupos_dict = {}
     for producto in productos:
         grupo = producto.get('grupo', 'General').strip().title()
         subgrupo = producto.get('subgrupo', 'Sin subgrupo').strip().title()
         grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
 
+    # Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
+    public_key = get_mp_public_key(email)  # nuevo helper
 
+    # Configuración visual
     config = {
         'titulo': session.get('titulo'),
         'descripcion': session.get('descripcion'),
@@ -986,12 +1020,14 @@ def preview():
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
         'mercado_pago': bool(mercado_pago_token),
+        'public_key': public_key,  # ← inyectada para frontend
         'productos': productos,
         'bloques': [],
         'descargado': session.get('descargado', False),
         'usarFirestore': True
     }
 
+    # Crear repo si corresponde
     if session.get("crear_repo") and not session.get("repo_creado"):
         nombre_repo = generar_nombre_repo(email)
         token = os.getenv("GITHUB_TOKEN")
@@ -1000,6 +1036,7 @@ def preview():
             session['repo_creado'] = resultado["url"]
             session['repo_nombre'] = nombre_repo
 
+    # Subir archivos si el repo existe
     if session.get('repo_creado') and session.get('repo_nombre'):
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
