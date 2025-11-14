@@ -855,13 +855,19 @@ def get_mp_token(email: str):
             token_doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
             if token_doc.exists:
                 token_data = token_doc.to_dict()
-                if token_data.get("access_token"):
-                    return token_data["access_token"]
+                token = token_data.get("access_token")
+                if token and isinstance(token, str):
+                    return token.strip()
     except Exception as e:
         print("❌ Error al leer token de Firestore:", e)
 
     # Fallback: variable de entorno
-    return os.getenv("MERCADO_PAGO_TOKEN")
+    token = os.getenv("MERCADO_PAGO_TOKEN")
+    if token and isinstance(token, str):
+        return token.strip()
+
+    return None
+
 
 @app.route('/conectar_mp')
 def conectar_mp():
@@ -948,9 +954,12 @@ def pagar():
         email = session.get('email')
         access_token = get_mp_token(email)
 
-        if not access_token:
+        # 🔒 Validar que sea un string
+        if not access_token or not isinstance(access_token, str):
+            print("❌ Token inválido o ausente:", access_token)
             return jsonify({'error': 'Credencial de Mercado Pago no configurada'}), 400
 
+        access_token = access_token.strip()
         sdk = mercadopago.SDK(access_token)
 
         # ✅ Construir items desde el carrito
@@ -990,6 +999,7 @@ def pagar():
         print("⚠️ Error en /pagar:", e)
         traceback.print_exc()
         return jsonify({'error': 'Error interno al generar el pago'}), 500
+
 
 @app.route('/preview')
 def preview():
