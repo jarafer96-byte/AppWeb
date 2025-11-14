@@ -813,11 +813,14 @@ async function pagarConMercadoPago() {
     });
     const data = await response.json();
 
-    if (data.preference_id && typeof mp !== "undefined") {
+    if (data.preference_id && mp) {
       // ✅ Abrir checkout con MercadoPago.js V2
       mp.checkout({
         preference: { id: data.preference_id },
         autoOpen: true
+      }).catch(err => {
+        console.error("⚠️ Error en checkout:", err);
+        alert("No se pudo abrir el checkout");
       });
     } else if (data.init_point) {
       // ✅ Fallback al checkout clásico
@@ -826,8 +829,8 @@ async function pagarConMercadoPago() {
       alert("Error al generar el pago: " + (data.error || "desconocido"));
     }
   } catch (err) {
-    alert("Error interno al intentar pagar");
     console.error("⚠️ Error al conectar con /pagar:", err);
+    alert("Error interno al intentar pagar");
   }
 }
 
@@ -1220,7 +1223,7 @@ function actualizarCarrito() {
   const grupos = {{ grupos|tojson }};
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+  import { getFirestore, doc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "{{ firebase_config.apiKey }}",
@@ -1234,30 +1237,33 @@ function actualizarCarrito() {
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // Suscripción única (evitá duplicar en bloque normal)
-if (usarFirestore && email) {
-  const productosRef = collection(doc(db, "usuarios", email), "productos");
+  if (usarFirestore && email) {
+    const usuarioDoc = doc(db, "usuarios", email);
+    const productosRef = collection(usuarioDoc, "productos");
 
-  onSnapshot(productosRef, (snapshot) => {
-    const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    onSnapshot(productosRef, (snapshot) => {
+      const productos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    productos.forEach(p => {
-      const precioSpan = document.getElementById("precio_" + p.id_base);
-      if (precioSpan) {
-        const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        precioSpan.textContent = fmt.format(p.precio);
-      }
+      productos.forEach(p => {
+        const precioSpan = document.getElementById("precio_" + p.id_base);
+        if (precioSpan && typeof p.precio === "number") {
+          const fmt = new Intl.NumberFormat("es-AR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+          precioSpan.textContent = fmt.format(p.precio);
+        }
 
-      const talleSelect = document.getElementById("talle_" + p.id_base);
-      if (talleSelect && Array.isArray(p.talles)) {
-        talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
-      }
+        const talleSelect = document.getElementById("talle_" + p.id_base);
+        if (talleSelect && Array.isArray(p.talles)) {
+          talleSelect.innerHTML = p.talles
+            .map(t => `<option value="${t}">${t}</option>`)
+            .join("");
+        }
+      });
     });
-  });
-}
+  }
 
-    
-  // Activar primer grupo y subgrupo (con grupos ya serializado)
   setTimeout(() => {
     const grupoKeys = Object.keys(grupos);
     if (grupoKeys.length === 0) return;
