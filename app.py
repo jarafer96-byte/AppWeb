@@ -353,6 +353,38 @@ def step0():
         return redirect('/estilo')
 
     return render_template('step0.html')
+    
+@app.route('/crear-pago', methods=['POST'])
+def crear_pago():
+    access_token = os.getenv("MP_ACCESS_TOKEN")  # o el que guardaste en Firestore
+    url = "https://api.mercadopago.com/checkout/preferences"
+
+    payload = {
+        "items": [
+            {
+                "title": "Prueba de integración",
+                "quantity": 1,
+                "currency_id": "ARS",
+                "unit_price": 10.0
+            }
+        ],
+        "back_urls": {
+            "success": "https://appweb-n4cl.onrender.com/success",
+            "failure": "https://appweb-n4cl.onrender.com/failure",
+            "pending": "https://appweb-n4cl.onrender.com/pending"
+        },
+        "auto_return": "approved"
+    }
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    r = requests.post(url, json=payload, headers=headers)
+    data = r.json()
+    print("📡 Preferencia creada:", data)
+    return jsonify(data)
 
 @app.route("/test-firestore")
 def test_firestore():
