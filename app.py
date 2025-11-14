@@ -818,8 +818,10 @@ def callback_mp():
             flash("❌ Error al obtener token de Mercado Pago")
             return redirect(url_for('preview', admin='true'))
 
+        # ✅ Intentar obtener la public_key asociada a la cuenta
         public_key = None
         try:
+            # Primer intento: credenciales de la cuenta
             cred_resp = requests.get(
                 "https://api.mercadopago.com/v1/account/credentials",
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -829,6 +831,7 @@ def callback_mp():
                 cred_data = cred_resp.json() or {}
                 public_key = cred_data.get("public_key") or cred_data.get("web", {}).get("public_key")
 
+            # Fallback: datos del usuario si no se obtuvo nada
             if not public_key:
                 user_resp = requests.get(
                     "https://api.mercadopago.com/users/me",
@@ -838,9 +841,12 @@ def callback_mp():
                 if user_resp.status_code == 200:
                     user_data = user_resp.json() or {}
                     public_key = user_data.get("public_key")
-        except Exception:
+        except Exception as e:
+            # Podés loguear el error si querés depurar
+            print("Error al obtener public_key:", e)
             public_key = None
 
+        # ✅ Guardar credenciales en Firestore
         email = session.get('email')
         if email:
             db.collection("usuarios").document(email).collection("config").document("mercado_pago").set({
@@ -854,8 +860,10 @@ def callback_mp():
         return redirect(url_for('preview', admin='true'))
 
     except Exception as e:
+        print("Error en callback_mp:", e)
         flash("Error al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
+
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
