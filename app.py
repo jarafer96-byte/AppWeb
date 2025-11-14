@@ -356,7 +356,7 @@ def step0():
     
 @app.route('/crear-pago', methods=['GET', 'POST'])
 def crear_pago():
-    access_token = os.getenv("MP_ACCESS_TOKEN")  # o el que guardaste en Firestore
+    access_token = os.getenv("MP_ACCESS_TOKEN")  # Access Token de producción (APP_USR-...)
     url = "https://api.mercadopago.com/checkout/preferences"
 
     payload = {
@@ -373,7 +373,8 @@ def crear_pago():
             "failure": "https://appweb-n4cl.onrender.com/failure",
             "pending": "https://appweb-n4cl.onrender.com/pending"
         },
-        "auto_return": "approved"
+        "auto_return": "approved",
+        "notification_url": "https://appweb-n4cl.onrender.com/webhook_mp"  # webhook para notificaciones
     }
 
     headers = {
@@ -385,6 +386,29 @@ def crear_pago():
     data = r.json()
     print("📡 Preferencia creada:", data)
     return jsonify(data)
+
+
+# Rutas de retorno (back_urls)
+@app.route('/success')
+def pago_success():
+    return "✅ Pago aprobado correctamente. ¡Gracias por tu compra!"
+
+@app.route('/failure')
+def pago_failure():
+    return "❌ El pago fue rechazado o falló."
+
+@app.route('/pending')
+def pago_pending():
+    return "⏳ El pago está pendiente de aprobación."
+
+
+# Webhook para notificaciones de Mercado Pago
+@app.route('/webhook_mp', methods=['POST'])
+def webhook_mp():
+    data = request.json
+    print("🔔 Notificación de Mercado Pago:", data)
+    # Aquí podés guardar el estado del pago en Firestore o tu base de datos
+    return "OK", 200
 
 @app.route("/test-firestore")
 def test_firestore():
