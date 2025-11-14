@@ -831,7 +831,7 @@ window.onload = function() {
 
   actualizarCarrito();
 }
-    
+
 async function pagarConMercadoPago() {
   try {
     const response = await fetch('/pagar', {
@@ -841,8 +841,14 @@ async function pagarConMercadoPago() {
     });
     const data = await response.json();
 
-    if (data.init_point) {
-      // ✅ Redirige al checkout de Mercado Pago
+    if (data.preference_id) {
+      // ✅ Abrir checkout con MercadoPago.js V2
+      mp.checkout({
+        preference: { id: data.preference_id },
+        autoOpen: true
+      });
+    } else if (data.init_point) {
+      // Fallback al checkout clásico si no hay preference_id
       window.location.href = data.init_point;
     } else {
       alert("Error al generar el pago: " + (data.error || "desconocido"));
@@ -852,8 +858,6 @@ async function pagarConMercadoPago() {
     alert("Error interno al intentar pagar");
   }
 }
-
-
 
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
@@ -1433,6 +1437,11 @@ function actualizarCarrito() {
 
   console.log("🧪 modoAdmin:", {{ modoAdmin|tojson }});
   console.log("🧪 modoAdminIntentado:", {{ modoAdminIntentado|tojson }});
+</script>
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+<script>
+  // Inicializar con tu Public Key (segura para frontend)
+  const mp = new MercadoPago('{{ config.public_key }}', { locale: 'es-AR' });
 </script>
 </body>
 </html>
