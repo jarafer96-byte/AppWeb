@@ -907,7 +907,7 @@ def callback_mp():
 
     if not code:
         flash("❌ No se recibió código de autorización")
-        return redirect(url_for('index', admin='true'))
+        return redirect(url_for('preview', admin='true'))
 
     token_url = "https://api.mercadopago.com/oauth/token"
     payload = {
