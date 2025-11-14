@@ -1069,25 +1069,26 @@ def pagar():
         data = request.get_json(silent=True) or {}
         carrito = data.get('carrito', [])
 
-        # ✅ Usar helper para obtener token de Firestore o Render
+        # ✅ Recuperar SIEMPRE el token del vendedor (guardado tras OAuth)
         email = session.get('email')
-        access_token = get_mp_token(email)
+        access_token = get_mp_token(email)  # tu helper debe devolver el token del vendedor
 
-        # 🔒 Validar que sea un string
         if not access_token or not isinstance(access_token, str):
             print("❌ Token inválido o ausente:", access_token)
-            return jsonify({'error': 'Credencial de Mercado Pago no configurada'}), 400
+            return jsonify({'error': 'El vendedor no tiene credenciales de Mercado Pago configuradas'}), 400
 
-        access_token = access_token.strip()
-        sdk = mercadopago.SDK(access_token)
+        sdk = mercadopago.SDK(access_token.strip())
 
-        # ✅ Construir items desde el carrito
+        # ✅ Construir items enriquecidos desde el carrito
         items = []
         if isinstance(carrito, list):
             for item in carrito:
                 try:
                     items.append({
+                        "id": item.get('sku') or f"SKU_{item.get('id', '0')}",
                         "title": item.get('nombre', 'Producto') + (f" ({item.get('talle')})" if item.get('talle') else ""),
+                        "description": item.get('descripcion') or item.get('nombre', 'Producto'),
+                        "category_id": item.get('category_id') or "others",
                         "quantity": int(item.get('cantidad', 1)),
                         "unit_price": float(item.get('precio', 0)),
                         "currency_id": "ARS"
@@ -1104,18 +1105,23 @@ def pagar():
             },
             "auto_return": "approved",
             "statement_descriptor": "TuEmprendimiento",
-            "external_reference": "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
+            "external_reference": "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S"),
+            "notification_url": url_for('webhook_mp', _external=True)
         }
 
         preference_response = sdk.preference().create(preference_data)
         preference = preference_response.get("response", {}) or {}
 
-        if not preference.get("init_point"):
-            print("⚠️ No se generó init_point en la preferencia:", preference)
-            return jsonify({'error': 'No se pudo generar el link de pago'}), 500
+        if not preference.get("id"):
+            print("⚠️ No se generó preference_id:", preference)
+            return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
 
-        print("✅ Preferencia creada correctamente:", preference["init_point"])
-        return jsonify({"init_point": preference["init_point"]})
+        print("✅ Preferencia creada correctamente:", preference["id"])
+        return jsonify({
+            "preference_id": preference["id"],
+            "init_point": preference.get("init_point"),
+            "external_reference": preference_data["external_reference"]
+        })
 
     except Exception as e:
         import traceback
