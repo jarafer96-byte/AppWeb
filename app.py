@@ -1096,16 +1096,19 @@ def pagar():
                 except Exception as e:
                     print("⚠️ Error procesando item del carrito:", e)
 
+        # 🔑 Generar external_reference único
+        external_ref = "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
+
         preference_data = {
             "items": items,
             "back_urls": {
-                "success": url_for('preview', _external=True),
-                "failure": url_for('preview', _external=True),
-                "pending": url_for('preview', _external=True)
+                "success": url_for('pago_success', _external=True),
+                "failure": url_for('pago_failure', _external=True),
+                "pending": url_for('pago_pending', _external=True)
             },
             "auto_return": "approved",
             "statement_descriptor": "TuEmprendimiento",
-            "external_reference": "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S"),
+            "external_reference": external_ref,
             "notification_url": url_for('webhook_mp', _external=True)
         }
 
@@ -1116,11 +1119,20 @@ def pagar():
             print("⚠️ No se generó preference_id:", preference)
             return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
 
+        # ✅ Guardar orden en Firestore para trazabilidad del webhook
+        db.collection("ordenes").document(external_ref).set({
+            "external_reference": external_ref,
+            "vendedor_id": email,
+            "carrito": carrito,
+            "estado": "pendiente",
+            "created_at": firestore.SERVER_TIMESTAMP
+        })
+
         print("✅ Preferencia creada correctamente:", preference["id"])
         return jsonify({
             "preference_id": preference["id"],
             "init_point": preference.get("init_point"),
-            "external_reference": preference_data["external_reference"]
+            "external_reference": external_ref
         })
 
     except Exception as e:
@@ -1128,6 +1140,7 @@ def pagar():
         print("⚠️ Error en /pagar:", e)
         traceback.print_exc()
         return jsonify({'error': 'Error interno al generar el pago'}), 500
+
 
 @app.route('/preview')
 def preview():
