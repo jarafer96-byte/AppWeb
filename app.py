@@ -354,7 +354,7 @@ def step0():
 
     return render_template('step0.html')
     
-@app.route('/crear-pago', methods=['POST'])
+@app.route('/crear-pago', methods=['GET', 'POST'])
 def crear_pago():
     access_token = os.getenv("MP_ACCESS_TOKEN")  # o el que guardaste en Firestore
     url = "https://api.mercadopago.com/checkout/preferences"
