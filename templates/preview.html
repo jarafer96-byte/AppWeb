@@ -479,12 +479,6 @@
   {% endif %}
 
   {% if modoAdmin %}
-    <div class="text-center mt-3">
-      <a href="/logout-admin" class="btn btn-sm btn-outline-light">🔓 Salir del modo administrador</a>
-    </div>
-  {% endif %}
-
-  {% if modoAdmin %}
   <div class="admin-controls mt-4">
     <a href="{{ url_for('index') }}" class="btn btn-secondary">Salir modo administrador</a>
     {% if config.mercado_pago %}
