@@ -659,12 +659,18 @@
 
   <button id="toggleCarrito">🛒</button>
 
-  <div class="mt-3 text-center">
-  <button class="btn btn-primary" onclick="pagarConMercadoPago()">
-    <img src="/static/img/mercadopago.png" alt="MP" style="height:20px; margin-right:8px;">
-    Pagar con Mercado Pago
-  </button>
-</div>
+  <div id="carrito">
+    <h5>🛒 Tu carrito</h5>
+    <ul id="listaCarrito"></ul>
+    <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+    <div class="d-grid gap-2">
+  <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+
+  {% if config.mercado_pago %}
+    <button class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
+  {% else %}
+    <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+  {% endif %}
 
 
   </div>
