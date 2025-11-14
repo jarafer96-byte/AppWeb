@@ -879,7 +879,7 @@ def get_mp_token(email: str):
 @app.route('/conectar_mp')
 def conectar_mp():
     if not session.get('modo_admin'):
-        return redirect(url_for('index'))
+        return redirect(url_for('preview'))
 
     client_id = os.getenv("MP_CLIENT_ID")
     redirect_uri = url_for('callback_mp', _external=True)
@@ -898,7 +898,7 @@ def conectar_mp():
 @app.route('/callback_mp')
 def callback_mp():
     if not session.get('modo_admin'):
-        return redirect(url_for('index'))
+        return redirect(url_for('preview'))
 
     code = request.args.get('code')
     client_id = os.getenv("MP_CLIENT_ID")
@@ -928,7 +928,7 @@ def callback_mp():
 
         if not access_token:
             flash("❌ Error al obtener token de Mercado Pago")
-            return redirect(url_for('index', admin='true'))
+            return redirect(url_for('preview', admin='true'))
 
         # ✅ Guardar en Firestore en subcolección config/mercado_pago
         email = session.get('email')
