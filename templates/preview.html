@@ -813,21 +813,21 @@ async function pagarConMercadoPago() {
     });
     const data = await response.json();
 
-    if (data.preference_id) {
+    if (data.preference_id && typeof mp !== "undefined") {
       // ✅ Abrir checkout con MercadoPago.js V2
       mp.checkout({
         preference: { id: data.preference_id },
         autoOpen: true
       });
     } else if (data.init_point) {
-      // Fallback al checkout clásico si no hay preference_id
+      // ✅ Fallback al checkout clásico
       window.location.href = data.init_point;
     } else {
       alert("Error al generar el pago: " + (data.error || "desconocido"));
     }
   } catch (err) {
-    console.error("⚠️ Error al conectar con /pagar:", err);
     alert("Error interno al intentar pagar");
+    console.error("⚠️ Error al conectar con /pagar:", err);
   }
 }
 
@@ -1215,6 +1215,7 @@ function actualizarCarrito() {
   </script>
   <script type="module">
   const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
+  const email = "{{ session.get('email') or '' }}";
   const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
   const grupos = {{ grupos|tojson }};
 
@@ -1234,24 +1235,27 @@ function actualizarCarrito() {
   const db = getFirestore(app);
 
   // Suscripción única (evitá duplicar en bloque normal)
-  if (usarFirestore) {
-    onSnapshot(collection(db, "productos"), (snapshot) => {
-      const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+if (usarFirestore && email) {
+  const productosRef = collection(doc(db, "usuarios", email), "productos");
 
-      productos.forEach(p => {
-        const precioSpan = document.getElementById("precio_" + p.id_base);
-        if (precioSpan) {
-          const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          precioSpan.textContent = fmt.format(p.precio);
-        }
+  onSnapshot(productosRef, (snapshot) => {
+    const productos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const talleSelect = document.getElementById("talle_" + p.id_base);
-        if (talleSelect && Array.isArray(p.talles)) {
-          talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
-        }
-      });
+    productos.forEach(p => {
+      const precioSpan = document.getElementById("precio_" + p.id_base);
+      if (precioSpan) {
+        const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        precioSpan.textContent = fmt.format(p.precio);
+      }
+
+      const talleSelect = document.getElementById("talle_" + p.id_base);
+      if (talleSelect && Array.isArray(p.talles)) {
+        talleSelect.innerHTML = p.talles.map(t => `<option value="${t}">${t}</option>`).join('');
+      }
     });
-  }
+  });
+}
+
     
   // Activar primer grupo y subgrupo (con grupos ya serializado)
   setTimeout(() => {
