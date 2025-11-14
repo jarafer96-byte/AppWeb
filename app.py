@@ -40,6 +40,9 @@ s3 = boto3.client(
 )
 BUCKET = os.getenv('BUCKET') or 'imagenes-appweb'
 
+access_token = os.getenv("MERCADO_PAGO_TOKEN")
+sdk = mercadopago.SDK(access_token)
+
 # GitHub y Flask config
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
@@ -856,6 +859,50 @@ def step3():
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
+@app.route('/conectar_mp')
+def conectar_mp():
+    if not session.get('modo_admin'):
+        return redirect(url_for('index'))
+
+    client_id = os.getenv("MP_CLIENT_ID")
+    redirect_uri = url_for('callback_mp', _external=True)
+    auth_url = f"https://auth.mercadopago.com/authorization?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}"
+    return redirect(auth_url)
+
+
+@app.route('/callback_mp')
+def callback_mp():
+    if not session.get('modo_admin'):
+        return redirect(url_for('index'))
+
+    code = request.args.get('code')
+    client_id = os.getenv("MP_CLIENT_ID")
+    client_secret = os.getenv("MP_CLIENT_SECRET")
+    redirect_uri = url_for('callback_mp', _external=True)
+
+    token_url = "https://api.mercadopago.com/oauth/token"
+    payload = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": redirect_uri
+    }
+
+    response = requests.post(token_url, data=payload)
+    data = response.json()
+
+    access_token = data.get("access_token")
+    refresh_token = data.get("refresh_token")
+
+    # ✅ Guardar en Firestore o DB segura, nunca en sesión del usuario
+    db.collection("usuarios").document(session['email']).update({
+        "mercado_pago_token": access_token,
+        "mercado_pago_refresh": refresh_token
+    })
+
+    flash("Mercado Pago conectado correctamente")
+    return redirect(url_for('index', admin='true'))
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
@@ -863,8 +910,19 @@ def pagar():
         data = request.get_json(silent=True) or {}
         carrito = data.get('carrito', [])
 
-        # ✅ Usar variable de entorno en lugar de session
-        access_token = os.getenv("MERCADO_PAGO_TOKEN")
+        # ✅ Recuperar el token de Firestore o variable de entorno
+        email = session.get('email')
+        access_token = None
+
+        if email:
+            doc_ref = db.collection("usuarios").document(email).get()
+            if doc_ref.exists:
+                access_token = doc_ref.to_dict().get("mercado_pago_token")
+
+        # Fallback: variable de entorno (ej. Render)
+        if not access_token:
+            access_token = os.getenv("MERCADO_PAGO_TOKEN")
+
         if not access_token:
             return jsonify({'error': 'Credencial de Mercado Pago no configurada'}), 400
 
@@ -895,12 +953,13 @@ def pagar():
         preference = preference_response["response"]
 
         return jsonify({"init_point": preference["init_point"]})
-    
+
     except Exception as e:
         import traceback
         print("⚠️ Error en /pagar:", e)
         traceback.print_exc()
         return jsonify({'error': 'Error interno al generar el pago'}), 500
+
 
 
 @app.route('/preview')
