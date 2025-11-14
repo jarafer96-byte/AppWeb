@@ -479,17 +479,21 @@
   {% endif %}
 
   {% if modoAdmin %}
-  <div class="admin-controls mt-4">
-    <a href="{{ url_for('index') }}" class="btn btn-secondary">Salir modo administrador</a>
-    {% if config.mercado_pago %}
-      <a href="{{ url_for('conectar_mp') }}" class="btn btn-primary ms-2">
-        <img src="{{ url_for('static', filename='img/mercadopago.png') }}" 
-             alt="Mercado Pago" style="height:20px; margin-right:8px;">
-        Conectar con Mercado Pago
-      </a>
-    {% endif %}
-  </div>
-{% endif %}
+    <div class="text-center mt-3">
+      <!-- 🔓 Botón para salir del modo administrador -->
+      <a href="/logout-admin" class="btn btn-sm btn-outline-light">🔓 Salir del modo administrador</a>
+
+      <!-- 💳 Botón para configurar Mercado Pago -->
+      {% if config.mercado_pago %}
+        <a href="{{ url_for('conectar_mp') }}" class="btn btn-sm btn-primary mt-2">
+          <img src="{{ url_for('static', filename='img/mercadopago.png') }}" 
+               alt="Mercado Pago" style="height:20px; margin-right:8px;">
+          Configurar Mercado Pago
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+
 
   <div class="text-center my-4">
     <select id="ordenPrecio" class="form-select w-auto d-inline-block">
