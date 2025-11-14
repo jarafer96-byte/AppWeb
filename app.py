@@ -65,7 +65,6 @@ firebase_config = {
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
 
-
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -133,8 +132,6 @@ def subir_a_firestore(producto, email):
         print(f"❌ Error al subir {nombre_original}:", e)
         return False
 
-
-
 def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo}/contents/{ruta_remota}"
     headers = {
@@ -175,7 +172,6 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
     except Exception as e:
         print(f"❌ Error inesperado al subir {ruta_remota}: {e}")
         return {"ok": False, "error": str(e)}
-
 
 def subir_iconos_png(repo, token):
     carpeta = os.path.join("static", "img")
@@ -234,7 +230,6 @@ def crear_repo_github(nombre_repo, token):
         print(f"❌ Error de red: {e}")
         return {"error": str(e)}
 
-
 # ✅ Limpia imágenes subidas por el usuario si el flujo se abandona o después de descargar
 def limpiar_imagenes_usuario():
     carpeta = 'static/img/uploads'
@@ -247,7 +242,6 @@ def limpiar_imagenes_usuario():
                 print(f"Imagen eliminada: {nombre}")
         except Exception as e:
             print(f"Error al eliminar {nombre}: {e}")
-
 
 def redimensionar_y_subir(imagen, email):
     try:
@@ -297,8 +291,6 @@ def redimensionar_y_subir(imagen, email):
     except Exception as e:
         print(f"❌ Error al subir {imagen.filename}: {e}")
         return None
-
-
 
 def normalizar_url(url: str) -> str:
     """
@@ -354,8 +346,6 @@ def step0():
         return redirect('/estilo')
 
     return render_template('step0.html')
-
-
 
 @app.route("/test-firestore")
 def test_firestore():
@@ -486,7 +476,6 @@ def ver_productos():
     except Exception as e:
         print("❌ Error al cargar productos:", e)
         return jsonify([])
-
 
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
@@ -858,6 +847,21 @@ def step3():
         print(f"🔎 Imagen {idx} enviada al template: {img}")
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+    
+def get_mp_token(email: str):
+    """Obtiene el token de Mercado Pago desde Firestore o Render."""
+    try:
+        if email:
+            token_doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
+            if token_doc.exists:
+                token_data = token_doc.to_dict()
+                if token_data.get("access_token"):
+                    return token_data["access_token"]
+    except Exception as e:
+        print("❌ Error al leer token de Firestore:", e)
+
+    # Fallback: variable de entorno
+    return os.getenv("MERCADO_PAGO_TOKEN")
 
 @app.route('/conectar_mp')
 def conectar_mp():
@@ -866,9 +870,17 @@ def conectar_mp():
 
     client_id = os.getenv("MP_CLIENT_ID")
     redirect_uri = url_for('callback_mp', _external=True)
-    auth_url = f"https://auth.mercadopago.com/authorization?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}"
-    return redirect(auth_url)
 
+    if not client_id:
+        flash("❌ Falta configurar MP_CLIENT_ID en entorno")
+        return redirect(url_for('index', admin='true'))
+
+    # URL oficial de autorización de Mercado Pago
+    auth_url = (
+        f"https://auth.mercadopago.com/authorization?"
+        f"client_id={client_id}&response_type=code&redirect_uri={redirect_uri}"
+    )
+    return redirect(auth_url)
 
 @app.route('/callback_mp')
 def callback_mp():
@@ -880,6 +892,10 @@ def callback_mp():
     client_secret = os.getenv("MP_CLIENT_SECRET")
     redirect_uri = url_for('callback_mp', _external=True)
 
+    if not code:
+        flash("❌ No se recibió código de autorización")
+        return redirect(url_for('index', admin='true'))
+
     token_url = "https://api.mercadopago.com/oauth/token"
     payload = {
         "client_id": client_id,
@@ -889,20 +905,38 @@ def callback_mp():
         "redirect_uri": redirect_uri
     }
 
-    response = requests.post(token_url, data=payload)
-    data = response.json()
+    try:
+        response = requests.post(token_url, data=payload, timeout=10)
+        response.raise_for_status()
+        data = response.json()
 
-    access_token = data.get("access_token")
-    refresh_token = data.get("refresh_token")
+        access_token = data.get("access_token")
+        refresh_token = data.get("refresh_token")
 
-    # ✅ Guardar en Firestore o DB segura, nunca en sesión del usuario
-    db.collection("usuarios").document(session['email']).update({
-        "mercado_pago_token": access_token,
-        "mercado_pago_refresh": refresh_token
-    })
+        if not access_token:
+            flash("❌ Error al obtener token de Mercado Pago")
+            return redirect(url_for('index', admin='true'))
 
-    flash("Mercado Pago conectado correctamente")
-    return redirect(url_for('index', admin='true'))
+        # ✅ Guardar en Firestore en subcolección config/mercado_pago
+        email = session.get('email')
+        if email:
+            db.collection("usuarios").document(email).collection("config").document("mercado_pago").set({
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "created_at": datetime.now().isoformat()
+            })
+            print(f"🔑 Token de Mercado Pago guardado en Firestore para: {email}")
+
+        flash("✅ Mercado Pago conectado correctamente")
+        return redirect(url_for('index', admin='true'))
+
+    except Exception as e:
+        import traceback
+        print("❌ Error en callback_mp:", e)
+        traceback.print_exc()
+        flash("Error al conectar con Mercado Pago")
+        return redirect(url_for('index', admin='true'))
+
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
@@ -910,29 +944,21 @@ def pagar():
         data = request.get_json(silent=True) or {}
         carrito = data.get('carrito', [])
 
-        # ✅ Recuperar el token de Firestore o variable de entorno
+        # ✅ Usar helper para obtener token de Firestore o Render
         email = session.get('email')
-        access_token = None
-
-        if email:
-            doc_ref = db.collection("usuarios").document(email).get()
-            if doc_ref.exists:
-                access_token = doc_ref.to_dict().get("mercado_pago_token")
-
-        # Fallback: variable de entorno (ej. Render)
-        if not access_token:
-            access_token = os.getenv("MERCADO_PAGO_TOKEN")
+        access_token = get_mp_token(email)
 
         if not access_token:
             return jsonify({'error': 'Credencial de Mercado Pago no configurada'}), 400
 
         sdk = mercadopago.SDK(access_token)
 
+        # ✅ Construir items desde el carrito
         items = []
         for item in carrito:
             items.append({
                 "title": item['nombre'] + (f" ({item['talle']})" if item.get('talle') else ""),
-                "quantity": item['cantidad'],
+                "quantity": int(item.get('cantidad', 1)),
                 "unit_price": float(item.get('precio', 0)),
                 "currency_id": "ARS"
             })
@@ -950,8 +976,13 @@ def pagar():
         }
 
         preference_response = sdk.preference().create(preference_data)
-        preference = preference_response["response"]
+        preference = preference_response.get("response", {})
 
+        if "init_point" not in preference:
+            print("⚠️ No se generó init_point en la preferencia:", preference)
+            return jsonify({'error': 'No se pudo generar el link de pago'}), 500
+
+        print("✅ Preferencia creada correctamente:", preference["init_point"])
         return jsonify({"init_point": preference["init_point"]})
 
     except Exception as e:
@@ -960,12 +991,10 @@ def pagar():
         traceback.print_exc()
         return jsonify({'error': 'Error interno al generar el pago'}), 500
 
-
-
 @app.route('/preview')
 def preview():
     print("🚀 Entrando a /preview")
-    modo_admin = session.get('modo_admin') == True and request.args.get('admin') == 'true'
+    modo_admin = session.get('modo_admin') is True and request.args.get('admin') == 'true'
     modo_admin_intentado = request.args.get('admin') == 'true'
     email = session.get('email')
 
@@ -990,11 +1019,10 @@ def preview():
     for producto in productos:
         grupo = producto.get('grupo', 'General').strip().title()
         subgrupo = producto.get('subgrupo', 'Sin subgrupo').strip().title()
-        if grupo not in grupos_dict:
-            grupos_dict[grupo] = {}
-        if subgrupo not in grupos_dict[grupo]:
-            grupos_dict[grupo][subgrupo] = []
-        grupos_dict[grupo][subgrupo].append(producto)
+        grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
+
+    # 🔑 Usar helper para verificar token de Mercado Pago
+    mercado_pago_token = get_mp_token(email)
 
     # 🧠 Configuración visual
     config = {
@@ -1019,11 +1047,11 @@ def preview():
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
-        'mercado_pago': session.get('mercado_pago'),
+        'mercado_pago': bool(mercado_pago_token),  # ✅ ahora depende del helper
         'productos': productos,
         'bloques': [],
         'descargado': session.get('descargado', False),
-        'usarFirestore': False
+        'usarFirestore': True
     }
 
     # ✅ Crear repo solo si el usuario lo pidió
