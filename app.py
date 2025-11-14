@@ -886,7 +886,7 @@ def conectar_mp():
 
     if not client_id:
         flash("❌ Falta configurar MP_CLIENT_ID en entorno")
-        return redirect(url_for('index', admin='true'))
+        return redirect(url_for('preview', admin='true'))
 
     # URL oficial de autorización de Mercado Pago
     auth_url = (
