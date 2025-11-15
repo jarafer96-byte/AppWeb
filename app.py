@@ -947,41 +947,42 @@ def callback_mp():
             flash("❌ Error al obtener token de Mercado Pago")
             return redirect(url_for('preview', admin='true'))
 
-        # ✅ Intentar obtener la public_key asociada a la cuenta
-        public_key = None
-        try:
-            print("[MP-CALLBACK] Intentando obtener public_key desde /v1/account/credentials")
-            cred_resp = requests.get(
-                "https://api.mercadopago.com/v1/account/credentials",
-                headers={"Authorization": f"Bearer {access_token}"},
-                timeout=10
-            )
-            print(f"[MP-CALLBACK] Status credentials={cred_resp.status_code}")
-            if cred_resp.status_code == 200:
-                cred_data = cred_resp.json() or {}
-                print(f"[MP-CALLBACK] Datos credentials: {cred_data}")
-                public_key = cred_data.get("public_key") or cred_data.get("web", {}).get("public_key")
-
-            # Fallback: datos del usuario si no se obtuvo nada
-            if not public_key:
-                print("[MP-CALLBACK] Intentando obtener public_key desde /users/me")
-                user_resp = requests.get(
-                    "https://api.mercadopago.com/users/me",
+        # ✅ Obtener la public_key
+        public_key = data.get("public_key")
+        if public_key and isinstance(public_key, str):
+            public_key = public_key.strip()
+        else:
+            try:
+                print("[MP-CALLBACK] Intentando obtener public_key desde /v1/account/credentials")
+                cred_resp = requests.get(
+                    "https://api.mercadopago.com/v1/account/credentials",
                     headers={"Authorization": f"Bearer {access_token}"},
                     timeout=10
                 )
-                print(f"[MP-CALLBACK] Status users/me={user_resp.status_code}")
-                if user_resp.status_code == 200:
-                    user_data = user_resp.json() or {}
-                    print(f"[MP-CALLBACK] Datos users/me: {user_data}")
-                    public_key = user_data.get("public_key")
+                print(f"[MP-CALLBACK] Status credentials={cred_resp.status_code}")
+                if cred_resp.status_code == 200:
+                    cred_data = cred_resp.json() or {}
+                    print(f"[MP-CALLBACK] Datos credentials: {cred_data}")
+                    public_key = cred_data.get("public_key") or cred_data.get("web", {}).get("public_key")
 
-            # Normalizar la clave si existe
-            if public_key and isinstance(public_key, str):
-                public_key = public_key.strip()
-        except Exception as e:
-            print("Error al obtener public_key:", e)
-            public_key = None
+                if not public_key:
+                    print("[MP-CALLBACK] Intentando obtener public_key desde /users/me")
+                    user_resp = requests.get(
+                        "https://api.mercadopago.com/users/me",
+                        headers={"Authorization": f"Bearer {access_token}"},
+                        timeout=10
+                    )
+                    print(f"[MP-CALLBACK] Status users/me={user_resp.status_code}")
+                    if user_resp.status_code == 200:
+                        user_data = user_resp.json() or {}
+                        print(f"[MP-CALLBACK] Datos users/me: {user_data}")
+                        public_key = user_data.get("public_key")
+
+                if public_key and isinstance(public_key, str):
+                    public_key = public_key.strip()
+            except Exception as e:
+                print("Error al obtener public_key:", e)
+                public_key = None
 
         # ✅ Guardar credenciales en Firestore sin pisar public_key con null
         email = session.get('email')
@@ -1017,6 +1018,7 @@ def callback_mp():
         print("Error en callback_mp:", e)
         flash("Error al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
+
 
 
 @app.route('/pagar', methods=['POST'])
