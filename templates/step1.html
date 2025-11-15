@@ -194,7 +194,7 @@
     </div>
 
       <div class="mb-3">
-        <label for="ubicacion" class="form-label">Dirección (Agrega tu direccion)</label>
+        <label for="ubicacion" class="form-label">Dirección (Escribe tu direccion)</label>
         <input type="text" class="form-control" id="ubicacion" name="ubicacion" placeholder="Ej: Corrientes 9001, Buenos Aires">
       </div>
 
@@ -231,34 +231,6 @@ function toggleCampoMP() {
   document.getElementById('campoMP').style.display = activo ? 'block' : 'none';
 }
   
-document.getElementById("facebook_usuario").addEventListener("input", function() {
-  const usuario = this.value.trim();
-  const linkField = document.getElementById("facebook_link");
-  linkField.value = usuario ? `https://facebook.com/${usuario}` : "";
-});
-document.getElementById("instagram_usuario").addEventListener("input", function() {
-  const usuario = this.value.trim();
-  const linkField = document.getElementById("instagram_link");
-  linkField.value = usuario ? `https://instagram.com/${usuario}` : "";
-});
-  
-function abrirFacebook() {
-  const url = "{{ config.facebook }}";  // viene del backend
-  if (url) {
-    window.open(url, "_blank");
-  } else {
-    alert("No configuraste tu Facebook todavía.");
-  }
-}
-
-function abrirInstagram() {
-  const url = "{{ config.instagram }}";  // viene del backend
-  if (url) {
-    window.open(url, "_blank");
-  } else {
-    alert("No configuraste tu Instagram todavía.");
-  }
-}
 async function crearRepositorio() {
   const email = document.getElementById("email").value;
   if (!email) return alert("Ingresá un email válido");
