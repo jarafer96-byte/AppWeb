@@ -157,34 +157,38 @@
   <h5 class="mb-3 text-white">Agregá tus redes y links de contacto</h5>
   <div class="d-flex flex-column gap-3">
 
-    <!-- Facebook -->
 <div class="mb-3">
-  <label class="form-label text-white">
+  <label class="form-label text-white d-flex align-items-center">
     <img src="/static/img/facebook.png" class="icono" alt="Facebook"> Facebook
+    <!-- Botón de información -->
+    <button type="button" class="btn btn-sm btn-info ms-2" onclick="toggleInfoFacebook()" style="padding: 2px 6px; font-size: 14px;">
+      i
+    </button>
   </label>
-  <!-- Botón para vincular -->
-  <button type="button" class="btn btn-primary mt-2" onclick="generarFacebookLink()">
-    Vincular Facebook
-  </button>
-  <!-- Campo que se rellena automáticamente -->
-  <input type="url" id="facebook_link" name="facebook" class="form-control mt-2" readonly>
+
+  <!-- Campo para el link -->
+  <input type="url" name="facebook" class="form-control" placeholder="https://facebook.com/tu_pagina">
+
+  <!-- Bloque de ayuda oculto -->
+  <div id="infoFacebook" style="display: none; margin-top: 10px; font-size: 14px; color: #ccc;">
+    <p><strong>Cómo obtener tu link de Facebook:</strong></p>
+
+    <!-- Ayuda Web -->
+    <p>🌐 Desde la versión web:</p>
+    <img src="/static/img/ejemplo-facebook-web.png" alt="Ejemplo Facebook Web" style="max-width: 100%; border-radius: 6px; margin-bottom: 10px;">
+
+    <!-- Ayuda App -->
+    <p>📱 Desde la app móvil:</p>
+    <img src="/static/img/ejemplo-facebook-app.png" alt="Ejemplo Facebook App" style="max-width: 100%; border-radius: 6px;">
+  </div>
 </div>
-
-<!-- Instagram -->
-<div class="mb-3">
-  <label class="form-label text-white">
-    <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Instagram
-  </label>
-  <!-- Botón para vincular -->
-  <button type="button" class="btn btn-danger mt-2" onclick="generarInstagramLink()">
-    Vincular Instagram
-  </button>
-  <!-- Campo que se rellena automáticamente -->
-  <input type="url" id="instagram_link" name="instagram" class="form-control mt-2" readonly>
-</div>
-
-
-
+    <!-- Instagram -->
+    <div>
+      <label class="form-label text-white">
+        <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Instagram
+      </label>
+      <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/tu_usuario">
+    </div>
     <!-- WhatsApp -->
     <div>
       <label class="form-label text-white">
@@ -194,7 +198,7 @@
     </div>
 
       <div class="mb-3">
-        <label for="ubicacion" class="form-label">Dirección (Escribe tu direccion)</label>
+        <label for="ubicacion" class="form-label">Dirección (Escriba su direccion)</label>
         <input type="text" class="form-control" id="ubicacion" name="ubicacion" placeholder="Ej: Corrientes 9001, Buenos Aires">
       </div>
 
@@ -202,7 +206,7 @@
   <label for="link_mapa" class="form-label d-flex align-items-center">
     <span>(Opcional) Link de Google Maps</span>
     <button type="button" class="btn btn-sm btn-info ms-2" onclick="toggleInfoMapa()" style="padding: 2px 6px; font-size: 14px;">
-      i
+      Ayuda
     </button>
   </label>
 
@@ -221,7 +225,10 @@
     </form>
   </div>
 <script>
-
+function toggleInfoFacebook() {
+  const info = document.getElementById('infoFacebook');
+  info.style.display = info.style.display === 'none' ? 'block' : 'none';
+}
 function toggleInfoMapa() {
   const info = document.getElementById('infoMapa');
   info.style.display = info.style.display === 'none' ? 'block' : 'none';
