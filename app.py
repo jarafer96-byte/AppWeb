@@ -305,20 +305,20 @@ def step0():
     return render_template('step0.html')
 
 def get_mp_public_key(email: str):
-    """Obtiene la public key de Mercado Pago del vendedor desde Firestore o entorno."""
     try:
         if email:
             doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
             if doc.exists:
                 data = doc.to_dict()
                 pk = data.get("public_key")
+                print(f"[MP-HELPER] email={email} Firestore public_key={pk}")
                 if pk and isinstance(pk, str):
                     return pk.strip()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[MP-HELPER] Error leyendo Firestore: {e}")
 
-    # Fallback opcional desde entorno (útil para pruebas locales)
     pk_env = os.getenv("MP_PUBLIC_KEY")
+    print(f"[MP-HELPER] Fallback env public_key={pk_env}")
     if pk_env and isinstance(pk_env, str):
         return pk_env.strip()
 
@@ -812,39 +812,48 @@ def callback_mp():
     }
 
     try:
+        print(f"[MP-CALLBACK] Enviando payload a {token_url}: {payload}")
         response = requests.post(token_url, data=payload, timeout=10)
+        print(f"[MP-CALLBACK] Status token_url={response.status_code}")
         response.raise_for_status()
         data = response.json()
+        print(f"[MP-CALLBACK] Respuesta token: {data}")
 
         access_token = data.get("access_token")
         refresh_token = data.get("refresh_token")
 
         if not access_token:
+            print("[MP-CALLBACK] ❌ No se recibió access_token")
             flash("❌ Error al obtener token de Mercado Pago")
             return redirect(url_for('preview', admin='true'))
 
         # ✅ Intentar obtener la public_key asociada a la cuenta
         public_key = None
         try:
-            # Primer intento: credenciales de la cuenta
+            print("[MP-CALLBACK] Intentando obtener public_key desde /v1/account/credentials")
             cred_resp = requests.get(
                 "https://api.mercadopago.com/v1/account/credentials",
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=10
             )
+            print(f"[MP-CALLBACK] Status credentials={cred_resp.status_code}")
             if cred_resp.status_code == 200:
                 cred_data = cred_resp.json() or {}
+                print(f"[MP-CALLBACK] Datos credentials: {cred_data}")
                 public_key = cred_data.get("public_key") or cred_data.get("web", {}).get("public_key")
 
             # Fallback: datos del usuario si no se obtuvo nada
             if not public_key:
+                print("[MP-CALLBACK] Intentando obtener public_key desde /users/me")
                 user_resp = requests.get(
                     "https://api.mercadopago.com/users/me",
                     headers={"Authorization": f"Bearer {access_token}"},
                     timeout=10
                 )
+                print(f"[MP-CALLBACK] Status users/me={user_resp.status_code}")
                 if user_resp.status_code == 200:
                     user_data = user_resp.json() or {}
+                    print(f"[MP-CALLBACK] Datos users/me: {user_data}")
                     public_key = user_data.get("public_key")
 
             # Normalizar la clave si existe
@@ -857,13 +866,15 @@ def callback_mp():
         # ✅ Guardar credenciales en Firestore
         email = session.get('email')
         if email:
-            print(f"[MP] email={email} public_key={public_key}")  # 🔎 Log de depuración
+            print(f"[MP-CALLBACK] Guardando en Firestore: email={email}, access_token={bool(access_token)}, refresh_token={bool(refresh_token)}, public_key={public_key}")
             db.collection("usuarios").document(email).collection("config").document("mercado_pago").set({
                 "access_token": access_token,
                 "refresh_token": refresh_token,
                 "public_key": public_key,
                 "created_at": datetime.now().isoformat()
             }, merge=True)
+        else:
+            print("[MP-CALLBACK] ⚠️ No hay email en sesión, no se guardó en Firestore")
 
         flash("✅ Mercado Pago conectado correctamente")
         return redirect(url_for('preview', admin='true'))
@@ -872,7 +883,6 @@ def callback_mp():
         print("Error en callback_mp:", e)
         flash("Error al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
-
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
@@ -941,9 +951,11 @@ def preview():
     email = session.get('email')
 
     if not email:
+        print("[Preview] ❌ Sesión no iniciada")
         return "Error: sesión no iniciada", 403
 
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+    print(f"[Preview] email={email} estilo_visual={estilo_visual}")
 
     # Obtener productos desde Firestore
     productos = []
@@ -951,8 +963,9 @@ def preview():
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         productos_docs = productos_ref.stream()
         productos = [doc.to_dict() for doc in productos_docs]
+        print(f"[Preview] Productos obtenidos: {len(productos)}")
     except Exception as e:
-        print("Error al leer productos:", e)
+        print("[Preview] Error al leer productos:", e)
         productos = []
 
     # Agrupar por grupo y subgrupo
@@ -961,13 +974,14 @@ def preview():
         grupo = (producto.get('grupo') or 'General').strip().title()
         subgrupo = (producto.get('subgrupo') or 'Sin subgrupo').strip().title()
         grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
+    print(f"[Preview] Grupos generados: {list(grupos_dict.keys())}")
 
     # Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
     public_key = get_mp_public_key(email) or ""  # nunca None
 
     # 🔎 Log de depuración
-    print(f"[Preview] email={email} public_key={public_key}")
+    print(f"[Preview] email={email} mercado_pago_token={bool(mercado_pago_token)} public_key={public_key}")
 
     # Configuración visual
     config = {
@@ -1005,6 +1019,7 @@ def preview():
         nombre_repo = generar_nombre_repo(email)
         token = os.getenv("GITHUB_TOKEN")
         resultado = crear_repo_github(nombre_repo, token)
+        print(f"[Preview] Creando repo: {nombre_repo}, resultado={resultado}")
         if "url" in resultado:
             session['repo_creado'] = resultado["url"]
             session['repo_nombre'] = nombre_repo
@@ -1013,6 +1028,7 @@ def preview():
     if session.get('repo_creado') and session.get('repo_nombre'):
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
+        print(f"[Preview] Subiendo archivos al repo: {nombre_repo}")
 
         if token:
             try:
@@ -1024,6 +1040,7 @@ def preview():
                             with open(ruta_local, "rb") as f:
                                 contenido = f.read()
                             subir_archivo(nombre_repo, contenido, f"static/img/{imagen}", token)
+                            print(f"[Preview] Imagen subida: {imagen}")
                             del contenido
                             gc.collect()
 
@@ -1034,6 +1051,7 @@ def preview():
                         with open(logo_path, "rb") as f:
                             contenido = f.read()
                         subir_archivo(nombre_repo, contenido, f"static/img/{logo}", token)
+                        print(f"[Preview] Logo subido: {logo}")
                         del contenido
                         gc.collect()
 
@@ -1043,12 +1061,14 @@ def preview():
                     with open(fondo_path, "rb") as f:
                         contenido = f.read()
                     subir_archivo(nombre_repo, contenido, f"static/img/{fondo}", token)
+                    print(f"[Preview] Fondo subido: {fondo}")
                     del contenido
                     gc.collect()
             except Exception as e:
-                print("Error al subir archivos al repo:", e)
+                print("[Preview] Error al subir archivos al repo:", e)
 
     try:
+        print("[Preview] Renderizando template preview.html")
         return render_template(
             'preview.html',
             config=config,
@@ -1058,9 +1078,8 @@ def preview():
             firebase_config=firebase_config
         )
     except Exception as e:
-        print("Error al renderizar preview:", e)
+        print("[Preview] Error al renderizar preview:", e)
         return "Internal Server Error al renderizar preview", 500
-
 
 @app.route('/descargar')
 def descargar():
