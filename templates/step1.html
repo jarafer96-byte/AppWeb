@@ -158,18 +158,24 @@
   <div class="d-flex flex-column gap-3">
 
     <!-- Facebook -->
-    <div class="mb-3">
-  <button type="button" class="btn btn-primary" onclick="abrirFacebook()">
-    <img src="/static/img/facebook.png" class="icono" alt="Facebook"> Ir a Facebook
-  </button>
+<div class="mb-3">
+  <label class="form-label text-white">
+    <img src="/static/img/facebook.png" class="icono" alt="Facebook"> Facebook
+  </label>
+  <!-- Campo que se rellena automáticamente con el link -->
+  <input type="url" id="facebook_link" name="facebook" class="form-control" readonly>
 </div>
 
-    <!-- Instagram -->
-    <div class="mb-3">
-      <button type="button" class="btn btn-danger" onclick="abrirInstagram()">
-        <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Ir a Instagram
-      </button>
-    </div>
+<!-- Instagram -->
+<div class="mb-3">
+  <label class="form-label text-white">
+    <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Instagram
+  </label>
+  <!-- Campo que se rellena automáticamente con el link -->
+  <input type="url" id="instagram_link" name="instagram" class="form-control" readonly>
+</div>
+
+
     <!-- WhatsApp -->
     <div>
       <label class="form-label text-white">
@@ -215,14 +221,34 @@ function toggleCampoMP() {
   const activo = document.getElementById('activarMP').checked;
   document.getElementById('campoMP').style.display = activo ? 'block' : 'none';
 }
+  
+document.getElementById("facebook_usuario").addEventListener("input", function() {
+  const usuario = this.value.trim();
+  const linkField = document.getElementById("facebook_link");
+  linkField.value = usuario ? `https://facebook.com/${usuario}` : "";
+});
+document.getElementById("instagram_usuario").addEventListener("input", function() {
+  const usuario = this.value.trim();
+  const linkField = document.getElementById("instagram_link");
+  linkField.value = usuario ? `https://instagram.com/${usuario}` : "";
+});
+  
 function abrirFacebook() {
-  // Podés guardar el usuario en tu config y armar el link dinámico
-  const usuario = "tu_pagina"; 
-  window.open(`https://facebook.com/${usuario}`, "_blank");
+  const url = "{{ config.facebook }}";  // viene del backend
+  if (url) {
+    window.open(url, "_blank");
+  } else {
+    alert("No configuraste tu Facebook todavía.");
+  }
 }
-  function abrirInstagram() {
-  const usuario = "tu_usuario"; 
-  window.open(`https://instagram.com/${usuario}`, "_blank");
+
+function abrirInstagram() {
+  const url = "{{ config.instagram }}";  // viene del backend
+  if (url) {
+    window.open(url, "_blank");
+  } else {
+    alert("No configuraste tu Instagram todavía.");
+  }
 }
 async function crearRepositorio() {
   const email = document.getElementById("email").value;
