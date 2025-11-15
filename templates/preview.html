@@ -653,12 +653,11 @@
     <div class="d-grid gap-2">
   <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
 
-  {% if config.mercado_pago %}
-    <button class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
+  {% if config.mercado_pago and config.public_key %}
+    <button id="btn_pagar" class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
   {% else %}
     <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
   {% endif %}
-
 
   </div>
 <!-- Aviso flotante de precio actualizado -->
@@ -1339,20 +1338,19 @@ function actualizarCarrito() {
 </script>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script>
-  // Inyectar la clave desde backend
   const PUBLIC_KEY = "{{ config.public_key or '' }}";
   let mp = null;
 
-  // Inicializar solo si existe la clave
   if (PUBLIC_KEY) {
     mp = new MercadoPago(PUBLIC_KEY, { locale: 'es-AR' });
   }
 
-  // Deshabilitar botón si no hay clave
   const pagarBtn = document.getElementById('btn_pagar');
   if (pagarBtn && !PUBLIC_KEY) {
     pagarBtn.disabled = true;
   }
+
+  console.log("PUBLIC_KEY:", PUBLIC_KEY);
 </script>
 </body>
 </html>
