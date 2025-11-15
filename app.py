@@ -19,7 +19,6 @@ import mercadopago
 import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
-
 # 🔐 Inicialización segura de Firebase
 try:
     cred_dict = json.loads(os.getenv("FIREBASE_CREDENTIALS_JSON"))
@@ -48,8 +47,6 @@ if access_token and isinstance(access_token, str):
 else:
     sdk = None
     print("⚠️ MERCADO_PAGO_TOKEN no configurado, SDK no inicializado")
-
-
 # GitHub y Flask config
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
@@ -123,7 +120,6 @@ def subir_a_firestore(producto, email):
     except Exception:
         return False
 
-
 def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo}/contents/{ruta_remota}"
     headers = {
@@ -161,7 +157,6 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-
 def subir_iconos_png(repo, token):
     carpeta = os.path.join("static", "img")
     for nombre_archivo in os.listdir(carpeta):
@@ -171,7 +166,6 @@ def subir_iconos_png(repo, token):
             with open(ruta_local, "rb") as f:
                 contenido = f.read()
             subir_archivo(repo, contenido, ruta_remota, token)
-
 
 def generar_nombre_repo(email):
     base = email.replace("@", "_at_").replace(".", "_")
@@ -185,7 +179,6 @@ def guardar_redimensionada(file, nombre_archivo):
     img.thumbnail((800, 800))  # ejemplo de redimensión
     img.save(ruta_tmp, "WEBP")
     return ruta_tmp
-
 
 def crear_repo_github(nombre_repo, token):
     if not token:
@@ -269,7 +262,6 @@ def normalizar_url(url: str) -> str:
         if "/usuarios/" in url:
             return "usuarios/" + url.split("/usuarios/")[1]
     return url
-
 
 @app.route('/step0', methods=['GET', 'POST'])
 def step0():
@@ -363,7 +355,6 @@ def pago_failure():
 def pago_pending():
     return "⏳ El pago está pendiente de aprobación."
 
-
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
@@ -387,7 +378,6 @@ def webhook_mp():
 
     # ✅ No se guarda nada en Firestore, solo respondemos OK
     return "OK", 200
-
 
 @app.route("/test-firestore")
 def test_firestore():
@@ -488,7 +478,6 @@ def logout_admin():
     session.pop('modo_admin', None)
     return redirect('/preview')
 
-
 @app.route('/guardar-producto', methods=['POST'])
 def guardar_producto():
     usuario = session.get('email')
@@ -507,7 +496,6 @@ def guardar_producto():
         return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
 
 @app.route('/ver-productos')
 def ver_productos():
@@ -540,7 +528,6 @@ def crear_repo():
         session['repo_creado'] = resultado["url"]
 
     return jsonify(resultado), 200 if "url" in resultado else 400
-
 
 @app.route('/actualizar-precio', methods=['POST'])
 def actualizar_precio():
@@ -794,7 +781,6 @@ def step3():
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
-
     
 def get_mp_public_key(email: str):
     """
@@ -1019,8 +1005,6 @@ def callback_mp():
         flash("Error al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
 
-
-
 @app.route('/pagar', methods=['POST'])
 def pagar():
     try:
@@ -1079,18 +1063,6 @@ def pagar():
 
         if not preference.get("id"):
             return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
-
-        # ✅ Guardar orden inicial en Firestore
-        try:
-            db.collection("usuarios").document(email).collection("ordenes").document(external_ref).set({
-                "external_reference": external_ref,
-                "carrito": carrito,
-                "estado": "pendiente",
-                "created_at": datetime.now().isoformat()
-            })
-            print(f"[PAGAR] Orden guardada en Firestore: {external_ref}")
-        except Exception as e:
-            print(f"[PAGAR] Error guardando orden en Firestore: {e}")
 
         return jsonify({
             "preference_id": preference["id"],
@@ -1237,7 +1209,6 @@ def preview():
     except Exception as e:
         print("[Preview] Error al renderizar preview:", e)
         return "Internal Server Error al renderizar preview", 500
-
 
 @app.route('/descargar')
 def descargar():
