@@ -394,6 +394,14 @@ def crear_admin():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/debug/mp')
+def debug_mp():
+  email = session.get('email')
+  if not email:
+    return jsonify({'error': 'sin sesión'}), 400
+  doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
+  return jsonify(doc.to_dict() if doc.exists else {'error': 'no encontrado'})
+
 @app.route('/login-admin', methods=['POST'])
 def login_admin():
     session.clear()
