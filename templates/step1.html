@@ -162,8 +162,12 @@
   <label class="form-label text-white">
     <img src="/static/img/facebook.png" class="icono" alt="Facebook"> Facebook
   </label>
-  <!-- Campo que se rellena automáticamente con el link -->
-  <input type="url" id="facebook_link" name="facebook" class="form-control" readonly>
+  <!-- Botón para vincular -->
+  <button type="button" class="btn btn-primary mt-2" onclick="generarFacebookLink()">
+    Vincular Facebook
+  </button>
+  <!-- Campo que se rellena automáticamente -->
+  <input type="url" id="facebook_link" name="facebook" class="form-control mt-2" readonly>
 </div>
 
 <!-- Instagram -->
@@ -171,9 +175,14 @@
   <label class="form-label text-white">
     <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Instagram
   </label>
-  <!-- Campo que se rellena automáticamente con el link -->
-  <input type="url" id="instagram_link" name="instagram" class="form-control" readonly>
+  <!-- Botón para vincular -->
+  <button type="button" class="btn btn-danger mt-2" onclick="generarInstagramLink()">
+    Vincular Instagram
+  </button>
+  <!-- Campo que se rellena automáticamente -->
+  <input type="url" id="instagram_link" name="instagram" class="form-control mt-2" readonly>
 </div>
+
 
 
     <!-- WhatsApp -->
