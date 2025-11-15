@@ -158,13 +158,17 @@
   <div class="d-flex flex-column gap-3">
 
     <!-- Facebook -->
-    <div>
-      <label class="form-label text-white">
-        <img src="/static/img/facebook.png" class="icono" alt="Facebook"> Facebook
-      </label>
-      <input type="url" name="facebook" class="form-control" placeholder="https://facebook.com/tu_pagina">
+    <div class="mb-3 text-center">
+      <button type="button" class="btn btn-primary" onclick="abrirFacebook()">
+        <img src="/static/img/facebook.png" class="icono" alt="Facebook"> Ir a Facebook
+      </button>
     </div>
-
+    <!-- Instagram -->
+    <div class="mb-3 text-center">
+      <button type="button" class="btn btn-danger" onclick="abrirInstagram()">
+        <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Ir a Instagram
+      </button>
+    </div>
     <!-- WhatsApp -->
     <div>
       <label class="form-label text-white">
@@ -172,16 +176,6 @@
       </label>
       <input type="url" name="whatsapp" class="form-control" value="https://wa.me/549" placeholder="Ej: https://wa.me/5491123456789">
     </div>
-
-    <!-- Instagram -->
-    <div>
-      <label class="form-label text-white">
-        <img src="/static/img/instagram.png" class="icono" alt="Instagram"> Instagram
-      </label>
-      <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/tu_usuario">
-    </div>
-
- 
 
       <div class="mb-3">
         <label for="ubicacion" class="form-label">Dirección</label>
