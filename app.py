@@ -849,6 +849,7 @@ def callback_mp():
         # ✅ Guardar credenciales en Firestore
         email = session.get('email')
         if email:
+            print(f"[MP] email={email} public_key={public_key}")  # 🔎 Log de depuración
             db.collection("usuarios").document(email).collection("config").document("mercado_pago").set({
                 "access_token": access_token,
                 "refresh_token": refresh_token,
@@ -863,6 +864,7 @@ def callback_mp():
         print("Error en callback_mp:", e)
         flash("Error al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
+
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
@@ -915,14 +917,6 @@ def pagar():
         if not preference.get("id"):
             return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
 
-        db.collection("ordenes").document(external_ref).set({
-            "external_reference": external_ref,
-            "vendedor_id": email,
-            "carrito": carrito,
-            "estado": "pendiente",
-            "created_at": firestore.SERVER_TIMESTAMP
-        })
-
         return jsonify({
             "preference_id": preference["id"],
             "init_point": preference.get("init_point"),
@@ -932,11 +926,9 @@ def pagar():
     except Exception as e:
         return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
 
-
-
 @app.route('/preview')
 def preview():
-    modo_admin = session.get('modo_admin') is True and request.args.get('admin') == 'true'
+    modo_admin = bool(session.get('modo_admin')) and request.args.get('admin') == 'true'
     modo_admin_intentado = request.args.get('admin') == 'true'
     email = session.get('email')
 
@@ -951,19 +943,23 @@ def preview():
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         productos_docs = productos_ref.stream()
         productos = [doc.to_dict() for doc in productos_docs]
-    except Exception:
+    except Exception as e:
+        print("Error al leer productos:", e)
         productos = []
 
     # Agrupar por grupo y subgrupo
     grupos_dict = {}
     for producto in productos:
-        grupo = producto.get('grupo', 'General').strip().title()
-        subgrupo = producto.get('subgrupo', 'Sin subgrupo').strip().title()
+        grupo = (producto.get('grupo') or 'General').strip().title()
+        subgrupo = (producto.get('subgrupo') or 'Sin subgrupo').strip().title()
         grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
 
     # Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
-    public_key = get_mp_public_key(email)  # nuevo helper
+    public_key = get_mp_public_key(email) or ""  # nunca None
+
+    # 🔎 Log de depuración
+    print(f"[Preview] email={email} public_key={public_key}")
 
     # Configuración visual
     config = {
@@ -1011,44 +1007,38 @@ def preview():
         token = os.getenv("GITHUB_TOKEN")
 
         if token:
-            for producto in productos:
-                imagen = producto.get("imagen")
-                if imagen:
-                    ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
-                    if os.path.exists(ruta_local):
-                        try:
+            try:
+                for producto in productos:
+                    imagen = producto.get("imagen")
+                    if imagen:
+                        ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
+                        if os.path.exists(ruta_local):
                             with open(ruta_local, "rb") as f:
                                 contenido = f.read()
                             subir_archivo(nombre_repo, contenido, f"static/img/{imagen}", token)
                             del contenido
                             gc.collect()
-                        except Exception:
-                            pass
 
-            logo = config.get("logo")
-            if logo:
-                logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
-                if os.path.exists(logo_path):
-                    try:
+                logo = config.get("logo")
+                if logo:
+                    logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
+                    if os.path.exists(logo_path):
                         with open(logo_path, "rb") as f:
                             contenido = f.read()
                         subir_archivo(nombre_repo, contenido, f"static/img/{logo}", token)
                         del contenido
                         gc.collect()
-                    except Exception:
-                        pass
 
-            fondo = f"{estilo_visual}.jpeg"
-            fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
-            if os.path.exists(fondo_path):
-                try:
+                fondo = f"{estilo_visual}.jpeg"
+                fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
+                if os.path.exists(fondo_path):
                     with open(fondo_path, "rb") as f:
                         contenido = f.read()
                     subir_archivo(nombre_repo, contenido, f"static/img/{fondo}", token)
                     del contenido
                     gc.collect()
-                except Exception:
-                    pass
+            except Exception as e:
+                print("Error al subir archivos al repo:", e)
 
     try:
         return render_template(
@@ -1059,8 +1049,10 @@ def preview():
             modoAdminIntentado=modo_admin_intentado,
             firebase_config=firebase_config
         )
-    except Exception:
+    except Exception as e:
+        print("Error al renderizar preview:", e)
         return "Internal Server Error al renderizar preview", 500
+
 
 @app.route('/descargar')
 def descargar():
