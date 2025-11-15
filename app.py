@@ -781,10 +781,13 @@ def conectar_mp():
     if not client_id:
         flash("❌ Falta configurar MP_CLIENT_ID en entorno")
         return redirect(url_for('preview', admin='true'))
-        
+
+    # Incluye todos los scopes necesarios
     auth_url = (
-        f"https://auth.mercadopago.com/authorization?"
-        f"client_id={client_id}&response_type=code&redirect_uri={redirect_uri}"
+        "https://auth.mercadopago.com/authorization?"
+        f"client_id={client_id}&response_type=code"
+        f"&redirect_uri={redirect_uri}"
+        f"&scope=read%20write%20offline_access"
     )
     return redirect(auth_url)
 
