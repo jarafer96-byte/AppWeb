@@ -1204,7 +1204,7 @@ def preview():
             grupos=grupos_dict,
             modoAdmin=modo_admin,
             modoAdminIntentado=modo_admin_intentado,
-            firebase_config=firebase_config
+            firebase_config=firebase_config   # 👈 aquí usás la global definida arriba
         )
     except Exception as e:
         print("[Preview] Error al renderizar preview:", e)
