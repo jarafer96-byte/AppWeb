@@ -609,8 +609,6 @@ def step2():
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
-    import gc
-
     tipo = session.get('tipo_web')
     email = session.get('email')
     imagenes_session = session.get('imagenes_step0') or []
@@ -764,7 +762,6 @@ def get_mp_token(email: str):
 
     return None
 
-
 @app.route('/conectar_mp')
 def conectar_mp():
     if not session.get('modo_admin'):
@@ -841,8 +838,11 @@ def callback_mp():
                 if user_resp.status_code == 200:
                     user_data = user_resp.json() or {}
                     public_key = user_data.get("public_key")
+
+            # Normalizar la clave si existe
+            if public_key and isinstance(public_key, str):
+                public_key = public_key.strip()
         except Exception as e:
-            # Podés loguear el error si querés depurar
             print("Error al obtener public_key:", e)
             public_key = None
 
@@ -863,7 +863,6 @@ def callback_mp():
         print("Error en callback_mp:", e)
         flash("Error al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
-
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
