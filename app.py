@@ -304,23 +304,49 @@ def step0():
 
     return render_template('step0.html')
 
-def get_mp_public_key(email: str):
+def get_mp_token(email: str):
+    """Obtiene el access_token de Mercado Pago desde Firestore o Render, con fallback a refresh_token."""
     try:
         if email:
-            doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
-            if doc.exists:
-                data = doc.to_dict()
-                pk = data.get("public_key")
-                print(f"[MP-HELPER] email={email} Firestore public_key={pk}")
-                if pk and isinstance(pk, str):
-                    return pk.strip()
-    except Exception as e:
-        print(f"[MP-HELPER] Error leyendo Firestore: {e}")
+            doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
+            snap = doc_ref.get()
+            if snap.exists:
+                data = snap.to_dict()
+                token = data.get("access_token")
+                if token and isinstance(token, str) and token.strip():
+                    return token.strip()
 
-    pk_env = os.getenv("MP_PUBLIC_KEY")
-    print(f"[MP-HELPER] Fallback env public_key={pk_env}")
-    if pk_env and isinstance(pk_env, str):
-        return pk_env.strip()
+                # Fallback: intentar refrescar con refresh_token
+                refresh_token = data.get("refresh_token")
+                if refresh_token:
+                    client_id = os.getenv("MP_CLIENT_ID")
+                    client_secret = os.getenv("MP_CLIENT_SECRET")
+                    token_url = "https://api.mercadopago.com/oauth/token"
+                    payload = {
+                        "client_id": client_id,
+                        "client_secret": client_secret,
+                        "grant_type": "refresh_token",
+                        "refresh_token": refresh_token
+                    }
+                    try:
+                        resp = requests.post(token_url, data=payload, timeout=10)
+                        if resp.status_code == 200:
+                            new_data = resp.json()
+                            new_token = new_data.get("access_token")
+                            if new_token:
+                                # Guardar el nuevo token en Firestore
+                                doc_ref.set({"access_token": new_token}, merge=True)
+                                print("[MP-HELPER] ✅ Token refrescado y guardado")
+                                return new_token.strip()
+                    except Exception as e:
+                        print(f"[MP-HELPER] Error refrescando token: {e}")
+    except Exception as e:
+        print("❌ Error al leer token de Firestore:", e)
+
+    # Fallback global
+    token = os.getenv("MERCADO_PAGO_TOKEN")
+    if token and isinstance(token, str):
+        return token.strip()
 
     return None
 
@@ -396,11 +422,31 @@ def crear_admin():
 
 @app.route('/debug/mp')
 def debug_mp():
-  email = session.get('email')
-  if not email:
-    return jsonify({'error': 'sin sesión'}), 400
-  doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
-  return jsonify(doc.to_dict() if doc.exists else {'error': 'no encontrado'})
+    email = session.get('email')
+    if not email:
+        return jsonify({'error': 'sin sesión'}), 400
+
+    try:
+        doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
+        if doc.exists:
+            data = doc.to_dict() or {}
+            # 🔎 Filtrar campos sensibles si no querés exponerlos en frontend
+            safe_data = {
+                "public_key": data.get("public_key"),
+                "access_token": bool(data.get("access_token")),  # solo indicar si existe
+                "refresh_token": bool(data.get("refresh_token")),
+                "created_at": data.get("created_at"),
+                "updated_at": data.get("updated_at"),
+                "live_mode": data.get("live_mode"),
+                "scope": data.get("scope"),
+                "user_id": data.get("user_id"),
+            }
+            return jsonify(safe_data)
+        else:
+            return jsonify({'error': 'no encontrado'}), 404
+    except Exception as e:
+        print(f"[DEBUG-MP] Error leyendo Firestore: {e}")
+        return jsonify({'error': 'Error interno', 'message': str(e)}), 500
 
 @app.route('/login-admin', methods=['POST'])
 def login_admin():
@@ -750,23 +796,91 @@ def step3():
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
     
-def get_mp_token(email: str):
-    """Obtiene el token de Mercado Pago desde Firestore o Render."""
+def get_mp_public_key(email: str):
+    """
+    Obtiene la public_key de Mercado Pago para el vendedor.
+    - 1) Intenta leerla de Firestore.
+    - 2) Si está en null o vacía, intenta recuperarla en vivo usando el access_token del vendedor:
+         a) /v1/account/credentials
+         b) Fallback: /users/me
+    - 3) Si la obtiene, la guarda en Firestore y la retorna.
+    - 4) Si todo falla, usa env MP_PUBLIC_KEY (fallback global).
+    """
+    # 1) Leer desde Firestore
     try:
         if email:
-            token_doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
-            if token_doc.exists:
-                token_data = token_doc.to_dict()
-                token = token_data.get("access_token")
-                if token and isinstance(token, str):
-                    return token.strip()
+            doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
+            snap = doc_ref.get()
+            if snap.exists:
+                data = snap.to_dict()
+                pk = data.get("public_key")
+                if pk and isinstance(pk, str) and pk.strip():
+                    print(f"[MP-HELPER] Firestore public_key OK para {email}")
+                    return pk.strip()
+                else:
+                    print(f"[MP-HELPER] Firestore public_key vacío para {email}, intentando recuperar en vivo...")
     except Exception as e:
-        print("❌ Error al leer token de Firestore:", e)
+        print(f"[MP-HELPER] Error leyendo Firestore: {e}")
 
-    # Fallback: variable de entorno
-    token = os.getenv("MERCADO_PAGO_TOKEN")
-    if token and isinstance(token, str):
-        return token.strip()
+    # 2) Recuperar en vivo con access_token del vendedor
+    access_token = None
+    try:
+        access_token = get_mp_token(email)
+    except Exception as e:
+        print(f"[MP-HELPER] Error obteniendo access_token: {e}")
+
+    public_key = None
+    if access_token and isinstance(access_token, str):
+        # a) Intento con /v1/account/credentials
+        try:
+            resp = requests.get(
+                "https://api.mercadopago.com/v1/account/credentials",
+                headers={"Authorization": f"Bearer {access_token.strip()}"},
+                timeout=10
+            )
+            print(f"[MP-HELPER] credentials status={resp.status_code}")
+            if resp.status_code == 200:
+                data = resp.json() or {}
+                public_key = (data.get("public_key") or data.get("web", {}).get("public_key") or "").strip()
+        except Exception as e:
+            print(f"[MP-HELPER] Error en credentials: {e}")
+
+        # b) Fallback /users/me
+        if not public_key:
+            try:
+                resp = requests.get(
+                    "https://api.mercadopago.com/users/me",
+                    headers={"Authorization": f"Bearer {access_token.strip()}"},
+                    timeout=10
+                )
+                print(f"[MP-HELPER] users/me status={resp.status_code}")
+                if resp.status_code == 200:
+                    data = resp.json() or {}
+                    public_key = (data.get("public_key") or "").strip()
+            except Exception as e:
+                print(f"[MP-HELPER] Error en users/me: {e}")
+
+        # 3) Guardar si existe
+        if public_key:
+            try:
+                db.collection("usuarios").document(email).collection("config").document("mercado_pago").set({
+                    "public_key": public_key,
+                    "updated_at": datetime.now().isoformat()
+                }, merge=True)
+                print(f"[MP-HELPER] ✅ public_key recuperada y guardada para {email}")
+                return public_key
+            except Exception as e:
+                print(f"[MP-HELPER] Error guardando public_key en Firestore: {e}")
+        else:
+            print("[MP-HELPER] ❌ No se pudo recuperar public_key en vivo")
+    else:
+        print("[MP-HELPER] ❌ No hay access_token del vendedor para recuperar public_key")
+
+    # 4) Fallback de entorno
+    pk_env = os.getenv("MP_PUBLIC_KEY")
+    if pk_env and isinstance(pk_env, str) and pk_env.strip():
+        print(f"[MP-HELPER] Usando MP_PUBLIC_KEY del entorno")
+        return pk_env.strip()
 
     return None
 
@@ -782,14 +896,17 @@ def conectar_mp():
         flash("❌ Falta configurar MP_CLIENT_ID en entorno")
         return redirect(url_for('preview', admin='true'))
 
-    # Incluye todos los scopes necesarios
+    # URL oficial de autorización con todos los scopes necesarios
     auth_url = (
         "https://auth.mercadopago.com/authorization?"
-        f"client_id={client_id}&response_type=code"
+        f"client_id={client_id}"
+        f"&response_type=code"
         f"&redirect_uri={redirect_uri}"
         f"&scope=read%20write%20offline_access"
     )
+    print(f"[MP-CONNECT] Redirigiendo a: {auth_url}")
     return redirect(auth_url)
+
 
 @app.route('/callback_mp')
 def callback_mp():
@@ -866,16 +983,30 @@ def callback_mp():
             print("Error al obtener public_key:", e)
             public_key = None
 
-        # ✅ Guardar credenciales en Firestore
+        # ✅ Guardar credenciales en Firestore sin pisar public_key con null
         email = session.get('email')
         if email:
-            print(f"[MP-CALLBACK] Guardando en Firestore: email={email}, access_token={bool(access_token)}, refresh_token={bool(refresh_token)}, public_key={public_key}")
-            db.collection("usuarios").document(email).collection("config").document("mercado_pago").set({
+            doc_data = {
                 "access_token": access_token,
                 "refresh_token": refresh_token,
-                "public_key": public_key,
-                "created_at": datetime.now().isoformat()
-            }, merge=True)
+                "created_at": datetime.now().isoformat(),
+                # datos útiles para auditoría
+                "live_mode": data.get("live_mode"),
+                "scope": data.get("scope"),
+                "user_id": data.get("user_id"),
+            }
+            if public_key:  # solo si existe
+                doc_data["public_key"] = public_key
+
+            db.collection("usuarios").document(email).collection("config").document("mercado_pago").set(
+                doc_data, merge=True
+            )
+            print(
+                f"[MP-CALLBACK] Guardado: "
+                f"access_token={'SET' if access_token else 'MISSING'} "
+                f"refresh_token={'SET' if refresh_token else 'MISSING'} "
+                f"public_key={'SET' if public_key else 'UNCHANGED'}"
+            )
         else:
             print("[MP-CALLBACK] ⚠️ No hay email en sesión, no se guardó en Firestore")
 
@@ -887,6 +1018,7 @@ def callback_mp():
         flash("Error al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
 
+
 @app.route('/pagar', methods=['POST'])
 def pagar():
     try:
@@ -894,28 +1026,35 @@ def pagar():
         carrito = data.get('carrito', [])
 
         email = session.get('email')
-        access_token = get_mp_token(email)
+        if not email:
+            return jsonify({'error': 'Sesión no iniciada'}), 403
 
+        access_token = get_mp_token(email)
         if not access_token or not isinstance(access_token, str):
             return jsonify({'error': 'El vendedor no tiene credenciales de Mercado Pago configuradas'}), 400
 
         sdk = mercadopago.SDK(access_token.strip())
 
+        # ✅ Validar carrito
+        if not carrito or not isinstance(carrito, list):
+            return jsonify({'error': 'Carrito vacío o inválido'}), 400
+
         items = []
-        if isinstance(carrito, list):
-            for item in carrito:
-                try:
-                    items.append({
-                        "id": item.get('sku') or f"SKU_{item.get('id', '0')}",
-                        "title": item.get('nombre', 'Producto') + (f" ({item.get('talle')})" if item.get('talle') else ""),
-                        "description": item.get('descripcion') or item.get('nombre', 'Producto'),
-                        "category_id": item.get('category_id') or "others",
-                        "quantity": int(item.get('cantidad', 1)),
-                        "unit_price": float(item.get('precio', 0)),
-                        "currency_id": "ARS"
-                    })
-                except Exception:
-                    pass
+        for item in carrito:
+            try:
+                items.append({
+                    "id": item.get('sku') or f"SKU_{item.get('id', '0')}",
+                    "title": item.get('nombre', 'Producto') + (f" ({item.get('talle')})" if item.get('talle') else ""),
+                    "description": item.get('descripcion') or item.get('nombre', 'Producto'),
+                    "category_id": item.get('category_id') or "others",
+                    "quantity": int(item.get('cantidad', 1)),
+                    "unit_price": float(item.get('precio', 0)),
+                    "currency_id": "ARS"
+                })
+            except Exception as e:
+                print(f"[PAGAR] Error procesando item: {e}")
+
+        print(f"[PAGAR] Items generados: {items}")
 
         external_ref = "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
 
@@ -934,9 +1073,22 @@ def pagar():
 
         preference_response = sdk.preference().create(preference_data)
         preference = preference_response.get("response", {}) or {}
+        print(f"[PAGAR] Respuesta preferencia: {preference}")
 
         if not preference.get("id"):
             return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
+
+        # ✅ Guardar orden inicial en Firestore
+        try:
+            db.collection("usuarios").document(email).collection("ordenes").document(external_ref).set({
+                "external_reference": external_ref,
+                "carrito": carrito,
+                "estado": "pendiente",
+                "created_at": datetime.now().isoformat()
+            })
+            print(f"[PAGAR] Orden guardada en Firestore: {external_ref}")
+        except Exception as e:
+            print(f"[PAGAR] Error guardando orden en Firestore: {e}")
 
         return jsonify({
             "preference_id": preference["id"],
@@ -945,6 +1097,7 @@ def pagar():
         })
 
     except Exception as e:
+        print(f"[PAGAR] Error interno: {e}")
         return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
 
 @app.route('/preview')
@@ -983,7 +1136,6 @@ def preview():
     mercado_pago_token = get_mp_token(email)
     public_key = get_mp_public_key(email) or ""  # nunca None
 
-    # 🔎 Log de depuración
     print(f"[Preview] email={email} mercado_pago_token={bool(mercado_pago_token)} public_key={public_key}")
 
     # Configuración visual
@@ -1010,7 +1162,7 @@ def preview():
         'instagram': session.get('instagram'),
         'sobre_mi': session.get('sobre_mi'),
         'mercado_pago': bool(mercado_pago_token),
-        'public_key': public_key,  # ← inyectada para frontend
+        'public_key': public_key,
         'productos': productos,
         'bloques': [],
         'descargado': session.get('descargado', False),
@@ -1036,13 +1188,13 @@ def preview():
         if token:
             try:
                 for producto in productos:
-                    imagen = producto.get("imagen")
-                    if imagen:
-                        ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
+                    imagen = producto.get("imagen_github") or producto.get("imagen_backblaze")
+                    if imagen and imagen.startswith("/static/img/"):
+                        ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen))
                         if os.path.exists(ruta_local):
                             with open(ruta_local, "rb") as f:
                                 contenido = f.read()
-                            subir_archivo(nombre_repo, contenido, f"static/img/{imagen}", token)
+                            subir_archivo(nombre_repo, contenido, f"static/img/{os.path.basename(imagen)}", token)
                             print(f"[Preview] Imagen subida: {imagen}")
                             del contenido
                             gc.collect()
@@ -1083,6 +1235,7 @@ def preview():
     except Exception as e:
         print("[Preview] Error al renderizar preview:", e)
         return "Internal Server Error al renderizar preview", 500
+
 
 @app.route('/descargar')
 def descargar():
