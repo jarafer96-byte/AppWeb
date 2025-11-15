@@ -1339,8 +1339,20 @@ function actualizarCarrito() {
 </script>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script>
-  // Inicializar con tu Public Key (segura para frontend)
-  const mp = new MercadoPago('{{ config.public_key }}', { locale: 'es-AR' });
+  // Inyectar la clave desde backend
+  const PUBLIC_KEY = "{{ config.public_key or '' }}";
+  let mp = null;
+
+  // Inicializar solo si existe la clave
+  if (PUBLIC_KEY) {
+    mp = new MercadoPago(PUBLIC_KEY, { locale: 'es-AR' });
+  }
+
+  // Deshabilitar botón si no hay clave
+  const pagarBtn = document.getElementById('btn_pagar');
+  if (pagarBtn && !PUBLIC_KEY) {
+    pagarBtn.disabled = true;
+  }
 </script>
 </body>
 </html>
