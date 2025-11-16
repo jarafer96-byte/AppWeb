@@ -647,56 +647,37 @@ def step2():
     imagenes = os.listdir('static/img/webp')
     return render_template('step2.html', config=session, imagenes=imagenes)
     
-@app.route('/step2-5', methods=['GET', 'POST'])
+@app.route('/step2-5', methods=['GET','POST'])
 def step2_5():
     if request.method == 'POST':
-        descripcion = request.form.get("descripcion", "").strip()
-
         filas = []
-        for linea in descripcion.splitlines():
-            linea = linea.strip()
-            if not linea:
-                continue
+        # recorrer todos los campos enviados
+        for key in request.form:
+            if key.startswith("grupo_"):
+                idx = key.split("_")[1]
+                grupo = request.form.get(f"grupo_{idx}", "").strip()
+                subgrupo = request.form.get(f"subgrupo_{idx}", "").strip()
+                cantidad = int(request.form.get(f"filas_{idx}", "0"))
 
-            match = re.match(r"(.+?)\s*\((.+)\)", linea)
-            if not match:
-                continue
+                for n in range(1, cantidad+1):
+                    filas.append({
+                        "Grupo": grupo,
+                        "Subgrupo": subgrupo,
+                        "Producto": f"{subgrupo}{n}"
+                    })
 
-            grupo = match.group(1).strip()
-            contenido = match.group(2).strip()
-
-            for sub in contenido.split(";"):
-                sub = sub.strip()
-                if not sub:
-                    continue
-
-                if ":" in sub:
-                    nombre_subgrupo, productos = sub.split(":", 1)
-                    nombre_subgrupo = nombre_subgrupo.strip()
-                    productos = [p.strip() for p in productos.split(",") if p.strip()]
-
-                    for producto in productos:
-                        filas.append({
-                            "Grupo": grupo,
-                            "Subgrupo": nombre_subgrupo,
-                            "Producto": producto
-                        })
-
-        # Crear Excel en memoria
-        df = pd.DataFrame(filas, columns=["Grupo", "Subgrupo", "Producto"])
+        df = pd.DataFrame(filas, columns=["Grupo","Subgrupo","Producto"])
         output = io.BytesIO()
         df.to_excel(output, index=False)
         output.seek(0)
 
-        return send_file(
-            output,
-            as_attachment=True,
-            download_name="productos.xlsx",
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        return send_file(output,
+                         as_attachment=True,
+                         download_name="productos.xlsx",
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-    # Si es GET, mostramos el formulario
     return render_template('step2-5.html')
+
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
