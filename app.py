@@ -652,7 +652,6 @@ def step2():
 def step2_5():
     if request.method == 'POST':
         filas = []
-        # recorrer todos los campos enviados
         for key in request.form:
             if key.startswith("grupo_"):
                 idx = key.split("_")[1]
@@ -670,7 +669,7 @@ def step2_5():
 
         # Crear Excel en memoria
         df = pd.DataFrame(filas, columns=["Grupo","Subgrupo","Producto"])
-        output = io.BytesIO()
+        output = BytesIO()   # ✅ corregido
         df.to_excel(output, index=False, engine="openpyxl")
         output.seek(0)
 
