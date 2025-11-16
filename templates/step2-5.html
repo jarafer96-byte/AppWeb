@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Step 2-5 - Generar XLS</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+</head>
+<body class="bg-dark text-white">
+
+<div class="container mt-4">
+  <h2>Generar catálogo en Excel</h2>
+  <p>Si ya tenés tu archivo Excel con productos, podés <strong>subirlo en el paso siguiente</strong> y saltar este paso.</p>
+
+  <!-- Botón para saltar -->
+  <a href="/step6" class="btn btn-secondary mb-3">Saltar este paso</a>
+
+  <p>Si no tenés un Excel, escribí tus grupos y subgrupos de productos y generaremos uno automáticamente:</p>
+  
+  <!-- Formulario -->
+  <form method="post" action="/generar_excel">
+    <div class="mb-3">
+      <label for="descripcion" class="form-label">Descripción de productos</label>
+      <textarea id="descripcion" name="descripcion" class="form-control" rows="6"
+        placeholder="Ej: Ropa Hombre (Pantalones: Pantalon1, Pantalon2)..."></textarea>
+    </div>
+    <button type="submit" class="btn btn-success">Generar XLS</button>
+  </form>
+
+  <!-- Muestra de cómo funcionaría -->
+  <div class="mt-4">
+    <h4>Ejemplo de salida en Excel:</h4>
+    <table class="table table-dark table-striped">
+      <thead>
+        <tr>
+          <th>Grupo</th>
+          <th>Subgrupo</th>
+          <th>Producto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalon1</td></tr>
+        <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalon2</td></tr>
+        <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalon3</td></tr>
+        <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remera1</td></tr>
+        <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remera2</td></tr>
+        <tr><td>Ropa Mujer</td><td>Zapatillas</td><td>Zapatilla1</td></tr>
+        <tr><td>Ropa Mujer</td><td>Zapatillas</td><td>Zapatilla2</td></tr>
+        <tr><td>Ropa Mujer</td><td>Camperas</td><td>Campera1</td></tr>
+        <tr><td>Ropa Niños</td><td>Remeras</td><td>Remera1</td></tr>
+        <tr><td>Ropa Niños</td><td>Zapatillas</td><td>Zapatilla1</td></tr>
+        <tr><td>Ropa Niños</td><td>Zapatillas</td><td>Zapatilla2</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>
