@@ -187,9 +187,14 @@
     <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
 
   <div class="text-center mb-4">
-    <input type="file" id="archivoProductos" accept=".csv,.txt" class="form-control w-50 mx-auto mb-2">
-    <button type="button" class="btn-gradient btn-sm" onclick="leerArchivoProductos()">📂 Importar lista de productos</button>
-  </div>
+  <input type="file" id="archivoProductos" 
+         accept=".csv,.txt,.xls,.xlsx" 
+         class="form-control w-50 mx-auto mb-2">
+  <button type="button" class="btn-gradient btn-sm" onclick="leerArchivoProductos()">
+    📂 Importar lista de productos
+  </button>
+</div>
+
 
 
     <div class="mb-4 text-center">
@@ -408,6 +413,7 @@ function leerArchivoProductos() {
   const ext = file.name.toLowerCase().split('.').pop();
   let filasAgregadas = 0;
 
+  // 👉 CSV / TXT
   if (ext === "csv" || ext === "txt") {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -415,9 +421,17 @@ function leerArchivoProductos() {
       const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
       const sep = lineas.some(l => l.includes(";")) ? ";" : ",";
 
-      lineas.forEach(linea => {
+      console.log("📄 Total líneas CSV/TXT:", lineas.length);
+      console.log("📄 Primeras líneas:", lineas.slice(0, 5));
+
+      lineas.forEach((linea, idx) => {
         const partes = linea.split(sep).map(p => p.trim());
-        if (partes.length < 2) return; // mínimo grupo y subgrupo
+        console.log(`➡️ Línea #${idx}:`, partes);
+
+        if (partes.length < 2) {
+          console.warn("⚠️ Línea descartada por tener menos de 2 columnas:", partes);
+          return;
+        }
 
         const nombre     = partes[0] || "";
         const descripcion= partes[1] || "";
@@ -426,7 +440,12 @@ function leerArchivoProductos() {
         const subgrupo   = partes[4] || "";
         const talles     = partes[5] || "";
 
-        if (!(grupo && subgrupo)) return; // obligatorio
+        console.log("🧩 Valores parseados:", { nombre, descripcion, precio, grupo, subgrupo, talles });
+
+        if (!(grupo && subgrupo)) {
+          console.warn("⚠️ Línea descartada por falta de grupo/subgrupo:", partes);
+          return;
+        }
 
         agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
         filasAgregadas++;
@@ -437,6 +456,7 @@ function leerArchivoProductos() {
     reader.readAsText(file);
   }
 
+  // 👉 Excel XLS / XLSX
   else if (ext === "xls" || ext === "xlsx") {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -445,8 +465,16 @@ function leerArchivoProductos() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
+      console.log("📊 Total filas Excel:", rows.length);
+      console.log("📊 Primeras filas:", rows.slice(0, 5));
+
       rows.forEach((row, idx) => {
-        if (row.length < 2) return; // mínimo grupo y subgrupo
+        console.log(`➡️ Fila #${idx}:`, row);
+
+        if (row.length < 2) {
+          console.warn("⚠️ Fila descartada por tener menos de 2 columnas:", row);
+          return;
+        }
 
         const nombre     = String(row[0] ?? "");
         const descripcion= String(row[1] ?? "");
@@ -455,7 +483,12 @@ function leerArchivoProductos() {
         const subgrupo   = String(row[4] ?? "");
         const talles     = String(row[5] ?? "");
 
-        if (!(grupo && subgrupo)) return;
+        console.log("🧩 Valores parseados:", { nombre, descripcion, precio, grupo, subgrupo, talles });
+
+        if (!(grupo && subgrupo)) {
+          console.warn("⚠️ Fila descartada por falta de grupo/subgrupo:", row);
+          return;
+        }
 
         agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
         filasAgregadas++;
