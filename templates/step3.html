@@ -408,20 +408,26 @@ function leerArchivoProductos() {
   const ext = file.name.toLowerCase().split('.').pop();
   let filasAgregadas = 0;
 
-  // 👉 CSV / TXT
   if (ext === "csv" || ext === "txt") {
     const reader = new FileReader();
     reader.onload = function(e) {
       const contenido = e.target.result;
       const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
-
-      // Detectar separador (; o ,)
       const sep = lineas.some(l => l.includes(";")) ? ";" : ",";
 
       lineas.forEach(linea => {
         const partes = linea.split(sep).map(p => p.trim());
-        if (partes.length < 6) return;
-        const [nombre, descripcion, precio, grupo, subgrupo, talles] = partes;
+        if (partes.length < 2) return; // mínimo grupo y subgrupo
+
+        const nombre     = partes[0] || "";
+        const descripcion= partes[1] || "";
+        const precio     = partes[2] || "";
+        const grupo      = partes[3] || "";
+        const subgrupo   = partes[4] || "";
+        const talles     = partes[5] || "";
+
+        if (!(grupo && subgrupo)) return; // obligatorio
+
         agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
         filasAgregadas++;
       });
@@ -431,7 +437,6 @@ function leerArchivoProductos() {
     reader.readAsText(file);
   }
 
-  // 👉 Excel XLS / XLSX
   else if (ext === "xls" || ext === "xlsx") {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -440,10 +445,18 @@ function leerArchivoProductos() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-      rows.forEach(row => {
-        if (row.length < 6) return;
-        const [nombre, descripcion, precio, grupo, subgrupo, talles] = row.map(v => String(v ?? "").trim());
-        if (!(nombre && grupo && subgrupo)) return;
+      rows.forEach((row, idx) => {
+        if (row.length < 2) return; // mínimo grupo y subgrupo
+
+        const nombre     = String(row[0] ?? "");
+        const descripcion= String(row[1] ?? "");
+        const precio     = String(row[2] ?? "");
+        const grupo      = String(row[3] ?? "");
+        const subgrupo   = String(row[4] ?? "");
+        const talles     = String(row[5] ?? "");
+
+        if (!(grupo && subgrupo)) return;
+
         agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
         filasAgregadas++;
       });
@@ -456,44 +469,6 @@ function leerArchivoProductos() {
   else {
     alert("⚠️ Formato no soportado. Subí CSV, TXT o Excel (.xls/.xlsx)");
   }
-}
-
-// 👉 Reutiliza tu lógica de crear grupo/subgrupo y fila
-function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
-  // Buscar o crear grupo
-  let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
-    c => c.querySelector("h4")?.textContent.trim() === grupo
-  );
-  if (!grupoCard) {
-    document.getElementById("nombreGrupo").value = grupo;
-    crearGrupo();
-    grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
-      c => c.querySelector("h4")?.textContent.trim() === grupo
-    );
-  }
-
-  // Buscar o crear subgrupo
-  let subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
-    s => s.querySelector("strong")?.textContent.trim() === subgrupo
-  );
-  if (!subgrupoCard) {
-    const grupoIdx = grupoCard.id.split("_")[1];
-    grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`).value = subgrupo;
-    crearSubgrupo(grupoCard.querySelector("button[onclick^='crearSubgrupo']"));
-    subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
-      s => s.querySelector("strong")?.textContent.trim() === subgrupo
-    );
-  }
-
-  // Crear fila y rellenar datos
-  const fila = crearFila(subgrupo, grupo);
-  fila.querySelector("input[name='nombre']").value = nombre;
-  fila.querySelector("textarea[name='descripcion']").value = descripcion;
-  fila.querySelector("input[name='precio']").value = precio;
-  fila.querySelector("input[name='talles']").value = talles;
-
-  subgrupoCard.querySelector(".productos").appendChild(fila);
-  actualizarContador(subgrupoCard);
 }
 
   function crearSubgrupo(btn) {
