@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Generar XLS</title>
+  <title>Step 2-5 - Generar XLS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Bootstrap -->
@@ -51,10 +51,13 @@
       font-weight: bold;
       box-shadow: 0 0 10px rgba(255,255,255,0.3);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: inline-block;
     }
+
     a {
       text-decoration: none;
     }
+
     .btn-gradient:hover {
       transform: scale(1.05);
       box-shadow: 0 0 15px rgba(255,255,255,0.5);
@@ -70,16 +73,28 @@
     <!-- Botón para saltar -->
     <a href="/contenido" class="btn-gradient mb-4">Saltar este paso</a>
 
-    <p>Si no tenés un Excel, escribí tus grupos y subgrupos de productos y generaremos uno automáticamente:</p>
+    <!-- Texto separado con margen -->
+    <p class="mt-3">Si no tenés un Excel, completá las filas con tus grupos y subgrupos de productos. Podés agregar más si lo necesitás:</p>
     
-    <!-- Formulario -->
+    <!-- Formulario con filas dinámicas -->
     <form method="post" action="/step2-5" class="card mb-4">
-      <div class="mb-3">
-        <label for="descripcion" class="form-label">Descripción de productos</label>
-        <textarea id="descripcion" name="descripcion" class="form-control" rows="6"
-          placeholder="Ej: Ropa Hombre (Pantalones: Pantalon1, Pantalon2)..."></textarea>
+      <div id="listas-container">
+        <!-- 10 filas iniciales -->
+        {% for i in range(1,11) %}
+        <div class="mb-2 d-flex flex-row align-items-center gap-3">
+          <span class="fw-bold">#{{ i }}</span>
+          <input type="text" name="grupo_{{ i }}" class="form-control" placeholder="Grupo (ej: Ropa Hombre)">
+          <input type="text" name="subgrupo_{{ i }}" class="form-control" placeholder="Subgrupo (ej: Pantalones)">
+          <input type="number" name="filas_{{ i }}" class="form-control" placeholder="Filas" min="1" value="1" style="width:100px;">
+        </div>
+        {% endfor %}
       </div>
-      <button type="submit" class="btn-gradient">Generar XLS</button>
+
+      <!-- Botón para agregar más filas -->
+      <button type="button" class="btn-gradient mt-2" onclick="agregarFila()">+ Agregar fila</button>
+
+      <!-- Botón para generar Excel -->
+      <button type="submit" class="btn-gradient mt-3">Generar XLS</button>
     </form>
 
     <!-- Botón continuar -->
@@ -99,20 +114,36 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalon1</td></tr>
-          <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalon2</td></tr>
-          <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalon3</td></tr>
-          <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remera1</td></tr>
-          <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remera2</td></tr>
-          <tr><td>Ropa Mujer</td><td>Zapatillas</td><td>Zapatilla1</td></tr>
-          <tr><td>Ropa Mujer</td><td>Zapatillas</td><td>Zapatilla2</td></tr>
-          <tr><td>Ropa Mujer</td><td>Camperas</td><td>Campera1</td></tr>
-          <tr><td>Ropa Niños</td><td>Remeras</td><td>Remera1</td></tr>
-          <tr><td>Ropa Niños</td><td>Zapatillas</td><td>Zapatilla1</td></tr>
-          <tr><td>Ropa Niños</td><td>Zapatillas</td><td>Zapatilla2</td></tr>
+          <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalones1</td></tr>
+          <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalones2</td></tr>
+          <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalones3</td></tr>
+          <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remeras1</td></tr>
+          <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remeras2</td></tr>
+          <tr><td>Ropa Mujer</td><td>Zapatillas</td><td>Zapatillas1</td></tr>
+          <tr><td>Ropa Mujer</td><td>Zapatillas</td><td>Zapatillas2</td></tr>
+          <tr><td>Ropa Mujer</td><td>Camperas</td><td>Camperas1</td></tr>
+          <tr><td>Ropa Niños</td><td>Remeras</td><td>Remeras1</td></tr>
+          <tr><td>Ropa Niños</td><td>Zapatillas</td><td>Zapatillas1</td></tr>
+          <tr><td>Ropa Niños</td><td>Zapatillas</td><td>Zapatillas2</td></tr>
         </tbody>
       </table>
     </div>
   </div>
+
+  <script>
+    function agregarFila() {
+      const container = document.getElementById('listas-container');
+      const index = container.children.length + 1;
+      const div = document.createElement('div');
+      div.className = "mb-2 d-flex flex-row align-items-center gap-3";
+      div.innerHTML = `
+        <span class="fw-bold">#${index}</span>
+        <input type="text" name="grupo_${index}" class="form-control" placeholder="Grupo">
+        <input type="text" name="subgrupo_${index}" class="form-control" placeholder="Subgrupo">
+        <input type="number" name="filas_${index}" class="form-control" placeholder="Filas" min="1" value="1" style="width:100px;">
+      `;
+      container.appendChild(div);
+    }
+  </script>
 </body>
 </html>
