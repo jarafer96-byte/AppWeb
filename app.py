@@ -642,66 +642,62 @@ def step2():
         session['vista_imagenes'] = request.form.get('vista_imagenes')
         session['estilo_visual'] = request.form.get('estilo_visual')
 
-        return redirect('/contenido')
-
+        return redirect('/step2-5')
+        
     imagenes = os.listdir('static/img/webp')
     return render_template('step2.html', config=session, imagenes=imagenes)
     
-@app.route("/generar_excel", methods=["POST"])
-def generar_excel():
-    descripcion = request.form.get("descripcion", "")
+@app.route('/step2-5', methods=['GET', 'POST'])
+def step2_5():
+    if request.method == 'POST':
+        descripcion = request.form.get("descripcion", "").strip()
 
-    # --- Parseo básico del texto ---
-    # Ejemplo esperado:
-    # Ropa Hombre (Pantalones: Pantalon1, Pantalon2, Pantalon3; Remeras: Remera1, Remera2)
-    # Ropa Mujer (Zapatillas: Zapatilla1, Zapatilla2; Camperas: Campera1)
-
-    filas = []
-    # Dividir por líneas (cada línea es un grupo)
-    for linea in descripcion.splitlines():
-        linea = linea.strip()
-        if not linea:
-            continue
-
-        # Extraer nombre del grupo y contenido entre paréntesis
-        match = re.match(r"(.+?)\s*\((.+)\)", linea)
-        if not match:
-            continue
-
-        grupo = match.group(1).strip()
-        contenido = match.group(2).strip()
-
-        # Dividir subgrupos por ";"
-        subgrupos = contenido.split(";")
-        for sub in subgrupos:
-            sub = sub.strip()
-            if not sub:
+        filas = []
+        for linea in descripcion.splitlines():
+            linea = linea.strip()
+            if not linea:
                 continue
 
-            # Subgrupo: Productos
-            if ":" in sub:
-                nombre_subgrupo, productos = sub.split(":", 1)
-                nombre_subgrupo = nombre_subgrupo.strip()
-                productos = [p.strip() for p in productos.split(",") if p.strip()]
+            match = re.match(r"(.+?)\s*\((.+)\)", linea)
+            if not match:
+                continue
 
-                for producto in productos:
-                    filas.append({
-                        "Grupo": grupo,
-                        "Subgrupo": nombre_subgrupo,
-                        "Producto": producto
-                    })
+            grupo = match.group(1).strip()
+            contenido = match.group(2).strip()
 
-    # --- Crear Excel en memoria ---
-    df = pd.DataFrame(filas)
-    output = io.BytesIO()
-    df.to_excel(output, index=False)
-    output.seek(0)
+            for sub in contenido.split(";"):
+                sub = sub.strip()
+                if not sub:
+                    continue
 
-    return send_file(output,
-                     as_attachment=True,
-                     download_name="productos.xlsx",
-                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    
+                if ":" in sub:
+                    nombre_subgrupo, productos = sub.split(":", 1)
+                    nombre_subgrupo = nombre_subgrupo.strip()
+                    productos = [p.strip() for p in productos.split(",") if p.strip()]
+
+                    for producto in productos:
+                        filas.append({
+                            "Grupo": grupo,
+                            "Subgrupo": nombre_subgrupo,
+                            "Producto": producto
+                        })
+
+        # Crear Excel en memoria
+        df = pd.DataFrame(filas, columns=["Grupo", "Subgrupo", "Producto"])
+        output = io.BytesIO()
+        df.to_excel(output, index=False)
+        output.seek(0)
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name="productos.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    # Si es GET, mostramos el formulario
+    return render_template('step2-5.html')
+
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
     tipo = session.get('tipo_web')
