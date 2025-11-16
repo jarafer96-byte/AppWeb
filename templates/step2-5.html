@@ -77,25 +77,28 @@
     <p class="mt-3">Si no tenés un Excel, completá las filas con tus grupos y subgrupos de productos. Podés agregar más si lo necesitás:</p>
     
     <!-- Formulario con filas dinámicas -->
-    <form method="post" action="/step2-5" class="card mb-4">
-      <div id="listas-container">
-        <!-- 10 filas iniciales -->
-        {% for i in range(1,11) %}
-        <div class="mb-2 d-flex flex-row align-items-center gap-3">
-          <span class="fw-bold">#{{ i }}</span>
-          <input type="text" name="grupo_{{ i }}" class="form-control" placeholder="Grupo (ej: Ropa Hombre)">
-          <input type="text" name="subgrupo_{{ i }}" class="form-control" placeholder="Subgrupo (ej: Pantalones)">
-          <input type="number" name="filas_{{ i }}" class="form-control" placeholder="Filas (ej: 10, genera Pantalon1 al Pantalon10" min="1" value="1" style="width:100px;">
-        </div>
-        {% endfor %}
-      </div>
+<form method="post" action="/step2-5" class="card mb-4">
+  <div id="listas-container">
+    <!-- 10 filas iniciales -->
+    {% for i in range(1,11) %}
+    <div class="mb-2 d-flex flex-row align-items-center gap-3">
+      <span class="fw-bold">#{{ i }}</span>
+      <input type="text" name="grupo_{{ i }}" class="form-control" placeholder="Grupo (ej: Ropa Hombre)">
+      <input type="text" name="subgrupo_{{ i }}" class="form-control" placeholder="Subgrupo (ej: Pantalones)">
+      <input type="number" name="filas_{{ i }}" class="form-control" placeholder="Filas (ej: 10, genera Pantalon1 al Pantalon10)" min="1" value="1" style="width:100px;">
+      <!-- 👉 Nuevo campo de talles -->
+      <input type="text" name="talles_{{ i }}" class="form-control" placeholder="Talles (ej: S,M,L,XL)" style="width:160px;">
+    </div>
+    {% endfor %}
+  </div>
 
-      <!-- Botón para agregar más filas -->
-      <button type="button" class="btn-gradient mt-2" onclick="agregarFila()">+ Agregar fila</button>
+  <!-- Botón para agregar más filas -->
+  <button type="button" class="btn-gradient mt-2" onclick="agregarFila()">+ Agregar fila</button>
 
-      <!-- Botón para generar Excel -->
-      <button type="submit" class="btn-gradient mt-3">Generar XLS</button>
-    </form>
+  <!-- Botón para generar Excel -->
+  <button type="submit" class="btn-gradient mt-3">Generar XLS</button>
+</form>
+
 
     <!-- Botón continuar -->
     <div class="mt-3">
