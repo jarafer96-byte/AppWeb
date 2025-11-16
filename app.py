@@ -658,18 +658,20 @@ def step2_5():
                 grupo = request.form.get(f"grupo_{idx}", "").strip()
                 subgrupo = request.form.get(f"subgrupo_{idx}", "").strip()
                 cantidad = int(request.form.get(f"filas_{idx}", "0"))
+                talles = request.form.get(f"talles_{idx}", "").strip()  # ✅ nuevo campo
 
                 if grupo and subgrupo and cantidad > 0:
                     for n in range(1, cantidad+1):
                         filas.append({
                             "Grupo": grupo,
                             "Subgrupo": subgrupo,
-                            "Producto": f"{subgrupo}{n}"
+                            "Producto": f"{subgrupo}{n}",
+                            "Talles": talles
                         })
 
         # Crear Excel en memoria
-        df = pd.DataFrame(filas, columns=["Grupo","Subgrupo","Producto"])
-        output = BytesIO()   # ✅ corregido
+        df = pd.DataFrame(filas, columns=["Grupo","Subgrupo","Producto","Talles"])
+        output = BytesIO()
         df.to_excel(output, index=False, engine="openpyxl")
         output.seek(0)
 
@@ -681,6 +683,7 @@ def step2_5():
         )
 
     return render_template('step2-5.html')
+
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
