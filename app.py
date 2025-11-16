@@ -7,6 +7,7 @@ import time
 import json
 import gc
 import pandas as pd
+import io
 import boto3
 import traceback
 from werkzeug.utils import secure_filename
