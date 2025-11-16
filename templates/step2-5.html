@@ -17,7 +17,7 @@
   <p>Si no tenés un Excel, escribí tus grupos y subgrupos de productos y generaremos uno automáticamente:</p>
   
   <!-- Formulario -->
-  <form method="post" action="/generar_excel">
+  <form method="post" action="/step2-5">
     <div class="mb-3">
       <label for="descripcion" class="form-label">Descripción de productos</label>
       <textarea id="descripcion" name="descripcion" class="form-control" rows="6"
@@ -25,6 +25,11 @@
     </div>
     <button type="submit" class="btn btn-success">Generar XLS</button>
   </form>
+
+  <!-- Botón continuar -->
+  <div class="mt-3">
+    <a href="/contenido" class="btn btn-primary">Continuar</a>
+  </div>
 
   <!-- Muestra de cómo funcionaría -->
   <div class="mt-4">
