@@ -7,7 +7,6 @@ import time
 import json
 import gc
 import pandas as pd
-import io
 import boto3
 import traceback
 from werkzeug.utils import secure_filename
@@ -661,25 +660,28 @@ def step2_5():
                 subgrupo = request.form.get(f"subgrupo_{idx}", "").strip()
                 cantidad = int(request.form.get(f"filas_{idx}", "0"))
 
-                for n in range(1, cantidad+1):
-                    filas.append({
-                        "Grupo": grupo,
-                        "Subgrupo": subgrupo,
-                        "Producto": f"{subgrupo}{n}"
-                    })
+                if grupo and subgrupo and cantidad > 0:
+                    for n in range(1, cantidad+1):
+                        filas.append({
+                            "Grupo": grupo,
+                            "Subgrupo": subgrupo,
+                            "Producto": f"{subgrupo}{n}"
+                        })
 
+        # Crear Excel en memoria
         df = pd.DataFrame(filas, columns=["Grupo","Subgrupo","Producto"])
         output = io.BytesIO()
-        df.to_excel(output, index=False)
+        df.to_excel(output, index=False, engine="openpyxl")
         output.seek(0)
 
-        return send_file(output,
-                         as_attachment=True,
-                         download_name="productos.xlsx",
-                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name="productos.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     return render_template('step2-5.html')
-
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
