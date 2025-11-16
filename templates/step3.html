@@ -503,6 +503,56 @@ function leerArchivoProductos() {
   }
 }
 
+// 👉 Función auxiliar para insertar filas en el DOM
+function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
+  // Buscar o crear grupo
+  let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+    c => c.querySelector("h4")?.textContent.trim() === grupo
+  );
+  if (!grupoCard) {
+    const inputGrupo = document.getElementById("nombreGrupo");
+    if (inputGrupo) {
+      inputGrupo.value = grupo;
+      crearGrupo();
+      grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+        c => c.querySelector("h4")?.textContent.trim() === grupo
+      );
+    }
+  }
+
+  // Buscar o crear subgrupo
+  let subgrupoCard = grupoCard && [...grupoCard.querySelectorAll(".subgrupo")].find(
+    s => s.querySelector("strong")?.textContent.trim() === subgrupo
+  );
+  if (!subgrupoCard && grupoCard) {
+    const grupoIdx = grupoCard.id.split("_")[1];
+    const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
+    const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
+    if (inputSub && btnCrearSub) {
+      inputSub.value = subgrupo;
+      crearSubgrupo(btnCrearSub);
+      subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+        s => s.querySelector("strong")?.textContent.trim() === subgrupo
+      );
+    }
+  }
+
+  if (!subgrupoCard) {
+    console.warn("⚠️ No se pudo crear/ubicar subgrupo:", subgrupo);
+    return;
+  }
+
+  // Crear fila y rellenar datos
+  const fila = crearFila(subgrupo, grupo);
+  fila.querySelector("input[name='nombre']").value = nombre;
+  fila.querySelector("textarea[name='descripcion']").value = descripcion;
+  fila.querySelector("input[name='precio']").value = precio;
+  fila.querySelector("input[name='talles']").value = talles;
+
+  subgrupoCard.querySelector(".productos").appendChild(fila);
+  actualizarContador(subgrupoCard);
+}
+
   function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
   const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
