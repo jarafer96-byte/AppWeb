@@ -545,7 +545,7 @@ function cargarImagenesDesdeIndexedDB(callback) {
 });
 
     function agregarSlide(items, makeActive) {
-  const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
+  const contenedor = document.querySelector(".carousel-inner"); // ✅ ahora apunta directo
   const div = document.createElement("div");
   div.className = "carousel-item" + (makeActive ? " active" : "");
 
@@ -569,7 +569,7 @@ function cargarImagenesDesdeIndexedDB(callback) {
     row.appendChild(col);
   });
 
-  // completar columnas invisibles para que el layout quede parejo
+  // completar columnas invisibles si no hay 8
   const faltantes = 8 - items.length;
   for (let i = 0; i < faltantes; i++) {
     const colInv = document.createElement("div");
@@ -581,6 +581,7 @@ function cargarImagenesDesdeIndexedDB(callback) {
   div.appendChild(row);
   contenedor.appendChild(div);
 }
+
     
   function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
@@ -710,40 +711,36 @@ function eliminarFila(btn) {
   const fila = btn.closest('.fila-producto');
   const contenedor = btn.closest('.card').querySelector('.productos');
 
-  // ✅ Usar el hidden 'imagen_basename' para comparar y liberar
   const hiddenBase = fila.querySelector('input[name="imagen_basename"]');
   const basename = hiddenBase ? hiddenBase.value : "";
 
   if (basename) {
     console.log("🗑️ Eliminando fila con imagen (basename):", basename);
 
-    // Liberar imagen en el carrusel
-    document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-      const nombre = img.getAttribute("src").split("/").pop();
+    // Liberar imagen en el carrusel usando data-nombre
+    document.querySelectorAll('.carousel-item img').forEach(img => {
+      const nombre = img.dataset.nombre;
       if (nombre === basename) {
         console.log("🔓 Liberando imagen en carrusel:", nombre);
         img.classList.remove('usada');
         img.style.opacity = "1";
-        img.style.filter = "none";   // ✅ restaurar color
+        img.style.filter = "none";
         img.style.pointerEvents = "auto";
       }
     });
 
-    // Quitar de la lista global de usadas
     imagenesUsadas = imagenesUsadas.filter(img => img !== basename);
     console.log("📦 Lista de imágenes usadas actualizada:", imagenesUsadas);
   }
 
-  // Eliminar fila si hay más de una
   if (contenedor.querySelectorAll('.fila-producto').length > 1) {
     fila.remove();
-    console.log("✅ Fila eliminada. Actualizando contador...");
     actualizarContador(contenedor);
   } else {
     alert("No se puede eliminar la última fila");
-    console.warn("⚠️ Intento de eliminar la última fila bloqueado.");
   }
 }
+
 
 
 function eliminarGrupo(btn) {
