@@ -28,30 +28,36 @@
   <p class="hint">Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80)</p>
 
   <form id="formStep0" method="POST" action="/step0" enctype="multipart/form-data" onsubmit="return enviarOptimizado();">
-    <input type="file" name="imagenes" id="imagenes" multiple accept="image/*"
-           onchange="Array.from(this.files).forEach(f => guardarImagenEnIndexedDB(f))">
-    <br><br>
+  <input type="file" name="imagenes" id="imagenes" multiple accept="image/*"
+         onchange="Array.from(this.files).forEach(f => guardarImagenEnIndexedDB(f))">
+  <br><br>
 
-    <div class="mb-3 text-center">
+  <!-- Contenedor horizontal -->
+  <div class="d-flex justify-content-center gap-4 flex-wrap text-center">
+
+    <div>
       <p style="color:white; font-weight:bold; margin-bottom:6px;">Paso 1</p>
       <button type="button" id="optimizeBtn" class="btn-gradient">Optimizar</button>
     </div>
 
-    <div class="mb-3 text-center">
+    <div>
       <p style="color:white; font-weight:bold; margin-bottom:6px;">Opcional</p>
-      <button type="button" id="optimizeBtn" class="btn-gradient">Quitar todas</button>
+      <button type="button" id="clearBtn" class="btn-gradient">Quitar todas</button>
     </div>
 
-    <div class="mb-3 text-center">
+    <div>
       <p style="color:white; font-weight:bold; margin-bottom:6px;">Opcional</p>
-      <button type="button" id="optimizeBtn" class="btn-gradient">Descargar optimizadas</button>
+      <button type="button" id="downloadAllBtn" class="btn-gradient">Descargar optimizadas</button>
     </div>
-    
-    <div class="mb-3 text-center">
+
+    <div>
       <p style="color:white; font-weight:bold; margin-bottom:6px;">Paso 2 y finalizar</p>
-      <button type="button" id="optimizeBtn" class="btn-gradient">Subir optimizadas</button>
+      <button type="submit" id="uploadBtn" class="btn-gradient">Subir optimizadas</button>
     </div>
-  </form>
+
+  </div>
+</form>
+
 
   <div class="error" id="error"></div>
   <div class="meta" id="meta"></div>
