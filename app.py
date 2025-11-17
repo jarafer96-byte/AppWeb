@@ -176,7 +176,7 @@ def upload_image():
     # Guardar en carpeta por usuario dentro del repo
     ruta_remota = f"usuarios/{email}/imagenes/{file.filename}"
 
-    resultado = subir_archivo("nombre_repo", contenido_bytes, ruta_remota, GITHUB_TOKEN)
+    resultado = subir_archivo("nombre_repo", contenido_bytes, ruta_remota, token)
 
     # Respuesta JSON clara
     if resultado.get("ok"):
