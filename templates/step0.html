@@ -28,13 +28,17 @@
   <p class="hint">Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80)</p>
 
   <form id="formStep0" method="POST" action="/step0" enctype="multipart/form-data" onsubmit="return enviarOptimizado();">
-    <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
-    <br>
-    <button type="button" id="optimizeBtn">Optimizar</button>
-    <button type="button" id="clearBtn">Quitar todas</button>
-    <button type="button" id="downloadAllBtn" disabled>Descargar optimizadas</button>
-    <button type="submit" id="uploadBtn" disabled>Subir optimizadas</button>
-  </form>
+  <!-- Input de imágenes -->
+  <input type="file" name="imagenes" id="imagenes" multiple accept="image/*"
+         onchange="guardarEnIndexedDB(this.files)">
+  <br><br>
+
+  <!-- Botones de acción -->
+  <button type="button" id="optimizeBtn" class="btn btn-gradient">Optimizar</button>
+  <button type="button" id="clearBtn" class="btn btn-danger">Quitar todas</button>
+  <button type="button" id="downloadAllBtn" class="btn btn-secondary" disabled>Descargar optimizadas</button>
+  <button type="submit" id="uploadBtn" class="btn btn-success" disabled>Subir optimizadas</button>
+</form>
 
   <div class="error" id="error"></div>
   <div class="meta" id="meta"></div>
@@ -56,27 +60,45 @@
     function guardarImagenEnIndexedDB(file) {
   const request = indexedDB.open("imagenesDB", 1);
 
+  // Se ejecuta la primera vez o si subís la versión
   request.onupgradeneeded = e => {
     const db = e.target.result;
     if (!db.objectStoreNames.contains("imagenes")) {
+      // Creamos el store sin keyPath porque usamos el nombre como key manual
       db.createObjectStore("imagenes");
+      console.log("📦 Object store 'imagenes' creado");
     }
   };
 
   request.onsuccess = e => {
     const db = e.target.result;
     const tx = db.transaction("imagenes", "readwrite");
-    tx.objectStore("imagenes").put(file, file.name);
-    tx.oncomplete = () => console.log("✅ Imagen guardada en IndexedDB:", file.name);
+    const store = tx.objectStore("imagenes");
 
-    // Guardar también el nombre en LocalStorage para reconstruir lista
-    let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
-    if (!lista.includes(file.name)) {
-      lista.push(file.name);
-      localStorage.setItem("imagenesLista", JSON.stringify(lista));
-    }
+    // Guardar el blob con la key = nombre del archivo
+    store.put(file, file.name);
+
+    tx.oncomplete = () => {
+      console.log("✅ Imagen guardada en IndexedDB:", file.name);
+
+      // Guardar también el nombre en LocalStorage para reconstruir lista
+      let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+      if (!lista.includes(file.name)) {
+        lista.push(file.name);
+        localStorage.setItem("imagenesLista", JSON.stringify(lista));
+      }
+    };
+
+    tx.onerror = e => {
+      console.error("❌ Error guardando imagen en IndexedDB:", e.target.error);
+    };
+  };
+
+  request.onerror = e => {
+    console.error("❌ Error abriendo IndexedDB:", e.target.error);
   };
 }
+
 
     function resetErrores() { errorEl.textContent = ''; }
     function setError(msg) { errorEl.textContent = msg; }
@@ -272,34 +294,37 @@
 });
 
 
-    // Subir optimizadas al backend
     async function enviarOptimizado() {
-      resetErrores();
-      if (!optimizadas.length) {
-        setError('Primero optimizá las imágenes.');
-        return false;
-      }
+  resetErrores();
+  if (!optimizadas || !optimizadas.length) {
+    setError("⚠️ Primero optimizá las imágenes.");
+    return false;
+  }
 
-      for (const item of optimizadas) {
+  try {
+    const resultados = await Promise.all(
+      optimizadas.map(async (item) => {
         const formData = new FormData();
-        formData.append('file', item.blob, item.name);
-
-        try {
-          const res = await fetch('/upload-image', { method: 'POST', body: formData });
-          const data = await res.json();
-          if (!data.ok) {
-            console.warn('Error al subir', item.name, data.error || data.status);
-            setError(`⚠️ Error al subir ${item.name}.`);
-          } else {
-            console.log('📤 Subida completa:', item.name, data.url || '');
-          }
-        } catch (err) {
-          console.error('Fallo de red en', item.name, err);
-          setError(`⚠️ Fallo de red al subir ${item.name}.`);
+        formData.append("file", item.blob, item.name);
+        const res = await fetch("/upload-image", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!data.ok) {
+          setError(`⚠️ Error al subir ${item.name}.`);
+          return { ok: false };
         }
-      }
-      return false; // prevenimos submit HTML estándar
+        console.log("📤 Subida completa:", item.name, data.url || "");
+        return { ok: true };
+      })
+    );
+    if (resultados.every(r => !r.ok)) {
+      setError("❌ No se pudo subir ninguna imagen.");
     }
+  } catch (err) {
+    setError("⚠️ Error inesperado al subir imágenes.");
+  }
+  return false; // prevenimos submit HTML estándar
+}
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
