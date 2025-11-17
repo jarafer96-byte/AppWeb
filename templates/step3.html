@@ -531,6 +531,15 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
 function cargarImagenesDesdeIndexedDB(callback) {
   const request = indexedDB.open("imagenesDB", 1);
 
+  // 🔹 Se ejecuta la primera vez que se abre la DB o si subís la versión
+  request.onupgradeneeded = e => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains("imagenes")) {
+      db.createObjectStore("imagenes"); // crea el store
+      console.log("📦 Object store 'imagenes' creado");
+    }
+  };
+
   request.onsuccess = e => {
     const db = e.target.result;
     const tx = db.transaction("imagenes", "readonly");
@@ -548,7 +557,12 @@ function cargarImagenesDesdeIndexedDB(callback) {
       };
     });
   };
+
+  request.onerror = e => {
+    console.error("❌ Error abriendo IndexedDB:", e.target.error);
+  };
 }
+
 
     window.addEventListener("load", () => {
   let first = true;
