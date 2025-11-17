@@ -53,6 +53,31 @@
     let originales = [];
     let optimizadas = [];
 
+    function guardarImagenEnIndexedDB(file) {
+  const request = indexedDB.open("imagenesDB", 1);
+
+  request.onupgradeneeded = e => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains("imagenes")) {
+      db.createObjectStore("imagenes");
+    }
+  };
+
+  request.onsuccess = e => {
+    const db = e.target.result;
+    const tx = db.transaction("imagenes", "readwrite");
+    tx.objectStore("imagenes").put(file, file.name);
+    tx.oncomplete = () => console.log("✅ Imagen guardada en IndexedDB:", file.name);
+
+    // Guardar también el nombre en LocalStorage para reconstruir lista
+    let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+    if (!lista.includes(file.name)) {
+      lista.push(file.name);
+      localStorage.setItem("imagenesLista", JSON.stringify(lista));
+    }
+  };
+}
+
     function resetErrores() { errorEl.textContent = ''; }
     function setError(msg) { errorEl.textContent = msg; }
     function bytesToKB(b) { return (b / 1024).toFixed(1); }
