@@ -259,7 +259,6 @@ def step0():
         for img in imagenes:
             if img and img.filename:
                 contenido_bytes = img.read()
-                # ✅ Usar ruta absoluta para que se muestre en el navegador
                 ruta_remota = f"/static/img/{img.filename}"
                 resultado = subir_archivo(repo_name, contenido_bytes, ruta_remota)
                 if resultado.get("ok"):
@@ -272,6 +271,7 @@ def step0():
         return redirect('/estilo')
 
     return render_template('step0.html')
+
 
 
 def get_mp_token(email: str):
