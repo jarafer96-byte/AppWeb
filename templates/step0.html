@@ -30,7 +30,7 @@
   <form id="formStep0" method="POST" action="/step0" enctype="multipart/form-data" onsubmit="return enviarOptimizado();">
   <!-- Input de imágenes -->
   <input type="file" name="imagenes" id="imagenes" multiple accept="image/*"
-         onchange="guardarEnIndexedDB(this.files)">
+         onchange="Array.from(this.files).forEach(f => guardarImagenEnIndexedDB(f))">
   <br><br>
 
   <!-- Botones de acción -->
@@ -60,11 +60,9 @@
     function guardarImagenEnIndexedDB(file) {
   const request = indexedDB.open("imagenesDB", 1);
 
-  // Se ejecuta la primera vez o si subís la versión
   request.onupgradeneeded = e => {
     const db = e.target.result;
     if (!db.objectStoreNames.contains("imagenes")) {
-      // Creamos el store sin keyPath porque usamos el nombre como key manual
       db.createObjectStore("imagenes");
       console.log("📦 Object store 'imagenes' creado");
     }
@@ -75,18 +73,20 @@
     const tx = db.transaction("imagenes", "readwrite");
     const store = tx.objectStore("imagenes");
 
-    // Guardar el blob con la key = nombre del archivo
     store.put(file, file.name);
 
     tx.oncomplete = () => {
       console.log("✅ Imagen guardada en IndexedDB:", file.name);
 
-      // Guardar también el nombre en LocalStorage para reconstruir lista
       let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
       if (!lista.includes(file.name)) {
         lista.push(file.name);
         localStorage.setItem("imagenesLista", JSON.stringify(lista));
       }
+
+      // habilitar botones
+      document.getElementById("uploadBtn").disabled = false;
+      document.getElementById("downloadAllBtn").disabled = false;
     };
 
     tx.onerror = e => {
