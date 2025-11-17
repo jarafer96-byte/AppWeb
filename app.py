@@ -258,7 +258,7 @@ def step0():
         for img in imagenes:
             if img and img.filename:
                 contenido_bytes = img.read()
-                ruta_remota = f"static/img/{img.filename}"
+                ruta_remota = f"/static/img/{img.filename}"   # ✅ con barra inicial
                 resultado = subir_archivo(repo_name, contenido_bytes, ruta_remota)
                 if resultado.get("ok"):
                     urls.append(ruta_remota)
