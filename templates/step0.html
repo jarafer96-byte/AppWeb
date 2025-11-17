@@ -28,17 +28,15 @@
   <p class="hint">Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80)</p>
 
   <form id="formStep0" method="POST" action="/step0" enctype="multipart/form-data" onsubmit="return enviarOptimizado();">
-  <!-- Input de imágenes -->
-  <input type="file" name="imagenes" id="imagenes" multiple accept="image/*"
-         onchange="Array.from(this.files).forEach(f => guardarImagenEnIndexedDB(f))">
-  <br><br>
+    <input type="file" name="imagenes" id="imagenes" multiple accept="image/*"
+           onchange="Array.from(this.files).forEach(f => guardarImagenEnIndexedDB(f))">
+    <br><br>
 
-  <!-- Botones de acción -->
-  <button type="button" id="optimizeBtn" class="btn btn-gradient">Optimizar</button>
-  <button type="button" id="clearBtn" class="btn btn-danger">Quitar todas</button>
-  <button type="button" id="downloadAllBtn" class="btn btn-secondary" disabled>Descargar optimizadas</button>
-  <button type="submit" id="uploadBtn" class="btn btn-success" disabled>Subir optimizadas</button>
-</form>
+    <button type="button" id="optimizeBtn">Optimizar</button>
+    <button type="button" id="clearBtn">Quitar todas</button>
+    <button type="button" id="downloadAllBtn" disabled>Descargar optimizadas</button>
+    <button type="submit" id="uploadBtn" disabled>Subir optimizadas</button>
+  </form>
 
   <div class="error" id="error"></div>
   <div class="meta" id="meta"></div>
@@ -57,48 +55,69 @@
     let originales = [];
     let optimizadas = [];
 
-    function guardarImagenEnIndexedDB(file) {
-  const request = indexedDB.open("imagenesDB", 1);
+    // Util: garantiza que el store exista; si falta, borra DB y recrea
+    function ensureDB(callback) {
+      const request = indexedDB.open("imagenesDB", 2); // versión 2 para forzar upgrade
 
-  request.onupgradeneeded = e => {
-    const db = e.target.result;
-    if (!db.objectStoreNames.contains("imagenes")) {
-      db.createObjectStore("imagenes");
-      console.log("📦 Object store 'imagenes' creado");
+      request.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("imagenes")) {
+          db.createObjectStore("imagenes");
+          console.log("📦 Object store 'imagenes' creado (upgrade)");
+        }
+      };
+
+      request.onsuccess = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("imagenes")) {
+          // Estado corrupto: DB existe sin store. Borramos y recreamos.
+          console.warn("⚠️ DB sin store. Se borra y recrea 'imagenesDB'.");
+          db.close();
+          const del = indexedDB.deleteDatabase("imagenesDB");
+          del.onsuccess = () => {
+            const re = indexedDB.open("imagenesDB", 2);
+            re.onupgradeneeded = ev => {
+              ev.target.result.createObjectStore("imagenes");
+              console.log("📦 Store creado tras borrar DB");
+            };
+            re.onsuccess = ev => callback(ev.target.result);
+          };
+          del.onerror = () => {
+            console.error("❌ No se pudo borrar la DB. IndexedDB queda inconsistente.");
+            callback(db); // lo mejor posible
+          };
+        } else {
+          callback(db);
+        }
+      };
+
+      request.onerror = e => {
+        console.error("❌ Error abriendo IndexedDB:", e.target.error);
+      };
     }
-  };
 
-  request.onsuccess = e => {
-    const db = e.target.result;
-    const tx = db.transaction("imagenes", "readwrite");
-    const store = tx.objectStore("imagenes");
+    function guardarImagenEnIndexedDB(file) {
+      ensureDB(db => {
+        const tx = db.transaction("imagenes", "readwrite");
+        const store = tx.objectStore("imagenes");
+        store.put(file, file.name);
 
-    store.put(file, file.name);
+        tx.oncomplete = () => {
+          console.log("✅ Imagen guardada en IndexedDB:", file.name);
+          let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+          if (!lista.includes(file.name)) {
+            lista.push(file.name);
+            localStorage.setItem("imagenesLista", JSON.stringify(lista));
+          }
+          uploadBtn.disabled = false;
+          downloadAllBtn.disabled = false;
+        };
 
-    tx.oncomplete = () => {
-      console.log("✅ Imagen guardada en IndexedDB:", file.name);
-
-      let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
-      if (!lista.includes(file.name)) {
-        lista.push(file.name);
-        localStorage.setItem("imagenesLista", JSON.stringify(lista));
-      }
-
-      // habilitar botones
-      document.getElementById("uploadBtn").disabled = false;
-      document.getElementById("downloadAllBtn").disabled = false;
-    };
-
-    tx.onerror = e => {
-      console.error("❌ Error guardando imagen en IndexedDB:", e.target.error);
-    };
-  };
-
-  request.onerror = e => {
-    console.error("❌ Error abriendo IndexedDB:", e.target.error);
-  };
-}
-
+        tx.onerror = e => {
+          console.error("❌ Error guardando imagen en IndexedDB:", e.target.error);
+        };
+      });
+    }
 
     function resetErrores() { errorEl.textContent = ''; }
     function setError(msg) { errorEl.textContent = msg; }
@@ -108,14 +127,12 @@
       resetErrores();
       const nuevos = Array.from(input.files);
 
-      // Límite de cantidad (500)
       if (originales.length + nuevos.length > 500) {
         setError('⚠️ Máximo 500 imágenes permitidas.');
         input.value = '';
         return;
       }
 
-      // Acumular evitando duplicados
       nuevos.forEach(f => {
         const existe = originales.some(a =>
           a.name === f.name && a.size === f.size && a.lastModified === f.lastModified
@@ -178,7 +195,6 @@
       });
     }
 
-    // Redimensionar y convertir a WebP con transparencia
     async function resizeToWebP(file) {
       const imgUrl = URL.createObjectURL(file);
       const img = await new Promise((resolve, reject) => {
@@ -188,34 +204,22 @@
         image.src = imgUrl;
       });
 
-      const targetW = 300;
-      const targetH = 180;
-
+      const targetW = 300, targetH = 180;
       const canvas = document.createElement('canvas');
-      canvas.width = targetW;
-      canvas.height = targetH;
+      canvas.width = targetW; canvas.height = targetH;
       const ctx = canvas.getContext('2d');
-
-      // Fondo transparente
       ctx.clearRect(0, 0, targetW, targetH);
 
-      // Calcular proporción
       const ratio = Math.min(targetW / img.width, targetH / img.height);
       const newW = Math.round(img.width * ratio);
       const newH = Math.round(img.height * ratio);
-
-      // Centrar
       const offsetX = Math.floor((targetW - newW) / 2);
       const offsetY = Math.floor((targetH - newH) / 2);
 
       ctx.drawImage(img, offsetX, offsetY, newW, newH);
       URL.revokeObjectURL(imgUrl);
 
-      // Exportar a WebP calidad 80
-      const blob = await new Promise(resolve =>
-        canvas.toBlob(resolve, 'image/webp', 0.8)
-      );
-
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.8));
       return blob;
     }
 
@@ -231,13 +235,11 @@
         const blob = await resizeToWebP(file);
         const nameBase = file.name.replace(/\.(png|jpg|jpeg|gif|tiff|bmp)$/i, '');
         const finalName = `${nameBase}.webp`;
-
         optimizadas.push({ name: finalName, blob, size: blob.size, url: URL.createObjectURL(blob) });
       }
 
       renderOptimizadas();
       actualizarMeta();
-
       downloadAllBtn.disabled = optimizadas.length === 0;
       uploadBtn.disabled = optimizadas.length === 0;
     });
@@ -275,58 +277,52 @@
     }
 
     downloadAllBtn.addEventListener('click', async () => {
-  if (!optimizadas.length) {
-    setError("No hay imágenes optimizadas para descargar.");
-    return;
-  }
+      if (!optimizadas.length) {
+        setError("No hay imágenes optimizadas para descargar.");
+        return;
+      }
+      const zip = new JSZip();
+      for (const item of optimizadas) {
+        const arrayBuffer = await item.blob.arrayBuffer();
+        zip.file(item.name, arrayBuffer);
+      }
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, "imagenes_optimizadas.zip");
+    });
 
-  const zip = new JSZip();
-
-  for (const item of optimizadas) {
-    // Convertir Blob a ArrayBuffer para agregar al ZIP
-    const arrayBuffer = await item.blob.arrayBuffer();
-    zip.file(item.name, arrayBuffer);
-  }
-
-  // Generar ZIP y descargar
-  const content = await zip.generateAsync({ type: "blob" });
-  saveAs(content, "imagenes_optimizadas.zip");
-});
-
-
+    // Versión async final que sube optimizadas al backend
     async function enviarOptimizado() {
-  resetErrores();
-  if (!optimizadas || !optimizadas.length) {
-    setError("⚠️ Primero optimizá las imágenes.");
-    return false;
-  }
-
-  try {
-    const resultados = await Promise.all(
-      optimizadas.map(async (item) => {
-        const formData = new FormData();
-        formData.append("file", item.blob, item.name);
-        const res = await fetch("/upload-image", { method: "POST", body: formData });
-        const data = await res.json();
-        if (!data.ok) {
-          setError(`⚠️ Error al subir ${item.name}.`);
-          return { ok: false };
+      resetErrores();
+      if (!optimizadas || !optimizadas.length) {
+        setError("⚠️ Primero optimizá las imágenes.");
+        return false;
+      }
+      try {
+        const resultados = await Promise.all(
+          optimizadas.map(async (item) => {
+            const formData = new FormData();
+            formData.append("file", item.blob, item.name);
+            const res = await fetch("/upload-image", { method: "POST", body: formData });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (!data.ok) {
+              setError(`⚠️ Error al subir ${item.name}.`);
+              return { ok: false };
+            }
+            console.log("📤 Subida completa:", item.name, data.url || "");
+            return { ok: true };
+          })
+        );
+        if (resultados.every(r => !r.ok)) {
+          setError("❌ No se pudo subir ninguna imagen.");
         }
-        console.log("📤 Subida completa:", item.name, data.url || "");
-        return { ok: true };
-      })
-    );
-    if (resultados.every(r => !r.ok)) {
-      setError("❌ No se pudo subir ninguna imagen.");
+      } catch (err) {
+        setError("⚠️ Error inesperado al subir imágenes.");
+      }
+      return false; // prevenir submit HTML estándar
     }
-  } catch (err) {
-    setError("⚠️ Error inesperado al subir imágenes.");
-  }
-  return false; // prevenimos submit HTML estándar
-}
-
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </body>
 </html>
