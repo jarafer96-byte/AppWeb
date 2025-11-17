@@ -7,7 +7,6 @@ import time
 import json
 import gc
 import pandas as pd
-import boto3
 import traceback
 from werkzeug.utils import secure_filename
 from zipfile import ZipFile
@@ -20,6 +19,7 @@ import mercadopago
 import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
+
 # 🔐 Inicialización segura de Firebase
 try:
     cred_dict = json.loads(os.getenv("FIREBASE_CREDENTIALS_JSON"))
@@ -32,14 +32,6 @@ except Exception as e:
 # Cliente Firestore con acceso total
 db = firestore.client()
 
-s3 = boto3.client(
-    's3',
-    endpoint_url='https://s3.us-east-005.backblazeb2.com',
-    aws_access_key_id=os.getenv('ACCESS_KEY'),
-    aws_secret_access_key=os.getenv('SECRET_KEY')
-)
-BUCKET = os.getenv('BUCKET') or 'imagenes-appweb'
-
 # 🔑 Inicialización segura de Mercado Pago
 access_token = os.getenv("MERCADO_PAGO_TOKEN")
 if access_token and isinstance(access_token, str):
@@ -48,6 +40,7 @@ if access_token and isinstance(access_token, str):
 else:
     sdk = None
     print("⚠️ MERCADO_PAGO_TOKEN no configurado, SDK no inicializado")
+    
 # GitHub y Flask config
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
@@ -56,10 +49,6 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 4 MB
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
-
-@app.errorhandler(413)
-def too_large(e):
-    return "Archivo demasiado grande (máx. 200 MB)", 413
 
 firebase_config = {
     "apiKey": os.getenv("FIREBASE_API_KEY"),
@@ -109,8 +98,7 @@ def subir_a_firestore(producto, email):
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
-            "imagen_backblaze": producto.get("imagen_backblaze"),
-            "imagen_github": producto.get("imagen_github"),
+            "imagen_github": producto.get("imagen_github"),  # ✅ solo GitHub
             "orden": orden,
             "talles": talles,
             "timestamp": firestore.SERVER_TIMESTAMP
@@ -120,6 +108,7 @@ def subir_a_firestore(producto, email):
         return True
     except Exception:
         return False
+
 
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
     # Usar siempre la variable global github_token
@@ -132,7 +121,6 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         "Authorization": f"token {github_token}",
         "Accept": "application/vnd.github+json"
     }
-
     # Obtener SHA si el archivo ya existe
     sha = None
     try:
@@ -175,7 +163,7 @@ def upload_image():
         return jsonify({"ok": False, "error": "Archivo vacío"}), 400
 
     # Nombre del repo dinámico desde sesión (fallback a AppWeb si no existe)
-    repo_name = session.get("repo_nombre") or "AppWeb"
+    repo_name = session.get("repo_nombre")
 
     # Ruta remota correcta dentro del repo GitHub
     ruta_remota = f"static/img/{file.filename}"
@@ -197,8 +185,7 @@ def upload_image():
             "status": resultado.get("status", 500)
         }), 500
 
-
-def subir_iconos_png(repo, token):
+def subir_iconos_png(repo):
     carpeta = os.path.join("static", "img")
     for nombre_archivo in os.listdir(carpeta):
         if nombre_archivo.lower().endswith(".png"):
@@ -206,20 +193,12 @@ def subir_iconos_png(repo, token):
             ruta_remota = f"static/img/{nombre_archivo}"
             with open(ruta_local, "rb") as f:
                 contenido = f.read()
-            subir_archivo(repo, contenido, ruta_remota, token)
+            subir_archivo(repo, contenido, ruta_remota)
 
 def generar_nombre_repo(email):
     base = email.replace("@", "_at_").replace(".", "_")
     fecha = time.strftime("%Y%m%d")
     return f"{base}_{fecha}"
-
-
-def guardar_redimensionada(file, nombre_archivo):
-    ruta_tmp = os.path.join("/tmp", nombre_archivo)
-    img = Image.open(file)
-    img.thumbnail((800, 800))  # ejemplo de redimensión
-    img.save(ruta_tmp, "WEBP")
-    return ruta_tmp
 
 def crear_repo_github(nombre_repo, token):
     if not token:
@@ -258,71 +237,6 @@ def limpiar_imagenes_usuario():
         except Exception:
             pass
 
-def redimensionar_y_subir(imagen, email):
-    try:
-        # Abrir imagen en RGBA para soportar transparencia
-        pil = Image.open(imagen).convert("RGBA")
-
-        # Tamaño objetivo
-        target_size = (300, 180)
-        img_ratio = pil.width / pil.height
-        target_ratio = target_size[0] / target_size[1]
-
-        # Calcular dimensiones proporcionales
-        if img_ratio > target_ratio:
-            new_width = target_size[0]
-            new_height = int(new_width / img_ratio)
-        else:
-            new_height = target_size[1]
-            new_width = int(new_height * img_ratio)
-
-        # Redimensionar manteniendo proporción
-        pil = pil.resize((new_width, new_height), Image.LANCZOS)
-
-        # Crear fondo transparente 300x180
-        fondo = Image.new("RGBA", target_size, (0, 0, 0, 0))
-        offset = ((target_size[0] - new_width) // 2,
-                  (target_size[1] - new_height) // 2)
-        fondo.paste(pil, offset, pil)
-
-        # Guardar en buffer como WebP calidad 80
-        buffer = BytesIO()
-        fondo.save(buffer, format="WEBP", quality=80)
-        buffer.seek(0)
-
-        # Nombre único
-        nombre = f"mini_{uuid.uuid4().hex}.webp"
-        ruta_s3 = f"usuarios/{email}/{nombre}"
-
-        # Guardar copia en /tmp
-        ruta_tmp = os.path.join("/tmp", nombre)
-        with open(ruta_tmp, "wb") as f:
-            f.write(buffer.getvalue())
-
-        # Subir a Backblaze S3
-        s3.upload_fileobj(
-            buffer,
-            BUCKET,
-            ruta_s3,
-            ExtraArgs={'ContentType': 'image/webp'}
-        )
-
-        # URL final pública
-        url_final = f"https://{BUCKET}.s3.us-west-004.backblazeb2.com/{ruta_s3}"
-        return url_final
-
-    except Exception as e:
-        print(f"❌ Error al redimensionar y subir: {e}")
-        return None
-
-def normalizar_url(url: str) -> str:
-    if "/file/imagenes-appweb/" in url:
-        return url.split("/file/imagenes-appweb/")[1]
-    elif "s3.us-west-004.backblazeb2.com" in url or "s3.us-east-005.backblazeb2.com" in url:
-        if "/usuarios/" in url:
-            return "usuarios/" + url.split("/usuarios/")[1]
-    return url
-
 @app.route('/step0', methods=['GET', 'POST'])
 def step0():
     if request.method == 'POST':
@@ -338,18 +252,16 @@ def step0():
         if len(session['imagenes_step0']) + len(imagenes) > 120:
             return "Límite de imágenes alcanzado", 400
 
-        def chunks(lista, n):
-            for i in range(0, len(lista), n):
-                yield lista[i:i+n]
-
+        repo_name = session.get("repo_nombre") or "AppWeb"
         urls = []
-        for lote in chunks([img for img in imagenes if img and img.filename], 40):
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                futures = [executor.submit(redimensionar_y_subir, img, email) for img in lote]
-                for f in futures:
-                    url = f.result()
-                    if url:
-                        urls.append(normalizar_url(url))
+
+        for img in imagenes:
+            if img and img.filename:
+                contenido_bytes = img.read()
+                ruta_remota = f"static/img/{img.filename}"
+                resultado = subir_archivo(repo_name, contenido_bytes, ruta_remota)
+                if resultado.get("ok"):
+                    urls.append(ruta_remota)
 
         session['imagenes_step0'].extend(urls)
         return redirect('/estilo')
@@ -438,15 +350,6 @@ def webhook_mp():
 
     # ✅ No se guarda nada en Firestore, solo respondemos OK
     return "OK", 200
-
-@app.route("/test-firestore")
-def test_firestore():
-    try:
-        db.collection("test").document("ping").set({"ok": True})
-        return "✅ Firestore funciona"
-    except Exception as e:
-        traceback.print_exc()
-        return f"❌ Error: {e}", 500
 
 @app.route('/crear-admin', methods=['POST'])
 def crear_admin():
@@ -748,12 +651,7 @@ def step2_5():
 def step3():
     tipo = session.get('tipo_web')
     email = session.get('email')
-    imagenes_session = session.get('imagenes_step0') or []
-
-    imagenes_disponibles = [
-        f"https://f005.backblazeb2.com/file/imagenes-appweb/{img}"
-        for img in imagenes_session
-    ]
+    imagenes_disponibles = session.get('imagenes_step0') or []  # ahora directo de sesión
 
     if not email:
         return "Error: sesión no iniciada", 403
@@ -771,7 +669,6 @@ def step3():
         imagenes_basename = request.form.getlist('imagen_basename')
 
         repo_name = session.get('repo_nombre') or "AppWeb"
-        github_token = os.getenv("GITHUB_TOKEN")
 
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
@@ -780,40 +677,37 @@ def step3():
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
 
-            imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
             imagen_base = imagenes_basename[i].strip() if i < len(imagenes_basename) else ''
 
-            if not imagen_url or not nombre or not precio or not grupo or not subgrupo:
+            if not nombre or not precio or not grupo or not subgrupo:
                 continue
 
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
 
-            url_backblaze = imagen_url
+            # Subir imagen a GitHub si existe en /tmp
+            url_github = ""
             ruta_tmp = os.path.join("/tmp", imagen_base)
-            if os.path.exists(ruta_tmp) and github_token:
+            if os.path.exists(ruta_tmp):
                 try:
                     with open(ruta_tmp, "rb") as f:
                         contenido_bytes = f.read()
                     resultado_github = subir_archivo(
                         repo_name,
                         contenido_bytes,
-                        f"static/img/{imagen_base}",
-                        github_token
+                        f"static/img/{imagen_base}"
                     )
-                    url_github = f"/static/img/{imagen_base}" if resultado_github.get("ok") else ""
+                    if resultado_github.get("ok"):
+                        url_github = f"/static/img/{imagen_base}"
                     del contenido_bytes
                     gc.collect()
                 except Exception:
                     url_github = ""
-            else:
-                url_github = ""
 
             bloques.append({
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'imagen_backblaze': url_backblaze,
                 'imagen_github': url_github or '/static/img/fallback.webp',
                 'grupo': grupo,
                 'subgrupo': subgrupo,
@@ -837,7 +731,8 @@ def step3():
                 resultados = list(executor.map(subir_con_resultado, lote))
             exitos += sum(1 for r in resultados if r)
 
-        if github_token and repo_name:
+        # Subir index.html, iconos, logo y fondo a GitHub
+        if repo_name:
             try:
                 html = render_template(
                     'preview.html',
@@ -847,12 +742,12 @@ def step3():
                     modoAdminIntentado=False,
                     firebase_config=firebase_config
                 )
-                subir_archivo(repo_name, html.encode('utf-8'), 'index.html', github_token)
+                subir_archivo(repo_name, html.encode('utf-8'), 'index.html')
             except Exception:
                 pass
 
             try:
-                subir_iconos_png(repo_name, github_token)
+                subir_iconos_png(repo_name)
             except Exception:
                 pass
 
@@ -862,14 +757,14 @@ def step3():
                 if os.path.exists(logo_path):
                     with open(logo_path, "rb") as f:
                         contenido = f.read()
-                    subir_archivo(repo_name, contenido, f"static/img/{logo}", github_token)
+                    subir_archivo(repo_name, contenido, f"static/img/{logo}")
 
             estilo_visual = session.get('estilo_visual') or 'claro_moderno'
             fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{estilo_visual}.jpeg")
             if os.path.exists(fondo_path):
                 with open(fondo_path, "rb") as f:
                     contenido = f.read()
-                subir_archivo(repo_name, contenido, f"static/img/{estilo_visual}.jpeg", github_token)
+                subir_archivo(repo_name, contenido, f"static/img/{estilo_visual}.jpeg")
 
         if exitos > 0:
             return redirect('/preview')
@@ -877,6 +772,7 @@ def step3():
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
     
 def get_mp_public_key(email: str):
     """
@@ -1258,7 +1154,7 @@ def preview():
         if token:
             try:
                 for producto in productos:
-                    imagen = producto.get("imagen_github") or producto.get("imagen_backblaze")
+                    imagen = producto.get("imagen_github")
                     if imagen and imagen.startswith("/static/img/"):
                         ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen))
                         if os.path.exists(ruta_local):
@@ -1360,7 +1256,7 @@ def descargar():
             zip_file.write(fondo_path, arcname='img/' + fondo)
 
         for producto in productos:
-            imagen = producto.get('imagen')
+            imagen = producto.get('imagen_github')
             if imagen:
                 imagen_path = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
                 if os.path.exists(imagen_path):
@@ -1392,7 +1288,6 @@ def cache(response):
     return response
 
 if __name__ == '__main__':
-    redimensionar_webp_en_static()
     limpiar_imagenes_usuario()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
