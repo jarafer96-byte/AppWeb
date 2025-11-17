@@ -528,6 +528,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   subgrupoCard.querySelector(".productos").appendChild(fila);
   actualizarContador(subgrupoCard);
 }
+    
 function cargarImagenesDesdeIndexedDB(callback) {
   const request = indexedDB.open("imagenesDB", 1);
 
@@ -556,6 +557,38 @@ function cargarImagenesDesdeIndexedDB(callback) {
         }
       };
     });
+  };
+
+  request.onerror = e => {
+    console.error("❌ Error abriendo IndexedDB:", e.target.error);
+  };
+}
+    
+function guardarImagenEnIndexedDB(file) {
+  const request = indexedDB.open("imagenesDB", 1);
+
+  request.onupgradeneeded = e => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains("imagenes")) {
+      db.createObjectStore("imagenes");
+      console.log("📦 Object store 'imagenes' creado");
+    }
+  };
+
+  request.onsuccess = e => {
+    const db = e.target.result;
+    const tx = db.transaction("imagenes", "readwrite");
+    const store = tx.objectStore("imagenes");
+
+    store.put(file, file.name); // guarda el blob con la key = nombre
+    console.log("✅ Imagen guardada en IndexedDB:", file.name);
+
+    // también guardamos el nombre en LocalStorage
+    let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+    if (!lista.includes(file.name)) {
+      lista.push(file.name);
+      localStorage.setItem("imagenesLista", JSON.stringify(lista));
+    }
   };
 
   request.onerror = e => {
