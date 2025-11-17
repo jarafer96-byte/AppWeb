@@ -249,6 +249,7 @@ def step0():
         if 'imagenes_step0' not in session:
             session['imagenes_step0'] = []
 
+        # Límite de 120 imágenes en total
         if len(session['imagenes_step0']) + len(imagenes) > 120:
             return "Límite de imágenes alcanzado", 400
 
@@ -258,15 +259,20 @@ def step0():
         for img in imagenes:
             if img and img.filename:
                 contenido_bytes = img.read()
-                ruta_remota = f"/static/img/{img.filename}"   # ✅ con barra inicial
+                # ✅ Usar ruta absoluta para que se muestre en el navegador
+                ruta_remota = f"/static/img/{img.filename}"
                 resultado = subir_archivo(repo_name, contenido_bytes, ruta_remota)
                 if resultado.get("ok"):
                     urls.append(ruta_remota)
 
+        # Guardar las rutas en sesión para Step3
         session['imagenes_step0'].extend(urls)
+
+        # Redirigir al siguiente paso
         return redirect('/estilo')
 
     return render_template('step0.html')
+
 
 def get_mp_token(email: str):
     """Obtiene el access_token de Mercado Pago desde Firestore o Render, con fallback a refresh_token."""
@@ -651,7 +657,7 @@ def step2_5():
 def step3():
     tipo = session.get('tipo_web')
     email = session.get('email')
-    imagenes_disponibles = session.get('imagenes_step0') or []  # ahora directo de sesión
+    imagenes_disponibles = session.get('imagenes_step0') or []  # rutas /static/img/... desde Step0
 
     if not email:
         return "Error: sesión no iniciada", 403
@@ -677,38 +683,21 @@ def step3():
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
 
-            imagen_base = imagenes_basename[i].strip() if i < len(imagenes_basename) else ''
-
             if not nombre or not precio or not grupo or not subgrupo:
                 continue
 
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
 
-            # Subir imagen a GitHub si existe en /tmp
-            url_github = ""
-            ruta_tmp = os.path.join("/tmp", imagen_base)
-            if os.path.exists(ruta_tmp):
-                try:
-                    with open(ruta_tmp, "rb") as f:
-                        contenido_bytes = f.read()
-                    resultado_github = subir_archivo(
-                        repo_name,
-                        contenido_bytes,
-                        f"static/img/{imagen_base}"
-                    )
-                    if resultado_github.get("ok"):
-                        url_github = f"/static/img/{imagen_base}"
-                    del contenido_bytes
-                    gc.collect()
-                except Exception:
-                    url_github = ""
+            # Usar directamente la ruta elegida (ya es /static/img/...)
+            imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
+            imagen_base = imagenes_basename[i].strip() if i < len(imagenes_basename) else ''
 
             bloques.append({
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'imagen_github': url_github or '/static/img/fallback.webp',
+                'imagen_github': imagen_url or '/static/img/fallback.webp',
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
@@ -773,7 +762,6 @@ def step3():
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
-    
 def get_mp_public_key(email: str):
     """
     Obtiene la public_key de Mercado Pago para el vendedor.
@@ -1154,7 +1142,7 @@ def preview():
         if token:
             try:
                 for producto in productos:
-                    imagen = producto.get("imagen_github")
+                    imagen = producto.get("imagen_github")  # ✅ solo GitHub
                     if imagen and imagen.startswith("/static/img/"):
                         ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen))
                         if os.path.exists(ruta_local):
@@ -1196,7 +1184,7 @@ def preview():
             grupos=grupos_dict,
             modoAdmin=modo_admin,
             modoAdminIntentado=modo_admin_intentado,
-            firebase_config=firebase_config   # 👈 aquí usás la global definida arriba
+            firebase_config=firebase_config
         )
     except Exception as e:
         print("[Preview] Error al renderizar preview:", e)
