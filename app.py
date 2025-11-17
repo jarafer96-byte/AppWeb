@@ -121,10 +121,15 @@ def subir_a_firestore(producto, email):
     except Exception:
         return False
 
-def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
+def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
+    # Usar siempre la variable global github_token
+    github_token = os.getenv("GITHUB_TOKEN")
+    if not github_token:
+        return {"ok": False, "error": "Token de GitHub no disponible"}
+
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo}/contents/{ruta_remota}"
     headers = {
-        "Authorization": f"token {token}",
+        "Authorization": f"token {github_token}",
         "Accept": "application/vnd.github+json"
     }
 
