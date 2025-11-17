@@ -227,18 +227,25 @@
       });
     }
 
-    // Descargar todas las optimizadas
     downloadAllBtn.addEventListener('click', async () => {
-      for (const item of optimizadas) {
-        const a = document.createElement('a');
-        a.href = item.url;
-        a.download = item.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        await new Promise(r => setTimeout(r, 100)); // separa descargas
-      }
-    });
+  if (!optimizadas.length) {
+    setError("No hay imágenes optimizadas para descargar.");
+    return;
+  }
+
+  const zip = new JSZip();
+
+  for (const item of optimizadas) {
+    // Convertir Blob a ArrayBuffer para agregar al ZIP
+    const arrayBuffer = await item.blob.arrayBuffer();
+    zip.file(item.name, arrayBuffer);
+  }
+
+  // Generar ZIP y descargar
+  const content = await zip.generateAsync({ type: "blob" });
+  saveAs(content, "imagenes_optimizadas.zip");
+});
+
 
     // Subir optimizadas al backend
     async function enviarOptimizado() {
@@ -268,6 +275,8 @@
       }
       return false; // prevenimos submit HTML estándar
     }
-  </script>
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </body>
 </html>
