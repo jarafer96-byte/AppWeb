@@ -2,195 +2,105 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Step 0 - Subir imágenes</title>
+  <title>Step 0 - Optimizar imágenes</title>
   <style>
-    body {
-      background-color: #000;
-      color: white;
-      font-family: 'Raleway', sans-serif;
-      padding: 40px;
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    form {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    input[type="file"] {
-      margin-bottom: 10px;
-      color: white;
-    }
-
-    button {
-      background: linear-gradient(135deg, #ff0080, #7928ca);
-      border: none;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      margin: 5px;
-    }
-
-    button:hover {
-      opacity: 0.9;
-    }
-
-    .error {
-      color: #ff4d4d;
-      margin-top: 10px;
-      text-align: center;
-    }
-
-    .meta {
-      text-align: center;
-      color: #ccc;
-      font-size: 0.9em;
-      margin-top: 8px;
-    }
-
-    .preview {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 20px;
-    }
-
-    .preview-item {
-      position: relative;
-      display: inline-block;
-    }
-
-    .preview img {
-      width: 150px;
-      height: auto;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      object-fit: contain;
-      background-color: #111;
-    }
-
-    .remove-btn {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      background: rgba(255,0,0,0.7);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 22px;
-      height: 22px;
-      cursor: pointer;
-      font-size: 14px;
-      line-height: 2px;
-      text-align: center;
-      padding-left: 10px;
-    }
-
-    .preview-subidas {
-      border-top: 1px solid #444;
-      padding-top: 20px;
-    }
-
-    .preview-subidas h4 {
-      width: 100%;
-      text-align: center;
-      margin-bottom: 10px;
-      color: #ccc;
-    }
+    body { background:#000; color:#fff; font-family:'Raleway',sans-serif; padding:40px; }
+    h2 { text-align:center; margin-bottom:6px; }
+    .hint { text-align:center; color:#ccc; margin-bottom:20px; }
+    form { text-align:center; margin-bottom:20px; }
+    input[type="file"] { margin-bottom:10px; color:white; }
+    button { background:linear-gradient(135deg,#ff0080,#7928ca); border:none; color:white;
+             padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:bold; margin:5px; }
+    button:hover { opacity:0.9; }
+    .error { color:#ff4d4d; margin-top:10px; text-align:center; min-height:22px; }
+    .meta { text-align:center; color:#ccc; font-size:0.9em; margin-top:8px; min-height:20px; }
+    .preview { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:20px; }
+    .preview-item { position:relative; width:160px; }
+    .preview img { width:100%; height:auto; border:1px solid #333; border-radius:6px; object-fit:contain; background:#111; }
+    .badge { position:absolute; bottom:6px; left:6px; background:rgba(0,0,0,0.6); color:#fff; font-size:11px;
+             padding:3px 6px; border-radius:4px; }
+    .remove-btn { position:absolute; top:4px; right:4px; background:rgba(255,0,0,0.75); color:white; border:none;
+                  border-radius:50%; width:24px; height:24px; cursor:pointer; font-size:14px; line-height:24px; text-align:center; }
   </style>
 </head>
 <body>
-  <h2>Subí tus imágenes (120 imágenes, máx. 200 MB total y hasta 1 MB c/u)</h2>
-  <p style="text-align: center; margin-top: 8px;">
-    Preferentemente fotos editadas y/o con poco peso
-  </p>
+  <h2>Optimiza y sube tus imágenes</h2>
+  <p class="hint">Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80)</p>
 
-  <form method="POST" action="/step0" enctype="multipart/form-data">
+  <form id="formStep0" method="POST" action="/step0" enctype="multipart/form-data" onsubmit="return enviarOptimizado();">
     <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
     <br>
-    <button type="submit">Subir y continuar</button>
+    <button type="button" id="optimizeBtn">Optimizar</button>
     <button type="button" id="clearBtn">Quitar todas</button>
+    <button type="button" id="downloadAllBtn" disabled>Descargar optimizadas</button>
+    <button type="submit" id="uploadBtn" disabled>Subir optimizadas</button>
   </form>
 
   <div class="error" id="error"></div>
   <div class="meta" id="meta"></div>
   <div class="preview" id="preview"></div>
 
-  {% if imagenes_step0 %}
-    <div class="preview-subidas">
-      <h4>Imágenes ya subidas</h4>
-      {% for img in imagenes_step0 %}
-        <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ img }}"
-             alt="Imagen subida"
-             onerror="this.src='/static/img/fallback.webp';">
-      {% endfor %}
-    </div>
-  {% endif %}
-
   <script>
     const input = document.getElementById('imagenes');
-    const preview = document.getElementById('preview');
-    const error = document.getElementById('error');
+    const errorEl = document.getElementById('error');
+    const metaEl = document.getElementById('meta');
+    const previewEl = document.getElementById('preview');
     const clearBtn = document.getElementById('clearBtn');
-    const meta = document.getElementById('meta');
+    const optimizeBtn = document.getElementById('optimizeBtn');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
 
-    let archivosAcumulados = [];
+    let originales = [];
+    let optimizadas = [];
+
+    function resetErrores() { errorEl.textContent = ''; }
+    function setError(msg) { errorEl.textContent = msg; }
+    function bytesToKB(b) { return (b / 1024).toFixed(1); }
 
     input.addEventListener('change', () => {
-      error.textContent = '';
+      resetErrores();
       const nuevos = Array.from(input.files);
 
-      // Validación de tamaño
-      for (const file of nuevos) {
-        if (file.size > 4 * 1024 * 1024) {
-          error.textContent = `La imagen "${file.name}" supera los 4 MB.`;
-          input.value = '';
-          return;
-        }
+      // Límite de cantidad (500)
+      if (originales.length + nuevos.length > 500) {
+        setError('⚠️ Máximo 500 imágenes permitidas.');
+        input.value = '';
+        return;
       }
 
       // Acumular evitando duplicados
       nuevos.forEach(f => {
-        const existe = archivosAcumulados.some(a =>
+        const existe = originales.some(a =>
           a.name === f.name && a.size === f.size && a.lastModified === f.lastModified
         );
-        if (!existe) archivosAcumulados.push(f);
+        if (!existe) originales.push(f);
       });
 
-      syncInputWithAccumulated();
-      renderPreview();
+      renderOriginales();
+      actualizarMeta();
     });
 
     clearBtn.addEventListener('click', () => {
-      archivosAcumulados = [];
-      syncInputWithAccumulated();
-      renderPreview();
+      originales = [];
+      optimizadas = [];
+      previewEl.innerHTML = '';
+      actualizarMeta();
+      downloadAllBtn.disabled = true;
+      uploadBtn.disabled = true;
     });
 
-    function syncInputWithAccumulated() {
-      const dt = new DataTransfer();
-      archivosAcumulados.forEach(file => dt.items.add(file));
-      input.files = dt.files; // el formulario enviará todos los acumulados
+    function actualizarMeta() {
+      const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
+      const totalOpt  = optimizadas.reduce((sum, f) => sum + f.size, 0);
+      const partes = [];
+      if (originales.length) partes.push(`${originales.length} original(es) — ${bytesToKB(totalOrig)} KB`);
+      if (optimizadas.length) partes.push(`${optimizadas.length} optimizada(s) — ${bytesToKB(totalOpt)} KB`);
+      metaEl.textContent = partes.join(' | ');
     }
 
-    function renderPreview() {
-      // Mostrar meta info
-      const totalBytes = archivosAcumulados.reduce((sum, f) => sum + f.size, 0);
-      const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
-      meta.textContent = archivosAcumulados.length
-        ? `${archivosAcumulados.length} archivo(s) — ${totalMB} MB`
-        : '';
-
-      // Render miniaturas
-      preview.innerHTML = '';
-      archivosAcumulados.forEach((file, index) => {
+    function renderOriginales() {
+      previewEl.innerHTML = '';
+      originales.forEach((file, idx) => {
         const reader = new FileReader();
         reader.onload = e => {
           const item = document.createElement('div');
@@ -203,19 +113,161 @@
           removeBtn.className = 'remove-btn';
           removeBtn.textContent = '✖';
           removeBtn.onclick = () => {
-            archivosAcumulados.splice(index, 1);
-            syncInputWithAccumulated();
-            renderPreview();
+            originales.splice(idx, 1);
+            renderOriginales();
+            actualizarMeta();
           };
+
+          const badge = document.createElement('div');
+          badge.className = 'badge';
+          badge.textContent = `${file.name} — ${bytesToKB(file.size)} KB`;
 
           item.appendChild(img);
           item.appendChild(removeBtn);
-          preview.appendChild(item);
+          item.appendChild(badge);
+          previewEl.appendChild(item);
         };
         reader.readAsDataURL(file);
       });
     }
+
+    // Redimensionar y convertir a WebP con transparencia
+    async function resizeToWebP(file) {
+      const imgUrl = URL.createObjectURL(file);
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = imgUrl;
+      });
+
+      const targetW = 300;
+      const targetH = 180;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+
+      // Fondo transparente
+      ctx.clearRect(0, 0, targetW, targetH);
+
+      // Calcular proporción
+      const ratio = Math.min(targetW / img.width, targetH / img.height);
+      const newW = Math.round(img.width * ratio);
+      const newH = Math.round(img.height * ratio);
+
+      // Centrar
+      const offsetX = Math.floor((targetW - newW) / 2);
+      const offsetY = Math.floor((targetH - newH) / 2);
+
+      ctx.drawImage(img, offsetX, offsetY, newW, newH);
+      URL.revokeObjectURL(imgUrl);
+
+      // Exportar a WebP calidad 80
+      const blob = await new Promise(resolve =>
+        canvas.toBlob(resolve, 'image/webp', 0.8)
+      );
+
+      return blob;
+    }
+
+    optimizeBtn.addEventListener('click', async () => {
+      resetErrores();
+      if (!originales.length) {
+        setError('Subí imágenes primero.');
+        return;
+      }
+
+      optimizadas = [];
+      for (const file of originales) {
+        const blob = await resizeToWebP(file);
+        const nameBase = file.name.replace(/\.(png|jpg|jpeg|gif|tiff|bmp)$/i, '');
+        const finalName = `${nameBase}.webp`;
+
+        optimizadas.push({ name: finalName, blob, size: blob.size, url: URL.createObjectURL(blob) });
+      }
+
+      renderOptimizadas();
+      actualizarMeta();
+
+      downloadAllBtn.disabled = optimizadas.length === 0;
+      uploadBtn.disabled = optimizadas.length === 0;
+    });
+
+    function renderOptimizadas() {
+      previewEl.innerHTML = '';
+      optimizadas.forEach((item, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'preview-item';
+
+        const img = document.createElement('img');
+        img.src = item.url;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = '✖';
+        removeBtn.onclick = () => {
+          URL.revokeObjectURL(item.url);
+          optimizadas.splice(idx, 1);
+          renderOptimizadas();
+          actualizarMeta();
+          downloadAllBtn.disabled = optimizadas.length === 0;
+          uploadBtn.disabled = optimizadas.length === 0;
+        };
+
+        const badge = document.createElement('div');
+        badge.className = 'badge';
+        badge.textContent = `${item.name} — ${bytesToKB(item.size)} KB`;
+
+        wrap.appendChild(img);
+        wrap.appendChild(removeBtn);
+        wrap.appendChild(badge);
+        previewEl.appendChild(wrap);
+      });
+    }
+
+    // Descargar todas las optimizadas
+    downloadAllBtn.addEventListener('click', async () => {
+      for (const item of optimizadas) {
+        const a = document.createElement('a');
+        a.href = item.url;
+        a.download = item.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        await new Promise(r => setTimeout(r, 100)); // separa descargas
+      }
+    });
+
+    // Subir optimizadas al backend
+    async function enviarOptimizado() {
+      resetErrores();
+      if (!optimizadas.length) {
+        setError('Primero optimizá las imágenes.');
+        return false;
+      }
+
+      for (const item of optimizadas) {
+        const formData = new FormData();
+        formData.append('file', item.blob, item.name);
+
+        try {
+          const res = await fetch('/upload-image', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (!data.ok) {
+            console.warn('Error al subir', item.name, data.error || data.status);
+            setError(`⚠️ Error al subir ${item.name}.`);
+          } else {
+            console.log('📤 Subida completa:', item.name, data.url || '');
+          }
+        } catch (err) {
+          console.error('Fallo de red en', item.name, err);
+          setError(`⚠️ Fallo de red al subir ${item.name}.`);
+        }
+      }
+      return false; // prevenimos submit HTML estándar
+    }
   </script>
 </body>
 </html>
-
