@@ -222,38 +222,34 @@
     <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
   </div>
   
-  <div class="carousel-inner">
-    <!-- Las imágenes se insertan dinámicamente desde IndexedDB -->
-  </div>
-  
-  <div class="modal fade" id="modalCarrusel" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content bg-dark text-white">
-      <div class="modal-header">
-        <h5 class="modal-title">Elegí una imagen</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div style="padding: 0 40px;">
-          <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-inner">
-              <!-- thumbnails se insertan dinámicamente desde IndexedDB -->
+   <div class="modal fade" id="modalCarrusel" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content bg-dark text-white">
+        <div class="modal-header">
+          <h5 class="modal-title">Elegí una imagen</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div style="padding: 0 40px;">
+            <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
+              <div class="carousel-inner">
+                <!-- thumbnails se insertan dinámicamente -->
+              </div>
+              <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+              </button>
+              <button class="carousel-control-next" type="button" data-bs-target="#carouselGlobal" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+              </button>
             </div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
-              <span class="carousel-control-prev-icon"></span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#carouselGlobal" data-bs-slide="next">
-              <span class="carousel-control-next-icon"></span>
-            </button>
           </div>
         </div>
-      </div>
-      <div class="modal-footer d-flex justify-content-between">
-        <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
 
   <script>
@@ -353,27 +349,77 @@ function guardarNombreGrupo(card, nuevoNombre) {
     contador.textContent = productos.length;
   }
 
-  function abrirCarrusel(btn) {
-  filaActual = btn.closest('.fila-producto');
-  const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
+    function agregarSlide(items, makeActive) {
+      const contenedor = document.querySelector("#carouselGlobal .carousel-inner"); // apuntar al modal
+      const div = document.createElement("div");
+      div.className = "carousel-item" + (makeActive ? " active" : "");
+      const row = document.createElement("div");
+      row.className = "row row-cols-4 gx-2 gy-2";
 
-  document.querySelectorAll('.thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
+      items.forEach(({ nombre, url }) => {
+        const col = document.createElement("div");
+        col.className = "col";
+        col.innerHTML = `
+          <div class="thumb-wrapper">
+            <img src="${url}" class="imagen-carrusel" alt="${nombre}"
+                 data-nombre="${nombre}" data-url="${url}"
+                 onclick="seleccionarImagen(this)">
+          </div>`;
+        row.appendChild(col);
+      });
 
-  document.querySelectorAll('.carousel-item img').forEach(img => {
-    const nombre = img.dataset.nombre;
-    if (imagenesUsadas.includes(nombre)) {
-      img.style.opacity = "0.3";
-      img.style.filter = "grayscale(100%) brightness(0.6)";
-      img.style.pointerEvents = "none";
-    } else {
-      img.style.opacity = "1";
-      img.style.filter = "none";
-      img.style.pointerEvents = "auto";
+      const faltantes = 8 - items.length;
+      for (let i = 0; i < faltantes; i++) {
+        const colInv = document.createElement("div");
+        colInv.className = "col invisible";
+        colInv.innerHTML = `<div class="thumb-wrapper"></div>`;
+        row.appendChild(colInv);
+      }
+
+      div.appendChild(row);
+      contenedor.appendChild(div);
     }
-  });
+  function abrirCarrusel(btn) {
+      filaActual = btn.closest('.fila-producto');
+      const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
 
-  modal.show();
-}
+      document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
+      document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+        const nombre = img.dataset.nombre;
+        if (imagenesUsadas.includes(nombre)) {
+          img.style.opacity = "0.3";
+          img.style.filter = "grayscale(100%) brightness(0.6)";
+          img.style.pointerEvents = "none";
+        } else {
+          img.style.opacity = "1";
+          img.style.filter = "none";
+          img.style.pointerEvents = "auto";
+        }
+      });
+
+      modal.show();
+    }
+    function inicializarCarrusel() {
+      cargarImagenesDesdeIndexedDB((cantidad) => {
+        if (cantidad > 0) return; // ya renderizado desde IndexedDB
+
+        // Fallback: usar imágenes de sesión (rutas /static/img/...)
+        if (Array.isArray(imagenesDisponibles) && imagenesDisponibles.length) {
+          let first = true;
+          let buffer = [];
+          imagenesDisponibles.forEach(ruta => {
+            // Normalizar ruta (puede venir con '/static/img/...'). Usamos tal cual.
+            buffer.push({ nombre: ruta.split('/').pop(), url: ruta });
+            if (buffer.length === 8) {
+              agregarSlide(buffer, first);
+              first = false;
+              buffer = [];
+            }
+          });
+          if (buffer.length) agregarSlide(buffer, first);
+        }
+      });
+    }
 
 function leerArchivoProductos() {
   const input = document.getElementById("archivoProductos");
@@ -528,112 +574,68 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   subgrupoCard.querySelector(".productos").appendChild(fila);
   actualizarContador(subgrupoCard);
 }
-    
-function cargarImagenesDesdeIndexedDB(callback) {
-  const request = indexedDB.open("imagenesDB", 1);
 
-  // 🔹 Se ejecuta la primera vez que se abre la DB o si subís la versión
-  request.onupgradeneeded = e => {
-    const db = e.target.result;
-    if (!db.objectStoreNames.contains("imagenes")) {
-      db.createObjectStore("imagenes"); // crea el store
-      console.log("📦 Object store 'imagenes' creado");
-    }
-  };
-
-  request.onsuccess = e => {
-    const db = e.target.result;
-    const tx = db.transaction("imagenes", "readonly");
-    const store = tx.objectStore("imagenes");
-
-    let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
-    let first = true;
-    let buffer = [];
-
-    lista.forEach(nombre => {
-      const getReq = store.get(nombre);
-
-      getReq.onsuccess = e => {
-        const blob = e.target.result;
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          buffer.push({ nombre, url });
-
-          if (buffer.length === 8) {
-            agregarSlide(buffer, first);
-            first = false;
-            buffer = [];
-          }
+    function ensureDB(callback) {
+      const request = indexedDB.open("imagenesDB", 2);
+      request.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("imagenes")) {
+          db.createObjectStore("imagenes");
+          console.log("📦 Store 'imagenes' creado (upgrade)");
         }
       };
-
-      getReq.onerror = err => {
-        console.error("❌ Error leyendo imagen:", nombre, err.target.error);
+      request.onsuccess = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("imagenes")) {
+          console.warn("⚠️ DB sin store. Borrando y recreando…");
+          db.close();
+          const del = indexedDB.deleteDatabase("imagenesDB");
+          del.onsuccess = () => {
+            const re = indexedDB.open("imagenesDB", 2);
+            re.onupgradeneeded = ev => ev.target.result.createObjectStore("imagenes");
+            re.onsuccess = ev => callback(ev.target.result);
+          };
+          del.onerror = () => { console.error("❌ No se pudo borrar la DB"); callback(db); };
+        } else {
+          callback(db);
+        }
       };
-    });
-
-    // 🔹 Al terminar la transacción, renderizamos lo que quede
-    tx.oncomplete = () => {
-      if (buffer.length) {
-        agregarSlide(buffer, first);
-      }
-    };
-  };
-
-  request.onerror = e => {
-    console.error("❌ Error abriendo IndexedDB:", e.target.error);
-  };
-}
-
-// 🔹 Inicialización al cargar la página
-window.addEventListener("load", () => {
-  cargarImagenesDesdeIndexedDB((nombre, url) => {
-    // El callback se usa dentro de la función para llenar buffer y slides
-    // Si querés además hacer algo extra con cada imagen, podés agregarlo acá
-    console.log("📥 Imagen cargada:", nombre);
-  });
-});
-
-
-    function agregarSlide(items, makeActive) {
-  const contenedor = document.querySelector(".carousel-inner"); // ✅ ahora apunta directo
-  const div = document.createElement("div");
-  div.className = "carousel-item" + (makeActive ? " active" : "");
-
-  const row = document.createElement("div");
-  row.className = "row row-cols-4 gx-2 gy-2";
-
-  items.forEach(({ nombre, url }) => {
-    const col = document.createElement("div");
-    col.className = "col";
-
-    col.innerHTML = `
-      <div class="thumb-wrapper">
-        <img src="${url}"
-             class="imagen-carrusel"
-             alt="${nombre}"
-             data-nombre="${nombre}"
-             data-url="${url}"
-             onclick="seleccionarImagen(this)">
-      </div>
-    `;
-    row.appendChild(col);
-  });
-
-  // completar columnas invisibles si no hay 8
-  const faltantes = 8 - items.length;
-  for (let i = 0; i < faltantes; i++) {
-    const colInv = document.createElement("div");
-    colInv.className = "col invisible";
-    colInv.innerHTML = `<div class="thumb-wrapper"></div>`;
-    row.appendChild(colInv);
-  }
-
-  div.appendChild(row);
-  contenedor.appendChild(div);
-}
-
+      request.onerror = e => console.error("❌ Error abriendo IndexedDB:", e.target.error);
+    }
     
+function cargarImagenesDesdeIndexedDB(done) {
+      ensureDB(db => {
+        const tx = db.transaction("imagenes", "readonly");
+        const store = tx.objectStore("imagenes");
+        const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+        let first = true, buffer = [];
+        let count = 0;
+
+        lista.forEach(nombre => {
+          const getReq = store.get(nombre);
+          getReq.onsuccess = e => {
+            const blob = e.target.result;
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              buffer.push({ nombre, url });
+              count++;
+              if (buffer.length === 8) {
+                agregarSlide(buffer, first);
+                first = false;
+                buffer = [];
+              }
+            }
+          };
+          getReq.onerror = err => console.error("❌ Error leyendo imagen:", nombre, err.target.error);
+        });
+
+        tx.oncomplete = () => {
+          if (buffer.length) agregarSlide(buffer, first);
+          done(count); // cantidad cargada desde IndexedDB
+        };
+      });
+    }
+
   function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
   const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
@@ -799,102 +801,79 @@ function actualizarContador(contenedor) {
 
     
 function seleccionarImagen(img) {
-  // limpiar selección previa
-  document.querySelectorAll('.thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
-
-  // marcar actual
-  const wrapper = img.closest('.thumb-wrapper');
-  if (wrapper) wrapper.classList.add('seleccionada');
-
-  // guardar valores reales
-  window.imagenSeleccionada = img.dataset.nombre; // ej: "foto.jpg"
-  window.imagenSeleccionadaUrl = img.dataset.url; // blob:...
-}
+      document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
+      const wrapper = img.closest('.thumb-wrapper');
+      if (wrapper) wrapper.classList.add('seleccionada');
+      window.imagenSeleccionada = img.dataset.nombre;
+      window.imagenSeleccionadaUrl = img.dataset.url;
+    }
 
 function confirmarImagen() {
-  if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) return;
+      if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) return;
+      const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
+      if (hiddenUrl) hiddenUrl.value = window.imagenSeleccionadaUrl;
 
-  const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
-  if (hiddenUrl) hiddenUrl.value = window.imagenSeleccionadaUrl;
+      let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
+      if (!hiddenBase) {
+        hiddenBase = document.createElement("input");
+        hiddenBase.type = "hidden";
+        hiddenBase.name = "imagen_basename";
+        filaActual.appendChild(hiddenBase);
+      }
+      hiddenBase.value = window.imagenSeleccionada;
 
-  let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
-  if (!hiddenBase) {
-    hiddenBase = document.createElement("input");
-    hiddenBase.type = "hidden";
-    hiddenBase.name = "imagen_basename";
-    filaActual.appendChild(hiddenBase);
-  }
-  hiddenBase.value = window.imagenSeleccionada;
+      const preview = filaActual.querySelector(".preview-imagen");
+      preview.innerHTML = `<img src="${window.imagenSeleccionadaUrl}"
+         style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
 
-  const preview = filaActual.querySelector(".preview-imagen");
-  preview.innerHTML = `
-    <img src="${window.imagenSeleccionadaUrl}"
-         style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">
-  `;
+      if (!imagenesUsadas.includes(window.imagenSeleccionada)) imagenesUsadas.push(window.imagenSeleccionada);
 
-  if (!imagenesUsadas.includes(window.imagenSeleccionada)) {
-    imagenesUsadas.push(window.imagenSeleccionada);
-  }
+      document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+        const nombre = img.dataset.nombre;
+        if (nombre === window.imagenSeleccionada) {
+          img.classList.add('usada');
+          img.style.opacity = "0.25";
+          img.style.filter = "grayscale(100%) brightness(0.6)";
+          img.style.pointerEvents = "none";
+        }
+      });
 
-  document.querySelectorAll('.carousel-item img').forEach(img => {
-    const nombre = img.dataset.nombre;
-    if (nombre === window.imagenSeleccionada) {
-      img.classList.add('usada');
-      img.style.opacity = "0.25";
-      img.style.filter = "grayscale(100%) brightness(0.6)";
-      img.style.pointerEvents = "none";
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
+      if (modal) modal.hide();
     }
-  });
-
-  const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
-  if (modal) modal.hide();
-}
-
 
 function validarYEnviar() {
-  const grupos = document.querySelectorAll('.card');
-  if (grupos.length === 0) {
-    alert('Agregá al menos un grupo antes de continuar');
-    return;
-  }
-
-  let hayContenidoValido = false;
-  let imagenesInvalidas = false;
-
-  grupos.forEach(grupo => {
-    const filas = grupo.querySelectorAll('.fila-producto');
-    filas.forEach(fila => {
-      const nombre = fila.querySelector('input[name="nombre"]');
-      const precio = fila.querySelector('input[name="precio"]');
-      const inputImagen = fila.querySelector('input[name="imagen_elegida"]');
-
-      const nombreValido = nombre && nombre.value.trim();
-      const precioValido = precio && precio.value.trim();
-      const imagenValida = inputImagen && inputImagen.value.trim() !== "";
-
-      if (nombreValido && precioValido && imagenValida) {
-        hayContenidoValido = true;
+      const grupos = document.querySelectorAll('.card');
+      if (grupos.length === 0) {
+        alert('Agregá al menos un grupo antes de continuar');
+        return;
       }
-
-      if ((nombreValido || precioValido) && !imagenValida) {
-        imagenesInvalidas = true;
+      let hayContenidoValido = false;
+      let imagenesInvalidas = false;
+      grupos.forEach(grupo => {
+        const filas = grupo.querySelectorAll('.fila-producto');
+        filas.forEach(fila => {
+          const nombre = fila.querySelector('input[name="nombre"]');
+          const precio = fila.querySelector('input[name="precio"]');
+          const inputImagen = fila.querySelector('input[name="imagen_elegida"]');
+          const nombreValido = nombre && nombre.value.trim();
+          const precioValido = precio && precio.value.trim();
+          const imagenValida = inputImagen && inputImagen.value.trim() !== "";
+          if (nombreValido && precioValido && imagenValida) hayContenidoValido = true;
+          if ((nombreValido || precioValido) && !imagenValida) imagenesInvalidas = true;
+        });
+      });
+      if (!hayContenidoValido) {
+        alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
+        return;
       }
-    });
-  });
-
-  if (!hayContenidoValido) {
-    alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
-    return;
-  }
-
-  if (imagenesInvalidas) {
-    alert('⚠️ Hay filas con nombre/precio pero sin imagen seleccionada. Revisalas antes de continuar.');
-    return;
-  }
-
-  document.getElementById('spinner').style.display = 'flex';
-  document.getElementById('formulario').submit();
-}
+      if (imagenesInvalidas) {
+        alert('⚠️ Hay filas con nombre/precio pero sin imagen seleccionada. Revisalas antes de continuar.');
+        return;
+      }
+      document.getElementById('spinner').style.display = 'flex';
+      document.getElementById('formulario').submit();
+    }
     
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
