@@ -221,65 +221,11 @@
     <div class="loader"></div>
     <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
   </div>
-
-<div class="modal fade" id="modalCarrusel" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content bg-dark text-white">
-      <div class="modal-header">
-        <h5 class="modal-title">Elegí una imagen</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div style="padding: 0 40px;">
-          <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-inner">
-              {% for img in imagenes_step0 %}
-                {% if loop.index0 % 8 == 0 %}
-                  <div class="carousel-item {% if loop.first %}active{% endif %}">
-                    <div class="row row-cols-4 gx-2 gy-2">
-                {% endif %}
-
-                      <div class="col">
-                        <div class="thumb-wrapper">
-                          <img src="{{ img }}"
-                               class="imagen-carrusel"
-                               alt="Imagen {{ loop.index }}"
-                               onclick="seleccionarImagen(this)"
-                               onerror="this.onerror=null; this.src='/static/img/fallback.webp';">
-                        </div>
-                      </div>
-                      <script>
-                        console.log("🎨 Renderizando miniatura:", "{{ img }}");
-                      </script>
-
-                {% if loop.index0 % 8 == 7 or loop.last %}
-                    {% set faltantes = 8 - (loop.index0 % 8 + 1) %}
-                    {% for i in range(faltantes) %}
-                      <div class="col invisible">
-                        <div class="thumb-wrapper"></div>
-                      </div>
-                    {% endfor %}
-                    </div>
-                  </div>
-                {% endif %}
-              {% endfor %}
-            </div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
-              <span class="carousel-control-prev-icon"></span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#carouselGlobal" data-bs-slide="next">
-              <span class="carousel-control-next-icon"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer d-flex justify-content-between">
-        <!-- ✅ Al confirmar, se actualiza el hidden input y la miniatura en la fila -->
-        <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
-      </div>
-    </div>
+  
+  <div class="carousel-inner">
+    <!-- Las imágenes se insertan dinámicamente desde IndexedDB -->
   </div>
-</div>
+
 
   <script>
   let grupoId = 0;
@@ -382,12 +328,10 @@ function guardarNombreGrupo(card, nuevoNombre) {
   filaActual = btn.closest('.fila-producto');
   const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
 
-  // Reset selección visual previa
   document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
 
-  // Refrescar estado de usadas
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-    const nombre = img.getAttribute("src").split("/").pop();
+    const nombre = img.dataset.nombre;
     if (imagenesUsadas.includes(nombre)) {
       img.style.opacity = "0.3";
       img.style.filter = "grayscale(100%) brightness(0.6)";
@@ -401,6 +345,7 @@ function guardarNombreGrupo(card, nuevoNombre) {
 
   modal.show();
 }
+
 
 function leerArchivoProductos() {
   const input = document.getElementById("archivoProductos");
@@ -578,25 +523,65 @@ function cargarImagenesDesdeIndexedDB(callback) {
 }
 
     window.addEventListener("load", () => {
+  let first = true;
+  let buffer = []; // agrupamos de a 8 por slide
+
   cargarImagenesDesdeIndexedDB((nombre, url) => {
-    const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
-    const div = document.createElement("div");
-    div.className = "carousel-item";
-    div.innerHTML = `
-      <div class="row row-cols-4 gx-2 gy-2">
-        <div class="col">
-          <div class="thumb-wrapper">
-            <img src="${url}" 
-                 class="imagen-carrusel" 
-                 alt="${nombre}" 
-                 onclick="seleccionarImagen(this)">
-          </div>
-        </div>
-      </div>`;
-    contenedor.appendChild(div);
+    buffer.push({ nombre, url });
+
+    if (buffer.length === 8) {
+      agregarSlide(buffer, first);
+      first = false;
+      buffer = [];
+    }
   });
+
+  // si quedaron menos de 8 al final, igual renderizamos
+  setTimeout(() => {
+    if (buffer.length) {
+      agregarSlide(buffer, first);
+    }
+  }, 0);
 });
 
+    function agregarSlide(items, makeActive) {
+  const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
+  const div = document.createElement("div");
+  div.className = "carousel-item" + (makeActive ? " active" : "");
+
+  const row = document.createElement("div");
+  row.className = "row row-cols-4 gx-2 gy-2";
+
+  items.forEach(({ nombre, url }) => {
+    const col = document.createElement("div");
+    col.className = "col";
+
+    col.innerHTML = `
+      <div class="thumb-wrapper">
+        <img src="${url}"
+             class="imagen-carrusel"
+             alt="${nombre}"
+             data-nombre="${nombre}"
+             data-url="${url}"
+             onclick="seleccionarImagen(this)">
+      </div>
+    `;
+    row.appendChild(col);
+  });
+
+  // completar columnas invisibles para que el layout quede parejo
+  const faltantes = 8 - items.length;
+  for (let i = 0; i < faltantes; i++) {
+    const colInv = document.createElement("div");
+    colInv.className = "col invisible";
+    colInv.innerHTML = `<div class="thumb-wrapper"></div>`;
+    row.appendChild(colInv);
+  }
+
+  div.appendChild(row);
+  contenedor.appendChild(div);
+}
+    
   function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
   const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
@@ -773,56 +758,26 @@ function actualizarContador(contenedor) {
 
     
 function seleccionarImagen(img) {
-  console.log("🚀 Entrando a seleccionarImagen()");
-  if (!img) {
-    console.error("❌ No se recibió elemento img en la función");
-    return;
-  }
+  // limpiar selección previa
+  document.querySelectorAll('.thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
 
-  // Quitar selección previa
-  const wrappers = document.querySelectorAll('.thumb-wrapper');
-  console.log("🔎 Wrappers encontrados:", wrappers.length);
-  wrappers.forEach(wrapper => wrapper.classList.remove('seleccionada'));
-
-  // Marcar nueva selección
+  // marcar actual
   const wrapper = img.closest('.thumb-wrapper');
-  if (!wrapper) {
-    console.error("❌ No se encontró wrapper para la imagen:", img);
-  } else {
-    wrapper.classList.add('seleccionada');
-    console.log("🎯 Wrapper marcado como seleccionada:", wrapper);
-  }
+  if (wrapper) wrapper.classList.add('seleccionada');
 
-  // Guardar nombre y URL completa
-  window.imagenSeleccionada = img.src.split("/").pop();
-  window.imagenSeleccionadaUrl = img.src;
-
-  console.log("✅ Nombre de archivo guardado:", window.imagenSeleccionada);
-  console.log("🔗 URL completa guardada:", window.imagenSeleccionadaUrl);
+  // guardar valores reales
+  window.imagenSeleccionada = img.dataset.nombre; // ej: "foto.jpg"
+  window.imagenSeleccionadaUrl = img.dataset.url; // blob:...
 }
 
-
 function confirmarImagen() {
-  console.log("🚀 Entrando a confirmarImagen()");
-  console.log("👉 Estado actual:", {
-    seleccionada: window.imagenSeleccionada,
-    seleccionadaUrl: window.imagenSeleccionadaUrl,
-    filaActual: filaActual
-  });
+  if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) return;
 
-  if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) {
-    console.error("❌ Faltan datos para confirmar imagen");
-    return;
-  }
-
-  // Hidden input para URL completa (GitHub/static)
+  // URL completa (preview en la fila). Blob sirve para mostrar, NO para persistir.
   const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
-  if (hiddenUrl) {
-    hiddenUrl.value = window.imagenSeleccionadaUrl;
-    console.log("📥 Hidden URL actualizado con:", hiddenUrl.value);
-  }
+  if (hiddenUrl) hiddenUrl.value = window.imagenSeleccionadaUrl;
 
-  // Hidden input extra para basename (GitHub)
+  // Basename real para persistencia
   let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
   if (!hiddenBase) {
     hiddenBase = document.createElement("input");
@@ -830,48 +785,31 @@ function confirmarImagen() {
     hiddenBase.name = "imagen_basename";
     filaActual.appendChild(hiddenBase);
   }
-  hiddenBase.value = window.imagenSeleccionada;
-  console.log("📥 Hidden basename actualizado con:", hiddenBase.value);
+  hiddenBase.value = window.imagenSeleccionada; // ej: "foto.jpg"
 
-  // Actualizar miniatura en la fila
+  // preview en la fila
   let preview = filaActual.querySelector(".preview-imagen");
-  if (!preview) {
-    preview = document.createElement("div");
-    preview.className = "preview-imagen mt-2";
-    filaActual.querySelector(".col-2.text-end").prepend(preview);
-  }
-  preview.innerHTML =
-    `<img src="${window.imagenSeleccionadaUrl}" 
-          style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;" 
-          onerror="console.error('❌ Error cargando miniatura:', this.src)">`;
+  if (!preview) preview = filaActual.querySelector(".d-flex")?.prepend(document.createElement("div"));
+  preview.innerHTML = `
+    <img src="${window.imagenSeleccionadaUrl}"
+         style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">
+  `;
 
-  // ✅ Marcar imagen como usada
-  const nombreSeleccionado = window.imagenSeleccionada; // basename
-  if (!imagenesUsadas.includes(nombreSeleccionado)) {
-    imagenesUsadas.push(nombreSeleccionado);
-    console.log("📦 Imagen agregada a usadas:", imagenesUsadas);
-  }
-
-  // Aplicar estilo "usada" al thumbnail coincidente
+  // marcar usada comparando por data-nombre
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-    const nombre = img.getAttribute("src").split("/").pop();
-    if (nombre === nombreSeleccionado) {
-      img.classList.add('usada'); // usa la clase CSS ya definida
+    const nombre = img.dataset.nombre;
+    if (nombre === window.imagenSeleccionada) {
+      img.classList.add('usada');
       img.style.opacity = "0.25";
       img.style.filter = "grayscale(100%) brightness(0.6)";
       img.style.pointerEvents = "none";
-      console.log("🚫 Imagen marcada como usada en carrusel:", nombre);
     }
   });
 
-  // Cerrar modal
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
-  if (modal) {
-    modal.hide();
-    document.activeElement.blur();
-    console.log("🔒 Modal cerrado correctamente.");
-  }
+  if (modal) modal.hide();
 }
+
 
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
