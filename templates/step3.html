@@ -288,9 +288,9 @@
   let filaActual = null;           // referencia a la fila activa
   let imagenesUsadas = [];         // lista global de imágenes ya asignadas
     
-  window.onload = () => {
+  window.addEventListener("load", () => {
     contadorOrden = 1;
-  };
+  });
 
   const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
   console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
@@ -555,6 +555,47 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   subgrupoCard.querySelector(".productos").appendChild(fila);
   actualizarContador(subgrupoCard);
 }
+function cargarImagenesDesdeIndexedDB(callback) {
+  const request = indexedDB.open("imagenesDB", 1);
+
+  request.onsuccess = e => {
+    const db = e.target.result;
+    const tx = db.transaction("imagenes", "readonly");
+    const store = tx.objectStore("imagenes");
+
+    let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+    lista.forEach(nombre => {
+      const getReq = store.get(nombre);
+      getReq.onsuccess = e => {
+        const blob = e.target.result;
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          callback(nombre, url); // nombre y URL temporal
+        }
+      };
+    });
+  };
+}
+
+    window.addEventListener("load", () => {
+  cargarImagenesDesdeIndexedDB((nombre, url) => {
+    const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
+    const div = document.createElement("div");
+    div.className = "carousel-item";
+    div.innerHTML = `
+      <div class="row row-cols-4 gx-2 gy-2">
+        <div class="col">
+          <div class="thumb-wrapper">
+            <img src="${url}" 
+                 class="imagen-carrusel" 
+                 alt="${nombre}" 
+                 onclick="seleccionarImagen(this)">
+          </div>
+        </div>
+      </div>`;
+    contenedor.appendChild(div);
+  });
+});
 
   function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
