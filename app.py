@@ -128,7 +128,6 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
         "Accept": "application/vnd.github+json"
     }
 
-    # Obtener SHA si el archivo ya existe
     sha = None
     try:
         r_get = requests.get(url, headers=headers, timeout=10)
@@ -143,20 +142,30 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
         "branch": branch
     }
     if sha:
-        data["sha"] = sha  # necesario para actualizar
+        data["sha"] = sha
 
     try:
         r = requests.put(url, headers=headers, json=data, timeout=10)
         if r.status_code in (200, 201):
-            return {
-                "ok": True,
-                "url": r.json().get("content", {}).get("html_url"),
-                "status": r.status_code
-            }
+            return {"ok": True, "url": r.json().get("content", {}).get("html_url")}
         else:
-            return {"ok": False, "status": r.status_code, "error": r.text}
+            return {"ok": False, "error": r.text}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+@app.route("/upload-image", methods=["POST"])
+def upload_image():
+    if "file" not in request.files:
+        return jsonify({"ok": False, "error": "No se envió archivo"}), 400
+
+    file = request.files["file"]
+    contenido_bytes = file.read()
+
+    # Nombre remoto en GitHub (ejemplo: carpeta 'imagenes/')
+    ruta_remota = f"imagenes/{file.filename}"
+
+    resultado = subir_archivo("nombre_repo", contenido_bytes, ruta_remota, GITHUB_TOKEN)
+    return jsonify(resultado)
 
 def subir_iconos_png(repo, token):
     carpeta = os.path.join("static", "img")
