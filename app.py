@@ -174,24 +174,21 @@ def upload_image():
     if not contenido_bytes:
         return jsonify({"ok": False, "error": "Archivo vacío"}), 400
 
-    # Email del usuario desde sesión (o 'anonimo' si no está)
-    email = session.get("email", "anonimo")
-
-    # Nombre del repo dinámico desde sesión
+    # Nombre del repo dinámico desde sesión (fallback a AppWeb si no existe)
     repo_name = session.get("repo_nombre") or "AppWeb"
 
-    # Guardar en carpeta por usuario dentro del repo
-    ruta_remota = f"usuarios/{email}/imagenes/{file.filename}"
+    # Ruta remota correcta dentro del repo GitHub
+    ruta_remota = f"static/img/{file.filename}"
 
-    # Usar la versión reformada de subir_archivo (sin token explícito)
+    # usar la versión de subir_archivo que obtiene el token desde os.getenv("GITHUB_TOKEN")
     resultado = subir_archivo(repo_name, contenido_bytes, ruta_remota)
 
-    # Respuesta JSON clara
     if resultado.get("ok"):
         return jsonify({
             "ok": True,
-            "url": resultado.get("url"),
-            "archivo": file.filename
+            "url": resultado.get("url"),            # URL del archivo en GitHub
+            "archivo": file.filename,               # nombre del archivo
+            "ruta_remota": ruta_remota              # ruta dentro del repo
         }), 200
     else:
         return jsonify({
@@ -199,6 +196,7 @@ def upload_image():
             "error": resultado.get("error", "Error desconocido"),
             "status": resultado.get("status", 500)
         }), 500
+
 
 def subir_iconos_png(repo, token):
     carpeta = os.path.join("static", "img")
