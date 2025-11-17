@@ -5,6 +5,5 @@ requests
 shortuuid>=1.0.0
 mercadopago>=2.1.0
 firebase-admin
-boto3
 pandas
 openpyxl
