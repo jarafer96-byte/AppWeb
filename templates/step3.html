@@ -259,10 +259,6 @@
   let filaActual = null;           // referencia a la fila activa
   let imagenesUsadas = [];         // lista global de imágenes ya asignadas
     
-  window.addEventListener("load", () => {
-    contadorOrden = 1;
-  });
-
   const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
   console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
 
@@ -273,7 +269,7 @@
     actualizarContador(grupo);
   }
   
-  function crearGrupo() {
+function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
   if (!nombre) return alert("Ingresá un nombre para el grupo");
 
@@ -312,7 +308,7 @@
   document.getElementById('nombreGrupo').value = '';
 }
 
-    function editarNombreGrupo(btn) {
+function editarNombreGrupo(btn) {
   const card = btn.closest('.card');
   const h4 = card.querySelector('.nombre-grupo');
   const valorActual = h4.textContent.trim();
@@ -343,13 +339,18 @@ function guardarNombreGrupo(card, nuevoNombre) {
   card.querySelectorAll('input[name="grupo"]').forEach(h => h.value = nuevoNombre);
 }
 
-  function actualizarContador(bloque) {
-    const contador = bloque.querySelector('.contador');
-    const productos = bloque.querySelectorAll('.productos > .fila-producto');
-    contador.textContent = productos.length;
-  }
+function actualizarContador(elemento) {
+  const card = elemento.classList.contains('productos')
+    ? elemento.closest('.card')
+    : elemento;
 
-    function agregarSlide(items, makeActive) {
+  const contador = card.querySelector('.contador');
+  const productos = card.querySelectorAll('.productos > .fila-producto');
+  contador.textContent = productos.length;
+}
+
+
+  function agregarSlide(items, makeActive) {
       const contenedor = document.querySelector("#carouselGlobal .carousel-inner"); // apuntar al modal
       const div = document.createElement("div");
       div.className = "carousel-item" + (makeActive ? " active" : "");
@@ -399,7 +400,7 @@ function guardarNombreGrupo(card, nuevoNombre) {
 
       modal.show();
     }
-    function inicializarCarrusel() {
+function inicializarCarrusel() {
       cargarImagenesDesdeIndexedDB((cantidad) => {
         if (cantidad > 0) return; // ya renderizado desde IndexedDB
 
@@ -525,9 +526,8 @@ function leerArchivoProductos() {
   }
 }
 
-// 👉 Función auxiliar para insertar filas en el DOM
+
 function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
-  // Buscar o crear grupo
   let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
     c => c.querySelector("h4")?.textContent.trim() === grupo
   );
@@ -575,7 +575,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   actualizarContador(subgrupoCard);
 }
 
-    function ensureDB(callback) {
+  function ensureDB(callback) {
       const request = indexedDB.open("imagenesDB", 2);
       request.onupgradeneeded = e => {
         const db = e.target.result;
@@ -636,7 +636,7 @@ function cargarImagenesDesdeIndexedDB(done) {
       });
     }
 
-  function crearSubgrupo(btn) {
+function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
   const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
   const subgruposContenedor = grupo.querySelector('.subgrupos');
@@ -670,7 +670,7 @@ function cargarImagenesDesdeIndexedDB(done) {
   actualizarContador(subgrupo);
 }
 
-    function editarNombreSubgrupo(btn) {
+function editarNombreSubgrupo(btn) {
   const card = btn.closest('.subgrupo');
   const strong = card.querySelector('.nombre-subgrupo');
   const valorActual = strong.textContent.trim();
@@ -768,13 +768,15 @@ function eliminarFila(btn) {
   const basename = hiddenBase ? hiddenBase.value : "";
 
   if (basename) {
-    document.querySelectorAll('.carousel-item img').forEach(img => {
+    document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
       const nombre = img.dataset.nombre;
       if (nombre === basename) {
         img.classList.remove('usada');
         img.style.opacity = "1";
         img.style.filter = "none";
         img.style.pointerEvents = "auto";
+        // opcional: liberar URL temporal si era blob
+        // URL.revokeObjectURL(img.src);
       }
     });
     imagenesUsadas = imagenesUsadas.filter(n => n !== basename);
@@ -782,24 +784,19 @@ function eliminarFila(btn) {
 
   if (contenedor.querySelectorAll('.fila-producto').length > 1) {
     fila.remove();
-    actualizarContador(contenedor);
+    actualizarContador(contenedor); // usa la versión unificada
   } else {
     alert("No se puede eliminar la última fila");
   }
 }
 
 
+
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
   grupo.remove();
 }
-
-function actualizarContador(contenedor) {
-  const contador = contenedor.closest('.card').querySelector('.contador');
-  contador.textContent = contenedor.querySelectorAll('.fila-producto').length;
-}
-
-    
+  
 function seleccionarImagen(img) {
       document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
       const wrapper = img.closest('.thumb-wrapper');
@@ -875,15 +872,14 @@ function validarYEnviar() {
       document.getElementById('formulario').submit();
     }
   window.addEventListener("load", () => {
+  contadorOrden = 1;
   cargarImagenesDesdeIndexedDB(count => {
     console.log("📥 Imágenes cargadas desde IndexedDB:", count);
     if (count === 0) {
-      // Fallback: usar session['imagenes_step0'] si IndexedDB está vacío
-      inicializarCarruselConSesion();
+      inicializarCarrusel(); // usa el fallback a sesión definido arriba
     }
   });
 });
-  
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
