@@ -535,9 +535,9 @@
               <div class="card p-3 h-100">
                 <!-- ✅ Imagen con Backblaze + fallback GitHub -->
                 <img src="{{ producto.imagen_backblaze or producto.imagen_github or '/static/img/fallback.webp' }}"
-                     class="card-img-top"
                      alt="{{ producto.nombre }}"
-                     loading="lazy">
+                     loading="lazy"
+                     style="width:300px;height:180px;object-fit:contain;border:1px solid #ccc;border-radius:6px;display:block;margin:0 auto;">
 
                 <div class="card-body">
                   {% if modoAdmin %}
