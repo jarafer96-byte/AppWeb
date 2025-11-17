@@ -128,6 +128,7 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
         "Accept": "application/vnd.github+json"
     }
 
+    # Obtener SHA si el archivo ya existe
     sha = None
     try:
         r_get = requests.get(url, headers=headers, timeout=10)
@@ -142,17 +143,22 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, token, branch="main"):
         "branch": branch
     }
     if sha:
-        data["sha"] = sha
+        data["sha"] = sha  # necesario para actualizar
 
     try:
         r = requests.put(url, headers=headers, json=data, timeout=10)
         if r.status_code in (200, 201):
-            return {"ok": True, "url": r.json().get("content", {}).get("html_url")}
+            return {
+                "ok": True,
+                "url": r.json().get("content", {}).get("html_url"),
+                "status": r.status_code
+            }
         else:
-            return {"ok": False, "error": r.text}
+            return {"ok": False, "status": r.status_code, "error": r.text}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+# --- Endpoint para subir imágenes optimizadas ---
 @app.route("/upload-image", methods=["POST"])
 def upload_image():
     if "file" not in request.files:
@@ -161,11 +167,33 @@ def upload_image():
     file = request.files["file"]
     contenido_bytes = file.read()
 
-    # Nombre remoto en GitHub (ejemplo: carpeta 'imagenes/')
-    ruta_remota = f"imagenes/{file.filename}"
+    if not contenido_bytes:
+        return jsonify({"ok": False, "error": "Archivo vacío"}), 400
+
+    # Email del usuario desde sesión (o 'anonimo' si no está)
+    email = session.get("email", "anonimo")
+
+    # Guardar en carpeta por usuario dentro del repo
+    ruta_remota = f"usuarios/{email}/imagenes/{file.filename}"
 
     resultado = subir_archivo("nombre_repo", contenido_bytes, ruta_remota, GITHUB_TOKEN)
-    return jsonify(resultado)
+
+    # Respuesta JSON clara
+    if resultado.get("ok"):
+        return jsonify({
+            "ok": True,
+            "url": resultado.get("url"),
+            "archivo": file.filename
+        }), 200
+    else:
+        return jsonify({
+            "ok": False,
+            "error": resultado.get("error", "Error desconocido"),
+            "status": resultado.get("status", 500)
+        }), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
 
 def subir_iconos_png(repo, token):
     carpeta = os.path.join("static", "img")
@@ -229,12 +257,15 @@ def limpiar_imagenes_usuario():
 
 def redimensionar_y_subir(imagen, email):
     try:
+        # Abrir imagen en RGBA para soportar transparencia
         pil = Image.open(imagen).convert("RGBA")
 
-        target_size = (300, 200)
+        # Tamaño objetivo
+        target_size = (300, 180)
         img_ratio = pil.width / pil.height
         target_ratio = target_size[0] / target_size[1]
 
+        # Calcular dimensiones proporcionales
         if img_ratio > target_ratio:
             new_width = target_size[0]
             new_height = int(new_width / img_ratio)
@@ -242,27 +273,43 @@ def redimensionar_y_subir(imagen, email):
             new_height = target_size[1]
             new_width = int(new_height * img_ratio)
 
+        # Redimensionar manteniendo proporción
         pil = pil.resize((new_width, new_height), Image.LANCZOS)
 
+        # Crear fondo transparente 300x180
         fondo = Image.new("RGBA", target_size, (0, 0, 0, 0))
-        offset = ((target_size[0] - new_width) // 2, (target_size[1] - new_height) // 2)
+        offset = ((target_size[0] - new_width) // 2,
+                  (target_size[1] - new_height) // 2)
         fondo.paste(pil, offset, pil)
 
+        # Guardar en buffer como WebP calidad 80
         buffer = BytesIO()
         fondo.save(buffer, format="WEBP", quality=80)
         buffer.seek(0)
 
+        # Nombre único
         nombre = f"mini_{uuid.uuid4().hex}.webp"
         ruta_s3 = f"usuarios/{email}/{nombre}"
 
+        # Guardar copia en /tmp
         ruta_tmp = os.path.join("/tmp", nombre)
         with open(ruta_tmp, "wb") as f:
             f.write(buffer.getvalue())
 
-        s3.upload_fileobj(buffer, BUCKET, ruta_s3, ExtraArgs={'ContentType': 'image/webp'})
+        # Subir a Backblaze S3
+        s3.upload_fileobj(
+            buffer,
+            BUCKET,
+            ruta_s3,
+            ExtraArgs={'ContentType': 'image/webp'}
+        )
+
+        # URL final pública
         url_final = f"https://{BUCKET}.s3.us-west-004.backblazeb2.com/{ruta_s3}"
         return url_final
-    except Exception:
+
+    except Exception as e:
+        print(f"❌ Error al redimensionar y subir: {e}")
         return None
 
 def normalizar_url(url: str) -> str:
