@@ -225,6 +225,35 @@
   <div class="carousel-inner">
     <!-- Las imágenes se insertan dinámicamente desde IndexedDB -->
   </div>
+  
+  <div class="modal fade" id="modalCarrusel" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark text-white">
+      <div class="modal-header">
+        <h5 class="modal-title">Elegí una imagen</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div style="padding: 0 40px;">
+          <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+              <!-- thumbnails se insertan dinámicamente desde IndexedDB -->
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselGlobal" data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 
   <script>
@@ -328,9 +357,9 @@ function guardarNombreGrupo(card, nuevoNombre) {
   filaActual = btn.closest('.fila-producto');
   const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
 
-  document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
+  document.querySelectorAll('.thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
 
-  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+  document.querySelectorAll('.carousel-item img').forEach(img => {
     const nombre = img.dataset.nombre;
     if (imagenesUsadas.includes(nombre)) {
       img.style.opacity = "0.3";
@@ -345,7 +374,6 @@ function guardarNombreGrupo(card, nuevoNombre) {
 
   modal.show();
 }
-
 
 function leerArchivoProductos() {
   const input = document.getElementById("archivoProductos");
@@ -715,22 +743,16 @@ function eliminarFila(btn) {
   const basename = hiddenBase ? hiddenBase.value : "";
 
   if (basename) {
-    console.log("🗑️ Eliminando fila con imagen (basename):", basename);
-
-    // Liberar imagen en el carrusel usando data-nombre
     document.querySelectorAll('.carousel-item img').forEach(img => {
       const nombre = img.dataset.nombre;
       if (nombre === basename) {
-        console.log("🔓 Liberando imagen en carrusel:", nombre);
         img.classList.remove('usada');
         img.style.opacity = "1";
         img.style.filter = "none";
         img.style.pointerEvents = "auto";
       }
     });
-
-    imagenesUsadas = imagenesUsadas.filter(img => img !== basename);
-    console.log("📦 Lista de imágenes usadas actualizada:", imagenesUsadas);
+    imagenesUsadas = imagenesUsadas.filter(n => n !== basename);
   }
 
   if (contenedor.querySelectorAll('.fila-producto').length > 1) {
@@ -740,7 +762,6 @@ function eliminarFila(btn) {
     alert("No se puede eliminar la última fila");
   }
 }
-
 
 
 function eliminarGrupo(btn) {
@@ -770,11 +791,9 @@ function seleccionarImagen(img) {
 function confirmarImagen() {
   if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) return;
 
-  // URL completa (preview en la fila). Blob sirve para mostrar, NO para persistir.
   const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
   if (hiddenUrl) hiddenUrl.value = window.imagenSeleccionadaUrl;
 
-  // Basename real para persistencia
   let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
   if (!hiddenBase) {
     hiddenBase = document.createElement("input");
@@ -782,18 +801,19 @@ function confirmarImagen() {
     hiddenBase.name = "imagen_basename";
     filaActual.appendChild(hiddenBase);
   }
-  hiddenBase.value = window.imagenSeleccionada; // ej: "foto.jpg"
+  hiddenBase.value = window.imagenSeleccionada;
 
-  // preview en la fila
-  let preview = filaActual.querySelector(".preview-imagen");
-  if (!preview) preview = filaActual.querySelector(".d-flex")?.prepend(document.createElement("div"));
+  const preview = filaActual.querySelector(".preview-imagen");
   preview.innerHTML = `
     <img src="${window.imagenSeleccionadaUrl}"
          style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">
   `;
 
-  // marcar usada comparando por data-nombre
-  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+  if (!imagenesUsadas.includes(window.imagenSeleccionada)) {
+    imagenesUsadas.push(window.imagenSeleccionada);
+  }
+
+  document.querySelectorAll('.carousel-item img').forEach(img => {
     const nombre = img.dataset.nombre;
     if (nombre === window.imagenSeleccionada) {
       img.classList.add('usada');
