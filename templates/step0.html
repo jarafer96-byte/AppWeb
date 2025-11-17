@@ -32,10 +32,25 @@
            onchange="Array.from(this.files).forEach(f => guardarImagenEnIndexedDB(f))">
     <br><br>
 
-    <button type="button" id="optimizeBtn">Optimizar</button>
-    <button type="button" id="clearBtn">Quitar todas</button>
-    <button type="button" id="downloadAllBtn" disabled>Descargar optimizadas</button>
-    <button type="submit" id="uploadBtn" disabled>Subir optimizadas</button>
+    <div class="mb-3 text-center">
+      <p style="color:white; font-weight:bold; margin-bottom:6px;">Paso 1</p>
+      <button type="button" id="optimizeBtn" class="btn-gradient">Optimizar</button>
+    </div>
+
+    <div class="mb-3 text-center">
+      <p style="color:white; font-weight:bold; margin-bottom:6px;">Opcional</p>
+      <button type="button" id="optimizeBtn" class="btn-gradient">Quitar todas</button>
+    </div>
+
+    <div class="mb-3 text-center">
+      <p style="color:white; font-weight:bold; margin-bottom:6px;">Opcional</p>
+      <button type="button" id="optimizeBtn" class="btn-gradient">Descargar optimizadas</button>
+    </div>
+    
+    <div class="mb-3 text-center">
+      <p style="color:white; font-weight:bold; margin-bottom:6px;">Paso 2 y finalizar</p>
+      <button type="button" id="optimizeBtn" class="btn-gradient">Subir optimizadas</button>
+    </div>
   </form>
 
   <div class="error" id="error"></div>
@@ -145,13 +160,17 @@
     });
 
     clearBtn.addEventListener('click', () => {
-      originales = [];
-      optimizadas = [];
-      previewEl.innerHTML = '';
-      actualizarMeta();
-      downloadAllBtn.disabled = true;
-      uploadBtn.disabled = true;
-    });
+  originales = [];
+  optimizadas = [];
+  previewEl.innerHTML = '';
+  actualizarMeta();
+  downloadAllBtn.disabled = true;
+  uploadBtn.disabled = true;
+
+  // 🔹 limpiar también el input file
+  input.value = '';
+});
+
 
     function actualizarMeta() {
       const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
