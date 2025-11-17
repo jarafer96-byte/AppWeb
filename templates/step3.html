@@ -547,48 +547,37 @@ function cargarImagenesDesdeIndexedDB(callback) {
     const store = tx.objectStore("imagenes");
 
     let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+    let first = true;
+    let buffer = [];
+
     lista.forEach(nombre => {
       const getReq = store.get(nombre);
+
       getReq.onsuccess = e => {
         const blob = e.target.result;
         if (blob) {
           const url = URL.createObjectURL(blob);
-          callback(nombre, url); // nombre y URL temporal
+          buffer.push({ nombre, url });
+
+          if (buffer.length === 8) {
+            agregarSlide(buffer, first);
+            first = false;
+            buffer = [];
+          }
         }
       };
+
+      getReq.onerror = err => {
+        console.error("❌ Error leyendo imagen:", nombre, err.target.error);
+      };
     });
-  };
 
-  request.onerror = e => {
-    console.error("❌ Error abriendo IndexedDB:", e.target.error);
-  };
-}
-    
-function guardarImagenEnIndexedDB(file) {
-  const request = indexedDB.open("imagenesDB", 1);
-
-  request.onupgradeneeded = e => {
-    const db = e.target.result;
-    if (!db.objectStoreNames.contains("imagenes")) {
-      db.createObjectStore("imagenes");
-      console.log("📦 Object store 'imagenes' creado");
-    }
-  };
-
-  request.onsuccess = e => {
-    const db = e.target.result;
-    const tx = db.transaction("imagenes", "readwrite");
-    const store = tx.objectStore("imagenes");
-
-    store.put(file, file.name); // guarda el blob con la key = nombre
-    console.log("✅ Imagen guardada en IndexedDB:", file.name);
-
-    // también guardamos el nombre en LocalStorage
-    let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
-    if (!lista.includes(file.name)) {
-      lista.push(file.name);
-      localStorage.setItem("imagenesLista", JSON.stringify(lista));
-    }
+    // 🔹 Al terminar la transacción, renderizamos lo que quede
+    tx.oncomplete = () => {
+      if (buffer.length) {
+        agregarSlide(buffer, first);
+      }
+    };
   };
 
   request.onerror = e => {
@@ -596,28 +585,15 @@ function guardarImagenEnIndexedDB(file) {
   };
 }
 
-
-    window.addEventListener("load", () => {
-  let first = true;
-  let buffer = []; // agrupamos de a 8 por slide
-
+// 🔹 Inicialización al cargar la página
+window.addEventListener("load", () => {
   cargarImagenesDesdeIndexedDB((nombre, url) => {
-    buffer.push({ nombre, url });
-
-    if (buffer.length === 8) {
-      agregarSlide(buffer, first);
-      first = false;
-      buffer = [];
-    }
+    // El callback se usa dentro de la función para llenar buffer y slides
+    // Si querés además hacer algo extra con cada imagen, podés agregarlo acá
+    console.log("📥 Imagen cargada:", nombre);
   });
-
-  // si quedaron menos de 8 al final, igual renderizamos
-  setTimeout(() => {
-    if (buffer.length) {
-      agregarSlide(buffer, first);
-    }
-  }, 0);
 });
+
 
     function agregarSlide(items, makeActive) {
   const contenedor = document.querySelector(".carousel-inner"); // ✅ ahora apunta directo
