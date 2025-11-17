@@ -163,7 +163,6 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-# --- Endpoint para subir imágenes optimizadas ---
 @app.route("/upload-image", methods=["POST"])
 def upload_image():
     if "file" not in request.files:
@@ -178,10 +177,14 @@ def upload_image():
     # Email del usuario desde sesión (o 'anonimo' si no está)
     email = session.get("email", "anonimo")
 
+    # Nombre del repo dinámico desde sesión
+    repo_name = session.get("repo_nombre") or "AppWeb"
+
     # Guardar en carpeta por usuario dentro del repo
     ruta_remota = f"usuarios/{email}/imagenes/{file.filename}"
 
-    resultado = subir_archivo("nombre_repo", contenido_bytes, ruta_remota, token)
+    # Usar la versión reformada de subir_archivo (sin token explícito)
+    resultado = subir_archivo(repo_name, contenido_bytes, ruta_remota)
 
     # Respuesta JSON clara
     if resultado.get("ok"):
@@ -196,9 +199,6 @@ def upload_image():
             "error": resultado.get("error", "Error desconocido"),
             "status": resultado.get("status", 500)
         }), 500
-
-if __name__ == "__main__":
-    app.run(debug=True)
 
 def subir_iconos_png(repo, token):
     carpeta = os.path.join("static", "img")
