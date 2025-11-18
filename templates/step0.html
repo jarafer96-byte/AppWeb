@@ -259,9 +259,7 @@ function resetFeedback() {
         });
       });
     });
-
-    function resetErrores() { errorEl.textContent = ''; }
-    function setError(msg) { errorEl.textContent = msg; }
+    
     function bytesToKB(b) { return (b / 1024).toFixed(1); }
     function bytesToMB(b) { return (b / (1024*1024)).toFixed(2); }
 
