@@ -84,6 +84,18 @@
 </div>
 
   <script>
+    window.addEventListener("DOMContentLoaded", () => {
+  const data = JSON.parse(localStorage.getItem("imagenesOriginales") || "[]");
+  if (data.length) {
+    // reconstruir objetos File desde IndexedDB si querés, o mostrar placeholders
+    // más simple: mostrar solo nombres guardados
+    originales = data.map(d => new File([""], d.name, { type: "image/*", lastModified: d.lastModified }));
+    syncInputWithOriginales();
+    renderOriginales();
+    actualizarMeta();
+  }
+});
+
     const input = document.getElementById('imagenes');
     const errorEl = document.getElementById('error');
     const metaEl = document.getElementById('meta');
@@ -151,7 +163,15 @@ function renderPager(totalItems, currentPage, onGoToPage) {
   pagerEl.appendChild(next);
 }
 
-    
+    function saveOriginalesToLocal() {
+  const data = originales.map(f => ({
+    name: f.name,
+    size: f.size,
+    lastModified: f.lastModified
+  }));
+  localStorage.setItem("imagenesOriginales", JSON.stringify(data));
+}
+
     // IndexedDB helper: asegura store, y se auto-repara si falta
     function ensureDB(callback) {
       const request = indexedDB.open("imagenesDB", 2);
@@ -268,6 +288,7 @@ function renderPager(totalItems, currentPage, onGoToPage) {
   input.value = '';
   actualizarFileCount();
   localStorage.removeItem("imagenesLista");
+  localStorage.removeItem("imagenesOriginales");
   const del = indexedDB.deleteDatabase("imagenesDB");
   del.onsuccess = () => console.log("🗑️ IndexedDB borrada al limpiar todas");
 });
