@@ -73,6 +73,16 @@
   <div class="preview" id="preview"></div>
   <div id="pager" style="display:flex; justify-content:center; gap:8px; margin-top:12px;"></div>
 
+  <div id="pager" style="display:flex; justify-content:center; gap:8px; margin-top:12px;"></div>
+<div style="text-align:center; margin-top:8px;">
+  <label style="color:#ccc; font-size:0.9em;">Miniaturas por página:</label>
+  <select id="pageSizeSelect">
+    <option value="20" selected>20</option>
+    <option value="30">30</option>
+    <option value="50">50</option>
+  </select>
+</div>
+
   <script>
     const input = document.getElementById('imagenes');
     const errorEl = document.getElementById('error');
@@ -247,26 +257,21 @@ function renderPager(totalItems, currentPage, onGoToPage) {
     });
 
     clearBtn.addEventListener('click', () => {
-      // limpiar arrays, preview y metadatos
-      originales = [];
-      optimizadas = [];
-      previewEl.innerHTML = '';
-      actualizarMeta();
+  optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
+  optimizadas = [];
+  originales = [];
+  previewEl.innerHTML = '';
+  actualizarMeta();
+  downloadAllBtn.disabled = true; downloadAllBtn.classList.add('btn-disabled');
+  uploadBtn.disabled = true; uploadBtn.classList.add('btn-disabled');
+  syncInputWithOriginales();
+  input.value = '';
+  actualizarFileCount();
+  localStorage.removeItem("imagenesLista");
+  const del = indexedDB.deleteDatabase("imagenesDB");
+  del.onsuccess = () => console.log("🗑️ IndexedDB borrada al limpiar todas");
+});
 
-      // deshabilitar acciones dependientes
-      downloadAllBtn.disabled = true; downloadAllBtn.classList.add('btn-disabled');
-      uploadBtn.disabled = true; uploadBtn.classList.add('btn-disabled');
-
-      // limpiar input y contador
-      syncInputWithOriginales(); // vacía input.files
-      input.value = '';
-      actualizarFileCount();
-
-      // limpiar cache local opcional
-      localStorage.removeItem("imagenesLista");
-      const del = indexedDB.deleteDatabase("imagenesDB");
-      del.onsuccess = () => console.log("🗑️ IndexedDB borrada al limpiar todas");
-    });
 
     function actualizarMeta() {
       const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
