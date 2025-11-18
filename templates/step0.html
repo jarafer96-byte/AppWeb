@@ -112,7 +112,15 @@
         renderOptimizadas();
       });
     }
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.color = '#ff4d4d'; // rojo
+    }
 
+    function showInfo(msg) {
+      metaEl.textContent = msg;
+      metaEl.style.color = '#0f0'; // verde
+    }
     // Paginador
     function renderPager(totalItems, currentPage, onGoToPage) {
       const pagerEl = document.getElementById('pager');
@@ -268,24 +276,29 @@
       }
     }
 
-    // Input change: validaciones + guardado
+    // Input change: validaciones + guardado + feedback
     input.addEventListener('change', () => {
       resetErrores();
       const nuevos = Array.from(input.files);
+      let duplicados = 0;
 
+      // Validación cantidad
       if (originales.length + nuevos.length > 500) {
-        setError('⚠️ Máximo 500 imágenes permitidas.');
+        showError('⚠️ Máximo 500 imágenes permitidas.');
         input.value = '';
         return;
       }
+
+      // Validación tamaño
       for (const f of nuevos) {
         if (f.size > 1 * 1024 * 1024) {
-          setError(`La imagen "${f.name}" supera 1 MB.`);
+          showError(`⚠️ La imagen "${f.name}" supera 1 MB.`);
           input.value = '';
           return;
         }
       }
 
+      // Evitar duplicados
       nuevos.forEach(f => {
         const existe = originales.some(a =>
           a.name === f.name && a.size === f.size && a.lastModified === f.lastModified
@@ -293,8 +306,17 @@
         if (!existe) {
           originales.push(f);
           guardarImagenEnIndexedDB(f);
+        } else {
+          duplicados++;
         }
       });
+
+      // Feedback visual
+      if (duplicados > 0) {
+        showError(`⚠️ ${duplicados} imagen(es) duplicada(s) fueron ignoradas.`);
+      } else if (nuevos.length > 0) {
+        showInfo(`✅ ${nuevos.length} imagen(es) agregadas correctamente.`);
+      }
 
       saveOriginalesToLocal();
       syncInputWithOriginales();
@@ -326,19 +348,35 @@
     });
 
     function actualizarMeta() {
-      const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
-      const totalOpt  = optimizadas.reduce((sum, f) => sum + f.size, 0);
-      const partes = [];
-      if (originales.length) partes.push(`${originales.length} original(es) — ${bytesToKB(totalOrig)} KB`);
-      if (optimizadas.length) partes.push(`${optimizadas.length} optimizada(s) — ${bytesToKB(totalOpt)} KB`);
-      metaEl.textContent = partes.join(' | ');
+  const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
+  const totalOpt  = optimizadas.reduce((sum, f) => sum + f.size, 0);
+  const partes = [];
 
-      const hasOpt = optimizadas.length > 0;
-      downloadAllBtn.disabled = !hasOpt;
-      uploadBtn.disabled = !hasOpt;
-      downloadAllBtn.classList.toggle('btn-disabled', !hasOpt);
-      uploadBtn.classList.toggle('btn-disabled', !hasOpt);
-    }
+  if (originales.length) {
+    partes.push(`${originales.length} original(es) — ${bytesToKB(totalOrig)} KB`);
+  } else {
+    showError("⚠️ No hay imágenes originales cargadas.");
+  }
+
+  if (optimizadas.length) {
+    partes.push(`${optimizadas.length} optimizada(s) — ${bytesToKB(totalOpt)} KB`);
+  } else if (originales.length) {
+    showInfo("ℹ️ Aún no optimizaste las imágenes cargadas.");
+  }
+
+  metaEl.textContent = partes.join(' | ');
+
+  const hasOpt = optimizadas.length > 0;
+  downloadAllBtn.disabled = !hasOpt;
+  uploadBtn.disabled = !hasOpt;
+  downloadAllBtn.classList.toggle('btn-disabled', !hasOpt);
+  uploadBtn.classList.toggle('btn-disabled', !hasOpt);
+
+  // Feedback adicional cuando todo está listo
+  if (originales.length && optimizadas.length) {
+    showInfo(`✅ Listo: ${originales.length} originales y ${optimizadas.length} optimizadas preparadas.`);
+  }
+}
 
     // Render originales con paginación + lazy loading
     function renderOriginales() {
@@ -423,127 +461,205 @@
       return blob;
     }
 
-    // Optimizar (con revocación previa)
-    optimizeBtn.addEventListener('click', async () => {
-      resetErrores();
-      if (!originales.length) {
-        setError('Subí imágenes primero.');
-        return;
-      }
+    // Optimizar (con revocación previa + feedback)
+optimizeBtn.addEventListener('click', async () => {
+  resetErrores();
+  if (!originales.length) {
+    showError('⚠️ Subí imágenes primero.');
+    return;
+  }
 
-      // liberar URLs previas
-      optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
-      optimizadas = [];
+  // Spinner visual
+  optimizeBtn.disabled = true;
+  optimizeBtn.textContent = 'Optimizando...';
 
-      for (const file of originales) {
-        const blob = await resizeToWebP(file);
-        const nameBase = file.name.replace(/\.(png|jpg|jpeg|gif|tiff|bmp|webp)$/i, '');
-        const finalName = `${nameBase}.webp`;
-        optimizadas.push({ name: finalName, blob, size: blob.size, url: URL.createObjectURL(blob) });
-      }
+  // liberar URLs previas
+  optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
+  optimizadas = [];
 
-      pageOpt = 1;
+  let okCount = 0, failCount = 0;
+  for (const file of originales) {
+    try {
+      const blob = await resizeToWebP(file);
+      const nameBase = file.name.replace(/\.(png|jpg|jpeg|gif|tiff|bmp|webp)$/i, '');
+      const finalName = `${nameBase}.webp`;
+      optimizadas.push({ name: finalName, blob, size: blob.size, url: URL.createObjectURL(blob) });
+      okCount++;
+    } catch {
+      failCount++;
+    }
+  }
+
+  pageOpt = 1;
+  renderOptimizadas();
+  actualizarMeta();
+
+  // Restaurar botón
+  optimizeBtn.disabled = false;
+  optimizeBtn.textContent = 'Optimizar';
+
+  // Feedback visual
+  if (failCount > 0) {
+    showError(`⚠️ ${failCount} imagen(es) no pudieron optimizarse.`);
+  }
+  if (okCount > 0) {
+    showInfo(`✅ ${okCount} imagen(es) optimizadas correctamente.`);
+  }
+});
+
+    // Render optimizadas con paginación + lazy loading + feedback
+function renderOptimizadas() {
+  previewEl.innerHTML = '';
+
+  const total = optimizadas.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  pageOpt = Math.min(pageOpt, totalPages);
+
+  // Feedback si no hay optimizadas
+  if (total === 0) {
+    showError("⚠️ No hay imágenes optimizadas para mostrar.");
+    actualizarMeta();
+    return;
+  }
+
+  const start = (pageOpt - 1) * pageSize;
+  const end = Math.min(start + pageSize, total);
+  const pageItems = optimizadas.slice(start, end);
+
+  pageItems.forEach((item, idxPage) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'preview-item';
+
+    const img = document.createElement('img');
+    img.src = item.url;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = item.name;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.textContent = '✖';
+    removeBtn.setAttribute('aria-label', 'Eliminar imagen');
+    removeBtn.onclick = () => {
+      URL.revokeObjectURL(item.url);
+      optimizadas.splice(start + idxPage, 1);
       renderOptimizadas();
       actualizarMeta();
-    });
+      showInfo(`ℹ️ Imagen "${item.name}" eliminada de optimizadas.`);
+    };
 
-    // Render optimizadas con paginación + lazy loading
-    function renderOptimizadas() {
-      previewEl.innerHTML = '';
+    const badge = document.createElement('div');
+    badge.className = 'badge';
+    badge.textContent = `${item.name} — ${bytesToKB(item.size)} KB`;
 
-      const total = optimizadas.length;
-      const totalPages = Math.max(1, Math.ceil(total / pageSize));
-      pageOpt = Math.min(pageOpt, totalPages);
+    wrap.appendChild(img);
+    wrap.appendChild(removeBtn);
+    wrap.appendChild(badge);
+    previewEl.appendChild(wrap);
+  });
 
-      const start = (pageOpt - 1) * pageSize;
-      const end = Math.min(start + pageSize, total);
-      const pageItems = optimizadas.slice(start, end);
+  renderPager(total, pageOpt, (p) => {
+    pageOpt = p;
+    renderOptimizadas();
+  });
 
-      pageItems.forEach((item, idxPage) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'preview-item';
+  // Feedback de página actual
+  showInfo(`📄 Página ${pageOpt} de ${totalPages} — mostrando ${pageItems.length} de ${total} optimizadas.`);
+}
 
-        const img = document.createElement('img');
-        img.src = item.url;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.alt = item.name;
+    // Descargar todas optimizadas (ZIP) con feedback
+downloadAllBtn.addEventListener('click', async () => {
+  if (!optimizadas.length) {
+    showError("⚠️ No hay imágenes optimizadas para descargar.");
+    return;
+  }
 
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'remove-btn';
-        removeBtn.textContent = '✖';
-        removeBtn.setAttribute('aria-label', 'Eliminar imagen');
-        removeBtn.onclick = () => {
-          URL.revokeObjectURL(item.url);
-          optimizadas.splice(start + idxPage, 1);
-          renderOptimizadas();
-          actualizarMeta();
-        };
+  // Spinner visual en el botón
+  downloadAllBtn.disabled = true;
+  downloadAllBtn.textContent = "Generando ZIP...";
 
-        const badge = document.createElement('div');
-        badge.className = 'badge';
-        badge.textContent = `${item.name} — ${bytesToKB(item.size)} KB`;
-
-        wrap.appendChild(img);
-        wrap.appendChild(removeBtn);
-        wrap.appendChild(badge);
-        previewEl.appendChild(wrap);
-      });
-
-      renderPager(total, pageOpt, (p) => {
-        pageOpt = p;
-        renderOptimizadas();
-      });
+  try {
+    const zip = new JSZip();
+    for (const item of optimizadas) {
+      const arrayBuffer = await item.blob.arrayBuffer();
+      zip.file(item.name, arrayBuffer);
     }
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, "imagenes_optimizadas.zip");
 
-    // Descargar todas optimizadas (ZIP)
-    downloadAllBtn.addEventListener('click', async () => {
-      if (!optimizadas.length) {
-        setError("No hay imágenes optimizadas para descargar.");
-        return;
-      }
-      const zip = new JSZip();
-      for (const item of optimizadas) {
-        const arrayBuffer = await item.blob.arrayBuffer();
-        zip.file(item.name, arrayBuffer);
-      }
-      const content = await zip.generateAsync({ type: "blob" });
-      saveAs(content, "imagenes_optimizadas.zip");
-    });
+    showInfo(`✅ ${optimizadas.length} imagen(es) descargadas en ZIP.`);
+  } catch (err) {
+    showError("❌ Error al generar el ZIP de imágenes.");
+    console.error(err);
+  }
 
-    // Subir optimizadas
-    async function enviarOptimizado() {
-      resetErrores();
-      if (!optimizadas || !optimizadas.length) {
-        setError("⚠️ Primero optimizá las imágenes.");
-        return false;
-      }
-      try {
-        const resultados = await Promise.all(
-          optimizadas.map(async (item) => {
-            const formData = new FormData();
-            formData.append("file", item.blob, item.name);
-            const res = await fetch("/upload-image", { method: "POST", body: formData });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            if (!data.ok) {
-              setError(`⚠️ Error al subir ${item.name}.`);
-              return { ok: false };
-            }
-            console.log("📤 Subida completa:", item.name, data.url || "");
-            return { ok: true };
-          })
-        );
-        if (resultados.every(r => !r.ok)) {
-          setError("❌ No se pudo subir ninguna imagen.");
+  // Restaurar botón
+  downloadAllBtn.disabled = false;
+  downloadAllBtn.textContent = "Descargar optimizadas";
+});
+
+
+    // Subir optimizadas con feedback visual
+async function enviarOptimizado() {
+  resetErrores();
+  if (!optimizadas || !optimizadas.length) {
+    showError("⚠️ Primero optimizá las imágenes.");
+    return false;
+  }
+
+  // Spinner en el botón
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = "Subiendo...";
+
+  try {
+    let okCount = 0, failCount = 0;
+    const resultados = await Promise.all(
+      optimizadas.map(async (item) => {
+        try {
+          const formData = new FormData();
+          formData.append("file", item.blob, item.name);
+          const res = await fetch("/upload-image", { method: "POST", body: formData });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (!data.ok) {
+            failCount++;
+            showError(`⚠️ Error al subir ${item.name}.`);
+            return { ok: false };
+          }
+          console.log("📤 Subida completa:", item.name, data.url || "");
+          okCount++;
+          return { ok: true };
+        } catch (err) {
+          failCount++;
+          showError(`⚠️ Fallo de red al subir ${item.name}.`);
+          return { ok: false };
         }
-      } catch (err) {
-        setError("⚠️ Error inesperado al subir imágenes.");
-      }
-      return false; // prevenir submit HTML estándar
-    }
-  </script>
+      })
+    );
 
+    // Feedback visual
+    if (okCount > 0) {
+      showInfo(`✅ ${okCount} imagen(es) subidas correctamente.`);
+    }
+    if (failCount > 0) {
+      showError(`⚠️ ${failCount} imagen(es) no se pudieron subir.`);
+    }
+    if (resultados.every(r => !r.ok)) {
+      showError("❌ No se pudo subir ninguna imagen.");
+    }
+  } catch (err) {
+    showError("⚠️ Error inesperado al subir imágenes.");
+    console.error(err);
+  }
+
+  // Restaurar botón
+  uploadBtn.disabled = false;
+  uploadBtn.textContent = "Subir optimizadas";
+
+  return false; // prevenir submit HTML estándar
+}
+
+  </script>
   <!-- Librerías para ZIP y descarga -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
