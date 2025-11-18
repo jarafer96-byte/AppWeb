@@ -283,52 +283,53 @@ function resetFeedback() {
     }
 
     // Input change: validaciones + guardado + feedback
-    input.addEventListener('change', () => {
-      resetErrores();
-      const nuevos = Array.from(input.files);
-      let duplicados = 0;
+input.addEventListener('change', () => {
+  resetFeedback(); // ← reemplaza resetErrores()
+  const nuevos = Array.from(input.files);
+  let duplicados = 0;
 
-      // Validación cantidad
-      if (originales.length + nuevos.length > 500) {
-        showError('⚠️ Máximo 500 imágenes permitidas.');
-        input.value = '';
-        return;
-      }
+  // Validación cantidad
+  if (originales.length + nuevos.length > 500) {
+    showError('⚠️ Máximo 500 imágenes permitidas.');
+    input.value = '';
+    return;
+  }
 
-      // Validación tamaño
-      for (const f of nuevos) {
-        if (f.size > 1 * 1024 * 1024) {
-          showError(`⚠️ La imagen "${f.name}" supera 1 MB.`);
-          input.value = '';
-          return;
-        }
-      }
+  // Validación tamaño
+  for (const f of nuevos) {
+    if (f.size > 1 * 1024 * 1024) {
+      showError(`⚠️ La imagen "${f.name}" supera 1 MB.`);
+      input.value = '';
+      return;
+    }
+  }
 
-      // Evitar duplicados
-      nuevos.forEach(f => {
-        const existe = originales.some(a =>
-          a.name === f.name && a.size === f.size && a.lastModified === f.lastModified
-        );
-        if (!existe) {
-          originales.push(f);
-          guardarImagenEnIndexedDB(f);
-        } else {
-          duplicados++;
-        }
-      });
+  // Evitar duplicados
+  nuevos.forEach(f => {
+    const existe = originales.some(a =>
+      a.name === f.name && a.size === f.size && a.lastModified === f.lastModified
+    );
+    if (!existe) {
+      originales.push(f);
+      guardarImagenEnIndexedDB(f);
+    } else {
+      duplicados++;
+    }
+  });
 
-      // Feedback visual
-      if (duplicados > 0) {
-        showError(`⚠️ ${duplicados} imagen(es) duplicada(s) fueron ignoradas.`);
-      } else if (nuevos.length > 0) {
-        showInfo(`✅ ${nuevos.length} imagen(es) agregadas correctamente.`);
-      }
+  // Feedback visual
+  if (duplicados > 0) {
+    showError(`⚠️ ${duplicados} imagen(es) duplicada(s) fueron ignoradas.`);
+  } else if (nuevos.length > 0) {
+    showInfo(`✅ ${nuevos.length} imagen(es) agregadas correctamente.`);
+  }
 
-      saveOriginalesToLocal();
-      syncInputWithOriginales();
-      renderOriginales();
-      actualizarMeta();
-    });
+  saveOriginalesToLocal();
+  syncInputWithOriginales();
+  renderOriginales();
+  actualizarMeta();
+});
+
 
     // Quitar todas
     clearBtn.addEventListener('click', () => {
@@ -375,59 +376,68 @@ function resetFeedback() {
 }
 
 
-    // Render originales con paginación + lazy loading
-    function renderOriginales() {
-      previewEl.innerHTML = '';
+    // Render originales con paginación + lazy loading + feedback
+function renderOriginales() {
+  previewEl.innerHTML = '';
 
-      const total = originales.length;
-      const totalPages = Math.max(1, Math.ceil(total / pageSize));
-      pageOrig = Math.min(pageOrig, totalPages);
+  const total = originales.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  pageOrig = Math.min(pageOrig, totalPages);
 
-      const start = (pageOrig - 1) * pageSize;
-      const end = Math.min(start + pageSize, total);
-      const pageItems = originales.slice(start, end);
+  const start = (pageOrig - 1) * pageSize;
+  const end = Math.min(start + pageSize, total);
+  const pageItems = originales.slice(start, end);
 
-      pageItems.forEach((file, idxPage) => {
-        const reader = new FileReader();
-        reader.onload = e => {
-          const item = document.createElement('div');
-          item.className = 'preview-item';
+  pageItems.forEach((file, idxPage) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const item = document.createElement('div');
+      item.className = 'preview-item';
 
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.loading = 'lazy';
-          img.decoding = 'async';
-          img.alt = file.name;
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.alt = file.name;
 
-          const removeBtn = document.createElement('button');
-          removeBtn.className = 'remove-btn';
-          removeBtn.textContent = '✖';
-          removeBtn.setAttribute('aria-label', 'Eliminar imagen');
-          removeBtn.onclick = () => {
-            originales.splice(start + idxPage, 1);
-            saveOriginalesToLocal();
-            syncInputWithOriginales();
-            renderOriginales();
-            actualizarMeta();
-          };
-
-          const badge = document.createElement('div');
-          badge.className = 'badge';
-          badge.textContent = `${file.name} — ${bytesToKB(file.size)} KB`;
-
-          item.appendChild(img);
-          item.appendChild(removeBtn);
-          item.appendChild(badge);
-          previewEl.appendChild(item);
-        };
-        reader.readAsDataURL(file);
-      });
-
-      renderPager(total, pageOrig, (p) => {
-        pageOrig = p;
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.textContent = '✖';
+      removeBtn.setAttribute('aria-label', 'Eliminar imagen');
+      removeBtn.onclick = () => {
+        originales.splice(start + idxPage, 1);
+        saveOriginalesToLocal();
+        syncInputWithOriginales();
         renderOriginales();
-      });
-    }
+        actualizarMeta();
+        showInfo(`ℹ️ Imagen "${file.name}" eliminada de originales.`);
+      };
+
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = `${file.name} — ${bytesToKB(file.size)} KB`;
+
+      item.appendChild(img);
+      item.appendChild(removeBtn);
+      item.appendChild(badge);
+      previewEl.appendChild(item);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  renderPager(total, pageOrig, (p) => {
+    pageOrig = p;
+    renderOriginales();
+  });
+
+  // Feedback de página actual
+  if (total > 0) {
+    showInfo(`📄 Página ${pageOrig} de ${totalPages} — mostrando ${pageItems.length} de ${total} originales.`);
+  } else {
+    showError("⚠️ No hay imágenes originales para mostrar.");
+  }
+}
+
 
     // Resize a WebP 300x180 q=0.8
     async function resizeToWebP(file) {
@@ -460,7 +470,7 @@ function resetFeedback() {
 
     // Optimizar (con revocación previa + feedback)
 optimizeBtn.addEventListener('click', async () => {
-  resetErrores();
+  resetFeedback(); // ← reemplaza resetErrores()
   if (!originales.length) {
     showError('⚠️ Subí imágenes primero.');
     return;
@@ -503,6 +513,7 @@ optimizeBtn.addEventListener('click', async () => {
     showInfo(`✅ ${okCount} imagen(es) optimizadas correctamente.`);
   }
 });
+
 
     // Render optimizadas con paginación + lazy loading + feedback
 function renderOptimizadas() {
