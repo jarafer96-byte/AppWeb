@@ -113,14 +113,20 @@
       });
     }
     function showError(msg) {
-      errorEl.textContent = msg;
-      errorEl.style.color = '#ff4d4d'; // rojo
-    }
+  errorEl.textContent = msg;
+  errorEl.style.color = '#ff4d4d'; // rojo
+}
 
-    function showInfo(msg) {
-      metaEl.textContent = msg;
-      metaEl.style.color = '#0f0'; // verde
-    }
+function showInfo(msg) {
+  metaEl.textContent = msg;
+  metaEl.style.color = '#0f0'; // verde
+}
+
+function resetFeedback() {
+  errorEl.textContent = '';
+  metaEl.textContent = '';
+}
+
     // Paginador
     function renderPager(totalItems, currentPage, onGoToPage) {
       const pagerEl = document.getElementById('pager');
@@ -354,14 +360,9 @@
 
   if (originales.length) {
     partes.push(`${originales.length} original(es) — ${bytesToKB(totalOrig)} KB`);
-  } else {
-    showError("⚠️ No hay imágenes originales cargadas.");
   }
-
   if (optimizadas.length) {
     partes.push(`${optimizadas.length} optimizada(s) — ${bytesToKB(totalOpt)} KB`);
-  } else if (originales.length) {
-    showInfo("ℹ️ Aún no optimizaste las imágenes cargadas.");
   }
 
   metaEl.textContent = partes.join(' | ');
@@ -371,12 +372,8 @@
   uploadBtn.disabled = !hasOpt;
   downloadAllBtn.classList.toggle('btn-disabled', !hasOpt);
   uploadBtn.classList.toggle('btn-disabled', !hasOpt);
-
-  // Feedback adicional cuando todo está listo
-  if (originales.length && optimizadas.length) {
-    showInfo(`✅ Listo: ${originales.length} originales y ${optimizadas.length} optimizadas preparadas.`);
-  }
 }
+
 
     // Render originales con paginación + lazy loading
     function renderOriginales() {
