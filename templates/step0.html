@@ -73,7 +73,6 @@
   <div class="preview" id="preview"></div>
   <div id="pager" style="display:flex; justify-content:center; gap:8px; margin-top:12px;"></div>
 
-  <div id="pager" style="display:flex; justify-content:center; gap:8px; margin-top:12px;"></div>
 <div style="text-align:center; margin-top:8px;">
   <label style="color:#ccc; font-size:0.9em;">Miniaturas por página:</label>
   <select id="pageSizeSelect">
@@ -85,16 +84,45 @@
 
   <script>
     window.addEventListener("DOMContentLoaded", () => {
-  const data = JSON.parse(localStorage.getItem("imagenesOriginales") || "[]");
-  if (data.length) {
-    // reconstruir objetos File desde IndexedDB si querés, o mostrar placeholders
-    // más simple: mostrar solo nombres guardados
-    originales = data.map(d => new File([""], d.name, { type: "image/*", lastModified: d.lastModified }));
-    syncInputWithOriginales();
-    renderOriginales();
-    actualizarMeta();
-  }
+  const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+  if (!lista.length) return;
+
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readonly");
+    const store = tx.objectStore("imagenes");
+    const recs = [];
+
+    let pending = lista.length;
+    lista.forEach(name => {
+      const req = store.get(name);
+      req.onsuccess = e => {
+        const fileOrBlob = e.target.result; // Blob o File
+        if (fileOrBlob) {
+          // Si es Blob, lo convertimos en File para mantener .name/.lastModified
+          const f = fileOrBlob instanceof File
+            ? fileOrBlob
+            : new File([fileOrBlob], name, { type: fileOrBlob.type || "image/*" });
+          recs.push(f);
+        }
+        if (--pending === 0) {
+          originales = recs;
+          syncInputWithOriginales();
+          renderOriginales();
+          actualizarMeta();
+        }
+      };
+      req.onerror = () => {
+        if (--pending === 0) {
+          originales = recs;
+          syncInputWithOriginales();
+          renderOriginales();
+          actualizarMeta();
+        }
+      };
+    });
+  });
 });
+
 
     const input = document.getElementById('imagenes');
     const errorEl = document.getElementById('error');
