@@ -652,7 +652,6 @@ def step2_5():
 
     return render_template('step2-5.html')
 
-
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
     tipo = session.get('tipo_web')
@@ -689,9 +688,10 @@ def step3():
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
 
-            # Usar directamente la ruta elegida (ya es /static/img/...)
+            # Normalizar la ruta de la imagen: debe ser /static/img/... o fallback
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
-            imagen_base = imagenes_basename[i].strip() if i < len(imagenes_basename) else ''
+            if imagen_url and not imagen_url.startswith("/static/img/"):
+                imagen_url = f"/static/img/{os.path.basename(imagen_url)}"
 
             bloques.append({
                 'nombre': nombre,
