@@ -1227,51 +1227,6 @@ function actualizarCarrito() {
   const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
   const grupos = {{ grupos|tojson }};
 
-  /*
-  // 🔒 Bloque de Firebase Firestore desactivado
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-  import { getFirestore, doc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "{{ firebase_config.apiKey }}",
-    authDomain: "{{ firebase_config.authDomain }}",
-    projectId: "{{ firebase_config.projectId }}",
-    storageBucket: "{{ firebase_config.storageBucket }}",
-    messagingSenderId: "{{ firebase_config.messagingSenderId }}",
-    appId: "{{ firebase_config.appId }}"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  if (usarFirestore && email) {
-    const usuarioDoc = doc(db, "usuarios", email);
-    const productosRef = collection(usuarioDoc, "productos");
-
-    onSnapshot(productosRef, (snapshot) => {
-      const productos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      productos.forEach(p => {
-        const precioSpan = document.getElementById("precio_" + p.id_base);
-        if (precioSpan && typeof p.precio === "number") {
-          const fmt = new Intl.NumberFormat("es-AR", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          });
-          precioSpan.textContent = fmt.format(p.precio);
-        }
-
-        const talleSelect = document.getElementById("talle_" + p.id_base);
-        if (talleSelect && Array.isArray(p.talles)) {
-          talleSelect.innerHTML = p.talles
-            .map(t => `<option value="${t}">${t}</option>`)
-            .join("");
-        }
-      });
-    });
-  }
-  */
-
   // ✅ Mantener el resto de la lógica
   setTimeout(() => {
     const grupoKeys = Object.keys(grupos);
