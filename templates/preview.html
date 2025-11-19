@@ -393,39 +393,42 @@
       background: rgba(255, 255, 255, 0.15);
       transform: scale(1.05);
     }
-    @media (max-width: 600px) {
-  .logo {
-    height: 140px !important;
-  }
-  .barra-navegacion {
-    padding: 8px 10px;
-    gap: 8px;
-  }
-  .barra-navegacion button {
-    font-size: 14px;
-    padding: 8px 15px;
-  }
-  .panel-grupos {
-    padding: 1px 0;
-    max-height: 50vh; /* Altura máxima para que sea desplazable si hay muchos botones */
-    overflow-y: auto; /* Hace el panel desplazable verticalmente */
-  }
-  .panel-grupos button {
-    font-size: 13px;
-    padding: 1px 6px;
-    border-radius: 8px;
+    @media (min-width: 1024px) {
+      .logo {
+        width: 103px;
+        height: 103px;
+        max-height: none; /* opcional, para que no interfiera */
+      }
    }
-  .panel-subcategorias {
-    padding: 1px 0;
-    max-height: 50vh; /* Altura máxima para el panel de subcategorías */
-    overflow-y: auto; /* Hace el panel desplazable verticalmente */
-  }
-  .panel-subcategorias button {
-    font-size: 13px;
-    padding: 1px 6px;
-    border-radius: 8px;
-  }
-}
+   .barra-navegacion {
+     padding: 8px 10px;
+     gap: 8px;
+   }
+   .barra-navegacion button {
+     font-size: 14px;
+     padding: 8px 15px;
+   }
+   .panel-grupos {
+     padding: 1px 0;
+     max-height: 50vh; /* Altura máxima para que sea desplazable si hay muchos botones */
+     overflow-y: auto; /* Hace el panel desplazable verticalmente */
+   }
+   .panel-grupos button {
+     font-size: 13px;
+     padding: 1px 6px;
+     border-radius: 8px;
+   }
+   .panel-subcategorias {
+     padding: 1px 0;
+     max-height: 50vh; /* Altura máxima para el panel de subcategorías */
+     overflow-y: auto; /* Hace el panel desplazable verticalmente */
+   }
+   .panel-subcategorias button {
+     font-size: 13px;
+     padding: 1px 6px;
+     border-radius: 8px;
+   }
+ }
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -459,7 +462,7 @@
   </button>
 
   {% if config.logo %}
-    <div class="text-center my-3">
+    <div class="text-center mt-4">
       <img src="{{ url_for('static', filename='img/' + config.logo) }}"
            alt="Logo"
            class="img-fluid logo mx-auto d-block">
