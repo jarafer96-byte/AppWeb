@@ -1075,18 +1075,21 @@ def preview():
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
     print(f"[Preview] email={email} estilo_visual={estilo_visual}")
 
-    # Obtener productos desde Firestore
+    # Obtener productos desde Firestore con logs detallados
     productos = []
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         productos_docs = productos_ref.stream()
-        productos = [doc.to_dict() for doc in productos_docs]
+        for doc in productos_docs:
+            data = doc.to_dict()
+            print(f"[Preview] Doc ID={doc.id} Data={data}")
+            productos.append(data)
         print(f"[Preview] Productos obtenidos: {len(productos)}")
     except Exception as e:
         print("[Preview] Error al leer productos:", e)
         productos = []
 
-    # Agrupar por grupo y subgrupo
+    # Agrupar por grupo y subgrupo con log
     grupos_dict = {}
     for producto in productos:
         grupo = (producto.get('grupo') or 'General').strip().title()
@@ -1097,7 +1100,6 @@ def preview():
     # Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
     public_key = get_mp_public_key(email) or ""  # nunca None
-
     print(f"[Preview] email={email} mercado_pago_token={bool(mercado_pago_token)} public_key={public_key}")
 
     # Configuración visual
@@ -1150,7 +1152,7 @@ def preview():
         if token:
             try:
                 for producto in productos:
-                    imagen = producto.get("imagen_github")  # ✅ solo GitHub
+                    imagen = producto.get("imagen_github")
                     if imagen and imagen.startswith("/static/img/"):
                         ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen))
                         if os.path.exists(ruta_local):
@@ -1185,7 +1187,7 @@ def preview():
                 print("[Preview] Error al subir archivos al repo:", e)
 
     try:
-        print("[Preview] Renderizando template preview.html")
+        print("[Preview] Renderizando template preview.html con grupos:", grupos_dict)
         return render_template(
             'preview.html',
             config=config,
@@ -1197,6 +1199,7 @@ def preview():
     except Exception as e:
         print("[Preview] Error al renderizar preview:", e)
         return "Internal Server Error al renderizar preview", 500
+
 
 @app.route('/descargar')
 def descargar():
