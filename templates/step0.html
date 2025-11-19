@@ -616,9 +616,9 @@ async function optimizeInBatches(batchSize = 50) {
 optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
 
 
-// Subir optimizadas con feedback visual
-async function enviarOptimizado() {
-  resetErrores();
+// Subir optimizadas en tandas de 50
+async function enviarOptimizado(batchSize = 50) {
+  resetFeedback();
   if (!optimizadas || !optimizadas.length) {
     showError("⚠️ Primero optimizá las imágenes.");
     return false;
@@ -628,42 +628,46 @@ async function enviarOptimizado() {
   uploadBtn.disabled = true;
   uploadBtn.textContent = "Subiendo...";
 
+  let okCount = 0, failCount = 0;
+
   try {
-    let okCount = 0, failCount = 0;
-    const resultados = await Promise.all(
-      optimizadas.map(async (item) => {
+    for (let i = 0; i < optimizadas.length; i += batchSize) {
+      const batch = optimizadas.slice(i, i + batchSize);
+
+      // Subir cada imagen del lote
+      for (const item of batch) {
         try {
           const formData = new FormData();
           formData.append("file", item.blob, item.name);
+
           const res = await fetch("/upload-image", { method: "POST", body: formData });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
           const data = await res.json();
           if (!data.ok) {
             failCount++;
             showError(`⚠️ Error al subir ${item.name}.`);
-            return { ok: false };
+          } else {
+            console.log("📤 Subida completa:", item.name, data.url || "");
+            okCount++;
           }
-          console.log("📤 Subida completa:", item.name, data.url || "");
-          okCount++;
-          return { ok: true };
         } catch (err) {
           failCount++;
           showError(`⚠️ Fallo de red al subir ${item.name}.`);
-          return { ok: false };
         }
-      })
-    );
+      }
 
-    // Feedback visual
-    if (okCount > 0) {
-      showInfo(`✅ ${okCount} imagen(es) subidas correctamente.`);
+      // Feedback parcial por tanda
+      showInfo(`⬆️ Subida parcial: ${okCount} ok, ${failCount} fallidas (lote ${i / batchSize + 1}).`);
+
+      // Pausa breve para liberar el hilo y refrescar la UI
+      await new Promise(r => setTimeout(r, 200));
     }
-    if (failCount > 0) {
-      showError(`⚠️ ${failCount} imagen(es) no se pudieron subir.`);
-    }
-    if (resultados.every(r => !r.ok)) {
-      showError("❌ No se pudo subir ninguna imagen.");
-    }
+
+    // Feedback final
+    if (okCount > 0) showInfo(`✅ ${okCount} imagen(es) subidas correctamente.`);
+    if (failCount > 0) showError(`⚠️ ${failCount} imagen(es) no se pudieron subir.`);
+    if (okCount === 0) showError("❌ No se pudo subir ninguna imagen.");
   } catch (err) {
     showError("⚠️ Error inesperado al subir imágenes.");
     console.error(err);
@@ -676,9 +680,9 @@ async function enviarOptimizado() {
   return false; // prevenir submit HTML estándar
 }
 
-  </script>
-  <!-- Librerías para ZIP y descarga -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</script>
+<!-- Librerías para ZIP y descarga -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </body>
 </html>
