@@ -46,7 +46,7 @@ token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 4 MB
+app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024 
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
 
@@ -250,7 +250,7 @@ def step0():
             session['imagenes_step0'] = []
 
         # Límite de 120 imágenes en total
-        if len(session['imagenes_step0']) + len(imagenes) > 120:
+        if len(session['imagenes_step0']) + len(imagenes) > 500:
             return "Límite de imágenes alcanzado", 400
 
         repo_name = session.get("repo_nombre") or "AppWeb"
