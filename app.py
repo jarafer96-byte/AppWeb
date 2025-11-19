@@ -28,6 +28,10 @@ try:
     print("✅ Firebase inicializado con:", firebase_admin.get_app().name)
 except Exception as e:
     print("❌ Error al cargar JSON:", e)
+    
+ext = os.path.splitext(file.filename)[1] or ".webp"
+nombre_archivo = f"{uuid.uuid4().hex}{ext}"
+ruta_remota = f"static/img/{nombre_archivo}"
 
 # Cliente Firestore con acceso total
 db = firestore.client()
