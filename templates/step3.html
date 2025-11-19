@@ -268,6 +268,49 @@
     fila.remove();
     actualizarContador(grupo);
   }
+    
+const LS_KEY = "step3_state";
+// Función que arma el JSON y lo guarda en localStorage
+function saveState() {
+  const state = { grupos: [], imagenesUsadas: [...imagenesUsadas] };
+
+  document.querySelectorAll(".card:not(.subgrupo)").forEach(grupoCard => {
+    const nombreGrupo = grupoCard.querySelector("h4")?.textContent?.trim() || "Sin nombre";
+
+    const productosGrupo = [...grupoCard.querySelectorAll(".productos > .fila-producto")].map(fila => filaToObj(fila));
+
+    const subgrupos = [...grupoCard.querySelectorAll(".subgrupo")].map(subCard => {
+      const nombreSub = subCard.querySelector(".nombre-subgrupo")?.textContent?.trim() || "Sin subgrupo";
+      const productosSub = [...subCard.querySelectorAll(".productos > .fila-producto")].map(fila => filaToObj(fila));
+      return { nombre: nombreSub, productos: productosSub };
+    });
+
+    state.grupos.push({ nombre: nombreGrupo, productos: productosGrupo, subgrupos });
+  });
+
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+// Debounce wrapper
+const saveStateDebounced = (() => {
+  let t;
+  return function() {
+    clearTimeout(t);
+    t = setTimeout(() => saveState(), 200);
+  }
+})();
+
+// Utilidad para convertir fila en objeto
+function filaToObj(fila) {
+  return {
+    nombre: fila.querySelector("input[name='nombre']")?.value || "",
+    descripcion: fila.querySelector("textarea[name='descripcion']")?.value || "",
+    precio: fila.querySelector("input[name='precio']")?.value || "",
+    talles: fila.querySelector("input[name='talles']")?.value || "",
+    imagen_url: fila.querySelector("input[name='imagen_elegida']")?.value || "",
+    imagen_basename: fila.querySelector("input[name='imagen_basename']")?.value || ""
+  };
+}
   
 function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
@@ -306,6 +349,8 @@ function crearGrupo() {
 
   document.getElementById('grupos').appendChild(grupo);
   document.getElementById('nombreGrupo').value = '';
+  
+  saveStateDebounced()
 }
 
 function editarNombreGrupo(btn) {
@@ -325,6 +370,7 @@ function editarNombreGrupo(btn) {
 
   h4.replaceWith(input);
   input.focus();
+  saveStateDebounced();
 }
 
 function guardarNombreGrupo(card, nuevoNombre) {
@@ -337,6 +383,7 @@ function guardarNombreGrupo(card, nuevoNombre) {
 
   // ✅ Actualizar hidden inputs de todas las filas dentro del grupo
   card.querySelectorAll('input[name="grupo"]').forEach(h => h.value = nuevoNombre);
+  saveStateDebounced();
 }
 
 function actualizarContador(elemento) {
@@ -573,6 +620,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
 
   subgrupoCard.querySelector(".productos").appendChild(fila);
   actualizarContador(subgrupoCard);
+  saveStateDebounced();
 }
 
   function ensureDB(callback) {
@@ -668,6 +716,41 @@ function crearSubgrupo(btn) {
   contenedor.appendChild(fila);
 
   actualizarContador(subgrupo);
+  function crearSubgrupo(btn) {
+  const grupo = btn.closest('.card');
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+  const subgruposContenedor = grupo.querySelector('.subgrupos');
+  const input = grupo.querySelector('input[id^="inputSubgrupo"]');
+  const nombreSubgrupo = input.value.trim();
+  if (!nombreSubgrupo) return alert("Ingresá un nombre para el subgrupo");
+
+  const subgrupo = document.createElement('div');
+  subgrupo.className = 'card p-2 mb-3 subgrupo';
+  subgrupo.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <strong class="nombre-subgrupo">${nombreSubgrupo}</strong>
+      <div>
+        <button class="btn btn-sm btn-outline-light me-2" onclick="editarNombreSubgrupo(this)">🖉 Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarSubgrupo(this)">✕ Borrar subgrupo</button>
+      </div>
+    </div>
+    <div class="productos"></div>
+    <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
+    <div class="text-center mt-2">
+      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+    </div>
+  `;
+  subgruposContenedor.appendChild(subgrupo);
+  input.value = '';
+
+  const contenedor = subgrupo.querySelector('.productos');
+  const fila = crearFila(nombreSubgrupo, nombreGrupo);
+  contenedor.appendChild(fila);
+
+  actualizarContador(subgrupo);
+
+  // ✅ Guardar estado después de crear el subgrupo y su primera fila
+  saveStateDebounced();
 }
 
 function editarNombreSubgrupo(btn) {
@@ -687,6 +770,7 @@ function editarNombreSubgrupo(btn) {
 
   strong.replaceWith(input);
   input.focus();
+  saveStateDebounced();
 }
 
 function guardarNombreSubgrupo(card, nuevoNombre) {
@@ -699,6 +783,7 @@ function guardarNombreSubgrupo(card, nuevoNombre) {
 
   // ✅ Actualizar hidden inputs de todas las filas dentro del subgrupo
   card.querySelectorAll('input[name="subgrupo"]').forEach(h => h.value = nuevoNombre);
+  saveStateDebounced();
 }
 
 function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
@@ -753,11 +838,13 @@ function agregarFila(btn) {
   contenedor.appendChild(fila);
 
   actualizarContador(contenedor);
+  saveStateDebounced();
 }
 
 function eliminarSubgrupo(btn) {
   const subgrupo = btn.closest('.subgrupo');
   subgrupo.remove();
+  saveStateDebounced();
 }
 
 function eliminarFila(btn) {
@@ -788,6 +875,7 @@ function eliminarFila(btn) {
   } else {
     alert("No se puede eliminar la última fila");
   }
+  saveStateDebounced()
 }
 
 
@@ -795,6 +883,7 @@ function eliminarFila(btn) {
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
   grupo.remove();
+  saveStateDebounced();
 }
   
 function seleccionarImagen(img) {
@@ -837,49 +926,128 @@ function confirmarImagen() {
 
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
       if (modal) modal.hide();
+      saveStateDebounced();
     }
+    
+function loadState() {
+  const raw = localStorage.getItem(LS_KEY);
+  if (!raw) return;
+  try {
+    const state = JSON.parse(raw);
+
+    // Limpiar UI actual
+    document.getElementById("grupos").innerHTML = "";
+    imagenesUsadas = state.imagenesUsadas || [];
+
+    // Reconstruir grupos
+    (state.grupos || []).forEach(g => {
+      // Crear grupo
+      document.getElementById("nombreGrupo").value = g.nombre;
+      crearGrupo();
+      const grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].at(-1);
+
+      // Productos del grupo
+      const contGrupo = grupoCard.querySelector(".productos");
+      (g.productos || []).forEach(p => {
+        const fila = crearFila("General", g.nombre);
+        hydrateFila(fila, p);
+        contGrupo.appendChild(fila);
+      });
+      actualizarContador(contGrupo);
+
+      // Subgrupos
+      (g.subgrupos || []).forEach(sg => {
+        const grupoIdx = grupoCard.id.split("_")[1];
+        const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
+        inputSub.value = sg.nombre;
+        crearSubgrupo(grupoCard.querySelector("button[onclick^='crearSubgrupo']"));
+
+        const subCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+          s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === sg.nombre
+        );
+        const contSub = subCard.querySelector(".productos");
+        (sg.productos || []).forEach(p => {
+          const fila = crearFila(sg.nombre, g.nombre);
+          hydrateFila(fila, p);
+          contSub.appendChild(fila);
+        });
+        actualizarContador(subCard);
+      });
+    });
+
+    // Marcar imágenes usadas en carrusel
+    document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+      if (imagenesUsadas.includes(img.dataset.nombre)) {
+        img.classList.add('usada');
+        img.style.opacity = "0.25";
+        img.style.filter = "grayscale(100%) brightness(0.6)";
+        img.style.pointerEvents = "none";
+      }
+    });
+
+  } catch (e) {
+    console.error("❌ Error al cargar estado Step3:", e);
+  }
+}
 
 function validarYEnviar() {
-      const grupos = document.querySelectorAll('.card');
-      if (grupos.length === 0) {
-        alert('Agregá al menos un grupo antes de continuar');
-        return;
+  const grupos = document.querySelectorAll('.card');
+  if (grupos.length === 0) {
+    alert('Agregá al menos un grupo antes de continuar');
+    return;
+  }
+
+  let hayContenidoValido = false;
+  let imagenesInvalidas = false;
+
+  grupos.forEach(grupo => {
+    const filas = grupo.querySelectorAll('.fila-producto');
+    filas.forEach(fila => {
+      const nombre = fila.querySelector('input[name="nombre"]');
+      const precio = fila.querySelector('input[name="precio"]');
+      const inputImagen = fila.querySelector('input[name="imagen_elegida"]');
+
+      const nombreValido = nombre && nombre.value.trim();
+      const precioValido = precio && precio.value.trim();
+      const imagenValida = inputImagen && inputImagen.value.trim() !== "";
+
+      if (nombreValido && precioValido && imagenValida) {
+        hayContenidoValido = true;
       }
-      let hayContenidoValido = false;
-      let imagenesInvalidas = false;
-      grupos.forEach(grupo => {
-        const filas = grupo.querySelectorAll('.fila-producto');
-        filas.forEach(fila => {
-          const nombre = fila.querySelector('input[name="nombre"]');
-          const precio = fila.querySelector('input[name="precio"]');
-          const inputImagen = fila.querySelector('input[name="imagen_elegida"]');
-          const nombreValido = nombre && nombre.value.trim();
-          const precioValido = precio && precio.value.trim();
-          const imagenValida = inputImagen && inputImagen.value.trim() !== "";
-          if (nombreValido && precioValido && imagenValida) hayContenidoValido = true;
-          if ((nombreValido || precioValido) && !imagenValida) imagenesInvalidas = true;
-        });
-      });
-      if (!hayContenidoValido) {
-        alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
-        return;
+      if ((nombreValido || precioValido) && !imagenValida) {
+        imagenesInvalidas = true;
       }
-      if (imagenesInvalidas) {
-        alert('⚠️ Hay filas con nombre/precio pero sin imagen seleccionada. Revisalas antes de continuar.');
-        return;
-      }
-      document.getElementById('spinner').style.display = 'flex';
-      document.getElementById('formulario').submit();
-    }
-  window.addEventListener("load", () => {
+    });
+  });
+
+  if (!hayContenidoValido) {
+    alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
+    return;
+  }
+
+  if (imagenesInvalidas) {
+    alert('⚠️ Hay filas con nombre/precio pero sin imagen seleccionada. Revisalas antes de continuar.');
+    return;
+  }
+
+  // Mostrar spinner y limpiar estado antes de enviar
+  document.getElementById('spinner').style.display = 'flex';
+  localStorage.removeItem("step3_state"); // ✅ limpiar cache del paso
+  document.getElementById('formulario').submit();
+}
+
+window.addEventListener("load", () => {
   contadorOrden = 1;
   cargarImagenesDesdeIndexedDB(count => {
     console.log("📥 Imágenes cargadas desde IndexedDB:", count);
     if (count === 0) {
       inicializarCarrusel(); // usa el fallback a sesión definido arriba
     }
+    // Intentar restaurar estado guardado
+    loadState(); // ✅ reconstruye grupos/subgrupos/filas desde localStorage si existe
   });
 });
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
