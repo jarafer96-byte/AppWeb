@@ -720,25 +720,32 @@ def step3():
                 resultados = list(executor.map(subir_con_resultado, lote))
             exitos += sum(1 for r in resultados if r)
 
+        # ✅ Agrupar los bloques en grupos/subgrupos para renderizar index.html con productos
+        grupos_dict = {}
+        for producto in bloques:
+            grupo = (producto.get('grupo') or 'General').strip().title()
+            subgrupo = (producto.get('subgrupo') or 'Sin subgrupo').strip().title()
+            grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
+
         # Subir index.html, iconos, logo y fondo a GitHub
         if repo_name:
             try:
                 html = render_template(
                     'preview.html',
                     config=session,
-                    grupos={},
+                    grupos=grupos_dict,   # ✅ ahora con datos reales
                     modoAdmin=False,
                     modoAdminIntentado=False,
                     firebase_config=firebase_config
                 )
                 subir_archivo(repo_name, html.encode('utf-8'), 'index.html')
-            except Exception:
-                pass
+            except Exception as e:
+                print("[Step3] Error subiendo index.html:", e)
 
             try:
                 subir_iconos_png(repo_name)
-            except Exception:
-                pass
+            except Exception as e:
+                print("[Step3] Error subiendo iconos:", e)
 
             logo = session.get('logo')
             if logo:
@@ -761,6 +768,7 @@ def step3():
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 def get_mp_public_key(email: str):
     """
