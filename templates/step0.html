@@ -39,7 +39,7 @@
 </head>
 <body>
   <h2>Optimiza y sube tus imágenes</h2>
-  <p class="hint">Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80)</p>
+  <p class="hint">Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80, max: 3mb por foto)</p>
 
   <form id="formStep0" method="POST" action="/step0" enctype="multipart/form-data" onsubmit="return enviarOptimizado();">
     <div class="file-block">
@@ -295,8 +295,8 @@ input.addEventListener('change', () => {
 
   // Validación tamaño
   for (const f of nuevos) {
-    if (f.size > 1 * 1024 * 1024) {
-      showError(`⚠️ La imagen "${f.name}" supera 1 MB.`);
+    if (f.size > 3 * 1024 * 1024) {
+      showError(`⚠️ La imagen "${f.name}" supera 3 MB.`);
       input.value = '';
       return;
     }
