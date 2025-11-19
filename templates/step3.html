@@ -716,38 +716,6 @@ function crearSubgrupo(btn) {
   contenedor.appendChild(fila);
 
   actualizarContador(subgrupo);
-  function crearSubgrupo(btn) {
-  const grupo = btn.closest('.card');
-  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
-  const subgruposContenedor = grupo.querySelector('.subgrupos');
-  const input = grupo.querySelector('input[id^="inputSubgrupo"]');
-  const nombreSubgrupo = input.value.trim();
-  if (!nombreSubgrupo) return alert("Ingresá un nombre para el subgrupo");
-
-  const subgrupo = document.createElement('div');
-  subgrupo.className = 'card p-2 mb-3 subgrupo';
-  subgrupo.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <strong class="nombre-subgrupo">${nombreSubgrupo}</strong>
-      <div>
-        <button class="btn btn-sm btn-outline-light me-2" onclick="editarNombreSubgrupo(this)">🖉 Editar</button>
-        <button class="btn btn-sm btn-danger" onclick="eliminarSubgrupo(this)">✕ Borrar subgrupo</button>
-      </div>
-    </div>
-    <div class="productos"></div>
-    <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
-    <div class="text-center mt-2">
-      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
-    </div>
-  `;
-  subgruposContenedor.appendChild(subgrupo);
-  input.value = '';
-
-  const contenedor = subgrupo.querySelector('.productos');
-  const fila = crearFila(nombreSubgrupo, nombreGrupo);
-  contenedor.appendChild(fila);
-
-  actualizarContador(subgrupo);
 
   // ✅ Guardar estado después de crear el subgrupo y su primera fila
   saveStateDebounced();
