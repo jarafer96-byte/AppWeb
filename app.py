@@ -165,20 +165,32 @@ def upload_image():
     # Nombre del repo dinámico desde sesión (fallback a AppWeb si no existe)
     repo_name = session.get("repo_nombre") or "AppWeb"
 
-    # ✅ Generar nombre único con extensión
+    # Generar nombre único con extensión
     ext = os.path.splitext(file.filename)[1] or ".webp"
     nombre_archivo = f"{uuid.uuid4().hex}{ext}"
-    ruta_remota = f"static/img/{nombre_archivo}"
 
-    # Subir a GitHub
-    resultado = subir_archivo(repo_name, contenido_bytes, ruta_remota)
+    # Rutas diferenciadas: GitHub (sin slash) vs pública (con slash)
+    ruta_repo = f"static/img/{nombre_archivo}"
+    ruta_publica = f"/static/img/{nombre_archivo}"
+
+    # Guardar localmente para que Flask sirva /static/img/...
+    local_path = os.path.join(app.config['UPLOAD_FOLDER'], nombre_archivo)
+    try:
+        with open(local_path, "wb") as out:
+            out.write(contenido_bytes)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Error guardando local: {e}"}), 500
+
+    # Subir a GitHub usando la ruta sin slash inicial
+    resultado = subir_archivo(repo_name, contenido_bytes, ruta_repo)
 
     if resultado.get("ok"):
         return jsonify({
             "ok": True,
-            "url": resultado.get("url"),
-            "archivo": nombre_archivo,
-            "ruta_remota": ruta_remota
+            "url": resultado.get("url"),        # URL del archivo en GitHub
+            "archivo": nombre_archivo,          # nombre final único
+            "ruta_remota": ruta_repo,           # ruta dentro del repo (GitHub)
+            "ruta_publica": ruta_publica        # ruta para <img src="/static/img/...">
         }), 200
     else:
         return jsonify({
@@ -186,7 +198,6 @@ def upload_image():
             "error": resultado.get("error", "Error desconocido"),
             "status": resultado.get("status", 500)
         }), 500
-
 
 
 def subir_iconos_png(repo):
