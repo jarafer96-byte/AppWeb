@@ -537,11 +537,11 @@
 
               <div class="card p-3 h-100">
                 <!-- ✅ Imagen con Backblaze + fallback GitHub -->
-                <img src="{{ producto.imagen_backblaze or producto.imagen_github or '/static/img/fallback.webp' }}"
+                <img src="{% if producto.imagen_github and (producto.imagen_github.startswith('http')) %}{{ producto.imagen_github }}{% elif producto.imagen_github %}{{ url_for('static', filename='img/' + producto.imagen_github.split('/')[-1]) }}{% elif producto.imagen_backblaze %}{{ producto.imagen_backblaze }}{% else %}{{ url_for('static', filename='img/fallback.webp') }}{% endif %}"
                      alt="{{ producto.nombre }}"
                      loading="lazy"
-                     style="width:300px;height:180px;object-fit:contain;border:1px solid #ccc;border-radius:6px;display:block;margin:0 auto;">
-
+                     style="width:300px;height:180px;object-fit:contain;...">
+                
                 <div class="card-body">
                   {% if modoAdmin %}
                     <div class="text-muted small mb-2">
