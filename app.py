@@ -654,14 +654,18 @@ def step2_5():
 
 @app.route('/contenido', methods=['GET', 'POST'])
 def step3():
+    print("🚀 [Step3] Entrando a /contenido")
     tipo = session.get('tipo_web')
     email = session.get('email')
-    imagenes_disponibles = session.get('imagenes_step0') or []  # rutas /static/img/... desde Step0
+    imagenes_disponibles = session.get('imagenes_step0') or []
+    print(f"🔑 [Step3] tipo_web={tipo}, email={email}, imagenes_disponibles={len(imagenes_disponibles)}")
 
     if not email:
+        print("❌ [Step3] Sesión no iniciada")
         return "Error: sesión no iniciada", 403
 
     if request.method == 'POST':
+        print("📥 [Step3] POST recibido")
         bloques = []
         nombres = request.form.getlist('nombre')
         descripciones = request.form.getlist('descripcion')
@@ -672,7 +676,10 @@ def step3():
         talles = request.form.getlist('talles')
         imagenes_elegidas = request.form.getlist('imagen_elegida')
 
+        print(f"📊 [Step3] Datos recibidos: nombres={len(nombres)}, precios={len(precios)}, imagenes_elegidas={len(imagenes_elegidas)}")
+
         repo_name = session.get('repo_nombre') or "AppWeb"
+        print(f"📦 [Step3] Repo destino: {repo_name}")
 
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
@@ -681,16 +688,19 @@ def step3():
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
 
+            print(f"➡️ [Step3] Procesando producto {i+1}: nombre={nombre}, precio={precio}, grupo={grupo}, subgrupo={subgrupo}, orden={orden}")
+
             if not nombre or not precio or not grupo or not subgrupo:
+                print("⚠️ [Step3] Producto ignorado por datos incompletos")
                 continue
 
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
+            print(f"👕 [Step3] Talles={talle_lista}")
 
-            # ✅ Usar directamente la ruta pública devuelta por /upload-image
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
             if not imagen_url.startswith("/static/img/"):
-                # si no hay imagen válida, se ignora el producto
+                print(f"⚠️ [Step3] Imagen inválida para producto {nombre}: {imagen_url}")
                 continue
 
             bloques.append({
@@ -703,22 +713,29 @@ def step3():
                 'orden': orden,
                 'talles': talle_lista
             })
+            print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_url}")
 
         session['bloques'] = bloques
+        print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
         exitos = 0
 
         def subir_con_resultado(producto):
             try:
-                return subir_a_firestore(producto, email)
-            except Exception:
+                ok = subir_a_firestore(producto, email)
+                print(f"🔥 [Step3] Subida a Firestore: {producto['nombre']} → {ok}")
+                return ok
+            except Exception as e:
+                print(f"💥 [Step3] Error subiendo a Firestore: {producto['nombre']} → {e}")
                 return False
 
         bloques_por_lote = 10
         for inicio in range(0, len(bloques), bloques_por_lote):
             lote = bloques[inicio:inicio + bloques_por_lote]
+            print(f"📦 [Step3] Subiendo lote {inicio//bloques_por_lote+1} con {len(lote)} productos")
             with ThreadPoolExecutor(max_workers=3) as executor:
                 resultados = list(executor.map(subir_con_resultado, lote))
             exitos += sum(1 for r in resultados if r)
+        print(f"📊 [Step3] Total exitos en Firestore: {exitos}")
 
         # Agrupar para preview
         grupos_dict = {}
@@ -726,10 +743,12 @@ def step3():
             grupo = (producto.get('grupo') or 'General').strip().title()
             subgrupo = (producto.get('subgrupo') or 'Sin subgrupo').strip().title()
             grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
+        print(f"📂 [Step3] Grupos generados: {list(grupos_dict.keys())}")
 
         # Subir index.html, iconos, logo y fondo a GitHub
         if repo_name:
             try:
+                print("⬆️ [Step3] Renderizando preview.html para subir a GitHub")
                 html = render_template(
                     'preview.html',
                     config=session,
@@ -739,35 +758,45 @@ def step3():
                     firebase_config=firebase_config
                 )
                 subir_archivo(repo_name, html.encode('utf-8'), 'index.html')
+                print("✅ [Step3] index.html subido a GitHub")
             except Exception as e:
                 print("[Step3] Error subiendo index.html:", e)
 
             try:
                 subir_iconos_png(repo_name)
+                print("✅ [Step3] Iconos subidos a GitHub")
             except Exception as e:
                 print("[Step3] Error subiendo iconos:", e)
 
             logo = session.get('logo')
             if logo:
                 logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
+                print(f"🔍 [Step3] Verificando logo: {logo_path}")
                 if os.path.exists(logo_path):
                     with open(logo_path, "rb") as f:
                         contenido = f.read()
                     subir_archivo(repo_name, contenido, f"static/img/{logo}")
+                    print(f"✅ [Step3] Logo subido: {logo}")
 
             estilo_visual = session.get('estilo_visual') or 'claro_moderno'
             fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{estilo_visual}.jpeg")
+            print(f"🔍 [Step3] Verificando fondo: {fondo_path}")
             if os.path.exists(fondo_path):
                 with open(fondo_path, "rb") as f:
                     contenido = f.read()
                 subir_archivo(repo_name, contenido, f"static/img/{estilo_visual}.jpeg")
+                print(f"✅ [Step3] Fondo subido: {estilo_visual}.jpeg")
 
         if exitos > 0:
+            print("➡️ [Step3] Redirigiendo a /preview")
             return redirect('/preview')
         else:
+            print("⚠️ [Step3] Ningún producto subido, renderizando step3.html")
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
+    print("ℹ️ [Step3] GET request, renderizando step3.html")
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 def get_mp_public_key(email: str):
     """
@@ -1063,43 +1092,54 @@ def pagar():
 
 @app.route('/preview')
 def preview():
+    print("🚀 [Preview] Entrando a /preview")
+
+    # Flags de admin
     modo_admin = bool(session.get('modo_admin')) and request.args.get('admin') == 'true'
     modo_admin_intentado = request.args.get('admin') == 'true'
     email = session.get('email')
 
+    print(f"🔑 [Preview] modo_admin={modo_admin} modo_admin_intentado={modo_admin_intentado}")
+
     if not email:
-        print("[Preview] ❌ Sesión no iniciada")
+        print("❌ [Preview] Sesión no iniciada")
         return "Error: sesión no iniciada", 403
 
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
-    print(f"[Preview] email={email} estilo_visual={estilo_visual}")
+    print(f"🎨 [Preview] email={email} estilo_visual={estilo_visual}")
 
-    # Obtener productos desde Firestore con logs detallados
+    # Obtener productos desde Firestore
     productos = []
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         productos_docs = productos_ref.stream()
         for doc in productos_docs:
             data = doc.to_dict()
-            print(f"[Preview] Doc ID={doc.id} Data={data}")
+            print(f"📄 [Preview] Doc ID={doc.id} Data={data}")
             productos.append(data)
-        print(f"[Preview] Productos obtenidos: {len(productos)}")
+        print(f"📊 [Preview] Productos obtenidos: {len(productos)}")
     except Exception as e:
-        print("[Preview] Error al leer productos:", e)
+        print("💥 [Preview] Error al leer productos:", e)
         productos = []
 
-    # Agrupar por grupo y subgrupo con log
+    # Agrupar por grupo y subgrupo
     grupos_dict = {}
     for producto in productos:
+        print(f"🛒 [Preview] Producto bruto: nombre={producto.get('nombre')} grupo={producto.get('grupo')} subgrupo={producto.get('subgrupo')} imagen={producto.get('imagen_github') or producto.get('imagen_backblaze')}")
         grupo = (producto.get('grupo') or 'General').strip().title()
         subgrupo = (producto.get('subgrupo') or 'Sin subgrupo').strip().title()
         grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
-    print(f"[Preview] Grupos generados: {list(grupos_dict.keys())}")
+    print(f"📂 [Preview] Grupos generados: {list(grupos_dict.keys())}")
+    for g, subs in grupos_dict.items():
+        for sg, prods in subs.items():
+            print(f"   ↳ Grupo={g}, Subgrupo={sg}, Productos={len(prods)}")
+            for p in prods:
+                print(f"      • Producto: {p.get('nombre')} | Imagen: {p.get('imagen_github') or p.get('imagen_backblaze')}")
 
     # Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
-    public_key = get_mp_public_key(email) or ""  # nunca None
-    print(f"[Preview] email={email} mercado_pago_token={bool(mercado_pago_token)} public_key={public_key}")
+    public_key = get_mp_public_key(email) or ""
+    print(f"💳 [Preview] email={email} mercado_pago_token={bool(mercado_pago_token)} public_key={public_key}")
 
     # Configuración visual
     config = {
@@ -1131,13 +1171,14 @@ def preview():
         'descargado': session.get('descargado', False),
         'usarFirestore': True
     }
+    print(f"⚙️ [Preview] Configuración visual: {config}")
 
     # Crear repo si corresponde
     if session.get("crear_repo") and not session.get("repo_creado"):
         nombre_repo = generar_nombre_repo(email)
         token = os.getenv("GITHUB_TOKEN")
         resultado = crear_repo_github(nombre_repo, token)
-        print(f"[Preview] Creando repo: {nombre_repo}, resultado={resultado}")
+        print(f"📦 [Preview] Creando repo: {nombre_repo}, resultado={resultado}")
         if "url" in resultado:
             session['repo_creado'] = resultado["url"]
             session['repo_nombre'] = nombre_repo
@@ -1146,7 +1187,7 @@ def preview():
     if session.get('repo_creado') and session.get('repo_nombre'):
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
-        print(f"[Preview] Subiendo archivos al repo: {nombre_repo}")
+        print(f"⬆️ [Preview] Subiendo archivos al repo: {nombre_repo}")
 
         if token:
             try:
@@ -1154,39 +1195,42 @@ def preview():
                     imagen = producto.get("imagen_github")
                     if imagen and imagen.startswith("/static/img/"):
                         ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen))
+                        print(f"🔍 [Preview] Verificando imagen local: {ruta_local}")
                         if os.path.exists(ruta_local):
                             with open(ruta_local, "rb") as f:
                                 contenido = f.read()
                             subir_archivo(nombre_repo, contenido, f"static/img/{os.path.basename(imagen)}")
-                            print(f"[Preview] Imagen subida: {imagen}")
+                            print(f"✅ [Preview] Imagen subida: {imagen}")
                             del contenido
                             gc.collect()
 
                 logo = config.get("logo")
                 if logo:
                     logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
+                    print(f"🔍 [Preview] Verificando logo: {logo_path}")
                     if os.path.exists(logo_path):
                         with open(logo_path, "rb") as f:
                             contenido = f.read()
                         subir_archivo(nombre_repo, contenido, f"static/img/{logo}")
-                        print(f"[Preview] Logo subido: {logo}")
+                        print(f"✅ [Preview] Logo subido: {logo}")
                         del contenido
                         gc.collect()
 
                 fondo = f"{estilo_visual}.jpeg"
                 fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
+                print(f"🔍 [Preview] Verificando fondo: {fondo_path}")
                 if os.path.exists(fondo_path):
                     with open(fondo_path, "rb") as f:
                         contenido = f.read()
                     subir_archivo(nombre_repo, contenido, f"static/img/{fondo}")
-                    print(f"[Preview] Fondo subido: {fondo}")
+                    print(f"✅ [Preview] Fondo subido: {fondo}")
                     del contenido
                     gc.collect()
             except Exception as e:
-                print("[Preview] Error al subir archivos al repo:", e)
+                print("💥 [Preview] Error al subir archivos al repo:", e)
 
     try:
-        print("[Preview] Renderizando template preview.html con grupos:", grupos_dict)
+        print(f"🖼️ [Preview] Renderizando template preview.html con grupos: {grupos_dict}")
         return render_template(
             'preview.html',
             config=config,
@@ -1196,9 +1240,8 @@ def preview():
             firebase_config=firebase_config
         )
     except Exception as e:
-        print("[Preview] Error al renderizar preview:", e)
+        print("💥 [Preview] Error al renderizar preview:", e)
         return "Internal Server Error al renderizar preview", 500
-
 
 @app.route('/descargar')
 def descargar():
