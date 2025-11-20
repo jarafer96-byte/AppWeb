@@ -151,46 +151,67 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-@app.route("/upload-image", methods=["POST"])
+@app.route('/upload-image', methods=['POST'])
 def upload_image():
-    if "file" not in request.files:
-        return jsonify({"ok": False, "error": "No se envió archivo"}), 400
+    try:
+        repo_name = session.get("repo_nombre") or "AppWeb"
+        imagenes = request.files.getlist('imagenes')
 
-    file = request.files["file"]
-    contenido_bytes = file.read()
-    if not contenido_bytes:
-        return jsonify({"ok": False, "error": "Archivo vacío"}), 400
+        print("📥 [UPLOAD] Iniciando subida de imágenes...")
+        print(f"📦 [UPLOAD] Repo destino: {repo_name}")
+        print(f"📦 [UPLOAD] Cantidad recibida: {len(imagenes)}")
 
-    repo_name = session.get("repo_nombre") or "AppWeb"
+        if not imagenes:
+            print("⚠️ [UPLOAD] No se recibieron imágenes en la request")
+            return jsonify({"ok": False, "error": "No se recibieron imágenes"}), 400
 
-    # Nombre único con extensión
-    ext = os.path.splitext(file.filename)[1].lower() or ".webp"
-    nombre_archivo = f"{uuid.uuid4().hex}{ext}"
+        if 'imagenes_step0' not in session:
+            session['imagenes_step0'] = []
 
-    ruta_repo = f"static/img/{nombre_archivo}"       # para GitHub
-    ruta_publica = f"/static/img/{nombre_archivo}"   # para navegador/Firestore
+        urls = []
+        for idx, img in enumerate(imagenes, start=1):
+            if img and img.filename:
+                try:
+                    contenido_bytes = img.read()
+                    ext = os.path.splitext(img.filename)[1].lower() or ".webp"
+                    filename = f"{uuid.uuid4().hex}{ext}"
 
-    # Guardar localmente
-    local_path = os.path.join(app.config['UPLOAD_FOLDER'], nombre_archivo)
-    with open(local_path, "wb") as out:
-        out.write(contenido_bytes)
+                    print(f"➡️ [UPLOAD] Procesando {idx}/{len(imagenes)}: {img.filename}")
+                    print(f"📝 [UPLOAD] Nombre generado: {filename}, Extensión: {ext}")
+                    print(f"📏 [UPLOAD] Tamaño en bytes: {len(contenido_bytes)}")
 
-    # Subir a GitHub
-    resultado = subir_archivo(repo_name, contenido_bytes, ruta_repo)
+                    # Guardar local
+                    local_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    with open(local_path, "wb") as f:
+                        f.write(contenido_bytes)
+                    print(f"💾 [UPLOAD] Guardado local en {local_path}")
 
-    if resultado.get("ok"):
-        return jsonify({
-            "ok": True,
-            "url": resultado.get("url"),
-            "archivo": nombre_archivo,
-            "ruta_publica": ruta_publica
-        }), 200
-    else:
-        return jsonify({
-            "ok": False,
-            "error": resultado.get("error", "Error desconocido"),
-            "status": resultado.get("status", 500)
-        }), 500
+                    # Subir a GitHub
+                    ruta_repo = f"static/img/{filename}"
+                    resultado = subir_archivo(repo_name, contenido_bytes, ruta_repo)
+                    print(f"🔗 [UPLOAD] Intentando subir a GitHub: {ruta_repo}")
+
+                    if resultado.get("ok"):
+                        ruta_publica = f"/static/img/{filename}"
+                        urls.append(ruta_publica)
+                        session['imagenes_step0'].append(ruta_publica)
+                        print(f"✅ [UPLOAD] Subida exitosa: {ruta_publica}")
+                    else:
+                        print(f"❌ [UPLOAD] Falló subida a GitHub: {resultado}")
+
+                except Exception as e:
+                    print(f"💥 [UPLOAD] Error procesando {img.filename}: {e}")
+                    return jsonify({"ok": False, "error": str(e)}), 500
+
+        print(f"📊 [UPLOAD] Total subidas correctas: {len(urls)}")
+        print(f"📊 [UPLOAD] Total en sesión: {len(session['imagenes_step0'])}")
+
+        return jsonify({"ok": True, "imagenes": urls})
+
+    except Exception as e:
+        print(f"💥 [UPLOAD] Error general en /upload-image: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 
 def subir_iconos_png(repo):
     carpeta = os.path.join("static", "img")
