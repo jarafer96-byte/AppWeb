@@ -632,26 +632,20 @@ async function enviarOptimizado(batchSize = 50) {
   let okCount = 0;
   let failCount = 0;
 
-  // blobsOptimized es tu array global con las imágenes optimizadas
-  console.log(`📦 [FRONT] Total blobs optimizados: ${blobsOptimized.length}`);
+  console.log(`📦 [FRONT] Total optimizadas: ${optimizadas.length}`);
 
-  for (let i = 0; i < blobsOptimized.length; i += batchSize) {
-    const batch = blobsOptimized.slice(i, i + batchSize);
+  for (let i = 0; i < optimizadas.length; i += batchSize) {
+    const batch = optimizadas.slice(i, i + batchSize);
     console.log(`➡️ [FRONT] Procesando batch ${i / batchSize + 1}: ${batch.length} imágenes`);
 
     const formData = new FormData();
-    batch.forEach((blob, idx) => {
-      const filename = `opt_${i + idx}.webp`;
-      formData.append("imagenes", blob, filename);
-      console.log(`📝 [FRONT] Añadida al FormData: ${filename}, tamaño: ${blob.size} bytes`);
+    batch.forEach(img => {
+      formData.append("imagenes", img.blob, img.name);
+      console.log(`📝 [FRONT] Añadida al FormData: ${img.name}, tamaño: ${img.blob.size} bytes`);
     });
 
     try {
-      const resp = await fetch("/upload-image", {
-        method: "POST",
-        body: formData
-      });
-
+      const resp = await fetch("/upload-image", { method: "POST", body: formData });
       console.log(`🔗 [FRONT] POST /upload-image → status: ${resp.status}`);
 
       if (!resp.ok) {
@@ -665,9 +659,7 @@ async function enviarOptimizado(batchSize = 50) {
 
       if (data.ok) {
         okCount += data.imagenes.length;
-        data.imagenes.forEach(url => {
-          console.log(`✅ [FRONT] Subida completa: ${url}`);
-        });
+        data.imagenes.forEach(url => console.log(`✅ [FRONT] Subida completa: ${url}`));
       } else {
         failCount += batch.length;
         console.error(`❌ [FRONT] Backend devolvió error: ${data.error}`);
@@ -683,11 +675,9 @@ async function enviarOptimizado(batchSize = 50) {
   uploadBtn.disabled = false;
   uploadBtn.textContent = "Subir optimizadas";
 
-  // Feedback visual
   const feedback = document.getElementById("feedback");
   feedback.textContent = `✅ ${okCount} imágenes subidas, ⚠️ ${failCount} fallidas`;
 
-  // Si querés redirigir automáticamente:
   if (okCount > 0) {
     const continueBtn = document.getElementById("continueBtn");
     continueBtn.disabled = false;
@@ -697,6 +687,7 @@ async function enviarOptimizado(batchSize = 50) {
 
   return okCount > 0;
 }
+
 
 document.getElementById("uploadBtn").addEventListener("click", () => enviarOptimizado(50));
 document.getElementById("uploadBtn").addEventListener("click", async () => {
