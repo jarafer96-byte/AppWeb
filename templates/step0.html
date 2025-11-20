@@ -38,8 +38,10 @@
   </style>
 </head>
 <body>
-  <h2>Optimiza y sube tus imágenes</h2>
-  <p class="hint">Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80, max: 3mb por foto)</p>
+<h2>Optimiza y sube tus imágenes</h2>
+<p class="hint">
+  Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80, max: 3 MB por foto)
+</p>
 
 <div class="file-block">
   <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
@@ -68,61 +70,63 @@
     <button type="button" id="continueBtn" class="btn-disabled" disabled>Continuar</button>
   </div>
 </div>
-</form>
 
+<!-- Mensajes y feedback -->
+<div class="error" id="error"></div>
+<div class="meta" id="meta"></div>
+<div id="feedback" class="meta"></div>
 
-  <div class="error" id="error"></div>
-  <div class="meta" id="meta"></div>
-  <div class="preview" id="preview"></div>
+<!-- Vista previa -->
+<div class="preview" id="preview"></div>
 
-  <!-- Paginador y selector -->
-  <div id="pager" style="display:flex; justify-content:center; gap:8px; margin-top:12px;"></div>
-  <div style="text-align:center; margin-top:8px;">
-    <label style="color:#ccc; font-size:0.9em;">Miniaturas por página:</label>
-    <select id="pageSizeSelect">
-      <option value="20" selected>20</option>
-      <option value="30">30</option>
-      <option value="50">50</option>
-    </select>
-  </div>
+<!-- Paginador y selector -->
+<div id="pager" style="display:flex; justify-content:center; gap:8px; margin-top:12px;"></div>
+<div style="text-align:center; margin-top:8px;">
+  <label style="color:#ccc; font-size:0.9em;">Miniaturas por página:</label>
+  <select id="pageSizeSelect">
+    <option value="20" selected>20</option>
+    <option value="30">30</option>
+    <option value="50">50</option>
+  </select>
+</div>
 
-  <script>
-    const input = document.getElementById('imagenes');
-    const errorEl = document.getElementById('error');
-    const metaEl = document.getElementById('meta');
-    const previewEl = document.getElementById('preview');
-    const fileCountEl = document.getElementById('fileCount');
+<script>
+const input = document.getElementById('imagenes');
+const errorEl = document.getElementById('error');
+const metaEl = document.getElementById('meta');
+const previewEl = document.getElementById('preview');
+const fileCountEl = document.getElementById('fileCount');
 
-    const clearBtn = document.getElementById('clearBtn');
-    const optimizeBtn = document.getElementById('optimizeBtn');
-    const downloadAllBtn = document.getElementById('downloadAllBtn');
-    const uploadBtn = document.getElementById('uploadBtn');
+const clearBtn = document.getElementById('clearBtn');
+const optimizeBtn = document.getElementById('optimizeBtn');
+const downloadAllBtn = document.getElementById('downloadAllBtn');
+const uploadBtn = document.getElementById('uploadBtn');
 
-    let originales = [];
-    let optimizadas = [];
-    let pageSize = parseInt(localStorage.getItem("pageSize") || "20", 10);
-    let pageOrig = 1;
-    let pageOpt = 1;
-    // Array global para guardar los blobs optimizados
-    let blobsOptimized = [];
+let originales = [];
+let optimizadas = [];
+let pageSize = parseInt(localStorage.getItem("pageSize") || "20", 10);
+let pageOrig = 1;
+let pageOpt = 1;
 
-    // Selector de tamaño de página
-    const pageSizeSelect = document.getElementById('pageSizeSelect');
-    if (pageSizeSelect) {
-      pageSizeSelect.value = String(pageSize);
-      pageSizeSelect.addEventListener('change', () => {
-        pageSize = parseInt(pageSizeSelect.value, 10);
-        localStorage.setItem("pageSize", String(pageSize));
-        pageOrig = 1; pageOpt = 1;
-        renderOriginales();
-        renderOptimizadas();
-      });
-    }
-    function showError(msg) {
+// Selector de tamaño de página
+const pageSizeSelect = document.getElementById('pageSizeSelect');
+if (pageSizeSelect) {
+  pageSizeSelect.value = String(pageSize);
+  pageSizeSelect.addEventListener('change', () => {
+    pageSize = parseInt(pageSizeSelect.value, 10);
+    localStorage.setItem("pageSize", String(pageSize));
+    pageOrig = 1;
+    pageOpt = 1;
+    renderOriginales();
+    renderOptimizadas();
+  });
+}
+
+function showError(msg) {
   errorEl.textContent = msg;
   errorEl.style.color = '#ff4d4d'; // rojo
 }
-    
+
 function showInfo(msg) {
   metaEl.textContent = msg;
   metaEl.style.color = '#0f0'; // verde
@@ -133,164 +137,177 @@ function resetFeedback() {
   metaEl.textContent = '';
 }
 
-    // Paginador
-    function renderPager(totalItems, currentPage, onGoToPage) {
-      const pagerEl = document.getElementById('pager');
-      pagerEl.innerHTML = '';
-      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+function renderPager(totalItems, currentPage, onGoToPage) {
+  const pagerEl = document.getElementById('pager');
+  pagerEl.innerHTML = '';
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-      const prev = document.createElement('button');
-      prev.textContent = '«';
-      prev.disabled = currentPage <= 1;
-      prev.onclick = () => onGoToPage(currentPage - 1);
-      pagerEl.appendChild(prev);
+  const prev = document.createElement('button');
+  prev.textContent = '«';
+  prev.disabled = currentPage <= 1;
+  prev.onclick = () => onGoToPage(currentPage - 1);
+  pagerEl.appendChild(prev);
 
-      const maxButtons = 10;
-      let start = Math.max(1, currentPage - Math.floor(maxButtons/2));
-      let end = Math.min(totalPages, start + maxButtons - 1);
-      if (end - start + 1 < maxButtons) start = Math.max(1, end - maxButtons + 1);
+  const maxButtons = 10;
+  let start = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+  let end = Math.min(totalPages, start + maxButtons - 1);
+  if (end - start + 1 < maxButtons) start = Math.max(1, end - maxButtons + 1);
 
-      for (let p = start; p <= end; p++) {
-        const btn = document.createElement('button');
-        btn.textContent = String(p);
-        btn.style.minWidth = '32px';
-        if (p === currentPage) {
-          btn.disabled = true;
-          btn.classList.add('btn-disabled');
-        } else {
-          btn.onclick = () => onGoToPage(p);
-        }
-        pagerEl.appendChild(btn);
-      }
-
-      const next = document.createElement('button');
-      next.textContent = '»';
-      next.disabled = currentPage >= totalPages;
-      next.onclick = () => onGoToPage(currentPage + 1);
-      pagerEl.appendChild(next);
+  for (let p = start; p <= end; p++) {
+    const btn = document.createElement('button');
+    btn.textContent = String(p);
+    btn.style.minWidth = '32px';
+    if (p === currentPage) {
+      btn.disabled = true;
+      btn.classList.add('btn-disabled');
+    } else {
+      btn.onclick = () => onGoToPage(p);
     }
+    pagerEl.appendChild(btn);
+  }
 
-    // Guardar lista de originales en localStorage (metadatos)
-    function saveOriginalesToLocal() {
-      const data = originales.map(f => ({
-        name: f.name,
-        size: f.size,
-        lastModified: f.lastModified
-      }));
-      localStorage.setItem("imagenesOriginales", JSON.stringify(data));
+  const next = document.createElement('button');
+  next.textContent = '»';
+  next.disabled = currentPage >= totalPages;
+  next.onclick = () => onGoToPage(currentPage + 1);
+  pagerEl.appendChild(next);
+}
+// IndexedDB helper: asegura store y se auto-repara si falta
+function ensureDB(callback) {
+  const request = indexedDB.open("imagenesDB", 2);
+
+  request.onupgradeneeded = e => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains("imagenes")) {
+      db.createObjectStore("imagenes");
+      console.log("📦 [IndexedDB] Store 'imagenes' creado.");
     }
+  };
 
-    // IndexedDB helper: asegura store y se auto-repara si falta
-    function ensureDB(callback) {
-      const request = indexedDB.open("imagenesDB", 2);
-      request.onupgradeneeded = e => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains("imagenes")) {
-          db.createObjectStore("imagenes");
-          console.log("📦 Store 'imagenes' creado.");
-        }
-      };
-      request.onsuccess = e => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains("imagenes")) {
-          console.warn("⚠️ DB sin store. Se borra y recrea.");
-          db.close();
-          const del = indexedDB.deleteDatabase("imagenesDB");
-          del.onsuccess = () => {
-            const re = indexedDB.open("imagenesDB", 2);
-            re.onupgradeneeded = ev => ev.target.result.createObjectStore("imagenes");
-            re.onsuccess = ev => callback(ev.target.result);
-          };
-          del.onerror = () => {
-            console.error("❌ No se pudo borrar la DB.");
-            callback(db);
-          };
-        } else {
-          callback(db);
-        }
-      };
-      request.onerror = e => console.error("❌ Error abriendo IndexedDB:", e.target.error);
-    }
-
-    function guardarImagenEnIndexedDB(file) {
-      ensureDB(db => {
-        const tx = db.transaction("imagenes", "readwrite");
-        tx.objectStore("imagenes").put(file, file.name);
-        tx.oncomplete = () => {
-          let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
-          if (!lista.includes(file.name)) {
-            lista.push(file.name);
-            localStorage.setItem("imagenesLista", JSON.stringify(lista));
-          }
+  request.onsuccess = e => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains("imagenes")) {
+      console.warn("⚠️ [IndexedDB] DB sin store. Se borra y recrea.");
+      db.close();
+      const del = indexedDB.deleteDatabase("imagenesDB");
+      del.onsuccess = () => {
+        const re = indexedDB.open("imagenesDB", 2);
+        re.onupgradeneeded = ev => {
+          ev.target.result.createObjectStore("imagenes");
+          console.log("📦 [IndexedDB] Store 'imagenes' recreado.");
         };
-        tx.onerror = e => console.error("❌ Error guardando imagen en IndexedDB:", e.target.error);
-      });
+        re.onsuccess = ev => callback(ev.target.result);
+        re.onerror = err => {
+          console.error("❌ [IndexedDB] Error recreando DB:", err.target.error);
+        };
+      };
+      del.onerror = () => {
+        console.error("❌ [IndexedDB] No se pudo borrar la DB.");
+        callback(db); // devolvemos el db aunque esté incompleto
+      };
+    } else {
+      callback(db);
     }
+  };
 
-    // Restaurar al cargar desde IndexedDB usando la lista de nombres
-    window.addEventListener("DOMContentLoaded", () => {
-      const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
-      if (!lista.length) return;
-      ensureDB(db => {
-        const tx = db.transaction("imagenes", "readonly");
-        const store = tx.objectStore("imagenes");
-        const recs = [];
-        let pending = lista.length;
-        lista.forEach(name => {
-          const req = store.get(name);
-          req.onsuccess = e => {
-            const fileOrBlob = e.target.result;
-            if (fileOrBlob) {
-              const f = fileOrBlob instanceof File
-                ? fileOrBlob
-                : new File([fileOrBlob], name, { type: fileOrBlob.type || "image/*" });
-              recs.push(f);
-            }
-            if (--pending === 0) {
-              originales = recs;
-              syncInputWithOriginales();
-              renderOriginales();
-              actualizarMeta();
-            }
-          };
-          req.onerror = () => {
-            console.error("❌ Error leyendo", name, "de IndexedDB");
-            if (--pending === 0) {
-              originales = recs;
-              syncInputWithOriginales();
-              renderOriginales();
-              actualizarMeta();
-            }
-          };
-        });
-      });
-    });
-    
-    function bytesToKB(b) { return (b / 1024).toFixed(1); }
-    function bytesToMB(b) { return (b / (1024*1024)).toFixed(2); }
+  request.onerror = e => {
+    console.error("❌ [IndexedDB] Error abriendo DB:", e.target.error);
+  };
+}
 
-    // Sincroniza input.files con originales usando DataTransfer para que el selector muestre “N archivos”
-    function syncInputWithOriginales() {
-      const dt = new DataTransfer();
-      originales.forEach(file => dt.items.add(file));
-      input.files = dt.files;
-      actualizarFileCount();
-    }
+function guardarImagenEnIndexedDB(file) {
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readwrite");
+    tx.objectStore("imagenes").put(file, file.name);
 
-    function actualizarFileCount() {
-      if (originales.length) {
-        const totalBytes = originales.reduce((s,f)=>s+f.size,0);
-        fileCountEl.textContent = `${originales.length} archivo(s) — ${bytesToMB(totalBytes)} MB`;
-      } else {
-        fileCountEl.textContent = '';
+    tx.oncomplete = () => {
+      console.log("✅ [IndexedDB] Imagen guardada:", file.name);
+      let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+      if (!lista.includes(file.name)) {
+        lista.push(file.name);
+        localStorage.setItem("imagenesLista", JSON.stringify(lista));
       }
-    }
+    };
 
-    // Input change: validaciones + guardado + feedback
+    tx.onerror = e => {
+      console.error("❌ [IndexedDB] Error guardando imagen:", e.target.error);
+    };
+  });
+}
+
+// Restaurar al cargar desde IndexedDB usando la lista de nombres
+window.addEventListener("DOMContentLoaded", () => {
+  const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+  if (!lista.length) {
+    console.log("ℹ️ [IndexedDB] No hay imágenes en la lista local.");
+    return;
+  }
+
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readonly");
+    const store = tx.objectStore("imagenes");
+    const recs = [];
+    let pending = lista.length;
+
+    const finalizar = () => {
+      originales = recs;
+      syncInputWithOriginales();
+      renderOriginales();
+      actualizarMeta();
+      console.log(`📊 [IndexedDB] Restauradas ${recs.length} imágenes desde IndexedDB.`);
+    };
+
+    lista.forEach(name => {
+      const req = store.get(name);
+
+      req.onsuccess = e => {
+        const fileOrBlob = e.target.result;
+        if (fileOrBlob) {
+          const f = fileOrBlob instanceof File
+            ? fileOrBlob
+            : new File([fileOrBlob], name, { type: fileOrBlob.type || "image/*" });
+          recs.push(f);
+          console.log("✅ [IndexedDB] Imagen restaurada:", name);
+        } else {
+          console.warn("⚠️ [IndexedDB] Imagen no encontrada:", name);
+        }
+        if (--pending === 0) finalizar();
+      };
+
+      req.onerror = () => {
+        console.error("❌ [IndexedDB] Error leyendo:", name);
+        if (--pending === 0) finalizar();
+      };
+    });
+  });
+});
+function bytesToKB(b) { return (b / 1024).toFixed(1); }
+function bytesToMB(b) { return (b / (1024 * 1024)).toFixed(2); }
+
+// Sincroniza input.files con originales usando DataTransfer para que el selector muestre “N archivos”
+function syncInputWithOriginales() {
+  const dt = new DataTransfer();
+  originales.forEach(file => dt.items.add(file));
+  input.files = dt.files;
+  actualizarFileCount();
+}
+
+function actualizarFileCount() {
+  if (originales.length) {
+    const totalBytes = originales.reduce((s, f) => s + f.size, 0);
+    fileCountEl.textContent = `${originales.length} archivo(s) — ${bytesToMB(totalBytes)} MB`;
+  } else {
+    fileCountEl.textContent = '';
+  }
+}
+
+// Input change: validaciones + guardado + feedback
 input.addEventListener('change', () => {
   resetFeedback(); // ← reemplaza resetErrores()
   const nuevos = Array.from(input.files);
   let duplicados = 0;
+
+  console.log("📥 [FRONT] Archivos seleccionados:", nuevos.map(f => f.name));
 
   // Validación cantidad
   if (originales.length + nuevos.length > 500) {
@@ -316,8 +333,10 @@ input.addEventListener('change', () => {
     if (!existe) {
       originales.push(f);
       guardarImagenEnIndexedDB(f);
+      console.log("✅ [FRONT] Imagen agregada:", f.name);
     } else {
       duplicados++;
+      console.warn("⚠️ [FRONT] Imagen duplicada ignorada:", f.name);
     }
   });
 
@@ -334,40 +353,47 @@ input.addEventListener('change', () => {
   actualizarMeta();
 });
 
+// Quitar todas
+clearBtn.addEventListener('click', () => {
+  console.log("🗑️ [FRONT] Limpiando todas las imágenes...");
 
-    // Quitar todas
-    clearBtn.addEventListener('click', () => {
-      // Revocar URLs de optimizadas para evitar fugas
-      optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
-      optimizadas = [];
-      originales = [];
-      previewEl.innerHTML = '';
-      actualizarMeta();
+  // Revocar URLs de optimizadas para evitar fugas
+  optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
+  optimizadas = [];
+  originales = [];
+  previewEl.innerHTML = '';
+  actualizarMeta();
 
-      downloadAllBtn.disabled = true; downloadAllBtn.classList.add('btn-disabled');
-      uploadBtn.disabled = true; uploadBtn.classList.add('btn-disabled');
+  downloadAllBtn.disabled = true;
+  downloadAllBtn.classList.add('btn-disabled');
+  uploadBtn.disabled = true;
+  uploadBtn.classList.add('btn-disabled');
 
-      syncInputWithOriginales();
-      input.value = '';
-      actualizarFileCount();
+  syncInputWithOriginales();
+  input.value = '';
+  actualizarFileCount();
 
-      // Limpiar cache local
-      localStorage.removeItem("imagenesLista");
-      localStorage.removeItem("imagenesOriginales");
-      const del = indexedDB.deleteDatabase("imagenesDB");
-      del.onsuccess = () => console.log("🗑️ IndexedDB borrada al limpiar todas");
-    });
-
-    function actualizarMeta() {
+  // Limpiar cache local
+  localStorage.removeItem("imagenesLista");
+  localStorage.removeItem("imagenesOriginales");
+  const del = indexedDB.deleteDatabase("imagenesDB");
+  del.onsuccess = () => console.log("🗑️ [IndexedDB] borrada al limpiar todas");
+});
+function actualizarMeta() {
   const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
   const totalOpt  = optimizadas.reduce((sum, f) => sum + f.size, 0);
   const partes = [];
 
   if (originales.length) {
-    partes.push(`${originales.length} original(es) — ${bytesToKB(totalOrig)} KB`);
+    partes.push(`${originales.length} original(es) — ${bytesToMB(totalOrig)} MB`);
+  } else {
+    showError("⚠️ No hay imágenes originales cargadas.");
   }
+
   if (optimizadas.length) {
-    partes.push(`${optimizadas.length} optimizada(s) — ${bytesToKB(totalOpt)} KB`);
+    partes.push(`${optimizadas.length} optimizada(s) — ${bytesToMB(totalOpt)} MB`);
+  } else if (originales.length) {
+    showInfo("ℹ️ Aún no optimizaste las imágenes cargadas.");
   }
 
   metaEl.textContent = partes.join(' | ');
@@ -377,10 +403,13 @@ input.addEventListener('change', () => {
   uploadBtn.disabled = !hasOpt;
   downloadAllBtn.classList.toggle('btn-disabled', !hasOpt);
   uploadBtn.classList.toggle('btn-disabled', !hasOpt);
+
+  if (originales.length && optimizadas.length) {
+    showInfo(`✅ Listo: ${originales.length} originales y ${optimizadas.length} optimizadas preparadas.`);
+  }
 }
 
-
-    // Render originales con paginación + lazy loading + feedback
+// Render originales con paginación + lazy loading + feedback
 function renderOriginales() {
   previewEl.innerHTML = '';
 
@@ -409,7 +438,9 @@ function renderOriginales() {
       removeBtn.textContent = '✖';
       removeBtn.setAttribute('aria-label', 'Eliminar imagen');
       removeBtn.onclick = () => {
-        originales.splice(start + idxPage, 1);
+        const absoluteIndex = start + idxPage;
+        console.log("🗑️ [FRONT] Eliminando imagen:", file.name, "en índice", absoluteIndex);
+        originales.splice(absoluteIndex, 1);
         saveOriginalesToLocal();
         syncInputWithOriginales();
         renderOriginales();
@@ -441,36 +472,37 @@ function renderOriginales() {
     showError("⚠️ No hay imágenes originales para mostrar.");
   }
 }
+// Resize a WebP 300x180 q=0.8
+async function resizeToWebP(file) {
+  const imgUrl = URL.createObjectURL(file);
+  const img = await new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = imgUrl;
+  });
 
+  const targetW = 300, targetH = 180;
+  const canvas = document.createElement('canvas');
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, targetW, targetH);
 
-    // Resize a WebP 300x180 q=0.8
-    async function resizeToWebP(file) {
-      const imgUrl = URL.createObjectURL(file);
-      const img = await new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.src = imgUrl;
-      });
+  const ratio = Math.min(targetW / img.width, targetH / img.height);
+  const newW = Math.round(img.width * ratio);
+  const newH = Math.round(img.height * ratio);
+  const offsetX = Math.floor((targetW - newW) / 2);
+  const offsetY = Math.floor((targetH - newH) / 2);
 
-      const targetW = 300, targetH = 180;
-      const canvas = document.createElement('canvas');
-      canvas.width = targetW; canvas.height = targetH;
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, targetW, targetH);
+  ctx.drawImage(img, offsetX, offsetY, newW, newH);
+  URL.revokeObjectURL(imgUrl);
 
-      const ratio = Math.min(targetW / img.width, targetH / img.height);
-      const newW = Math.round(img.width * ratio);
-      const newH = Math.round(img.height * ratio);
-      const offsetX = Math.floor((targetW - newW) / 2);
-      const offsetY = Math.floor((targetH - newH) / 2);
-
-      ctx.drawImage(img, offsetX, offsetY, newW, newH);
-      URL.revokeObjectURL(imgUrl);
-
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.8));
-      return blob;
-    }
+  const blob = await new Promise((resolve, reject) =>
+    canvas.toBlob(b => b ? resolve(b) : reject(new Error("❌ No se pudo generar WebP")), 'image/webp', 0.8)
+  );
+  return blob;
+}
 
 // Render optimizadas con paginación + lazy loading + feedback
 function renderOptimizadas() {
@@ -480,7 +512,6 @@ function renderOptimizadas() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   pageOpt = Math.min(pageOpt, totalPages);
 
-  // Feedback si no hay optimizadas
   if (total === 0) {
     showError("⚠️ No hay imágenes optimizadas para mostrar.");
     actualizarMeta();
@@ -506,6 +537,7 @@ function renderOptimizadas() {
     removeBtn.textContent = '✖';
     removeBtn.setAttribute('aria-label', 'Eliminar imagen');
     removeBtn.onclick = () => {
+      console.log("🗑️ [FRONT] Eliminando optimizada:", item.name);
       URL.revokeObjectURL(item.url);
       optimizadas.splice(start + idxPage, 1);
       renderOptimizadas();
@@ -528,7 +560,6 @@ function renderOptimizadas() {
     renderOptimizadas();
   });
 
-  // Feedback de página actual
   showInfo(`📄 Página ${pageOpt} de ${totalPages} — mostrando ${pageItems.length} de ${total} optimizadas.`);
 }
 
@@ -539,7 +570,6 @@ downloadAllBtn.addEventListener('click', async () => {
     return;
   }
 
-  // Spinner visual en el botón
   downloadAllBtn.disabled = true;
   downloadAllBtn.textContent = "Generando ZIP...";
 
@@ -551,18 +581,15 @@ downloadAllBtn.addEventListener('click', async () => {
     }
     const content = await zip.generateAsync({ type: "blob" });
     saveAs(content, "imagenes_optimizadas.zip");
-
     showInfo(`✅ ${optimizadas.length} imagen(es) descargadas en ZIP.`);
   } catch (err) {
     showError("❌ Error al generar el ZIP de imágenes.");
-    console.error(err);
+    console.error("💥 [FRONT] Error generando ZIP:", err);
+  } finally {
+    downloadAllBtn.disabled = false;
+    downloadAllBtn.textContent = "Descargar optimizadas";
   }
-
-  // Restaurar botón
-  downloadAllBtn.disabled = false;
-  downloadAllBtn.textContent = "Descargar optimizadas";
 });
-
 // Optimizar en tandas de 50 imágenes
 async function optimizeInBatches(batchSize = 50) {
   resetFeedback();
@@ -618,14 +645,14 @@ async function optimizeInBatches(batchSize = 50) {
   }
 }
 
-// Listener del botón
+// Listener del botón Optimizar
 optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
 
 
+// Subida en tandas
 async function enviarOptimizado(batchSize = 50) {
   console.log("🚀 [FRONT] Iniciando envío de optimizadas...");
 
-  const uploadBtn = document.getElementById("uploadBtn");
   uploadBtn.disabled = true;
   uploadBtn.textContent = "Subiendo...";
 
@@ -679,7 +706,6 @@ async function enviarOptimizado(batchSize = 50) {
   feedback.textContent = `✅ ${okCount} imágenes subidas, ⚠️ ${failCount} fallidas`;
 
   if (okCount > 0) {
-    const continueBtn = document.getElementById("continueBtn");
     continueBtn.disabled = false;
     continueBtn.classList.remove("btn-disabled");
     console.log("➡️ [FRONT] Botón 'Continuar' habilitado");
@@ -688,20 +714,17 @@ async function enviarOptimizado(batchSize = 50) {
   return okCount > 0;
 }
 
-
-document.getElementById("uploadBtn").addEventListener("click", () => enviarOptimizado(50));
-document.getElementById("uploadBtn").addEventListener("click", async () => {
+// Listener único para subir optimizadas
+uploadBtn.addEventListener("click", async () => {
   const ok = await enviarOptimizado(50);
   if (ok) {
-    // habilitar botón continuar
-    const continueBtn = document.getElementById("continueBtn");
     continueBtn.disabled = false;
     continueBtn.classList.remove("btn-disabled");
   }
 });
 
-document.getElementById("continueBtn").addEventListener("click", () => {
-  // redirigir al siguiente paso
+// Listener para continuar
+continueBtn.addEventListener("click", () => {
   window.location.href = "/step2"; // o "/preview" según tu flujo
 });
 </script>
