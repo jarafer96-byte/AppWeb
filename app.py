@@ -719,12 +719,15 @@ def step3():
 
             # ✅ Usar directamente la ruta pública devuelta por /upload-image
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
+            # Si no hay nada, usar fallback
+            if not imagen_url or not imagen_url.startswith("/static/img/"):
+                imagen_url = '/static/img/fallback.webp'
 
             bloques.append({
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'imagen_github': imagen_url or '/static/img/fallback.webp',
+                'imagen_github': imagen_url,
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
@@ -747,7 +750,7 @@ def step3():
                 resultados = list(executor.map(subir_con_resultado, lote))
             exitos += sum(1 for r in resultados if r)
 
-        # Agrupar los bloques en grupos/subgrupos para renderizar index.html
+        # Agrupar para preview
         grupos_dict = {}
         for producto in bloques:
             grupo = (producto.get('grupo') or 'General').strip().title()
@@ -795,8 +798,6 @@ def step3():
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
-
-
 
 def get_mp_public_key(email: str):
     """
