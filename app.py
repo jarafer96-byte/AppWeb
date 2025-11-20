@@ -158,39 +158,32 @@ def upload_image():
 
     file = request.files["file"]
     contenido_bytes = file.read()
-
     if not contenido_bytes:
         return jsonify({"ok": False, "error": "Archivo vacío"}), 400
 
-    # Nombre del repo dinámico desde sesión (fallback a AppWeb si no existe)
     repo_name = session.get("repo_nombre") or "AppWeb"
 
-    # Generar nombre único con extensión
-    ext = os.path.splitext(file.filename)[1] or ".webp"
+    # Nombre único con extensión
+    ext = os.path.splitext(file.filename)[1].lower() or ".webp"
     nombre_archivo = f"{uuid.uuid4().hex}{ext}"
 
-    # Rutas diferenciadas: GitHub (sin slash) vs pública (con slash)
-    ruta_repo = f"static/img/{nombre_archivo}"
-    ruta_publica = f"/static/img/{nombre_archivo}"
+    ruta_repo = f"static/img/{nombre_archivo}"       # para GitHub
+    ruta_publica = f"/static/img/{nombre_archivo}"   # para navegador/Firestore
 
-    # Guardar localmente para que Flask sirva /static/img/...
+    # Guardar localmente
     local_path = os.path.join(app.config['UPLOAD_FOLDER'], nombre_archivo)
-    try:
-        with open(local_path, "wb") as out:
-            out.write(contenido_bytes)
-    except Exception as e:
-        return jsonify({"ok": False, "error": f"Error guardando local: {e}"}), 500
+    with open(local_path, "wb") as out:
+        out.write(contenido_bytes)
 
-    # Subir a GitHub usando la ruta sin slash inicial
+    # Subir a GitHub
     resultado = subir_archivo(repo_name, contenido_bytes, ruta_repo)
 
     if resultado.get("ok"):
         return jsonify({
             "ok": True,
-            "url": resultado.get("url"),        # URL del archivo en GitHub
-            "archivo": nombre_archivo,          # nombre final único
-            "ruta_remota": ruta_repo,           # ruta dentro del repo (GitHub)
-            "ruta_publica": ruta_publica        # ruta para <img src="/static/img/...">
+            "url": resultado.get("url"),
+            "archivo": nombre_archivo,
+            "ruta_publica": ruta_publica
         }), 200
     else:
         return jsonify({
@@ -198,7 +191,6 @@ def upload_image():
             "error": resultado.get("error", "Error desconocido"),
             "status": resultado.get("status", 500)
         }), 500
-
 
 def subir_iconos_png(repo):
     carpeta = os.path.join("static", "img")
@@ -255,16 +247,13 @@ def limpiar_imagenes_usuario():
 @app.route('/step0', methods=['GET', 'POST'])
 def step0():
     if request.method == 'POST':
-        email = session.get('email', 'anonimo')
         imagenes = request.files.getlist('imagenes')
-
         if not imagenes:
             return "No se recibieron imágenes", 400
 
         if 'imagenes_step0' not in session:
             session['imagenes_step0'] = []
 
-        # Límite de 500 imágenes en total
         if len(session['imagenes_step0']) + len(imagenes) > 500:
             return "Límite de imágenes alcanzado", 400
 
@@ -274,35 +263,25 @@ def step0():
         for img in imagenes:
             if img and img.filename:
                 contenido_bytes = img.read()
+                ext = os.path.splitext(img.filename)[1].lower() or ".webp"
+                filename = f"{uuid.uuid4().hex}{ext}"
 
-                # Nombre seguro
-                filename = secure_filename(img.filename)
-
-                # ✅ Guardar localmente en static/img para que Flask sirva /static/img/...
+                # Guardar local
                 local_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 with open(local_path, "wb") as f:
                     f.write(contenido_bytes)
 
-                # ✅ Ruta para GitHub (sin slash inicial)
-                ruta_repo = f"static/img/{filename}"
-
                 # Subir a GitHub
+                ruta_repo = f"static/img/{filename}"
                 resultado = subir_archivo(repo_name, contenido_bytes, ruta_repo)
 
                 if resultado.get("ok"):
-                    # ✅ Ruta pública para el navegador (con slash inicial)
                     urls.append(f"/static/img/{filename}")
 
-        # Guardar las rutas en sesión para Step3
         session['imagenes_step0'].extend(urls)
-
-        # Redirigir al siguiente paso
         return redirect('/estilo')
 
     return render_template('step0.html')
-
-
-
 
 def get_mp_token(email: str):
     """Obtiene el access_token de Mercado Pago desde Firestore o Render, con fallback a refresh_token."""
@@ -719,9 +698,9 @@ def step3():
 
             # ✅ Usar directamente la ruta pública devuelta por /upload-image
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
-            # Si no hay nada, usar fallback
-            if not imagen_url or not imagen_url.startswith("/static/img/"):
-                imagen_url = '/static/img/fallback.webp'
+            if not imagen_url.startswith("/static/img/"):
+                # si no hay imagen válida, se ignora el producto
+                continue
 
             bloques.append({
                 'nombre': nombre,
