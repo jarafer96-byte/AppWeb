@@ -64,31 +64,57 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def subir_a_firestore(producto, email):
-    if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio"):
-        return False
-
-    grupo_original = producto["grupo"].strip()
-    subgrupo_original = producto.get("subgrupo", "general").strip()
-    nombre_original = producto["nombre"].strip()
-
-    grupo_id = grupo_original.replace(" ", "_").lower()
-    nombre_id = nombre_original.replace(" ", "_").lower()
-    fecha = time.strftime("%Y%m%d")
-
-    sufijo = uuid.uuid4().hex[:6]
-    custom_id = f"{nombre_id}_{fecha}_{grupo_id}_{sufijo}"
-
+    """
+    Versión mejorada: valida y registra errores detallados.
+    Retorna dict: {"ok": True, "id": custom_id} o {"ok": False, "error": "...", "trace": "..."}
+    """
     try:
-        precio = int(producto["precio"].replace("$", "").replace(".", "").strip())
-        orden = int(producto.get("orden", 999))
-    except ValueError:
-        return False
+        if not isinstance(producto, dict):
+            return {"ok": False, "error": "Producto inválido (no es dict)"}
 
-    talles = producto.get("talles") or []
-    if isinstance(talles, str):
-        talles = [t.strip() for t in talles.split(',') if t.strip()]
+        if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio"):
+            return {"ok": False, "error": "Faltan campos obligatorios: nombre/grupo/precio"}
 
-    try:
+        grupo_original = producto["grupo"].strip()
+        subgrupo_original = producto.get("subgrupo", "general").strip()
+        nombre_original = producto["nombre"].strip()
+
+        grupo_id = grupo_original.replace(" ", "_").lower()
+        nombre_id = nombre_original.replace(" ", "_").lower()
+        fecha = time.strftime("%Y%m%d")
+
+        sufijo = uuid.uuid4().hex[:6]
+        custom_id = f"{nombre_id}_{fecha}_{grupo_id}_{sufijo}"
+
+        # Parseo de precio más tolerante: acepta "$1.234,56", "1234.56", "1.234"
+        precio_raw = producto["precio"]
+        price_str = str(precio_raw).strip()
+        # eliminar todo lo que no sea dígito, punto o coma
+        price_clean = re.sub(r"[^\d,\.]", "", price_str)
+
+        # Normalizar separadores: si hay ',' y '.' asumimos que '.' es miles y ',' decimal
+        if "," in price_clean and "." in price_clean:
+            price_clean = price_clean.replace(".", "").replace(",", ".")
+        elif "," in price_clean and "." not in price_clean:
+            # si sólo tiene ',': tomarla como decimal
+            price_clean = price_clean.replace(",", ".")
+        # si sólo hay puntos (p.ej. "1.234"), asumimos miles y los quitamos si no hay decimales
+        # intentamos convertir a float y luego a int pesos
+        try:
+            precio_float = float(price_clean)
+            precio = int(round(precio_float))
+        except Exception as e:
+            return {"ok": False, "error": f"Formato de precio inválido: '{price_str}' -> '{price_clean}'", "detail": str(e)}
+
+        try:
+            orden = int(producto.get("orden", 999))
+        except Exception:
+            orden = 999
+
+        talles = producto.get("talles") or []
+        if isinstance(talles, str):
+            talles = [t.strip() for t in talles.split(',') if t.strip()]
+
         producto["id_base"] = custom_id
 
         doc = {
@@ -98,16 +124,21 @@ def subir_a_firestore(producto, email):
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
-            "imagen_github": producto.get("imagen_github"),  # ✅ solo GitHub
+            "imagen_github": producto.get("imagen_github"),
             "orden": orden,
             "talles": talles,
             "timestamp": firestore.SERVER_TIMESTAMP
         }
 
+        # Intentar guardar en Firestore y devolver resultado explícito
         db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
-        return True
-    except Exception:
-        return False
+        print(f"[FIRESTORE] ✅ Producto guardado: {custom_id} para {email}")
+        return {"ok": True, "id": custom_id}
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"[FIRESTORE] ❌ Error al subir producto para {email}: {e}\n{tb}")
+        return {"ok": False, "error": str(e), "trace": tb}
 
 
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
@@ -724,11 +755,13 @@ def step3():
 
         def subir_con_resultado(producto):
             try:
-                ok = subir_a_firestore(producto, email)
-                print(f"🔥 [Step3] Subida a Firestore: {producto['nombre']} → {ok}")
-                return ok
+                resultado = subir_a_firestore(producto, email)
+                # Imprimir resultado detallado para debugging
+                print(f"🔥 [Step3] Resultado subir_a_firestore para '{producto.get('nombre')}' -> {resultado}")
+                return resultado.get("ok") if isinstance(resultado, dict) else bool(resultado)
             except Exception as e:
-                print(f"💥 [Step3] Error subiendo a Firestore: {producto['nombre']} → {e}")
+                print(f"💥 [Step3] Excepción en subir_con_resultado: {e}")
+                print(traceback.format_exc())
                 return False
 
         bloques_por_lote = 10
