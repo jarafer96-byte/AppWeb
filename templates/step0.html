@@ -620,69 +620,82 @@ async function optimizeInBatches(batchSize = 50) {
 optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
 
 
-// Subir optimizadas en tandas de 50
 async function enviarOptimizado(batchSize = 50) {
-  resetFeedback();
-  if (!optimizadas || !optimizadas.length) {
-    showError("⚠️ Primero optimizá las imágenes.");
-    return false;
-  }
+  console.log("🚀 [FRONT] Iniciando envío de optimizadas...");
 
-  // Spinner en el botón
+  const uploadBtn = document.getElementById("uploadBtn");
   uploadBtn.disabled = true;
   uploadBtn.textContent = "Subiendo...";
 
-  let okCount = 0, failCount = 0;
+  let okCount = 0;
+  let failCount = 0;
 
-  try {
-    for (let i = 0; i < optimizadas.length; i += batchSize) {
-      const batch = optimizadas.slice(i, i + batchSize);
+  // blobsOptimized es tu array global con las imágenes optimizadas
+  console.log(`📦 [FRONT] Total blobs optimizados: ${blobsOptimized.length}`);
 
-      // Subir cada imagen del lote
-      for (const item of batch) {
-        try {
-          const formData = new FormData();
-          formData.append("file", item.blob, item.name);
+  for (let i = 0; i < blobsOptimized.length; i += batchSize) {
+    const batch = blobsOptimized.slice(i, i + batchSize);
+    console.log(`➡️ [FRONT] Procesando batch ${i / batchSize + 1}: ${batch.length} imágenes`);
 
-          const res = await fetch("/upload-image", { method: "POST", body: formData });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const formData = new FormData();
+    batch.forEach((blob, idx) => {
+      const filename = `opt_${i + idx}.webp`;
+      formData.append("imagenes", blob, filename);
+      console.log(`📝 [FRONT] Añadida al FormData: ${filename}, tamaño: ${blob.size} bytes`);
+    });
 
-          const data = await res.json();
-          if (!data.ok) {
-            failCount++;
-            showError(`⚠️ Error al subir ${item.name}.`);
-          } else {
-            console.log("📤 Subida completa:", item.name, data.url || "");
-            okCount++;
-          }
-        } catch (err) {
-          failCount++;
-          showError(`⚠️ Fallo de red al subir ${item.name}.`);
-        }
+    try {
+      const resp = await fetch("/upload-image", {
+        method: "POST",
+        body: formData
+      });
+
+      console.log(`🔗 [FRONT] POST /upload-image → status: ${resp.status}`);
+
+      if (!resp.ok) {
+        failCount += batch.length;
+        console.error(`❌ [FRONT] Error HTTP ${resp.status} en batch ${i / batchSize + 1}`);
+        continue;
       }
 
-      // Feedback parcial por tanda
-      showInfo(`⬆️ Subida parcial: ${okCount} ok, ${failCount} fallidas (lote ${i / batchSize + 1}).`);
+      const data = await resp.json();
+      console.log("📥 [FRONT] Respuesta JSON:", data);
 
-      // Pausa breve para liberar el hilo y refrescar la UI
-      await new Promise(r => setTimeout(r, 200));
+      if (data.ok) {
+        okCount += data.imagenes.length;
+        data.imagenes.forEach(url => {
+          console.log(`✅ [FRONT] Subida completa: ${url}`);
+        });
+      } else {
+        failCount += batch.length;
+        console.error(`❌ [FRONT] Backend devolvió error: ${data.error}`);
+      }
+    } catch (err) {
+      failCount += batch.length;
+      console.error(`💥 [FRONT] Excepción en fetch:`, err);
     }
-
-    // Feedback final
-    if (okCount > 0) showInfo(`✅ ${okCount} imagen(es) subidas correctamente.`);
-    if (failCount > 0) showError(`⚠️ ${failCount} imagen(es) no se pudieron subir.`);
-    if (okCount === 0) showError("❌ No se pudo subir ninguna imagen.");
-  } catch (err) {
-    showError("⚠️ Error inesperado al subir imágenes.");
-    console.error(err);
   }
 
-  // Restaurar botón
+  console.log(`📊 [FRONT] Resumen → OK: ${okCount}, FAIL: ${failCount}`);
+
   uploadBtn.disabled = false;
   uploadBtn.textContent = "Subir optimizadas";
 
-  return false; // prevenir submit HTML estándar
+  // Feedback visual
+  const feedback = document.getElementById("feedback");
+  feedback.textContent = `✅ ${okCount} imágenes subidas, ⚠️ ${failCount} fallidas`;
+
+  // Si querés redirigir automáticamente:
+  if (okCount > 0) {
+    const continueBtn = document.getElementById("continueBtn");
+    continueBtn.disabled = false;
+    continueBtn.classList.remove("btn-disabled");
+    console.log("➡️ [FRONT] Botón 'Continuar' habilitado");
+  }
+
+  return okCount > 0;
 }
+
 document.getElementById("uploadBtn").addEventListener("click", () => enviarOptimizado(50));
 document.getElementById("uploadBtn").addEventListener("click", async () => {
   const ok = await enviarOptimizado(50);
