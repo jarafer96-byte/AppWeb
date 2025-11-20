@@ -103,6 +103,8 @@
     let pageSize = parseInt(localStorage.getItem("pageSize") || "20", 10);
     let pageOrig = 1;
     let pageOpt = 1;
+    // Array global para guardar los blobs optimizados
+    let blobsOptimized = [];
 
     // Selector de tamaño de página
     const pageSizeSelect = document.getElementById('pageSizeSelect');
