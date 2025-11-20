@@ -1165,7 +1165,7 @@ def preview():
                         if os.path.exists(ruta_local):
                             with open(ruta_local, "rb") as f:
                                 contenido = f.read()
-                            subir_archivo(nombre_repo, contenido, f"static/img/{os.path.basename(imagen)}", token)
+                            subir_archivo(nombre_repo, contenido, f"static/img/{os.path.basename(imagen)})
                             print(f"[Preview] Imagen subida: {imagen}")
                             del contenido
                             gc.collect()
@@ -1176,7 +1176,7 @@ def preview():
                     if os.path.exists(logo_path):
                         with open(logo_path, "rb") as f:
                             contenido = f.read()
-                        subir_archivo(nombre_repo, contenido, f"static/img/{logo}", token)
+                        subir_archivo(nombre_repo, contenido, f"static/img/{logo}")
                         print(f"[Preview] Logo subido: {logo}")
                         del contenido
                         gc.collect()
@@ -1186,7 +1186,7 @@ def preview():
                 if os.path.exists(fondo_path):
                     with open(fondo_path, "rb") as f:
                         contenido = f.read()
-                    subir_archivo(nombre_repo, contenido, f"static/img/{fondo}", token)
+                    subir_archivo(nombre_repo, contenido, f"static/img/{fondo}")
                     print(f"[Preview] Fondo subido: {fondo}")
                     del contenido
                     gc.collect()
