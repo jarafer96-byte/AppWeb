@@ -264,7 +264,7 @@ def step0():
         if 'imagenes_step0' not in session:
             session['imagenes_step0'] = []
 
-        # Límite de 120 imágenes en total
+        # Límite de 500 imágenes en total
         if len(session['imagenes_step0']) + len(imagenes) > 500:
             return "Límite de imágenes alcanzado", 400
 
@@ -274,10 +274,24 @@ def step0():
         for img in imagenes:
             if img and img.filename:
                 contenido_bytes = img.read()
-                ruta_remota = f"/static/img/{img.filename}"
-                resultado = subir_archivo(repo_name, contenido_bytes, ruta_remota)
+
+                # Nombre seguro
+                filename = secure_filename(img.filename)
+
+                # ✅ Guardar localmente en static/img para que Flask sirva /static/img/...
+                local_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                with open(local_path, "wb") as f:
+                    f.write(contenido_bytes)
+
+                # ✅ Ruta para GitHub (sin slash inicial)
+                ruta_repo = f"static/img/{filename}"
+
+                # Subir a GitHub
+                resultado = subir_archivo(repo_name, contenido_bytes, ruta_repo)
+
                 if resultado.get("ok"):
-                    urls.append(ruta_remota)
+                    # ✅ Ruta pública para el navegador (con slash inicial)
+                    urls.append(f"/static/img/{filename}")
 
         # Guardar las rutas en sesión para Step3
         session['imagenes_step0'].extend(urls)
@@ -286,6 +300,7 @@ def step0():
         return redirect('/estilo')
 
     return render_template('step0.html')
+
 
 
 
