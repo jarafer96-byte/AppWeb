@@ -1090,13 +1090,15 @@ def pagar():
         print(f"[PAGAR] Error interno: {e}")
         return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
 
-@app.route('/preview')
+@app.route('/preview', methods=["GET", "POST"])
 def preview():
     print("🚀 [Preview] Entrando a /preview")
 
-    # Flags de admin
-    modo_admin = bool(session.get('modo_admin')) and request.args.get('admin') == 'true'
-    modo_admin_intentado = request.args.get('admin') == 'true'
+    # Flags de admin: aceptar tanto query args como form
+    modo_admin = bool(session.get('modo_admin')) and (
+        request.args.get('admin') == 'true' or request.form.get('admin') == 'true'
+    )
+    modo_admin_intentado = (request.args.get('admin') == 'true' or request.form.get('admin') == 'true')
     email = session.get('email')
 
     print(f"🔑 [Preview] modo_admin={modo_admin} modo_admin_intentado={modo_admin_intentado}")
@@ -1112,8 +1114,7 @@ def preview():
     productos = []
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
-        productos_docs = productos_ref.stream()
-        for doc in productos_docs:
+        for doc in productos_ref.stream():
             data = doc.to_dict()
             print(f"📄 [Preview] Doc ID={doc.id} Data={data}")
             productos.append(data)
@@ -1125,16 +1126,10 @@ def preview():
     # Agrupar por grupo y subgrupo
     grupos_dict = {}
     for producto in productos:
-        print(f"🛒 [Preview] Producto bruto: nombre={producto.get('nombre')} grupo={producto.get('grupo')} subgrupo={producto.get('subgrupo')} imagen={producto.get('imagen_github') or producto.get('imagen_backblaze')}")
         grupo = (producto.get('grupo') or 'General').strip().title()
         subgrupo = (producto.get('subgrupo') or 'Sin subgrupo').strip().title()
         grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
     print(f"📂 [Preview] Grupos generados: {list(grupos_dict.keys())}")
-    for g, subs in grupos_dict.items():
-        for sg, prods in subs.items():
-            print(f"   ↳ Grupo={g}, Subgrupo={sg}, Productos={len(prods)}")
-            for p in prods:
-                print(f"      • Producto: {p.get('nombre')} | Imagen: {p.get('imagen_github') or p.get('imagen_backblaze')}")
 
     # Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
@@ -1171,61 +1166,52 @@ def preview():
         'descargado': session.get('descargado', False),
         'usarFirestore': True
     }
-    print(f"⚙️ [Preview] Configuración visual: {config}")
 
     # Crear repo si corresponde
     if session.get("crear_repo") and not session.get("repo_creado"):
         nombre_repo = generar_nombre_repo(email)
         token = os.getenv("GITHUB_TOKEN")
-        resultado = crear_repo_github(nombre_repo, token)
-        print(f"📦 [Preview] Creando repo: {nombre_repo}, resultado={resultado}")
-        if "url" in resultado:
-            session['repo_creado'] = resultado["url"]
-            session['repo_nombre'] = nombre_repo
+        try:
+            resultado = crear_repo_github(nombre_repo, token)
+            print(f"📦 [Preview] Creando repo: {nombre_repo}, resultado={resultado}")
+            if "url" in resultado:
+                session['repo_creado'] = resultado["url"]
+                session['repo_nombre'] = nombre_repo
+        except Exception as e:
+            print("💥 [Preview] Error al crear repo:", e)
 
     # Subir archivos si el repo existe
     if session.get('repo_creado') and session.get('repo_nombre'):
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
-        print(f"⬆️ [Preview] Subiendo archivos al repo: {nombre_repo}")
-
         if token:
             try:
+                # Subir imágenes de productos
                 for producto in productos:
                     imagen = producto.get("imagen_github")
                     if imagen and imagen.startswith("/static/img/"):
                         ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen))
-                        print(f"🔍 [Preview] Verificando imagen local: {ruta_local}")
                         if os.path.exists(ruta_local):
                             with open(ruta_local, "rb") as f:
-                                contenido = f.read()
-                            subir_archivo(nombre_repo, contenido, f"static/img/{os.path.basename(imagen)}")
+                                subir_archivo(nombre_repo, f.read(), f"static/img/{os.path.basename(imagen)}")
                             print(f"✅ [Preview] Imagen subida: {imagen}")
-                            del contenido
-                            gc.collect()
 
+                # Subir logo
                 logo = config.get("logo")
                 if logo:
                     logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
-                    print(f"🔍 [Preview] Verificando logo: {logo_path}")
                     if os.path.exists(logo_path):
                         with open(logo_path, "rb") as f:
-                            contenido = f.read()
-                        subir_archivo(nombre_repo, contenido, f"static/img/{logo}")
+                            subir_archivo(nombre_repo, f.read(), f"static/img/{logo}")
                         print(f"✅ [Preview] Logo subido: {logo}")
-                        del contenido
-                        gc.collect()
 
+                # Subir fondo
                 fondo = f"{estilo_visual}.jpeg"
                 fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
-                print(f"🔍 [Preview] Verificando fondo: {fondo_path}")
                 if os.path.exists(fondo_path):
                     with open(fondo_path, "rb") as f:
-                        contenido = f.read()
-                    subir_archivo(nombre_repo, contenido, f"static/img/{fondo}")
+                        subir_archivo(nombre_repo, f.read(), f"static/img/{fondo}")
                     print(f"✅ [Preview] Fondo subido: {fondo}")
-                    del contenido
-                    gc.collect()
             except Exception as e:
                 print("💥 [Preview] Error al subir archivos al repo:", e)
 
