@@ -1165,7 +1165,7 @@ def preview():
                         if os.path.exists(ruta_local):
                             with open(ruta_local, "rb") as f:
                                 contenido = f.read()
-                            subir_archivo(nombre_repo, contenido, f"static/img/{os.path.basename(imagen)})
+                            subir_archivo(nombre_repo, contenido, f"static/img/{os.path.basename(imagen)}")
                             print(f"[Preview] Imagen subida: {imagen}")
                             del contenido
                             gc.collect()
