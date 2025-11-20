@@ -168,12 +168,6 @@ def upload_image():
 
     # Nombre del repo dinámico desde sesión (fallback a AppWeb si no existe)
     repo_name = session.get("repo_nombre") or "AppWeb"
-
-    # Generar nombre único con extensión
-    ext = os.path.splitext(file.filename)[1] or ".webp"
-    nombre_archivo = f"{uuid.uuid4().hex}{ext}"
-    ruta_remota = f"static/img/{nombre_archivo}"
-
     # Subir a GitHub
     resultado = subir_archivo(repo_name, contenido_bytes, ruta_remota)
 
