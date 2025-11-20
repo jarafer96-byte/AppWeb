@@ -121,21 +121,6 @@
   errorEl.style.color = '#ff4d4d'; // rojo
 }
     
-document.getElementById("uploadBtn").addEventListener("click", async () => {
-  const ok = await enviarOptimizado(50);
-  if (ok) {
-    // habilitar botón continuar
-    const continueBtn = document.getElementById("continueBtn");
-    continueBtn.disabled = false;
-    continueBtn.classList.remove("btn-disabled");
-  }
-});
-
-document.getElementById("continueBtn").addEventListener("click", () => {
-  // redirigir al siguiente paso
-  window.location.href = "/step2"; // o "/preview" según tu flujo
-});
-
 function showInfo(msg) {
   metaEl.textContent = msg;
   metaEl.style.color = '#0f0'; // verde
@@ -699,7 +684,20 @@ async function enviarOptimizado(batchSize = 50) {
   return false; // prevenir submit HTML estándar
 }
 document.getElementById("uploadBtn").addEventListener("click", () => enviarOptimizado(50));
+document.getElementById("uploadBtn").addEventListener("click", async () => {
+  const ok = await enviarOptimizado(50);
+  if (ok) {
+    // habilitar botón continuar
+    const continueBtn = document.getElementById("continueBtn");
+    continueBtn.disabled = false;
+    continueBtn.classList.remove("btn-disabled");
+  }
+});
 
+document.getElementById("continueBtn").addEventListener("click", () => {
+  // redirigir al siguiente paso
+  window.location.href = "/step2"; // o "/preview" según tu flujo
+});
 </script>
 <!-- Librerías para ZIP y descarga -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
