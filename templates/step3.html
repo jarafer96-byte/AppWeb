@@ -183,76 +183,81 @@
 </style>
 </head>
 <body>
-  <div class="container py-5">
-    <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
+<div class="container py-5">
+  <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
 
+  <!-- Importar productos -->
   <div class="text-center mb-4">
-  <input type="file" id="archivoProductos" 
-         accept=".csv,.txt,.xls,.xlsx" 
-         class="form-control w-50 mx-auto mb-2">
-  <button type="button" class="btn-gradient btn-sm" onclick="leerArchivoProductos()">
-    📂 Importar lista de productos (CSV, TXT y .xls/.xlsx)
-  </button>
+    <input type="file" id="archivoProductos" 
+           accept=".csv,.txt,.xls,.xlsx" 
+           class="form-control w-50 mx-auto mb-2">
+    <button type="button" class="btn-gradient btn-sm" onclick="leerArchivoProductos()">
+      📂 Importar lista de productos (CSV, TXT y .xls/.xlsx)
+    </button>
+  </div>
+
+  <!-- Crear grupo -->
+  <div class="mb-4 text-center">
+    <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" 
+           placeholder="Nombre del grupo (ej: Ropa Mujer)">
+    <button type="button" class="btn-gradient btn-sm" onclick="crearGrupo()">Crear grupo</button>
+  </div>
+
+  <!-- Formulario principal -->
+  <form id="formulario" method="POST" action="/preview" enctype="multipart/form-data">
+    <div id="grupos"></div>
+
+    <div class="text-center mt-4">
+      <button type="submit" class="btn-gradient px-5 py-2">Continuar</button>
+    </div>
+  </form>
+
+  <!-- Mensaje final -->
+  <div class="mensaje-final text-center mt-3">
+    ¿Tenés mucho contenido? 
+    <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
+    <br>
+    <span>⚠️ Si continuás, perderás todo el contenido si intentás volver a esta página.</span>
+  </div>
 </div>
 
+<!-- Spinner -->
+<div id="spinner" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
+  <div class="loader"></div>
+  <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
+</div>
 
-
-    <div class="mb-4 text-center">
-      <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" placeholder="Nombre del grupo (ej: Ropa Mujer)">
-      <button type="button" class="btn-gradient btn-sm" onclick="crearGrupo()">Crear grupo</button>
-    </div>
-
-    <form id="formulario" method="POST" enctype="multipart/form-data">
-      <div id="grupos"></div>
-
-      <div class="text-center mt-4">
-        <button type="button" class="btn-gradient px-5 py-2" onclick="validarYEnviar()">Continuar</button>
+<!-- Modal carrusel -->
+<div class="modal fade" id="modalCarrusel" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark text-white">
+      <div class="modal-header">
+        <h5 class="modal-title">Elegí una imagen</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-    </form>
-
-    <div class="mensaje-final">
-      ¿Tenés mucho contenido? <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
-      <span>⚠️ Si continuás, perderás todo el contenido si intentás volver a esta página.</span>
-    </div>
-  </div>
-
-
-  <div id="spinner" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
-    <div class="loader"></div>
-    <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
-  </div>
-  
-   <div class="modal fade" id="modalCarrusel" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content bg-dark text-white">
-        <div class="modal-header">
-          <h5 class="modal-title">Elegí una imagen</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div style="padding: 0 40px;">
-            <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
-              <div class="carousel-inner">
-                <!-- thumbnails se insertan dinámicamente -->
-              </div>
-              <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon"></span>
-              </button>
-              <button class="carousel-control-next" type="button" data-bs-target="#carouselGlobal" data-bs-slide="next">
-                <span class="carousel-control-next-icon"></span>
-              </button>
+      <div class="modal-body">
+        <div style="padding: 0 40px;">
+          <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+              <!-- thumbnails se insertan dinámicamente -->
             </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselGlobal" data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+            </button>
           </div>
         </div>
-        <div class="modal-footer d-flex justify-content-between">
-          <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
-        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
       </div>
     </div>
   </div>
+</div>
 
-
-  <script>
+<script>
   let grupoId = 0;
   let contadorOrden = 1;
   let imagenSeleccionada = null;   // guarda el nombre del archivo seleccionado
