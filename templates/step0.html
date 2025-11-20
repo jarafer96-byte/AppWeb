@@ -101,6 +101,7 @@ const clearBtn = document.getElementById('clearBtn');
 const optimizeBtn = document.getElementById('optimizeBtn');
 const downloadAllBtn = document.getElementById('downloadAllBtn');
 const uploadBtn = document.getElementById('uploadBtn');
+const continueBtn = document.getElementById('continueBtn');
 
 let originales = [];
 let optimizadas = [];
@@ -650,7 +651,7 @@ optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
 
 
 // Subida en tandas
-async function enviarOptimizado(batchSize = 50) {
+async function enviarOptimizado(batchSize = 5) {
   console.log("🚀 [FRONT] Iniciando envío de optimizadas...");
 
   uploadBtn.disabled = true;
