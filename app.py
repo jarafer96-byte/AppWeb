@@ -732,8 +732,15 @@ def step3():
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
             print(f"👕 [Step3] Talles={talle_lista}")
 
+            # --- REEMPLAZAR este fragmento dentro de step3 (sustituye las líneas donde se valida imagen_url) ---
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
-            if not imagen_url.startswith("/static/img/"):
+            # Permitir tanto rutas locales como URLs absolutas (raw de GitHub)
+            imagen_para_guardar = None
+            if imagen_url.startswith('/static/img/'):
+                imagen_para_guardar = imagen_url
+            elif imagen_url.startswith('http://') or imagen_url.startswith('https://'):
+                imagen_para_guardar = imagen_url
+            else:
                 print(f"⚠️ [Step3] Imagen inválida para producto {nombre}: {imagen_url}")
                 continue
 
@@ -741,13 +748,14 @@ def step3():
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'imagen_github': imagen_url,
+                'imagen_github': imagen_para_guardar,
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
                 'talles': talle_lista
             })
-            print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_url}")
+            print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_para_guardar}")
+# --- FIN DEL FRAGMENTO ---
 
         session['bloques'] = bloques
         print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
