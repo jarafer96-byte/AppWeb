@@ -46,7 +46,7 @@ token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 
+app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
 
@@ -141,16 +141,19 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
     try:
         r = requests.put(url, headers=headers, json=data, timeout=10)
         if r.status_code in (200, 201):
+            # Construir raw URL pública (branch por defecto 'main' salvo que se use otra)
+            raw_url = f"https://raw.githubusercontent.com/{GITHUB_USERNAME}/{repo}/{branch}/{ruta_remota}"
             return {
                 "ok": True,
                 "url": r.json().get("content", {}).get("html_url"),
+                "raw_url": raw_url,
                 "status": r.status_code
             }
         else:
             return {"ok": False, "status": r.status_code, "error": r.text}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-
+        
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
@@ -192,7 +195,7 @@ def upload_image():
                     print(f"🔗 [UPLOAD] Intentando subir a GitHub: {ruta_repo}")
 
                     if resultado.get("ok"):
-                        ruta_publica = f"/static/img/{filename}"
+                        ruta_publica = resultado.get("raw_url") or f"/static/img/{filename}"
                         urls.append(ruta_publica)
                         session['imagenes_step0'].append(ruta_publica)
                         print(f"✅ [UPLOAD] Subida exitosa: {ruta_publica}")
