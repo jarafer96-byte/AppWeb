@@ -41,31 +41,35 @@
   <h2>Optimiza y sube tus imágenes</h2>
   <p class="hint">Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80, max: 3mb por foto)</p>
 
-  <form id="formStep0" enctype="multipart/form-data">
-    <div class="file-block">
-      <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
-      <div id="fileCount" class="file-count"></div>
-    </div>
+<div class="file-block">
+  <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
+  <div id="fileCount" class="file-count"></div>
+</div>
 
-    <div class="botonera">
-      <div class="col">
-        <p>Paso 1</p>
-        <button type="button" id="optimizeBtn">Optimizar</button>
-      </div>
-      <div class="col">
-        <p>Opcional</p>
-        <button type="button" id="clearBtn">Quitar todas</button>
-      </div>
-      <div class="col">
-        <p>Opcional</p>
-        <button type="button" id="downloadAllBtn" class="btn-disabled" disabled>Descargar optimizadas</button>
-      </div>
-      <div class="col">
-        <p>Paso 2 y finalizar</p>
-        <button type="button" id="uploadBtn" class="btn-disabled" disabled>Subir optimizadas</button>
-      </div>
-    </div>
-  </form>
+<div class="botonera">
+  <div class="col">
+    <p>Paso 1</p>
+    <button type="button" id="optimizeBtn">Optimizar</button>
+  </div>
+  <div class="col">
+    <p>Opcional</p>
+    <button type="button" id="clearBtn">Quitar todas</button>
+  </div>
+  <div class="col">
+    <p>Opcional</p>
+    <button type="button" id="downloadAllBtn" class="btn-disabled" disabled>Descargar optimizadas</button>
+  </div>
+  <div class="col">
+    <p>Paso 2</p>
+    <button type="button" id="uploadBtn" class="btn-disabled" disabled>Subir optimizadas</button>
+  </div>
+  <div class="col">
+    <p>Finalizar</p>
+    <button type="button" id="continueBtn" class="btn-disabled" disabled>Continuar</button>
+  </div>
+</div>
+</form>
+
 
   <div class="error" id="error"></div>
   <div class="meta" id="meta"></div>
@@ -116,6 +120,21 @@
   errorEl.textContent = msg;
   errorEl.style.color = '#ff4d4d'; // rojo
 }
+    
+document.getElementById("uploadBtn").addEventListener("click", async () => {
+  const ok = await enviarOptimizado(50);
+  if (ok) {
+    // habilitar botón continuar
+    const continueBtn = document.getElementById("continueBtn");
+    continueBtn.disabled = false;
+    continueBtn.classList.remove("btn-disabled");
+  }
+});
+
+document.getElementById("continueBtn").addEventListener("click", () => {
+  // redirigir al siguiente paso
+  window.location.href = "/step2"; // o "/preview" según tu flujo
+});
 
 function showInfo(msg) {
   metaEl.textContent = msg;
