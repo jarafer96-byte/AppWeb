@@ -701,7 +701,6 @@ def step3():
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
         imagenes_elegidas = request.form.getlist('imagen_elegida')
-        imagenes_basename = request.form.getlist('imagen_basename')
 
         repo_name = session.get('repo_nombre') or "AppWeb"
 
@@ -718,10 +717,8 @@ def step3():
             talle_raw = talles[i].strip() if i < len(talles) else ''
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
 
-            # Normalizar la ruta de la imagen: debe ser /static/img/... o fallback
+            # ✅ Usar directamente la ruta pública devuelta por /upload-image
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
-            if imagen_url and not imagen_url.startswith("/static/img/"):
-                imagen_url = f"/static/img/{os.path.basename(imagen_url)}"
 
             bloques.append({
                 'nombre': nombre,
@@ -750,7 +747,7 @@ def step3():
                 resultados = list(executor.map(subir_con_resultado, lote))
             exitos += sum(1 for r in resultados if r)
 
-        # ✅ Agrupar los bloques en grupos/subgrupos para renderizar index.html con productos
+        # Agrupar los bloques en grupos/subgrupos para renderizar index.html
         grupos_dict = {}
         for producto in bloques:
             grupo = (producto.get('grupo') or 'General').strip().title()
@@ -763,7 +760,7 @@ def step3():
                 html = render_template(
                     'preview.html',
                     config=session,
-                    grupos=grupos_dict,   # ✅ ahora con datos reales
+                    grupos=grupos_dict,
                     modoAdmin=False,
                     modoAdminIntentado=False,
                     firebase_config=firebase_config
@@ -798,6 +795,7 @@ def step3():
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
     return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+
 
 
 def get_mp_public_key(email: str):
