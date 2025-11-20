@@ -244,44 +244,14 @@ def limpiar_imagenes_usuario():
         except Exception:
             pass
 
-@app.route('/step0', methods=['GET', 'POST'])
+@app.route('/step0', methods=['GET'])
 def step0():
-    if request.method == 'POST':
-        imagenes = request.files.getlist('imagenes')
-        if not imagenes:
-            return "No se recibieron imágenes", 400
-
-        if 'imagenes_step0' not in session:
-            session['imagenes_step0'] = []
-
-        if len(session['imagenes_step0']) + len(imagenes) > 500:
-            return "Límite de imágenes alcanzado", 400
-
-        repo_name = session.get("repo_nombre") or "AppWeb"
-        urls = []
-
-        for img in imagenes:
-            if img and img.filename:
-                contenido_bytes = img.read()
-                ext = os.path.splitext(img.filename)[1].lower() or ".webp"
-                filename = f"{uuid.uuid4().hex}{ext}"
-
-                # Guardar local
-                local_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                with open(local_path, "wb") as f:
-                    f.write(contenido_bytes)
-
-                # Subir a GitHub
-                ruta_repo = f"static/img/{filename}"
-                resultado = subir_archivo(repo_name, contenido_bytes, ruta_repo)
-
-                if resultado.get("ok"):
-                    urls.append(f"/static/img/{filename}")
-
-        session['imagenes_step0'].extend(urls)
-        return redirect('/estilo')
-
+    """
+    Step0 ahora solo muestra el formulario para seleccionar y optimizar imágenes.
+    La subida se hace exclusivamente vía /upload-image desde el frontend.
+    """
     return render_template('step0.html')
+
 
 def get_mp_token(email: str):
     """Obtiene el access_token de Mercado Pago desde Firestore o Render, con fallback a refresh_token."""
