@@ -41,7 +41,7 @@
   <h2>Optimiza y sube tus imágenes</h2>
   <p class="hint">Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80, max: 3mb por foto)</p>
 
-  <form id="formStep0" method="POST" action="/step0" enctype="multipart/form-data" onsubmit="return enviarOptimizado();">
+  <form id="formStep0" enctype="multipart/form-data">
     <div class="file-block">
       <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
       <div id="fileCount" class="file-count"></div>
@@ -62,7 +62,7 @@
       </div>
       <div class="col">
         <p>Paso 2 y finalizar</p>
-        <button type="submit" id="uploadBtn" class="btn-disabled" disabled>Subir optimizadas</button>
+        <button type="button" id="uploadBtn" class="btn-disabled" disabled>Subir optimizadas</button>
       </div>
     </div>
   </form>
@@ -679,6 +679,7 @@ async function enviarOptimizado(batchSize = 50) {
 
   return false; // prevenir submit HTML estándar
 }
+document.getElementById("uploadBtn").addEventListener("click", () => enviarOptimizado(50));
 
 </script>
 <!-- Librerías para ZIP y descarga -->
