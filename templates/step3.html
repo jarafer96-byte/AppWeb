@@ -1067,9 +1067,14 @@ function confirmarImagen() {
   
 function loadState() {
   const raw = localStorage.getItem(LS_KEY);
-  if (!raw) return;
+  if (!raw) {
+    console.log("🧹 [Step3] No hay estado previo en localStorage");
+    return;
+  }
+
   try {
     const state = JSON.parse(raw);
+    console.log("♻️ [Step3] Estado cargado desde localStorage:", state);
 
     // Limpiar UI actual
     document.getElementById("grupos").innerHTML = "";
@@ -1077,22 +1082,27 @@ function loadState() {
 
     // Reconstruir grupos
     (state.grupos || []).forEach(g => {
+      console.log(`📂 [Step3] Reconstruyendo grupo: ${g.nombre}`);
+
       // Crear grupo
       document.getElementById("nombreGrupo").value = g.nombre;
       crearGrupo();
       const grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].at(-1);
 
-      // Productos del grupo
+      // Productos del grupo (ordenados)
       const contGrupo = grupoCard.querySelector(".productos");
-      (g.productos || []).forEach(p => {
-        const fila = crearFila("General", g.nombre);
-        hydrateFila(fila, p);
-        contGrupo.appendChild(fila);
-      });
+      (g.productos || [])
+        .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+        .forEach(p => {
+          const fila = crearFila("General", g.nombre);
+          hydrateFila(fila, p);
+          contGrupo.appendChild(fila);
+        });
       actualizarContador(contGrupo);
 
       // Subgrupos
       (g.subgrupos || []).forEach(sg => {
+        console.log(`   ↳ Subgrupo: ${sg.nombre}`);
         const grupoIdx = grupoCard.id.split("_")[1];
         const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
         inputSub.value = sg.nombre;
@@ -1102,11 +1112,13 @@ function loadState() {
           s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === sg.nombre
         );
         const contSub = subCard.querySelector(".productos");
-        (sg.productos || []).forEach(p => {
-          const fila = crearFila(sg.nombre, g.nombre);
-          hydrateFila(fila, p);
-          contSub.appendChild(fila);
-        });
+        (sg.productos || [])
+          .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+          .forEach(p => {
+            const fila = crearFila(sg.nombre, g.nombre);
+            hydrateFila(fila, p);
+            contSub.appendChild(fila);
+          });
         actualizarContador(subCard);
       });
     });
@@ -1118,11 +1130,12 @@ function loadState() {
         img.style.opacity = "0.25";
         img.style.filter = "grayscale(100%) brightness(0.6)";
         img.style.pointerEvents = "none";
+        console.log(`🖼️ [Step3] Imagen marcada como usada: ${img.dataset.nombre}`);
       }
     });
 
   } catch (e) {
-    console.error("❌ Error al cargar estado Step3:", e);
+    console.error("❌ [Step3] Error al cargar estado:", e);
   }
 }
 
