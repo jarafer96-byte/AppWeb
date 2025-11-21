@@ -400,78 +400,115 @@ function actualizarContador(elemento) {
   contador.textContent = productos.length;
 }
 
+function agregarSlide(items, makeActive) {
+  const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
+  const div = document.createElement("div");
+  div.className = "carousel-item" + (makeActive ? " active" : "");
+  const row = document.createElement("div");
+  row.className = "row row-cols-4 gx-2 gy-2";
 
-  function agregarSlide(items, makeActive) {
-      const contenedor = document.querySelector("#carouselGlobal .carousel-inner"); // apuntar al modal
-      const div = document.createElement("div");
-      div.className = "carousel-item" + (makeActive ? " active" : "");
-      const row = document.createElement("div");
-      row.className = "row row-cols-4 gx-2 gy-2";
+  items.forEach(({ nombre, url }) => {
+    const col = document.createElement("div");
+    col.className = "col";
+    col.innerHTML = `
+      <div class="thumb-wrapper">
+        <img src="${url}" class="imagen-carrusel" alt="${nombre}"
+             data-nombre="${nombre}" data-url="${url}"
+             onclick="seleccionarImagen(this)">
+      </div>`;
+    row.appendChild(col);
+  });
 
-      items.forEach(({ nombre, url }) => {
-        const col = document.createElement("div");
-        col.className = "col";
-        col.innerHTML = `
-          <div class="thumb-wrapper">
-            <img src="${url}" class="imagen-carrusel" alt="${nombre}"
-                 data-nombre="${nombre}" data-url="${url}"
-                 onclick="seleccionarImagen(this)">
-          </div>`;
-        row.appendChild(col);
-      });
+  // Rellenar hasta 8 columnas
+  const faltantes = 8 - items.length;
+  for (let i = 0; i < faltantes; i++) {
+    const colInv = document.createElement("div");
+    colInv.className = "col invisible";
+    colInv.innerHTML = `<div class="thumb-wrapper"></div>`;
+    row.appendChild(colInv);
+  }
 
-      const faltantes = 8 - items.length;
-      for (let i = 0; i < faltantes; i++) {
-        const colInv = document.createElement("div");
-        colInv.className = "col invisible";
-        colInv.innerHTML = `<div class="thumb-wrapper"></div>`;
-        row.appendChild(colInv);
-      }
+  div.appendChild(row);
+  contenedor.appendChild(div);
+}  
+  
+function abrirCarrusel(btn) {
+  filaActual = btn.closest('.fila-producto');
+  const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
 
-      div.appendChild(row);
-      contenedor.appendChild(div);
+  // Limpiar selección previa
+  document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
+
+  // Deshabilitar imágenes ya usadas
+  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+    const nombre = img.dataset.nombre;
+    if (imagenesUsadas.includes(nombre)) {
+      img.style.opacity = "0.3";
+      img.style.filter = "grayscale(100%) brightness(0.6)";
+      img.style.pointerEvents = "none";
+    } else {
+      img.style.opacity = "1";
+      img.style.filter = "none";
+      img.style.pointerEvents = "auto";
     }
-  function abrirCarrusel(btn) {
-      filaActual = btn.closest('.fila-producto');
-      const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
+  });
 
-      document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
-      document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-        const nombre = img.dataset.nombre;
-        if (imagenesUsadas.includes(nombre)) {
-          img.style.opacity = "0.3";
-          img.style.filter = "grayscale(100%) brightness(0.6)";
-          img.style.pointerEvents = "none";
-        } else {
-          img.style.opacity = "1";
-          img.style.filter = "none";
-          img.style.pointerEvents = "auto";
-        }
-      });
-
-      modal.show();
+  // Si la fila ya tenía una imagen elegida, remarcarla
+  const hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
+  if (hiddenBase && hiddenBase.value) {
+    const nombreActual = hiddenBase.value;
+    const imgActual = document.querySelector(`#carouselGlobal img[data-nombre="${nombreActual}"]`);
+    if (imgActual) {
+      const wrapper = imgActual.closest('.thumb-wrapper');
+      if (wrapper) wrapper.classList.add('seleccionada');
+      imgActual.style.outline = "3px solid #00c853"; // borde verde
+      console.log("🎯 Imagen ya elegida en esta fila:", nombreActual);
     }
+  }
+
+  console.log("📂 Abriendo carrusel para fila:", filaActual);
+  modal.show();
+}
+  
 function inicializarCarrusel() {
-      cargarImagenesDesdeIndexedDB((cantidad) => {
-        if (cantidad > 0) return; // ya renderizado desde IndexedDB
+  cargarImagenesDesdeIndexedDB((cantidad) => {
+    if (cantidad > 0) {
+      console.log("📦 Carrusel restaurado desde IndexedDB con", cantidad, "imágenes");
+      // Inicializar selección con la primera imagen renderizada
+      const firstImg = document.querySelector('#carouselGlobal .carousel-item.active img');
+      if (firstImg) {
+        window.imagenSeleccionada = firstImg.dataset.nombre;
+        window.imagenSeleccionadaUrl = firstImg.getAttribute('src');
+        console.log("✅ Selección inicial:", window.imagenSeleccionada, window.imagenSeleccionadaUrl);
+      }
+      return;
+    }
 
-        // Fallback: usar imágenes de sesión (rutas /static/img/...)
-        if (Array.isArray(imagenesDisponibles) && imagenesDisponibles.length) {
-          let first = true;
-          let buffer = [];
-          imagenesDisponibles.forEach(ruta => {
-            // Normalizar ruta (puede venir con '/static/img/...'). Usamos tal cual.
-            buffer.push({ nombre: ruta.split('/').pop(), url: ruta });
-            if (buffer.length === 8) {
-              agregarSlide(buffer, first);
-              first = false;
-              buffer = [];
-            }
-          });
-          if (buffer.length) agregarSlide(buffer, first);
+    // Fallback: usar imágenes de sesión (rutas /static/img/...)
+    if (Array.isArray(imagenesDisponibles) && imagenesDisponibles.length) {
+      let first = true;
+      let buffer = [];
+      imagenesDisponibles.forEach(ruta => {
+        const basename = ruta.split('/').pop();
+        buffer.push({ nombre: basename, url: ruta });
+        if (buffer.length === 8) {
+          agregarSlide(buffer, first);
+          first = false;
+          buffer = [];
         }
       });
+      if (buffer.length) agregarSlide(buffer, first);
+
+      // Inicializar selección con la primera imagen renderizada
+      const firstImg = document.querySelector('#carouselGlobal .carousel-item.active img');
+      if (firstImg) {
+        window.imagenSeleccionada = firstImg.dataset.nombre;
+        window.imagenSeleccionadaUrl = firstImg.getAttribute('src');
+        console.log("✅ Selección inicial:", window.imagenSeleccionada, window.imagenSeleccionadaUrl);
+      }
     }
+  });
+}
 
 function leerArchivoProductos() {
   const input = document.getElementById("archivoProductos");
@@ -850,8 +887,6 @@ function eliminarFila(btn) {
   saveStateDebounced()
 }
 
-
-
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
   grupo.remove();
@@ -859,47 +894,89 @@ function eliminarGrupo(btn) {
 }
   
 function seleccionarImagen(img) {
-      document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
-      const wrapper = img.closest('.thumb-wrapper');
-      if (wrapper) wrapper.classList.add('seleccionada');
-      window.imagenSeleccionada = img.dataset.nombre;
-      window.imagenSeleccionadaUrl = img.dataset.url;
-    }
+  // Quitar selección previa
+  document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
 
+  // Marcar nuevo wrapper
+  const wrapper = img.closest('.thumb-wrapper');
+  if (wrapper) wrapper.classList.add('seleccionada');
+
+  // Guardar selección en variables globales
+  window.imagenSeleccionada = img.dataset.nombre;
+  window.imagenSeleccionadaUrl = img.dataset.url;
+
+  console.log("🖱️ Imagen clickeada:", img.src);
+  console.log("✅ Imagen seleccionada:", window.imagenSeleccionada);
+  console.log("🔗 URL seleccionada:", window.imagenSeleccionadaUrl);
+
+  // Feedback visual
+  document.querySelectorAll('#carouselGlobal .imagen-carrusel').forEach(el => {
+    el.style.outline = "";
+  });
+  img.style.outline = "3px solid #00c853"; // verde para destacar
+}
+  
 function confirmarImagen() {
-      if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) return;
-      const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
-      if (hiddenUrl) hiddenUrl.value = window.imagenSeleccionadaUrl;
+  if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) {
+    console.warn("⚠️ confirmarImagen: faltan datos -> imagenSeleccionada=", window.imagenSeleccionada, "url=", window.imagenSeleccionadaUrl, "filaActual=", filaActual);
+    return;
+  }
 
-      let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
-      if (!hiddenBase) {
-        hiddenBase = document.createElement("input");
-        hiddenBase.type = "hidden";
-        hiddenBase.name = "imagen_basename";
-        filaActual.appendChild(hiddenBase);
-      }
-      hiddenBase.value = window.imagenSeleccionada;
-
-      const preview = filaActual.querySelector(".preview-imagen");
-      preview.innerHTML = `<img src="${window.imagenSeleccionadaUrl}"
-         style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
-
-      if (!imagenesUsadas.includes(window.imagenSeleccionada)) imagenesUsadas.push(window.imagenSeleccionada);
-
-      document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-        const nombre = img.dataset.nombre;
-        if (nombre === window.imagenSeleccionada) {
-          img.classList.add('usada');
-          img.style.opacity = "0.25";
-          img.style.filter = "grayscale(100%) brightness(0.6)";
-          img.style.pointerEvents = "none";
-        }
-      });
-
-      const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
-      if (modal) modal.hide();
-      saveStateDebounced();
+  // Buscar ruta real si la URL es blob
+  let imagenFinal = window.imagenSeleccionadaUrl;
+  if (imagenFinal.startsWith("blob:")) {
+    const basename = window.imagenSeleccionada;
+    const imagenes = JSON.parse(localStorage.getItem("imagenes_step0")) || [];
+    const match = imagenes.find(u => u.endsWith(basename));
+    if (match) {
+      imagenFinal = match;
+      console.log("🔄 Blob reemplazado por ruta real:", imagenFinal);
+    } else {
+      console.error("❌ No se encontró coincidencia para basename", basename, "en imagenes_step0");
+      return;
     }
+  }
+
+  // Guardar en hidden inputs
+  const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
+  if (hiddenUrl) {
+    hiddenUrl.value = imagenFinal;
+    console.log("✅ Hidden imagen_elegida seteado:", imagenFinal);
+  }
+
+  let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
+  if (!hiddenBase) {
+    hiddenBase = document.createElement("input");
+    hiddenBase.type = "hidden";
+    hiddenBase.name = "imagen_basename";
+    filaActual.appendChild(hiddenBase);
+  }
+  hiddenBase.value = window.imagenSeleccionada;
+  console.log("✅ Hidden imagen_basename seteado:", window.imagenSeleccionada);
+
+  // Preview
+  const preview = filaActual.querySelector(".preview-imagen");
+  preview.innerHTML = `<img src="${imagenFinal}"
+     style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+  console.log("🖼️ Preview actualizado con:", imagenFinal);
+
+  // Marcar como usada
+  if (!imagenesUsadas.includes(window.imagenSeleccionada)) imagenesUsadas.push(window.imagenSeleccionada);
+  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+    const nombre = img.dataset.nombre;
+    if (nombre === window.imagenSeleccionada) {
+      img.classList.add('usada');
+      img.style.opacity = "0.25";
+      img.style.filter = "grayscale(100%) brightness(0.6)";
+      img.style.pointerEvents = "none";
+      console.log("🔒 Imagen marcada como usada:", nombre);
+    }
+  });
+
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
+  if (modal) modal.hide();
+  saveStateDebounced();
+}
     
 function loadState() {
   const raw = localStorage.getItem(LS_KEY);
