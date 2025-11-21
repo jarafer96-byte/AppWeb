@@ -358,7 +358,6 @@ input.addEventListener('change', () => {
 clearBtn.addEventListener('click', () => {
   console.log("🗑️ [FRONT] Limpiando todas las imágenes...");
 
-  // Revocar URLs de optimizadas para evitar fugas
   optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
   optimizadas = [];
   originales = [];
@@ -377,9 +376,15 @@ clearBtn.addEventListener('click', () => {
   // Limpiar cache local
   localStorage.removeItem("imagenesLista");
   localStorage.removeItem("imagenesOriginales");
+
+  // 🔑 Agregar acá:
+  localStorage.removeItem("imagenes_step0");
+  localStorage.removeItem("imagenesUsadas");
+
   const del = indexedDB.deleteDatabase("imagenesDB");
   del.onsuccess = () => console.log("🗑️ [IndexedDB] borrada al limpiar todas");
 });
+
 function actualizarMeta() {
   const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
   const totalOpt  = optimizadas.reduce((sum, f) => sum + f.size, 0);
