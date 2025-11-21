@@ -686,7 +686,9 @@ html {
 
   <script>
     const configWhatsApp = "{{ config.whatsapp }}";
-
+    const EMAIL_VENDEDOR = "{{ session.get('email') }}";
+    const URL_BACKEND = "https://appweb-n4cl.onrender.com"; // Tu URL central
+    
     window.addEventListener('scroll', () => {
       const btn = document.getElementById('volverArriba');
       btn.style.display = window.scrollY > 300 ? 'block' : 'none';
@@ -817,35 +819,36 @@ window.onload = function() {
 
 async function pagarConMercadoPago() {
   try {
-    const response = await fetch('/pagar', {
+    const response = await fetch(`${URL_BACKEND}/pagar`, { 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ carrito })
+      body: JSON.stringify({ 
+          carrito: carrito,
+          email_vendedor: EMAIL_VENDEDOR,
+          url_retorno: window.location.href
+      })
     });
+    
     const data = await response.json();
-
-    if (data.preference_id && mp) {
-      // ✅ Abrir checkout con MercadoPago.js V2
-      try {
-        mp.checkout({
-          preference: { id: data.preference_id },
-          autoOpen: true
-        });
-      } catch (err) {
-        console.error("⚠️ Error en checkout:", err);
-        alert("No se pudo abrir el checkout");
-      }
+    
+    if (data.preference_id) {
+      // Usando Checkout Pro con el SDK
+      mp.checkout({
+        preference: { id: data.preference_id },
+        autoOpen: true
+      });
     } else if (data.init_point) {
-      // ✅ Fallback al checkout clásico
+      // Usando redirect clásico
       window.location.href = data.init_point;
     } else {
-      alert("Error al generar el pago: " + (data.error || "desconocido"));
+      alert("Error al generar el pago");
     }
   } catch (err) {
-    console.error("⚠️ Error al conectar con /pagar:", err);
+    console.error("⚠️ Error al conectar con backend central:", err);
     alert("Error interno al intentar pagar");
   }
 }
+
 
 
 function editarPrecio(id) {
