@@ -13,7 +13,7 @@ from zipfile import ZipFile
 from io import BytesIO
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 import shortuuid
 import mercadopago
 import base64
@@ -49,6 +49,10 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
+
+# Mantener las sesiones persistentes por defecto y duración
+app.config['SESSION_PERMANENT'] = True
+app.permanent_session_lifetime = timedelta(days=7)
 
 firebase_config = {
     "apiKey": os.getenv("FIREBASE_API_KEY"),
@@ -514,6 +518,29 @@ def ver_productos():
     except Exception:
         return jsonify([])
 
+# --- Agregar en app.py (temporal, para debug) ---
+@app.route('/debug/session')
+def debug_session():
+    try:
+        sess = dict(session)
+    except Exception:
+        sess = str(session)
+    info = {
+        "session_keys": list(session.keys()),
+        "session": sess,
+        "imagenes_step0": session.get("imagenes_step0"),
+        "email": session.get("email"),
+        "repo_nombre": session.get("repo_nombre"),
+    }
+    # intentar leer un doc pequeño (solo para verificar conexión Firestore, sin escribir)
+    try:
+        test_email = session.get("email") or "_debug_"
+        doc = db.collection("usuarios").document(test_email).get()
+        info["firestore_doc_exist_for_session_email"] = doc.exists
+    except Exception as e:
+        info["firestore_error"] = str(e)
+    return jsonify(info)
+# --- Fin debug ---
 
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
@@ -732,18 +759,40 @@ def step3():
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
             print(f"👕 [Step3] Talles={talle_lista}")
 
-            # --- REEMPLAZAR este fragmento dentro de step3 (sustituye las líneas donde se valida imagen_url) ---
+            # --- Reemplazar la validación antigua de imagen_url en step3 por este bloque ---
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
-            # Permitir tanto rutas locales como URLs absolutas (raw de GitHub)
+            # Aceptar rutas locales (/static/img/...), URLs absolutas (http(s)://...) o basenames guardados en session
             imagen_para_guardar = None
-            if imagen_url.startswith('/static/img/'):
-                imagen_para_guardar = imagen_url
-            elif imagen_url.startswith('http://') or imagen_url.startswith('https://'):
-                imagen_para_guardar = imagen_url
-            else:
-                print(f"⚠️ [Step3] Imagen inválida para producto {nombre}: {imagen_url}")
+
+            if not imagen_url:
+                print(f"⚠️ [Step3] Imagen vacía para producto {nombre}")
                 continue
 
+            # Caso 1: ruta local ya absoluta en servidor (/static/img/...)
+            if imagen_url.startswith('/static/img/') or imagen_url.startswith('static/img/'):
+                imagen_para_guardar = imagen_url if imagen_url.startswith('/') else '/' + imagen_url
+
+            # Caso 2: URL absoluta (raw.githubusercontent u otro host)
+            elif imagen_url.startswith('http://') or imagen_url.startswith('https://'):
+                imagen_para_guardar = imagen_url
+
+            # Caso 3: solo basename (p.ej. 'a9e73a9...webp') -> buscar en session['imagenes_step0']
+            else:
+                basename = os.path.basename(imagen_url)
+                session_imgs = session.get('imagenes_step0') or []
+                matched = next((u for u in session_imgs if u.endswith(basename)), None)
+                if matched:
+                    imagen_para_guardar = matched
+                else:
+                    # Intentar fallback: construir ruta local si el archivo existe en UPLOAD_FOLDER
+                    local_candidate = os.path.join(app.config['UPLOAD_FOLDER'], basename)
+                    if os.path.exists(local_candidate):
+                        imagen_para_guardar = f"/static/img/{basename}"
+                    else:
+                        print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url} (basename: {basename})")
+                        continue
+
+            # Guardar la URL concreta en el bloque (puede ser /static/img/... o una URL absoluta)
             bloques.append({
                 'nombre': nombre,
                 'descripcion': descripciones[i],
@@ -755,7 +804,7 @@ def step3():
                 'talles': talle_lista
             })
             print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_para_guardar}")
-# --- FIN DEL FRAGMENTO ---
+# --- Fin del reemplazo ---
 
         session['bloques'] = bloques
         print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
