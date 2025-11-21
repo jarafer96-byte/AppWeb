@@ -356,6 +356,29 @@ function crearGrupo() {
   
   saveStateDebounced()
 }
+  
+function hydrateFila(filaData, filaEl) {
+  console.log("🟢 [Step3] hydrateFila →", filaData);
+
+  // Restaurar imagen elegida
+  if (filaData.imagen_elegida) {
+    filaEl.querySelector("input[name='imagen_elegida']").value = filaData.imagen_elegida;
+    filaEl.querySelector(".preview-imagen").innerHTML =
+      `<img src="${filaData.imagen_elegida}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+  }
+
+  // Restaurar basename
+  if (filaData.imagen_basename) {
+    let hiddenBase = filaEl.querySelector("input[name='imagen_basename']");
+    if (!hiddenBase) {
+      hiddenBase = document.createElement("input");
+      hiddenBase.type = "hidden";
+      hiddenBase.name = "imagen_basename";
+      filaEl.appendChild(hiddenBase);
+    }
+    hiddenBase.value = filaData.imagen_basename;
+  }
+}
 
 function editarNombreGrupo(btn) {
   const card = btn.closest('.card');
@@ -951,7 +974,8 @@ function confirmarImagen() {
     const imagenes = JSON.parse(localStorage.getItem("imagenes_step0")) || [];
     console.log("🔎 [Step3] Buscando basename:", basename, "en imagenes_step0:", imagenes);
 
-    const match = imagenes.find(u => u.endsWith(basename));
+    const match = imagenes.find(u => decodeURIComponent(u).includes(basename));
+    console.log("🔎 Comparando basename:", basename, "contra lista:", imagenes.map(u => decodeURIComponent(u)));
     if (match) {
       imagenFinal = match;
       console.log("🔄 [Step3] Blob reemplazado por ruta real:", imagenFinal);
