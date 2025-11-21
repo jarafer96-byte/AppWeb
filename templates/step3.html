@@ -1206,7 +1206,15 @@ function validarYEnviar() {
 }
 
 window.addEventListener("load", () => {
+  console.log("🚀 [Step3] Inicializando...");
+
+  // 🧹 Inicializar Step3 (limpia estado viejo y usa listas_step2-5 si existen)
+  iniciarStep3();
+
+  // 🔢 Contador de orden
   contadorOrden = 1;
+
+  // 📥 Cargar imágenes desde IndexedDB
   cargarImagenesDesdeIndexedDB(count => {
     console.log("📥 [Step3] Imágenes cargadas desde IndexedDB:", count);
 
@@ -1223,11 +1231,12 @@ window.addEventListener("load", () => {
     const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
     console.log("🟢 [Step3] imagenes_step0 al cargar:", rutasStep0);
 
-    // Intentar restaurar estado guardado
-    loadState(); // ✅ reconstruye grupos/subgrupos/filas desde localStorage si existe
+    // Intentar restaurar estado guardado (si no venís de Step2-5)
+    loadState();
     console.log("💾 [Step3] Estado restaurado desde localStorage");
   });
 });
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
