@@ -1159,6 +1159,22 @@ function iniciarStep3() {
   }
 }
 
+// 🔧 Función auxiliar para marcar imágenes usadas
+function marcarImagenesUsadas() {
+  const usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  console.log("🖼️ [Step3] Marcando imágenes usadas:", usadas);
+
+  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+    if (usadas.includes(img.dataset.nombre)) {
+      img.classList.add('usada');
+      img.style.opacity = "0.25";
+      img.style.filter = "grayscale(100%) brightness(0.6)";
+      img.style.pointerEvents = "none";
+      console.log(`   → Imagen marcada como usada: ${img.dataset.nombre}`);
+    }
+  });
+}
+
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
   if (grupos.length === 0) {
@@ -1234,6 +1250,9 @@ window.addEventListener("load", () => {
     // Intentar restaurar estado guardado (si no venís de Step2-5)
     loadState();
     console.log("💾 [Step3] Estado restaurado desde localStorage");
+
+    // ✅ volver a marcar imágenes usadas
+    marcarImagenesUsadas();
   });
 });
 
