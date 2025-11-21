@@ -19,6 +19,7 @@ import mercadopago
 import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
+from flask_cors import CORS, cross_origin
 
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -68,6 +69,7 @@ token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 
 app = Flask(__name__)
+CORS(app, resources={r"/pagar": {"origins": "*"}})
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
@@ -1175,12 +1177,12 @@ def pagar():
     try:
         data = request.get_json(silent=True) or {}
         carrito = data.get('carrito', [])
+        email_vendedor = data.get('email_vendedor')   # <-- viene del frontend
 
-        email = session.get('email')
-        if not email:
-            return jsonify({'error': 'Sesión no iniciada'}), 403
+        if not email_vendedor:
+            return jsonify({'error': 'Falta identificar al vendedor'}), 400
 
-        access_token = get_mp_token(email)
+        access_token = get_mp_token(email_vendedor)
         if not access_token or not isinstance(access_token, str):
             return jsonify({'error': 'El vendedor no tiene credenciales de Mercado Pago configuradas'}), 400
 
@@ -1205,16 +1207,17 @@ def pagar():
             except Exception as e:
                 print(f"[PAGAR] Error procesando item: {e}")
 
-        print(f"[PAGAR] Items generados: {items}")
-
         external_ref = "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
+
+        # El frontend también puede mandarte la URL base del cliente
+        url_retorno = data.get('url_retorno', 'https://google.com')
 
         preference_data = {
             "items": items,
             "back_urls": {
-                "success": url_for('pago_success', _external=True),
-                "failure": url_for('pago_failure', _external=True),
-                "pending": url_for('pago_pending', _external=True)
+                "success": f"{url_retorno}?status=success",
+                "failure": f"{url_retorno}?status=failure",
+                "pending": f"{url_retorno}?status=pending"
             },
             "auto_return": "approved",
             "statement_descriptor": "TuEmprendimiento",
