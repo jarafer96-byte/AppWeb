@@ -968,19 +968,20 @@ function confirmarImagen() {
 
   let imagenFinal = window.imagenSeleccionadaUrl;
 
-  // Si la URL es blob, reemplazar por ruta real
+  // Si la URL es blob, reemplazar por ruta real usando mapping
   if (imagenFinal.startsWith("blob:")) {
     const basename = window.imagenSeleccionada;
-    const imagenes = JSON.parse(localStorage.getItem("imagenes_step0")) || [];
-    console.log("🔎 [Step3] Buscando basename:", basename, "en imagenes_step0:", imagenes);
+    const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+    const nombreGenerado = mapping[basename];
 
-    const match = imagenes.find(u => decodeURIComponent(u).includes(basename));
-    console.log("🔎 Comparando basename:", basename, "contra lista:", imagenes.map(u => decodeURIComponent(u)));
-    if (match) {
-      imagenFinal = match;
-      console.log("🔄 [Step3] Blob reemplazado por ruta real:", imagenFinal);
+    console.log("🔎 [Step3] Buscando basename en mapping:", basename, "→", nombreGenerado);
+
+    if (nombreGenerado) {
+      // Construir la ruta final (ajustá STATIC_BASE_URL según tu entorno)
+      imagenFinal = `${STATIC_BASE_URL}/static/img/${nombreGenerado}`;
+      console.log("🔄 [Step3] Blob reemplazado usando mapping:", basename, "→", imagenFinal);
     } else {
-      console.error("❌ [Step3] No se encontró coincidencia para basename", basename);
+      console.error("❌ [Step3] No se encontró mapping para basename", basename);
       return;
     }
   }
