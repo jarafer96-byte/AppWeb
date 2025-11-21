@@ -474,23 +474,22 @@ function abrirCarrusel(btn) {
   }
 
   // Limpiar selección previa
-  document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
+  document.querySelectorAll('#carouselGlobal .thumb-wrapper')
+    .forEach(w => w.classList.remove('seleccionada'));
 
-  // Recuperar imágenes usadas por fila
-  const filaId = filaActual.dataset.id || filaActual.id || `fila_${Date.now()}`;
-  const usadasPorFila = JSON.parse(localStorage.getItem("imagenesUsadas") || "{}");
-  const usadasFila = usadasPorFila[filaId] || [];
+  // ✅ Recuperar imágenes usadas globalmente
+  let usadasGlobal = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(usadasGlobal)) usadasGlobal = [];
 
-  // Deshabilitar imágenes ya usadas SOLO en esta fila
+  // Deshabilitar imágenes ya usadas en todo el catálogo
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
     const nombre = img.dataset.nombre;
-    console.log("🔎 [Step3] Revisando imagen:", nombre, "src:", img.src);
-    if (usadasFila.includes(nombre)) {
-      console.log("🚫 [Step3] Imagen marcada como usada en fila:", filaId, nombre);
+    if (usadasGlobal.includes(nombre)) {
       img.classList.add("usada");
       img.style.opacity = "0.25";
       img.style.filter = "grayscale(100%) brightness(0.6)";
       img.style.pointerEvents = "none";
+      console.log("🚫 [Step3] Imagen marcada como usada:", nombre);
     } else {
       img.classList.remove("usada");
       img.style.opacity = "1";
@@ -526,7 +525,7 @@ function abrirCarrusel(btn) {
   modal.show();
 }
 
-  
+ 
 function inicializarCarrusel() {
   const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
   contenedor.innerHTML = ""; // limpiar carrusel
@@ -900,6 +899,32 @@ function agregarFila(btn) {
 
 function eliminarSubgrupo(btn) {
   const subgrupo = btn.closest('.subgrupo');
+
+  // liberar imágenes del subgrupo
+  let usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(usadas)) usadas = [];
+
+  subgrupo.querySelectorAll('.fila-producto').forEach(fila => {
+    const hiddenBase = fila.querySelector('input[name="imagen_basename"]');
+    const basename = hiddenBase?.value || "";
+    if (!basename) return;
+
+    // quitar del array global
+    usadas = usadas.filter(n => n !== basename);
+
+    // liberar en carrusel
+    const img = document.querySelector(`#carouselGlobal img[data-nombre="${basename}"]`);
+    if (img) {
+      img.classList.remove('usada');
+      img.style.opacity = "1";
+      img.style.filter = "none";
+      img.style.pointerEvents = "auto";
+    }
+  });
+
+  localStorage.setItem("imagenesUsadas", JSON.stringify(usadas));
+  marcarImagenesUsadas();
+
   subgrupo.remove();
   saveStateDebounced();
 }
@@ -1028,7 +1053,6 @@ function confirmarImagen() {
     console.log("🔎 [Step3] Buscando basename en mapping:", basename, "→", nombreGenerado);
 
     if (nombreGenerado) {
-      // Base dinámica: si hay repoDestino → GitHub raw, si no → local /static
       const repoDestino = localStorage.getItem("repoDestino");
       const baseUrl = repoDestino
         ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
@@ -1070,29 +1094,18 @@ function confirmarImagen() {
     `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
   console.log("🖼️ [Step3] Preview actualizada con:", imagenFinal);
 
-  // Marcar como usada y persistir POR FILA
-  const filaId = filaActual.dataset.id || filaActual.id || `fila_${Date.now()}`;
-  let usadasPorFila = JSON.parse(localStorage.getItem("imagenesUsadas") || "{}");
+  // ✅ Marcar como usada y persistir GLOBAL
+  imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(imagenesUsadas)) imagenesUsadas = [];
 
-  if (!usadasPorFila[filaId]) {
-    usadasPorFila[filaId] = [];
-  }
-  if (!usadasPorFila[filaId].includes(window.imagenSeleccionada)) {
-    usadasPorFila[filaId].push(window.imagenSeleccionada);
-    localStorage.setItem("imagenesUsadas", JSON.stringify(usadasPorFila));
-    console.log("📌 [Step3] imagenesUsadas actualizado para fila:", filaId, usadasPorFila[filaId]);
+  const basename = window.imagenSeleccionada;
+  if (!imagenesUsadas.includes(basename)) {
+    imagenesUsadas.push(basename);
+    localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
+    console.log("📌 [Step3] imagenesUsadas actualizado:", imagenesUsadas);
   }
 
-  // Marcar visualmente en carrusel SOLO en esta fila
-  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-    if (img.dataset.nombre === window.imagenSeleccionada) {
-      img.classList.add('usada');
-      img.style.opacity = "0.25";
-      img.style.filter = "grayscale(100%) brightness(0.6)";
-      img.style.pointerEvents = "none";
-      console.log("🚫 [Step3] Imagen marcada como usada en carrusel:", img.dataset.nombre);
-    }
-  });
+  marcarImagenesUsadas();
 
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   if (modal) {
@@ -1198,21 +1211,19 @@ function iniciarStep3() {
   }
 }
 
-// 🔧 Función auxiliar para marcar imágenes usadas
 function marcarImagenesUsadas() {
-  const usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
-  console.log("🖼️ [Step3] Marcando imágenes usadas:", usadas);
+  let usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(usadas)) usadas = [];
 
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-    if (usadas.includes(img.dataset.nombre)) {
-      img.classList.add('usada');
-      img.style.opacity = "0.25";
-      img.style.filter = "grayscale(100%) brightness(0.6)";
-      img.style.pointerEvents = "none";
-      console.log(`   → Imagen marcada como usada: ${img.dataset.nombre}`);
-    }
+    const estaUsada = usadas.includes(img.dataset.nombre);
+    img.classList.toggle('usada', estaUsada);
+    img.style.opacity = estaUsada ? "0.25" : "1";
+    img.style.filter = estaUsada ? "grayscale(100%) brightness(0.6)" : "none";
+    img.style.pointerEvents = estaUsada ? "none" : "auto";
   });
 }
+
 
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
