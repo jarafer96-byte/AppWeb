@@ -759,7 +759,7 @@ def step3():
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
             print(f"👕 [Step3] Talles={talle_lista}")
 
-            # --- Reemplazar la validación antigua de imagen_url en step3 por este bloque ---
+           # --- Reemplazar la validación antigua de imagen_url dentro de step3 por este bloque ---
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
             # Aceptar rutas locales (/static/img/...), URLs absolutas (http(s)://...) o basenames guardados en session
             imagen_para_guardar = None
@@ -780,11 +780,12 @@ def step3():
             else:
                 basename = os.path.basename(imagen_url)
                 session_imgs = session.get('imagenes_step0') or []
+                # buscar coincidencia por basename en la lista guardada en session
                 matched = next((u for u in session_imgs if u.endswith(basename)), None)
                 if matched:
                     imagen_para_guardar = matched
                 else:
-                    # Intentar fallback: construir ruta local si el archivo existe en UPLOAD_FOLDER
+                    # fallback: si existe localmente en UPLOAD_FOLDER, usar ruta estática
                     local_candidate = os.path.join(app.config['UPLOAD_FOLDER'], basename)
                     if os.path.exists(local_candidate):
                         imagen_para_guardar = f"/static/img/{basename}"
@@ -792,7 +793,9 @@ def step3():
                         print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url} (basename: {basename})")
                         continue
 
-            # Guardar la URL concreta en el bloque (puede ser /static/img/... o una URL absoluta)
+            # Debug: mostrar la URL que vamos a guardar y enviar a Firestore
+            print(f"🔍 [Step3] imagen_para_guardar para '{nombre}': {imagen_para_guardar}")
+
             bloques.append({
                 'nombre': nombre,
                 'descripcion': descripciones[i],
@@ -804,7 +807,7 @@ def step3():
                 'talles': talle_lista
             })
             print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_para_guardar}")
-# --- Fin del reemplazo ---
+# --- fin del reemplazo ---
 
         session['bloques'] = bloques
         print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
