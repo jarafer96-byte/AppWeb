@@ -38,6 +38,12 @@
     h1, h2, h3, .btn, .card {
       font-family: {{ config.fuente | safe }};
     }
+    .card, .card * {
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: black !important;
+}
+
     body::before {
       content: "";
       position: fixed;
