@@ -1174,74 +1174,115 @@ def callback_mp():
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
+    if not db:
+        return jsonify({'error': 'El servicio de base de datos no está disponible (Firestore)'}), 503
+        
     try:
+        # 1. Recibir y validar datos base
         data = request.get_json(silent=True) or {}
         carrito = data.get('carrito', [])
-        email_vendedor = data.get('email_vendedor')   # <-- viene del frontend
+        email_vendedor = data.get('email_vendedor')  # <-- Viene del frontend
 
         if not email_vendedor:
             return jsonify({'error': 'Falta identificar al vendedor'}), 400
 
+        # 2. Obtener Token de Mercado Pago
         access_token = get_mp_token(email_vendedor)
         if not access_token or not isinstance(access_token, str):
-            return jsonify({'error': 'El vendedor no tiene credenciales de Mercado Pago configuradas'}), 400
+            return jsonify({'error': 'Vendedor sin credenciales MP o credenciales inválidas'}), 400
 
         sdk = mercadopago.SDK(access_token.strip())
 
-        # ✅ Validar carrito
         if not carrito or not isinstance(carrito, list):
             return jsonify({'error': 'Carrito vacío o inválido'}), 400
 
-        items = []
-        for item in carrito:
+        items_mp = []
+        productos_ref = db.collection("usuarios").document(email_vendedor).collection("productos")
+
+        for item_frontend in carrito:
+            # Necesitamos solo el ID y la cantidad/talle. El precio del frontend es ignorado.
+            id_base = item_frontend.get('id_base') 
+            
+            # Sanitización y validación de cantidad
             try:
-                items.append({
-                    "id": item.get('sku') or f"SKU_{item.get('id', '0')}",
-                    "title": item.get('nombre', 'Producto') + (f" ({item.get('talle')})" if item.get('talle') else ""),
-                    "description": item.get('descripcion') or item.get('nombre', 'Producto'),
-                    "category_id": item.get('category_id') or "others",
-                    "quantity": int(item.get('cantidad', 1)),
-                    "unit_price": float(item.get('precio', 0)),
+                cantidad = int(item_frontend.get('cantidad', 1))
+                if cantidad <= 0:
+                    raise ValueError("Cantidad inválida")
+            except:
+                cantidad = 1 # Fallback seguro
+            
+            talle = item_frontend.get('talle', '')
+            
+            if not id_base:
+                print(f"⚠️ Item inválido o sin id_base. Saltando.")
+                continue 
+
+            # A) Buscamos el producto REAL en Firestore
+            prod_doc = productos_ref.document(id_base).get()
+
+            if prod_doc.exists:
+                prod_real = prod_doc.to_dict()
+                precio_real = float(prod_real.get('precio', 0))
+                
+                # Previene precios cero o negativos
+                if precio_real <= 0:
+                    print(f"⚠️ Producto {id_base} con precio no válido ({precio_real}). Saltando.")
+                    continue
+
+                nombre_real = prod_real.get('nombre', 'Producto Desconocido')
+                
+                # B) Construimos el ítem de MP usando SÓLO los datos de la BD
+                items_mp.append({
+                    "id": id_base,
+                    "title": f"{nombre_real}{f' ({talle})' if talle else ''}", 
+                    "description": nombre_real,
+                    "quantity": cantidad,
+                    "unit_price": precio_real, # <--- ✅ EL PRECIO PROVIENE DE FIRESTORE
                     "currency_id": "ARS"
                 })
-            except Exception as e:
-                print(f"[PAGAR] Error procesando item: {e}")
+            else:
+                print(f"⚠️ Producto con id_base {id_base} no encontrado en BD. Saltando.")
 
+        if not items_mp:
+            return jsonify({'error': 'No se pudieron validar productos en el carrito. Todos los ítems son inválidos.'}), 400
+
+        # 4. Preparar Preferencia de Pago
         external_ref = "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
-
-        # El frontend también puede mandarte la URL base del cliente
-        url_retorno = data.get('url_retorno', 'https://google.com')
+        url_retorno = data.get('url_retorno', 'https://google.com').split("?")[0] 
 
         preference_data = {
-            "items": items,
+            "items": items_mp,
             "back_urls": {
                 "success": f"{url_retorno}?status=success",
                 "failure": f"{url_retorno}?status=failure",
                 "pending": f"{url_retorno}?status=pending"
             },
             "auto_return": "approved",
-            "statement_descriptor": "TuEmprendimiento",
+            "statement_descriptor": "TuEmprendimiento", 
             "external_reference": external_ref,
             "notification_url": url_for('webhook_mp', _external=True)
         }
 
+        # 5. Crear Preferencia
         preference_response = sdk.preference().create(preference_data)
         preference = preference_response.get("response", {}) or {}
-        print(f"[PAGAR] Respuesta preferencia: {preference}")
 
         if not preference.get("id"):
-            return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
+            print(f"[PAGAR] Error al generar preferencia: {preference_response.get('message')}")
+            return jsonify({'error': 'No se pudo generar la preferencia de pago en MP'}), 500
 
+        # 6. Devolver resultado al frontend
         return jsonify({
-            "preference_id": preference["id"],
+            "preference_id": preference.get("id"),
             "init_point": preference.get("init_point"),
             "external_reference": external_ref
         })
 
     except Exception as e:
         print(f"[PAGAR] Error interno: {e}")
+        traceback.print_exc() 
         return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
-
+        
 @app.route('/preview', methods=["GET", "POST"])
 def preview():
     print("🚀 [Preview] Entrando a /preview")
