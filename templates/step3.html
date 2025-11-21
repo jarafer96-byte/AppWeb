@@ -476,12 +476,17 @@ function abrirCarrusel(btn) {
   // Limpiar selección previa
   document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
 
-  // Deshabilitar imágenes ya usadas
+  // Recuperar imágenes usadas por fila
+  const filaId = filaActual.dataset.id || filaActual.id || `fila_${Date.now()}`;
+  const usadasPorFila = JSON.parse(localStorage.getItem("imagenesUsadas") || "{}");
+  const usadasFila = usadasPorFila[filaId] || [];
+
+  // Deshabilitar imágenes ya usadas SOLO en esta fila
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
     const nombre = img.dataset.nombre;
     console.log("🔎 [Step3] Revisando imagen:", nombre, "src:", img.src);
-    if (imagenesUsadas.includes(nombre)) {
-      console.log("🚫 [Step3] Imagen marcada como usada:", nombre);
+    if (usadasFila.includes(nombre)) {
+      console.log("🚫 [Step3] Imagen marcada como usada en fila:", filaId, nombre);
       img.classList.add("usada");
       img.style.opacity = "0.25";
       img.style.filter = "grayscale(100%) brightness(0.6)";
@@ -520,6 +525,7 @@ function abrirCarrusel(btn) {
   console.log("📂 [Step3] Abriendo carrusel para fila:", filaActual);
   modal.show();
 }
+
   
 function inicializarCarrusel() {
   const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
@@ -1025,13 +1031,20 @@ function confirmarImagen() {
     `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
   console.log("🖼️ [Step3] Preview actualizada con:", imagenFinal);
 
-  // Marcar como usada y persistir
-  if (!imagenesUsadas.includes(window.imagenSeleccionada)) {
-    imagenesUsadas.push(window.imagenSeleccionada);
-    localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
-    console.log("📌 [Step3] imagenesUsadas actualizado:", imagenesUsadas);
+  // Marcar como usada y persistir POR FILA
+  const filaId = filaActual.dataset.id || filaActual.id || `fila_${Date.now()}`;
+  let usadasPorFila = JSON.parse(localStorage.getItem("imagenesUsadas") || "{}");
+
+  if (!usadasPorFila[filaId]) {
+    usadasPorFila[filaId] = [];
+  }
+  if (!usadasPorFila[filaId].includes(window.imagenSeleccionada)) {
+    usadasPorFila[filaId].push(window.imagenSeleccionada);
+    localStorage.setItem("imagenesUsadas", JSON.stringify(usadasPorFila));
+    console.log("📌 [Step3] imagenesUsadas actualizado para fila:", filaId, usadasPorFila[filaId]);
   }
 
+  // Marcar visualmente en carrusel SOLO en esta fila
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
     if (img.dataset.nombre === window.imagenSeleccionada) {
       img.classList.add('usada');
@@ -1051,7 +1064,6 @@ function confirmarImagen() {
   saveStateDebounced();
   console.log("💾 [Step3] Estado guardado (debounced)");
 }
-
   
 function loadState() {
   const raw = localStorage.getItem(LS_KEY);
