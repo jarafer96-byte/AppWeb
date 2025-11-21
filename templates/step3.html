@@ -912,32 +912,71 @@ function eliminarFila(btn) {
   const basename = hiddenBase ? hiddenBase.value : "";
 
   if (basename) {
+    // Liberar imagen en carrusel
     document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-      const nombre = img.dataset.nombre;
-      if (nombre === basename) {
+      if (img.dataset.nombre === basename) {
         img.classList.remove('usada');
         img.style.opacity = "1";
         img.style.filter = "none";
         img.style.pointerEvents = "auto";
-        // opcional: liberar URL temporal si era blob
-        // URL.revokeObjectURL(img.src);
+        console.log(`🔓 [Step3] Imagen liberada: ${basename}`);
       }
     });
+
+    // Quitar de la lista global y actualizar localStorage
     imagenesUsadas = imagenesUsadas.filter(n => n !== basename);
+    localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
+
+    // Refrescar carrusel
+    marcarImagenesUsadas();
   }
 
+  // Eliminar fila si hay más de una
   if (contenedor.querySelectorAll('.fila-producto').length > 1) {
     fila.remove();
     actualizarContador(contenedor); // usa la versión unificada
+    console.log("✅ [Step3] Fila eliminada");
   } else {
     alert("No se puede eliminar la última fila");
+    console.warn("⚠️ [Step3] Intento de eliminar la última fila bloqueado");
   }
-  saveStateDebounced()
+
+  saveStateDebounced();
 }
 
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
+
+  // 🔎 Buscar todas las filas dentro del grupo
+  grupo.querySelectorAll('.fila-producto').forEach(fila => {
+    const hiddenBase = fila.querySelector('input[name="imagen_basename"]');
+    const basename = hiddenBase ? hiddenBase.value : "";
+
+    if (basename) {
+      // Liberar imagen en carrusel
+      document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+        if (img.dataset.nombre === basename) {
+          img.classList.remove('usada');
+          img.style.opacity = "1";
+          img.style.filter = "none";
+          img.style.pointerEvents = "auto";
+          console.log(`🔓 [Step3] Imagen liberada al eliminar grupo: ${basename}`);
+        }
+      });
+
+      // Quitar de la lista global
+      imagenesUsadas = imagenesUsadas.filter(n => n !== basename);
+    }
+  });
+
+  // 📝 Actualizar localStorage y refrescar carrusel
+  localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
+  marcarImagenesUsadas();
+
+  // 🗑️ Eliminar el grupo
   grupo.remove();
+  console.log("✅ [Step3] Grupo eliminado");
+
   saveStateDebounced();
 }
   
