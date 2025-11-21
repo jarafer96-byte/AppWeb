@@ -535,19 +535,7 @@ html {
           {% for producto in productos %}
             {% set id_base = producto.id_base %}
 
-            <script>
-              console.log("[PREVIEW] Producto renderizado:", {
-                id_base: "{{ id_base }}",
-                grupo: "{{ grupo }}",
-                subgrupo: "{{ subgrupo }}",
-                nombre: "{{ producto.nombre }}",
-                descripcion: "{{ producto.descripcion }}",
-                precio: "{{ producto.precio }}",
-                imagen: "{% if producto.imagen_github and (producto.imagen_github.startswith('http')) %}{{ producto.imagen_github }}{% elif producto.imagen_github %}{{ url_for('static', filename='img/' + producto.imagen_github.split('/')[-1]) }}{% elif producto.imagen_backblaze %}{{ producto.imagen_backblaze }}{% else %}{{ url_for('static', filename='img/fallback.webp') }}{% endif %}",
-                talles: {{ producto.talles | tojson }}
-              });
-            </script>
-
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
               {% if modoAdmin %}
                 <div class="text-muted small mb-2">
                   <strong>ID base:</strong> {{ id_base }} |
@@ -559,7 +547,6 @@ html {
               {% endif %}
 
               <div class="card p-3 h-100">
-                <!-- ✅ Imagen con Backblaze + fallback GitHub -->
                 <img src="{% if producto.imagen_github and (producto.imagen_github.startswith('http')) %}{{ producto.imagen_github }}{% elif producto.imagen_github %}{{ url_for('static', filename='img/' + producto.imagen_github.split('/')[-1]) }}{% elif producto.imagen_backblaze %}{{ producto.imagen_backblaze }}{% else %}{{ url_for('static', filename='img/fallback.webp') }}{% endif %}"
                      alt="{{ producto.nombre }}"
                      loading="lazy"
@@ -620,15 +607,13 @@ html {
                   </div>
                 </div>
               </div>
-            </div>
-
+            </div> <!-- cierre col -->
           {% endfor %}
         </div>
       </div>
     {% endfor %}
   </div>
 {% endfor %}
-
 
 
   <div id="contenedor-grupos"></div>
