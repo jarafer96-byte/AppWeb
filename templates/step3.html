@@ -955,10 +955,13 @@ function confirmarImagen() {
   filaActual.querySelector(".preview-imagen").innerHTML =
     `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
 
-  // Marcar como usada
+  // Marcar como usada y persistir
   if (!imagenesUsadas.includes(window.imagenSeleccionada)) {
     imagenesUsadas.push(window.imagenSeleccionada);
+    // 🔑 Guardar lista actualizada en localStorage
+    localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
   }
+
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
     if (img.dataset.nombre === window.imagenSeleccionada) {
       img.classList.add('usada');
@@ -972,7 +975,7 @@ function confirmarImagen() {
   if (modal) modal.hide();
   saveStateDebounced();
 }
-    
+   
 function loadState() {
   const raw = localStorage.getItem(LS_KEY);
   if (!raw) return;
@@ -1087,11 +1090,14 @@ window.addEventListener("load", () => {
     if (count === 0) {
       inicializarCarrusel(); // usa el fallback a sesión definido arriba
     }
+
+    // 🔑 Inicializar lista de imágenes usadas desde localStorage
+    imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+
     // Intentar restaurar estado guardado
     loadState(); // ✅ reconstruye grupos/subgrupos/filas desde localStorage si existe
   });
 });
-
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
