@@ -436,33 +436,43 @@ function abrirCarrusel(btn) {
   filaActual = btn.closest('.fila-producto');
   const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
 
+  // Si el carrusel está vacío, inicializarlo
+  if (!document.querySelector("#carouselGlobal .carousel-item")) {
+    inicializarCarrusel();
+  }
+
   // Limpiar selección previa
   document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
 
   // Deshabilitar imágenes ya usadas
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-    const nombre = img.dataset.nombre;
-    if (imagenesUsadas.includes(nombre)) {
-      img.style.opacity = "0.3";
+    if (imagenesUsadas.includes(img.dataset.nombre)) {
+      img.classList.add("usada");
+      img.style.opacity = "0.25";
       img.style.filter = "grayscale(100%) brightness(0.6)";
       img.style.pointerEvents = "none";
     } else {
+      img.classList.remove("usada");
       img.style.opacity = "1";
       img.style.filter = "none";
       img.style.pointerEvents = "auto";
     }
   });
 
-  // Si la fila ya tenía una imagen elegida, remarcarla
+  // Si la fila ya tenía imagen elegida, remarcarla
   const hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
   if (hiddenBase && hiddenBase.value) {
     const nombreActual = hiddenBase.value;
     const imgActual = document.querySelector(`#carouselGlobal img[data-nombre="${nombreActual}"]`);
     if (imgActual) {
-      const wrapper = imgActual.closest('.thumb-wrapper');
-      if (wrapper) wrapper.classList.add('seleccionada');
-      imgActual.style.outline = "3px solid #00c853"; // borde verde
+      seleccionarImagen(imgActual);
       console.log("🎯 Imagen ya elegida en esta fila:", nombreActual);
+    }
+  } else {
+    // Seleccionar la primera disponible si no había nada
+    const firstImg = document.querySelector("#carouselGlobal .carousel-item.active img:not(.usada)");
+    if (firstImg) {
+      seleccionarImagen(firstImg);
     }
   }
 
@@ -471,23 +481,15 @@ function abrirCarrusel(btn) {
 }
   
 function inicializarCarrusel() {
-  cargarImagenesDesdeIndexedDB((cantidad) => {
-    if (cantidad > 0) {
-      console.log("📦 Carrusel restaurado desde IndexedDB con", cantidad, "imágenes");
-      // Inicializar selección con la primera imagen renderizada
-      const firstImg = document.querySelector('#carouselGlobal .carousel-item.active img');
-      if (firstImg) {
-        window.imagenSeleccionada = firstImg.dataset.nombre;
-        window.imagenSeleccionadaUrl = firstImg.getAttribute('src');
-        console.log("✅ Selección inicial:", window.imagenSeleccionada, window.imagenSeleccionadaUrl);
-      }
-      return;
-    }
+  const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
+  contenedor.innerHTML = ""; // limpiar carrusel
 
-    // Fallback: usar imágenes de sesión (rutas /static/img/...)
-    if (Array.isArray(imagenesDisponibles) && imagenesDisponibles.length) {
-      let first = true;
-      let buffer = [];
+  cargarImagenesDesdeIndexedDB((count) => {
+    if (count > 0) {
+      console.log("📦 Carrusel restaurado desde IndexedDB con", count, "imágenes");
+    } else if (Array.isArray(imagenesDisponibles) && imagenesDisponibles.length) {
+      // Fallback: usar imágenes de sesión (rutas reales)
+      let first = true, buffer = [];
       imagenesDisponibles.forEach(ruta => {
         const basename = ruta.split('/').pop();
         buffer.push({ nombre: basename, url: ruta });
@@ -498,14 +500,14 @@ function inicializarCarrusel() {
         }
       });
       if (buffer.length) agregarSlide(buffer, first);
+      console.log("📦 Carrusel inicializado con imágenes de sesión:", imagenesDisponibles.length);
+    }
 
-      // Inicializar selección con la primera imagen renderizada
-      const firstImg = document.querySelector('#carouselGlobal .carousel-item.active img');
-      if (firstImg) {
-        window.imagenSeleccionada = firstImg.dataset.nombre;
-        window.imagenSeleccionadaUrl = firstImg.getAttribute('src');
-        console.log("✅ Selección inicial:", window.imagenSeleccionada, window.imagenSeleccionadaUrl);
-      }
+    // Selección inicial
+    const firstImg = document.querySelector('#carouselGlobal .carousel-item.active img:not(.usada)');
+    if (firstImg) {
+      seleccionarImagen(firstImg);
+      console.log("✅ Selección inicial:", window.imagenSeleccionada, window.imagenSeleccionadaUrl);
     }
   });
 }
@@ -613,7 +615,6 @@ function leerArchivoProductos() {
     alert("⚠️ Formato no soportado. Subí CSV, TXT o Excel (.xls/.xlsx)");
   }
 }
-
 
 function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
   let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
@@ -918,12 +919,13 @@ function seleccionarImagen(img) {
   
 function confirmarImagen() {
   if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) {
-    console.warn("⚠️ confirmarImagen: faltan datos -> imagenSeleccionada=", window.imagenSeleccionada, "url=", window.imagenSeleccionadaUrl, "filaActual=", filaActual);
+    console.warn("⚠️ confirmarImagen: faltan datos");
     return;
   }
 
-  // Buscar ruta real si la URL es blob
   let imagenFinal = window.imagenSeleccionadaUrl;
+
+  // Si la URL es blob, reemplazar por ruta real
   if (imagenFinal.startsWith("blob:")) {
     const basename = window.imagenSeleccionada;
     const imagenes = JSON.parse(localStorage.getItem("imagenes_step0")) || [];
@@ -932,17 +934,13 @@ function confirmarImagen() {
       imagenFinal = match;
       console.log("🔄 Blob reemplazado por ruta real:", imagenFinal);
     } else {
-      console.error("❌ No se encontró coincidencia para basename", basename, "en imagenes_step0");
+      console.error("❌ No se encontró coincidencia para basename", basename);
       return;
     }
   }
 
   // Guardar en hidden inputs
-  const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
-  if (hiddenUrl) {
-    hiddenUrl.value = imagenFinal;
-    console.log("✅ Hidden imagen_elegida seteado:", imagenFinal);
-  }
+  filaActual.querySelector("input[name='imagen_elegida']").value = imagenFinal;
 
   let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
   if (!hiddenBase) {
@@ -952,24 +950,21 @@ function confirmarImagen() {
     filaActual.appendChild(hiddenBase);
   }
   hiddenBase.value = window.imagenSeleccionada;
-  console.log("✅ Hidden imagen_basename seteado:", window.imagenSeleccionada);
 
   // Preview
-  const preview = filaActual.querySelector(".preview-imagen");
-  preview.innerHTML = `<img src="${imagenFinal}"
-     style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
-  console.log("🖼️ Preview actualizado con:", imagenFinal);
+  filaActual.querySelector(".preview-imagen").innerHTML =
+    `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
 
   // Marcar como usada
-  if (!imagenesUsadas.includes(window.imagenSeleccionada)) imagenesUsadas.push(window.imagenSeleccionada);
+  if (!imagenesUsadas.includes(window.imagenSeleccionada)) {
+    imagenesUsadas.push(window.imagenSeleccionada);
+  }
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-    const nombre = img.dataset.nombre;
-    if (nombre === window.imagenSeleccionada) {
+    if (img.dataset.nombre === window.imagenSeleccionada) {
       img.classList.add('usada');
       img.style.opacity = "0.25";
       img.style.filter = "grayscale(100%) brightness(0.6)";
       img.style.pointerEvents = "none";
-      console.log("🔒 Imagen marcada como usada:", nombre);
     }
   });
 
