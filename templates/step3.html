@@ -262,7 +262,13 @@
   let imagenSeleccionada = null;   // guarda el nombre del archivo seleccionado
   let filaActual = null;           // referencia a la fila activa
   let imagenesUsadas = [];         // lista global de imágenes ya asignadas
-    
+
+  // 🔑 Definir base dinámica para imágenes
+  const repoDestino = localStorage.getItem("repoDestino");
+  const STATIC_BASE_URL = repoDestino
+    ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+    : "";
+  
   const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
   console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
 
@@ -977,8 +983,16 @@ function confirmarImagen() {
     console.log("🔎 [Step3] Buscando basename en mapping:", basename, "→", nombreGenerado);
 
     if (nombreGenerado) {
-      // Construir la ruta final (ajustá STATIC_BASE_URL según tu entorno)
-      imagenFinal = `${STATIC_BASE_URL}/static/img/${nombreGenerado}`;
+      // Base dinámica: si hay repoDestino → GitHub raw, si no → local /static
+      const repoDestino = localStorage.getItem("repoDestino");
+      const baseUrl = repoDestino
+        ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+        : "";
+
+      imagenFinal = baseUrl
+        ? `${baseUrl}/static/img/${nombreGenerado}`
+        : `/static/img/${nombreGenerado}`;
+
       console.log("🔄 [Step3] Blob reemplazado usando mapping:", basename, "→", imagenFinal);
     } else {
       console.error("❌ [Step3] No se encontró mapping para basename", basename);
@@ -1037,6 +1051,7 @@ function confirmarImagen() {
   saveStateDebounced();
   console.log("💾 [Step3] Estado guardado (debounced)");
 }
+
   
 function loadState() {
   const raw = localStorage.getItem(LS_KEY);
