@@ -436,8 +436,11 @@ function abrirCarrusel(btn) {
   filaActual = btn.closest('.fila-producto');
   const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
 
+  console.log("🟢 [Step3] abrirCarrusel → filaActual:", filaActual);
+
   // Si el carrusel está vacío, inicializarlo
   if (!document.querySelector("#carouselGlobal .carousel-item")) {
+    console.warn("⚠️ [Step3] Carrusel vacío, inicializando...");
     inicializarCarrusel();
   }
 
@@ -446,7 +449,10 @@ function abrirCarrusel(btn) {
 
   // Deshabilitar imágenes ya usadas
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-    if (imagenesUsadas.includes(img.dataset.nombre)) {
+    const nombre = img.dataset.nombre;
+    console.log("🔎 [Step3] Revisando imagen:", nombre, "src:", img.src);
+    if (imagenesUsadas.includes(nombre)) {
+      console.log("🚫 [Step3] Imagen marcada como usada:", nombre);
       img.classList.add("usada");
       img.style.opacity = "0.25";
       img.style.filter = "grayscale(100%) brightness(0.6)";
@@ -463,20 +469,26 @@ function abrirCarrusel(btn) {
   const hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
   if (hiddenBase && hiddenBase.value) {
     const nombreActual = hiddenBase.value;
+    console.log("📌 [Step3] Fila ya tenía imagen:", nombreActual);
     const imgActual = document.querySelector(`#carouselGlobal img[data-nombre="${nombreActual}"]`);
     if (imgActual) {
       seleccionarImagen(imgActual);
-      console.log("🎯 Imagen ya elegida en esta fila:", nombreActual);
+      console.log("🎯 [Step3] Imagen marcada como seleccionada:", nombreActual);
+    } else {
+      console.warn("⚠️ [Step3] No se encontró imgActual para:", nombreActual);
     }
   } else {
     // Seleccionar la primera disponible si no había nada
     const firstImg = document.querySelector("#carouselGlobal .carousel-item.active img:not(.usada)");
     if (firstImg) {
+      console.log("✅ [Step3] Seleccionando primera disponible:", firstImg.dataset.nombre);
       seleccionarImagen(firstImg);
+    } else {
+      console.warn("⚠️ [Step3] No hay imagen disponible para seleccionar");
     }
   }
 
-  console.log("📂 Abriendo carrusel para fila:", filaActual);
+  console.log("📂 [Step3] Abriendo carrusel para fila:", filaActual);
   modal.show();
 }
   
@@ -918,8 +930,16 @@ function seleccionarImagen(img) {
 }
   
 function confirmarImagen() {
+  console.log("🟢 [Step3] confirmarImagen → seleccionada:", window.imagenSeleccionada, 
+              "url:", window.imagenSeleccionadaUrl, 
+              "filaActual:", filaActual);
+
   if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) {
-    console.warn("⚠️ confirmarImagen: faltan datos");
+    console.warn("⚠️ confirmarImagen: faltan datos", {
+      seleccionada: window.imagenSeleccionada,
+      url: window.imagenSeleccionadaUrl,
+      fila: filaActual
+    });
     return;
   }
 
@@ -929,18 +949,26 @@ function confirmarImagen() {
   if (imagenFinal.startsWith("blob:")) {
     const basename = window.imagenSeleccionada;
     const imagenes = JSON.parse(localStorage.getItem("imagenes_step0")) || [];
+    console.log("🔎 [Step3] Buscando basename:", basename, "en imagenes_step0:", imagenes);
+
     const match = imagenes.find(u => u.endsWith(basename));
     if (match) {
       imagenFinal = match;
-      console.log("🔄 Blob reemplazado por ruta real:", imagenFinal);
+      console.log("🔄 [Step3] Blob reemplazado por ruta real:", imagenFinal);
     } else {
-      console.error("❌ No se encontró coincidencia para basename", basename);
+      console.error("❌ [Step3] No se encontró coincidencia para basename", basename);
       return;
     }
   }
 
+  console.log("✅ [Step3] Imagen final confirmada:", imagenFinal);
+
   // Guardar en hidden inputs
-  filaActual.querySelector("input[name='imagen_elegida']").value = imagenFinal;
+  const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
+  if (hiddenUrl) {
+    hiddenUrl.value = imagenFinal;
+    console.log("💾 [Step3] Guardado en hidden imagen_elegida:", imagenFinal);
+  }
 
   let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
   if (!hiddenBase) {
@@ -948,18 +976,21 @@ function confirmarImagen() {
     hiddenBase.type = "hidden";
     hiddenBase.name = "imagen_basename";
     filaActual.appendChild(hiddenBase);
+    console.log("➕ [Step3] Creado hidden imagen_basename");
   }
   hiddenBase.value = window.imagenSeleccionada;
+  console.log("💾 [Step3] Guardado en hidden imagen_basename:", window.imagenSeleccionada);
 
   // Preview
   filaActual.querySelector(".preview-imagen").innerHTML =
     `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+  console.log("🖼️ [Step3] Preview actualizada con:", imagenFinal);
 
   // Marcar como usada y persistir
   if (!imagenesUsadas.includes(window.imagenSeleccionada)) {
     imagenesUsadas.push(window.imagenSeleccionada);
-    // 🔑 Guardar lista actualizada en localStorage
     localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
+    console.log("📌 [Step3] imagenesUsadas actualizado:", imagenesUsadas);
   }
 
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
@@ -968,14 +999,20 @@ function confirmarImagen() {
       img.style.opacity = "0.25";
       img.style.filter = "grayscale(100%) brightness(0.6)";
       img.style.pointerEvents = "none";
+      console.log("🚫 [Step3] Imagen marcada como usada en carrusel:", img.dataset.nombre);
     }
   });
 
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
-  if (modal) modal.hide();
+  if (modal) {
+    modal.hide();
+    console.log("📂 [Step3] Modal cerrado");
+  }
+
   saveStateDebounced();
+  console.log("💾 [Step3] Estado guardado (debounced)");
 }
-   
+  
 function loadState() {
   const raw = localStorage.getItem(LS_KEY);
   if (!raw) return;
@@ -1086,16 +1123,24 @@ function validarYEnviar() {
 window.addEventListener("load", () => {
   contadorOrden = 1;
   cargarImagenesDesdeIndexedDB(count => {
-    console.log("📥 Imágenes cargadas desde IndexedDB:", count);
+    console.log("📥 [Step3] Imágenes cargadas desde IndexedDB:", count);
+
     if (count === 0) {
-      inicializarCarrusel(); // usa el fallback a sesión definido arriba
+      console.warn("⚠️ [Step3] IndexedDB vacío, inicializando carrusel con fallback a sesión");
+      inicializarCarrusel();
     }
 
     // 🔑 Inicializar lista de imágenes usadas desde localStorage
     imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+    console.log("🟢 [Step3] imagenesUsadas al cargar:", imagenesUsadas);
+
+    // También conviene loguear las rutas reales guardadas en Step0
+    const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+    console.log("🟢 [Step3] imagenes_step0 al cargar:", rutasStep0);
 
     // Intentar restaurar estado guardado
     loadState(); // ✅ reconstruye grupos/subgrupos/filas desde localStorage si existe
+    console.log("💾 [Step3] Estado restaurado desde localStorage");
   });
 });
 </script>
