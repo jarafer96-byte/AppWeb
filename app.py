@@ -20,17 +20,39 @@ import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# 🔐 Inicialización segura de Firebase
+# 🔐 Inicialización segura de Firebase con logs
+db = None
 try:
-    cred_dict = json.loads(os.getenv("FIREBASE_CREDENTIALS_JSON"))
-    cred = credentials.Certificate(cred_dict)
-    firebase_admin.initialize_app(cred)
-    print("✅ Firebase inicializado con:", firebase_admin.get_app().name)
-except Exception as e:
-    print("❌ Error al cargar JSON:", e)
+    cred_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+    print(f"[Firebase] Variable FIREBASE_CREDENTIALS_JSON encontrada: {bool(cred_json)}")
 
-# Cliente Firestore con acceso total
-db = firestore.client()
+    if cred_json:
+        cred_dict = json.loads(cred_json)
+        print(f"[Firebase] Claves disponibles en cred_dict: {list(cred_dict.keys())}")
+
+        cred = credentials.Certificate(cred_dict)
+        firebase_admin.initialize_app(cred)
+        db = firestore.client()
+        print(f"✅ Firebase inicializado correctamente con app: {firebase_admin.get_app().name}")
+    else:
+        print("⚠️ FIREBASE_CREDENTIALS_JSON no configurado en entorno")
+
+except Exception as e:
+    print("❌ Error al inicializar Firebase:", e)
+    import traceback
+    print(traceback.format_exc())
+    db = None
+
+# Verificación final del cliente Firestore
+if db:
+    try:
+        test_doc = db.collection("_debug").document("conexion").get()
+        print(f"[Firebase] Conexión Firestore OK, doc.exists={test_doc.exists}")
+    except Exception as e:
+        print("💥 Error verificando conexión Firestore:", e)
+else:
+    print("⚠️ Firestore client no disponible (db=None)")
+
 
 # 🔑 Inicialización segura de Mercado Pago
 access_token = os.getenv("MERCADO_PAGO_TOKEN")
@@ -69,55 +91,61 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def subir_a_firestore(producto, email):
     """
-    Versión mejorada: valida y registra errores detallados.
+    Versión con logs detallados para depuración.
     Retorna dict: {"ok": True, "id": custom_id} o {"ok": False, "error": "...", "trace": "..."}
     """
     try:
+        print(f"[FIRESTORE] 🚀 Iniciando subida de producto para email={email}")
+        print(f"[FIRESTORE] Datos recibidos: {producto}")
+
         if not isinstance(producto, dict):
+            print("[FIRESTORE] ❌ Producto inválido (no es dict)")
             return {"ok": False, "error": "Producto inválido (no es dict)"}
 
         if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio"):
+            print("[FIRESTORE] ❌ Faltan campos obligatorios: nombre/grupo/precio")
             return {"ok": False, "error": "Faltan campos obligatorios: nombre/grupo/precio"}
 
         grupo_original = producto["grupo"].strip()
         subgrupo_original = producto.get("subgrupo", "general").strip()
         nombre_original = producto["nombre"].strip()
+        print(f"[FIRESTORE] Campos normalizados: nombre={nombre_original}, grupo={grupo_original}, subgrupo={subgrupo_original}")
 
         grupo_id = grupo_original.replace(" ", "_").lower()
         nombre_id = nombre_original.replace(" ", "_").lower()
         fecha = time.strftime("%Y%m%d")
-
         sufijo = uuid.uuid4().hex[:6]
         custom_id = f"{nombre_id}_{fecha}_{grupo_id}_{sufijo}"
+        print(f"[FIRESTORE] ID generado: {custom_id}")
 
-        # Parseo de precio más tolerante: acepta "$1.234,56", "1234.56", "1.234"
+        # Parseo de precio
         precio_raw = producto["precio"]
         price_str = str(precio_raw).strip()
-        # eliminar todo lo que no sea dígito, punto o coma
         price_clean = re.sub(r"[^\d,\.]", "", price_str)
+        print(f"[FIRESTORE] Precio raw='{precio_raw}' | limpio='{price_clean}'")
 
-        # Normalizar separadores: si hay ',' y '.' asumimos que '.' es miles y ',' decimal
         if "," in price_clean and "." in price_clean:
             price_clean = price_clean.replace(".", "").replace(",", ".")
         elif "," in price_clean and "." not in price_clean:
-            # si sólo tiene ',': tomarla como decimal
             price_clean = price_clean.replace(",", ".")
-        # si sólo hay puntos (p.ej. "1.234"), asumimos miles y los quitamos si no hay decimales
-        # intentamos convertir a float y luego a int pesos
         try:
             precio_float = float(price_clean)
             precio = int(round(precio_float))
+            print(f"[FIRESTORE] Precio final parseado: {precio}")
         except Exception as e:
+            print(f"[FIRESTORE] ❌ Error parseando precio: {e}")
             return {"ok": False, "error": f"Formato de precio inválido: '{price_str}' -> '{price_clean}'", "detail": str(e)}
 
         try:
             orden = int(producto.get("orden", 999))
         except Exception:
             orden = 999
+        print(f"[FIRESTORE] Orden final: {orden}")
 
         talles = producto.get("talles") or []
         if isinstance(talles, str):
             talles = [t.strip() for t in talles.split(',') if t.strip()]
+        print(f"[FIRESTORE] Talles procesados: {talles}")
 
         producto["id_base"] = custom_id
 
@@ -133,22 +161,29 @@ def subir_a_firestore(producto, email):
             "talles": talles,
             "timestamp": firestore.SERVER_TIMESTAMP
         }
+        print(f"[FIRESTORE] Documento a guardar: {doc}")
 
-        # Intentar guardar en Firestore y devolver resultado explícito
+        # Guardar en Firestore
+        ruta = f"usuarios/{email}/productos/{custom_id}"
+        print(f"[FIRESTORE] Guardando en ruta: {ruta}")
         db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
-        print(f"[FIRESTORE] ✅ Producto guardado: {custom_id} para {email}")
+        print(f"[FIRESTORE] ✅ Producto guardado correctamente en Firestore: {custom_id} para {email}")
+
         return {"ok": True, "id": custom_id}
 
     except Exception as e:
         tb = traceback.format_exc()
-        print(f"[FIRESTORE] ❌ Error al subir producto para {email}: {e}\n{tb}")
+        print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
         return {"ok": False, "error": str(e), "trace": tb}
 
-
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
-    # Usar siempre la variable global github_token
+    """
+    Subida de archivo a GitHub con logs detallados.
+    Retorna dict con estado y URLs.
+    """
     github_token = os.getenv("GITHUB_TOKEN")
     if not github_token:
+        print("[GITHUB] ❌ Token de GitHub no disponible")
         return {"ok": False, "error": "Token de GitHub no disponible"}
 
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo}/contents/{ruta_remota}"
@@ -156,13 +191,23 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         "Authorization": f"token {github_token}",
         "Accept": "application/vnd.github+json"
     }
+
+    print(f"[GITHUB] 🚀 Iniciando subida de archivo")
+    print(f"[GITHUB] Repo={repo}, Ruta remota={ruta_remota}, Branch={branch}")
+    print(f"[GITHUB] URL destino: {url}")
+
     # Obtener SHA si el archivo ya existe
     sha = None
     try:
         r_get = requests.get(url, headers=headers, timeout=10)
+        print(f"[GITHUB] GET status={r_get.status_code}")
         if r_get.status_code == 200:
             sha = r_get.json().get("sha")
-    except Exception:
+            print(f"[GITHUB] Archivo existente, SHA={sha}")
+        else:
+            print(f"[GITHUB] Archivo no existe aún en repo (status={r_get.status_code})")
+    except Exception as e:
+        print(f"[GITHUB] ⚠️ Error obteniendo SHA: {e}")
         sha = None
 
     data = {
@@ -171,23 +216,31 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         "branch": branch
     }
     if sha:
-        data["sha"] = sha  # necesario para actualizar
+        data["sha"] = sha
+        print(f"[GITHUB] Incluyendo SHA en payload para actualizar archivo")
 
     try:
         r = requests.put(url, headers=headers, json=data, timeout=10)
+        print(f"[GITHUB] PUT status={r.status_code}")
         if r.status_code in (200, 201):
-            # Construir raw URL pública (branch por defecto 'main' salvo que se use otra)
             raw_url = f"https://raw.githubusercontent.com/{GITHUB_USERNAME}/{repo}/{branch}/{ruta_remota}"
+            html_url = r.json().get("content", {}).get("html_url")
+            print(f"[GITHUB] ✅ Subida exitosa: html_url={html_url}, raw_url={raw_url}")
             return {
                 "ok": True,
-                "url": r.json().get("content", {}).get("html_url"),
+                "url": html_url,
                 "raw_url": raw_url,
                 "status": r.status_code
             }
         else:
+            print(f"[GITHUB] ❌ Error en subida: status={r.status_code}, error={r.text}")
             return {"ok": False, "status": r.status_code, "error": r.text}
     except Exception as e:
+        print(f"[GITHUB] 💥 Excepción en PUT: {e}")
+        import traceback
+        print(traceback.format_exc())
         return {"ok": False, "error": str(e)}
+
         
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
