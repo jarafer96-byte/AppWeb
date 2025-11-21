@@ -344,8 +344,17 @@ input.addEventListener('change', () => {
       mapping[basenameOriginal] = nombreGenerado;
       localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
 
+      // Base dinámica: si hay repoDestino en localStorage → GitHub raw, si no → local /static
+      const repoDestino = localStorage.getItem("repoDestino");
+      const baseUrl = repoDestino
+        ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+        : "";
+
       const imagenes = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
-      imagenes.push(`${STATIC_BASE_URL}/static/img/${nombreGenerado}`);
+      const rutaFinal = baseUrl
+        ? `${baseUrl}/static/img/${nombreGenerado}`
+        : `/static/img/${nombreGenerado}`;
+      imagenes.push(rutaFinal);
       localStorage.setItem("imagenes_step0", JSON.stringify(imagenes));
 
     } else {
@@ -371,17 +380,20 @@ input.addEventListener('change', () => {
 clearBtn.addEventListener('click', () => {
   console.log("🗑️ [FRONT] Limpiando todas las imágenes...");
 
+  // Revocar URLs de optimizadas
   optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
   optimizadas = [];
   originales = [];
   previewEl.innerHTML = '';
   actualizarMeta();
 
+  // Deshabilitar botones dependientes
   downloadAllBtn.disabled = true;
   downloadAllBtn.classList.add('btn-disabled');
   uploadBtn.disabled = true;
   uploadBtn.classList.add('btn-disabled');
 
+  // Reset input y contador
   syncInputWithOriginales();
   input.value = '';
   actualizarFileCount();
@@ -389,14 +401,16 @@ clearBtn.addEventListener('click', () => {
   // Limpiar cache local
   localStorage.removeItem("imagenesLista");
   localStorage.removeItem("imagenesOriginales");
-
-  // 🔑 Agregar acá:
   localStorage.removeItem("imagenes_step0");
   localStorage.removeItem("imagenesUsadas");
+  localStorage.removeItem("imagenes_mapping");   // 🔑 nuevo: borrar mapping
+  localStorage.removeItem("repoDestino");        // 🔑 nuevo: borrar repo destino
 
+  // Borrar IndexedDB
   const del = indexedDB.deleteDatabase("imagenesDB");
   del.onsuccess = () => console.log("🗑️ [IndexedDB] borrada al limpiar todas");
 });
+
 
 function actualizarMeta() {
   const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
@@ -668,7 +682,7 @@ async function optimizeInBatches(batchSize = 50) {
 // Listener del botón Optimizar
 optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
 
-// Subida en tandas y guardado de rutas reales + mapping
+// Subida en tandas y guardado de rutas reales + mapping + repoDestino
 async function enviarOptimizado(batchSize = 5) {
   console.log("🚀 [FRONT] Iniciando envío de optimizadas...");
 
@@ -709,6 +723,12 @@ async function enviarOptimizado(batchSize = 5) {
         });
         localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
 
+        // 🔑 Guardar repoDestino si backend lo devuelve
+        if (data.repoDestino) {
+          localStorage.setItem("repoDestino", data.repoDestino);
+          console.log("📦 Repo destino guardado:", data.repoDestino);
+        }
+
       } else {
         failCount += batch.length;
       }
@@ -734,6 +754,7 @@ async function enviarOptimizado(batchSize = 5) {
 
   return okCount > 0;
 }
+
 
 // Listener único para subir optimizadas
 uploadBtn.addEventListener("click", async () => {
