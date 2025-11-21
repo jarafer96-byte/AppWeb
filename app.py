@@ -1287,7 +1287,7 @@ def pagar():
 def preview():
     print("🚀 [Preview] Entrando a /preview")
 
-    # Flags de admin: aceptar tanto query args como form
+    # Flags de admin
     modo_admin = bool(session.get('modo_admin')) and (
         request.args.get('admin') == 'true' or request.form.get('admin') == 'true'
     )
@@ -1316,13 +1316,18 @@ def preview():
         print("💥 [Preview] Error al leer productos:", e)
         productos = []
 
-    # Agrupar por grupo y subgrupo
+    # ✅ Ordenar por campo 'orden'
+    productos = sorted(productos, key=lambda p: p.get('orden', 0))
+    print("📊 [Preview] Orden de productos:", [p.get('orden') for p in productos])
+
+    # ✅ Agrupar por grupo y subgrupo
     grupos_dict = {}
     for producto in productos:
         grupo = (producto.get('grupo') or 'General').strip().title()
-        subgrupo = (producto.get('subgrupo') or 'Sin subgrupo').strip().title()
+        subgrupo = (producto.get('subgrupo') or 'Sin Subgrupo').strip().title()
         grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
-    print(f"📂 [Preview] Grupos generados: {list(grupos_dict.keys())}")
+
+    print("📂 [Preview] Grupos generados:", {g: list(s.keys()) for g, s in grupos_dict.items()})
 
     # Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
