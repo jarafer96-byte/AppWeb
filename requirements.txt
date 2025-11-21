@@ -7,3 +7,4 @@ mercadopago>=2.1.0
 firebase-admin
 pandas
 openpyxl
+flask-cors
