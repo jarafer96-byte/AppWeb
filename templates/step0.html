@@ -649,8 +649,7 @@ async function optimizeInBatches(batchSize = 50) {
 // Listener del botón Optimizar
 optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
 
-
-// Subida en tandas
+// Subida en tandas y guardado de rutas reales
 async function enviarOptimizado(batchSize = 5) {
   console.log("🚀 [FRONT] Iniciando envío de optimizadas...");
 
@@ -659,46 +658,37 @@ async function enviarOptimizado(batchSize = 5) {
 
   let okCount = 0;
   let failCount = 0;
-
-  console.log(`📦 [FRONT] Total optimizadas: ${optimizadas.length}`);
+  let rutasFinales = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
 
   for (let i = 0; i < optimizadas.length; i += batchSize) {
     const batch = optimizadas.slice(i, i + batchSize);
-    console.log(`➡️ [FRONT] Procesando batch ${i / batchSize + 1}: ${batch.length} imágenes`);
-
     const formData = new FormData();
-    batch.forEach(img => {
-      formData.append("imagenes", img.blob, img.name);
-      console.log(`📝 [FRONT] Añadida al FormData: ${img.name}, tamaño: ${img.blob.size} bytes`);
-    });
+    batch.forEach(img => formData.append("imagenes", img.blob, img.name));
 
     try {
       const resp = await fetch("/upload-image", { method: "POST", body: formData });
-      console.log(`🔗 [FRONT] POST /upload-image → status: ${resp.status}`);
-
       if (!resp.ok) {
         failCount += batch.length;
-        console.error(`❌ [FRONT] Error HTTP ${resp.status} en batch ${i / batchSize + 1}`);
         continue;
       }
 
       const data = await resp.json();
-      console.log("📥 [FRONT] Respuesta JSON:", data);
-
       if (data.ok) {
         okCount += data.imagenes.length;
-        data.imagenes.forEach(url => console.log(`✅ [FRONT] Subida completa: ${url}`));
+        // 🔑 Guardar rutas reales en localStorage
+        rutasFinales = rutasFinales.concat(data.imagenes);
+        console.log("✅ Subidas:", data.imagenes);
       } else {
         failCount += batch.length;
-        console.error(`❌ [FRONT] Backend devolvió error: ${data.error}`);
       }
     } catch (err) {
       failCount += batch.length;
-      console.error(`💥 [FRONT] Excepción en fetch:`, err);
+      console.error("💥 Error en fetch:", err);
     }
   }
 
-  console.log(`📊 [FRONT] Resumen → OK: ${okCount}, FAIL: ${failCount}`);
+  // Persistir rutas reales para Step3
+  localStorage.setItem("imagenes_step0", JSON.stringify(rutasFinales));
 
   uploadBtn.disabled = false;
   uploadBtn.textContent = "Subir optimizadas";
@@ -709,7 +699,6 @@ async function enviarOptimizado(batchSize = 5) {
   if (okCount > 0) {
     continueBtn.disabled = false;
     continueBtn.classList.remove("btn-disabled");
-    console.log("➡️ [FRONT] Botón 'Continuar' habilitado");
   }
 
   return okCount > 0;
