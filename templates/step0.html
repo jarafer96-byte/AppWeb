@@ -335,6 +335,19 @@ input.addEventListener('change', () => {
       originales.push(f);
       guardarImagenEnIndexedDB(f);
       console.log("✅ [FRONT] Imagen agregada:", f.name);
+
+      // 🔑 Guardar mapping y rutas reales
+      const basenameOriginal = f.name;
+      const nombreGenerado = f.name; // si luego renombrás con hash, usá ese valor
+
+      const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+      mapping[basenameOriginal] = nombreGenerado;
+      localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
+
+      const imagenes = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+      imagenes.push(`${STATIC_BASE_URL}/static/img/${nombreGenerado}`);
+      localStorage.setItem("imagenes_step0", JSON.stringify(imagenes));
+
     } else {
       duplicados++;
       console.warn("⚠️ [FRONT] Imagen duplicada ignorada:", f.name);
@@ -478,6 +491,7 @@ function renderOriginales() {
     showError("⚠️ No hay imágenes originales para mostrar.");
   }
 }
+  
 // Resize a WebP 300x180 q=0.8
 async function resizeToWebP(file) {
   const imgUrl = URL.createObjectURL(file);
@@ -654,7 +668,7 @@ async function optimizeInBatches(batchSize = 50) {
 // Listener del botón Optimizar
 optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
 
-// Subida en tandas y guardado de rutas reales
+// Subida en tandas y guardado de rutas reales + mapping
 async function enviarOptimizado(batchSize = 5) {
   console.log("🚀 [FRONT] Iniciando envío de optimizadas...");
 
@@ -680,9 +694,21 @@ async function enviarOptimizado(batchSize = 5) {
       const data = await resp.json();
       if (data.ok) {
         okCount += data.imagenes.length;
+
         // 🔑 Guardar rutas reales en localStorage
         rutasFinales = rutasFinales.concat(data.imagenes);
         console.log("✅ Subidas:", data.imagenes);
+
+        // 🔑 Guardar mapping original → generado
+        const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+        data.imagenes.forEach((rutaFinal, idx) => {
+          const originalName = batch[idx].name; // ej: "shopping (21).webp"
+          const nombreGenerado = rutaFinal.split("/").pop(); // ej: "56fd002c4b62...webp"
+          mapping[originalName] = nombreGenerado;
+          console.log("🔗 Mapping agregado:", originalName, "→", nombreGenerado);
+        });
+        localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
+
       } else {
         failCount += batch.length;
       }
