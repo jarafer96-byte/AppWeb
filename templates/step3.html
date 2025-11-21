@@ -1138,6 +1138,26 @@ function loadState() {
     console.error("❌ [Step3] Error al cargar estado:", e);
   }
 }
+  
+function iniciarStep3() {
+  // 🧹 Siempre limpiar el estado viejo de Step3
+  localStorage.removeItem("step3_state");
+  imagenesUsadas = [];
+
+  // 📦 Ver si existe estructura nueva desde Step2-5
+  const listasStep2_5 = JSON.parse(localStorage.getItem("listas_step2-5") || "null");
+
+  if (listasStep2_5) {
+    console.log("♻️ [Step3] Usando listas_step2-5 para generar filas:", listasStep2_5);
+    generarFilasDesdeListas(listasStep2_5);
+
+    // Una vez usadas, las borramos para no repetir
+    localStorage.removeItem("listas_step2-5");
+  } else {
+    console.log("🧹 [Step3] No hay listas_step2-5, empezando vacío");
+    document.getElementById("grupos").innerHTML = "";
+  }
+}
 
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
