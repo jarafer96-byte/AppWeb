@@ -77,7 +77,7 @@
     <p class="mt-3">Si no tenés un Excel, completá las filas con tus grupos, subgrupos y productos base. Podés agregar más si lo necesitás:</p>
     
     <!-- Formulario con filas dinámicas -->
-<form method="post" action="/step2-5" class="card mb-4" onsubmit="prepararStep3()">
+<form method="post" action="/step2-5" class="card mb-4">
   <div id="listas-container">
     <!-- 10 filas iniciales -->
     {% for i in range(1,11) %}
@@ -141,30 +141,6 @@ function agregarFila() {
     <input type="text" name="talles_${index}" class="form-control" placeholder="Talles (ej: S,M,L,XL)" style="width:160px;">
   `;
   container.appendChild(div);
-}
-
-function prepararStep3() {
-  // 🧹 limpiar estado viejo
-  localStorage.removeItem("step3_state");
-
-  // 📦 guardar estructura de listas para Step3
-  const filas = [];
-  const container = document.getElementById('listas-container');
-  container.querySelectorAll('div').forEach((fila, idx) => {
-    const grupo = fila.querySelector(`[name="grupo_${idx+1}"]`)?.value || "";
-    const subgrupo = fila.querySelector(`[name="subgrupo_${idx+1}"]`)?.value || "";
-    const productoBase = fila.querySelector(`[name="producto_${idx+1}"]`)?.value || "";
-    const cantidad = fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1";
-    const talles = fila.querySelector(`[name="talles_${idx+1}"]`)?.value || "";
-
-    // Guardar fila si hay al menos un dato
-    if (grupo || subgrupo || productoBase) {
-      filas.push({ grupo, subgrupo, productoBase, cantidad, talles });
-    }
-  });
-
-  localStorage.setItem("listas_step2-5", JSON.stringify(filas));
-  console.log("💾 [Step2-5] Guardada estructura en listas_step2-5:", filas);
 }
 </script>
 </body>
