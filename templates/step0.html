@@ -177,23 +177,37 @@ function renderPager(totalItems, currentPage, onGoToPage) {
   pagerEl.appendChild(next);
 }
   
-// IndexedDB helper: asegura store y se auto-repara si falta
+// IndexedDB helper: asegura stores y se auto-repara si falta
 function ensureDB(callback) {
   const request = indexedDB.open(DB_NAME, DB_VERSION);
 
   request.onupgradeneeded = e => {
     const db = e.target.result;
+
+    // Store de originales
     if (!db.objectStoreNames.contains("imagenes")) {
       const store = db.createObjectStore("imagenes", { keyPath: "basename" });
       store.createIndex("createdAt", "createdAt", { unique: false });
       console.log(`📦 [IndexedDB] Store 'imagenes' creado en '${DB_NAME}'.`);
     }
+
+    // Store de optimizadas
+    if (!db.objectStoreNames.contains("optimizadas")) {
+      const storeOpt = db.createObjectStore("optimizadas", { keyPath: "basename" });
+      storeOpt.createIndex("createdAt", "createdAt", { unique: false });
+      console.log(`📦 [IndexedDB] Store 'optimizadas' creado en '${DB_NAME}'.`);
+    }
   };
 
   request.onsuccess = e => {
     const db = e.target.result;
-    if (!db.objectStoreNames.contains("imagenes")) {
-      console.warn(`⚠️ [IndexedDB] '${DB_NAME}' sin store 'imagenes'. Se borra y recrea.`);
+
+    // Verificación defensiva: si falta algún store, recrear DB
+    const requiredStores = ["imagenes", "optimizadas"];
+    const missing = requiredStores.filter(s => !db.objectStoreNames.contains(s));
+
+    if (missing.length > 0) {
+      console.warn(`⚠️ [IndexedDB] '${DB_NAME}' sin stores ${missing.join(", ")}. Se borra y recrea.`);
       db.close();
 
       const del = indexedDB.deleteDatabase(DB_NAME);
@@ -201,9 +215,13 @@ function ensureDB(callback) {
         const re = indexedDB.open(DB_NAME, DB_VERSION);
         re.onupgradeneeded = ev => {
           const db2 = ev.target.result;
-          const store = db2.createObjectStore("imagenes", { keyPath: "basename" });
-          store.createIndex("createdAt", "createdAt", { unique: false });
-          console.log(`📦 [IndexedDB] Store 'imagenes' recreado en '${DB_NAME}'.`);
+          const storeImg = db2.createObjectStore("imagenes", { keyPath: "basename" });
+          storeImg.createIndex("createdAt", "createdAt", { unique: false });
+
+          const storeOpt = db2.createObjectStore("optimizadas", { keyPath: "basename" });
+          storeOpt.createIndex("createdAt", "createdAt", { unique: false });
+
+          console.log(`📦 [IndexedDB] Stores 'imagenes' y 'optimizadas' recreados en '${DB_NAME}'.`);
         };
         re.onsuccess = ev => callback(ev.target.result);
         re.onerror = err => console.error("❌ [IndexedDB] Error recreando DB:", err.target.error);
@@ -222,6 +240,7 @@ function ensureDB(callback) {
     console.error(`❌ [IndexedDB] Error abriendo '${DB_NAME}':`, e.target.error);
   };
 }
+
   
 // Guardar imagen en IndexedDB
 function guardarImagenEnIndexedDB(file) {
@@ -558,9 +577,6 @@ function guardarOptimizadaEnIndexedDB(name, blob) {
     tx.onerror = e => console.error("❌ [IndexedDB] Error guardando optimizada:", e.target.error);
   });
 }
-
-// Dentro de optimizeInBatches, luego de crear el blob:
-guardarOptimizadaEnIndexedDB(finalName, blob);
 
 function fetchOriginalesPage(pagina) {
   const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
