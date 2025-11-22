@@ -525,7 +525,6 @@ function abrirCarrusel(btn) {
   modal.show();
 }
 
- 
 function inicializarCarrusel() {
   const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
   contenedor.innerHTML = ""; // limpiar carrusel
@@ -533,20 +532,25 @@ function inicializarCarrusel() {
   cargarImagenesDesdeIndexedDB((count) => {
     if (count > 0) {
       console.log("📦 Carrusel restaurado desde IndexedDB con", count, "imágenes");
-    } else if (Array.isArray(imagenesDisponibles) && imagenesDisponibles.length) {
-      // Fallback: usar imágenes de sesión (rutas reales)
-      let first = true, buffer = [];
-      imagenesDisponibles.forEach(ruta => {
-        const basename = ruta.split('/').pop();
-        buffer.push({ nombre: basename, url: ruta });
-        if (buffer.length === 8) {
-          agregarSlide(buffer, first);
-          first = false;
-          buffer = [];
-        }
-      });
-      if (buffer.length) agregarSlide(buffer, first);
-      console.log("📦 Carrusel inicializado con imágenes de sesión:", imagenesDisponibles.length);
+    } else {
+      // Fallback: usar rutas finales guardadas en localStorage
+      const imagenesFinales = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+      if (Array.isArray(imagenesFinales) && imagenesFinales.length) {
+        let first = true, buffer = [];
+        imagenesFinales.forEach(ruta => {
+          const basename = ruta.split('/').pop();
+          buffer.push({ nombre: basename, url: ruta });
+          if (buffer.length === 8) {
+            agregarSlide(buffer, first);
+            first = false;
+            buffer = [];
+          }
+        });
+        if (buffer.length) agregarSlide(buffer, first);
+        console.log("📦 Carrusel inicializado con imágenes finales:", imagenesFinales.length);
+      } else {
+        console.warn("⚠️ [Step3] No hay imágenes en localStorage.imagenes_step0");
+      }
     }
 
     // Selección inicial
