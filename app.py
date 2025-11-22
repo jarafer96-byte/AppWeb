@@ -69,7 +69,7 @@ token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 
 app = Flask(__name__)
-CORS(app, resources={r"/pagar": {"origins": "*"}})
+CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
@@ -178,6 +178,8 @@ def subir_a_firestore(producto, email):
         print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
         return {"ok": False, "error": str(e), "trace": tb}
 
+
+
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
     """
     Subida de archivo a GitHub con logs detallados.
@@ -250,7 +252,7 @@ def api_productos():
         return jsonify({"error": "No estás logueado"}), 403
 
     try:
-        # Referencia a la colección de productos del usuario
+        # Colección de productos del usuario
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         docs = productos_ref.stream()
 
@@ -258,7 +260,7 @@ def api_productos():
         for doc in docs:
             data = doc.to_dict() or {}
             productos.append({
-                "id": doc.id,  # ID interno de Firestore
+                "id": doc.id,
                 "id_base": data.get("id_base"),
                 "nombre": data.get("nombre"),
                 "precio": data.get("precio"),
@@ -271,7 +273,7 @@ def api_productos():
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
             })
 
-        # Ordenar por 'orden' antes de devolver
+        # Ordenar por 'orden'
         productos = sorted(productos, key=lambda p: p.get("orden") or 0)
 
         return jsonify(productos)
@@ -279,6 +281,7 @@ def api_productos():
     except Exception as e:
         print(f"[API_PRODUCTOS] Error al leer productos: {e}")
         return jsonify({"error": str(e)}), 500
+
         
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
@@ -690,12 +693,20 @@ def actualizar_talles():
         return jsonify({"error": "Datos incompletos"}), 400
 
     try:
-        db.collection("usuarios").document(email).collection("productos").document(id_base).update({
-            "talles": nuevos_talles
-        })
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        query = productos_ref.where("id_base", "==", id_base).limit(1).get()
+
+        if not query:
+            return jsonify({"error": "Producto no encontrado"}), 404
+
+        doc = query[0]
+        doc.reference.update({"talles": nuevos_talles})
+        print(f"[ACTUALIZAR-TALLES] ✅ Usuario={email}, id_base={id_base}, talles={nuevos_talles}")
         return jsonify({"status": "ok"})
     except Exception as e:
+        print(f"[ACTUALIZAR-TALLES] ❌ Error: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/actualizar-firestore', methods=['POST'])
 def actualizar_firestore():
@@ -708,6 +719,7 @@ def actualizar_firestore():
         return jsonify({'status': 'error', 'message': 'Datos incompletos'}), 400
 
     try:
+        print(f"[ACTUALIZAR] Usuario={email}, id_base={id_base}, campos={campos}")
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         query = productos_ref.where("id_base", "==", id_base).limit(1).get()
 
@@ -716,8 +728,10 @@ def actualizar_firestore():
 
         doc = query[0]
         doc.reference.update(campos)
+        print(f"[ACTUALIZAR] ✅ Firestore actualizado para {id_base}")
         return jsonify({'status': 'ok'})
     except Exception as e:
+        print(f"[ACTUALIZAR] ❌ Error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/', methods=['GET', 'POST'])
@@ -1471,20 +1485,23 @@ def descargar():
 
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
-    productos = []
+    # Obtener productos del usuario
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         productos_docs = productos_ref.stream()
         productos = [doc.to_dict() for doc in productos_docs]
-    except Exception:
+    except Exception as e:
+        print(f"[DESCARGAR] Error leyendo productos: {e}")
         productos = []
 
+    # Agrupar por grupo/subgrupo
     grupos = {}
     for producto in productos:
-        grupo = producto.get('grupo', 'General').strip().title()
-        subgrupo = producto.get('subgrupo', 'Sin subgrupo').strip().title()
+        grupo = (producto.get('grupo', 'General').strip().title())
+        subgrupo = (producto.get('subgrupo', 'Sin subgrupo').strip().title())
         grupos.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
 
+    # Configuración visual
     config = {
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
@@ -1505,24 +1522,42 @@ def descargar():
         'bloques': []
     }
 
+    # Renderizar HTML
     html = render_template('preview.html', config=config, grupos=grupos)
 
+    # Crear ZIP en memoria
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w') as zip_file:
         zip_file.writestr('index.html', html)
 
+        # Fondo
         fondo = f"{estilo_visual}.jpeg"
         fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
         if os.path.exists(fondo_path):
             zip_file.write(fondo_path, arcname='img/' + fondo)
 
+        # Imágenes de productos
         for producto in productos:
-            imagen = producto.get('imagen_github')
-            if imagen:
-                imagen_path = os.path.join(app.config['UPLOAD_FOLDER'], imagen)
-                if os.path.exists(imagen_path):
-                    zip_file.write(imagen_path, arcname='img/' + imagen)
+            imagen_url = producto.get('imagen_github')
+            if not imagen_url:
+                continue
 
+            if imagen_url.startswith("http"):  # caso GitHub raw_url
+                try:
+                    r = requests.get(imagen_url, timeout=10)
+                    if r.status_code == 200:
+                        filename = os.path.basename(imagen_url)
+                        zip_file.writestr("img/" + filename, r.content)
+                        print(f"✅ [DESCARGAR] Imagen incluida desde GitHub: {filename}")
+                except Exception as e:
+                    print(f"⚠️ [DESCARGAR] Error descargando {imagen_url}: {e}")
+            else:  # fallback local
+                imagen_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen_url))
+                if os.path.exists(imagen_path):
+                    zip_file.write(imagen_path, arcname="img/" + os.path.basename(imagen_url))
+                    print(f"✅ [DESCARGAR] Imagen incluida desde local: {imagen_url}")
+
+        # Logo
         logo = config.get("logo")
         if logo:
             logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
@@ -1534,6 +1569,7 @@ def descargar():
 
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='sitio.zip')
+
 
 @app.template_filter('imgver')
 def imgver_filter(name):
