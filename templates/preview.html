@@ -1182,12 +1182,14 @@ function mostrarTodos() {
     panelSub.classList.add('oculta');
   }
 }
-
+window.mostrarTodos = mostrarTodos; 
+    
 function irAContacto() {
   const contacto = document.getElementById('ubicacion');
   if (contacto) contacto.scrollIntoView({ behavior: 'auto' });
 }
-
+window.irAContacto = irAContacto; // si usás módulos
+    
 function renderProducto(p) {
   const card = document.createElement("div");
   card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder";
@@ -1258,6 +1260,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
+
   // Botón Subcategorías
   const btnSubcategorias = document.getElementById("btnSubcategorias");
   if (btnSubcategorias) {
@@ -1269,6 +1272,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
+
   // Delegación de eventos para botones de grupo dinámicos
   document.addEventListener("click", (e) => {
     if (e.target.classList.contains("btn-grupo")) {
@@ -1303,48 +1307,48 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 👉 Ordenar por precio
-const ordenSelect = document.getElementById("ordenPrecio");
-if (ordenSelect) {
-  ordenSelect.addEventListener("change", (e) => {
-    const valor = e.target.value; // "asc" o "desc"
+  const ordenSelect = document.getElementById("ordenPrecio");
+  if (ordenSelect) {
+    ordenSelect.addEventListener("change", (e) => {
+      const valor = e.target.value; // "asc" o "desc"
 
-    const grupoActivoBtn = document.querySelector(".btn-grupo.active");
-    const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
+      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
 
-    const subActivoBtn = document.querySelector(".btn-subgrupo.active");
-    const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
+      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-    let productosFiltrados = window.todosLosProductos;
-    if (grupoActivo) {
-      productosFiltrados = productosFiltrados.filter(
-        p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
-      );
-    }
-    if (subActivo) {
-      productosFiltrados = productosFiltrados.filter(
-        p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
-      );
-    }
+      let productosFiltrados = window.todosLosProductos;
+      if (grupoActivo) {
+        productosFiltrados = productosFiltrados.filter(
+          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
+        );
+      }
+      if (subActivo) {
+        productosFiltrados = productosFiltrados.filter(
+          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
+        );
+      }
 
-    productosFiltrados.sort((a, b) => {
-      const pa = parseFloat(a.precio) || 0;
-      const pb = parseFloat(b.precio) || 0;
-      return valor === "asc" ? pa - pb : pb - pa;
+      productosFiltrados.sort((a, b) => {
+        const pa = parseFloat(a.precio) || 0;
+        const pb = parseFloat(b.precio) || 0;
+        return valor === "asc" ? pa - pb : pb - pa;
+      });
+
+      const cont = document.getElementById("productos");
+      cont.innerHTML = "";
+
+      // 🔑 Usar tu función original de renderizado
+      productosFiltrados.forEach(p => {
+        const card = renderProducto(p); // 👈 esta función debe devolver la card completa
+        cont.appendChild(card);
+        setTimeout(() => card.classList.remove("fade-reorder"), 50);
+      });
     });
+  }
+}); // 👈 cierre de DOMContentLoaded
 
-    const cont = document.getElementById("productos");
-    cont.innerHTML = "";
-
-    // 🔑 Usar tu función original de renderizado
-    productosFiltrados.forEach(p => {
-      const card = renderProducto(p); // 👈 esta función debe devolver la card completa
-      cont.appendChild(card);
-      setTimeout(() => card.classList.remove("fade-reorder"), 50);
-    });
-  });
-}
-
-  
 </script>
 <script type="module">
 const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
