@@ -243,6 +243,42 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         print(traceback.format_exc())
         return {"ok": False, "error": str(e)}
 
+@app.route("/api/productos")
+def api_productos():
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "No estás logueado"}), 403
+
+    try:
+        # Referencia a la colección de productos del usuario
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        docs = productos_ref.stream()
+
+        productos = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            productos.append({
+                "id": doc.id,  # ID interno de Firestore
+                "id_base": data.get("id_base"),
+                "nombre": data.get("nombre"),
+                "precio": data.get("precio"),
+                "grupo": data.get("grupo"),
+                "subgrupo": data.get("subgrupo"),
+                "descripcion": data.get("descripcion"),
+                "imagen_github": data.get("imagen_github"),
+                "orden": data.get("orden"),
+                "talles": data.get("talles", []),
+                "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
+            })
+
+        # Ordenar por 'orden' antes de devolver
+        productos = sorted(productos, key=lambda p: p.get("orden") or 0)
+
+        return jsonify(productos)
+
+    except Exception as e:
+        print(f"[API_PRODUCTOS] Error al leer productos: {e}")
+        return jsonify({"error": str(e)}), 500
         
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
