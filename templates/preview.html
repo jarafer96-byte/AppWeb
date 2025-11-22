@@ -988,24 +988,6 @@ function loginAdmin(event) {
     });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Login admin
-  const form = document.getElementById("form-login-admin");
-  if (form) {
-    form.addEventListener("submit", loginAdmin);
-  }
-
-  // Otros inicializadores
-  const btnProductos = document.getElementById("btnProductos");
-  if (btnProductos) {
-    btnProductos.addEventListener("click", () => {
-      const panelGrupos = document.getElementById("panelGrupos");
-      if (panelGrupos) panelGrupos.classList.remove("oculta");
-    });
-  }
-});
-
-
 function editarTalles(id) {
   const select = document.getElementById("talle_" + id);
   if (!select) return;
@@ -1289,24 +1271,116 @@ function ajustarPosicionesPaneles() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  window.addEventListener('load', ajustarPosicionesPaneles);
-  window.addEventListener('resize', ajustarPosicionesPaneles);
+document.addEventListener("DOMContentLoaded", () => {
+  // Login admin
+  const form = document.getElementById("form-login-admin");
+  if (form) {
+    form.addEventListener("submit", loginAdmin);
+  }
 
-  const btnProductos = document.getElementById('btnProductos');
+  // Ajustar posiciones al cargar y al redimensionar
+  window.addEventListener("load", ajustarPosicionesPaneles);
+  window.addEventListener("resize", ajustarPosicionesPaneles);
+
+  // Botón Productos
+  const btnProductos = document.getElementById("btnProductos");
   if (btnProductos) {
-    btnProductos.addEventListener('click', () => {
+    btnProductos.addEventListener("click", () => {
+      const panelGrupos = document.getElementById("panelGrupos");
+      if (panelGrupos) panelGrupos.classList.remove("oculta");
+
+      // Ajustar posiciones después de mostrar
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
 
   // Delegación de eventos para botones de grupo dinámicos
-  document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('btn-grupo')) {
+  document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("btn-grupo")) {
       setTimeout(ajustarPosicionesPaneles, 0);
     }
+
+    // ✅ Cerrar carrito al hacer clic fuera
+    const carritoDiv = document.getElementById("carrito");
+    const toggleBtn = document.getElementById("toggleCarrito");
+    if (carritoDiv && toggleBtn) {
+      const visible = carritoDiv.style.display === "block";
+      const clicFueraCarrito = !carritoDiv.contains(e.target) && !toggleBtn.contains(e.target);
+      if (visible && clicFueraCarrito) {
+        carritoDiv.style.display = "none";
+      }
+    }
+
+    // ✅ Ocultar paneles al hacer clic fuera
+    const panelGrupos = document.getElementById("panelGrupos");
+    const panelSub = document.getElementById("panelSubcategorias");
+    if (panelGrupos && panelSub) {
+      const esClickDentroGrupos = panelGrupos.contains(e.target);
+      const esClickDentroSub = panelSub.contains(e.target);
+      const esBotonGrupo = e.target.classList.contains("btn-grupo");
+      const esBotonNavegacion = !!e.target.closest(".barra-navegacion");
+
+      if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
+        panelGrupos.classList.add("oculta");
+        panelSub.classList.add("oculta");
+      }
+    }
   });
+
+  // 👉 Ordenar por precio
+  const ordenSelect = document.getElementById("ordenPrecio");
+  if (ordenSelect) {
+    ordenSelect.addEventListener("change", (e) => {
+      const valor = e.target.value; // "asc" o "desc"
+
+      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
+      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+
+      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
+      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+
+      let productosFiltrados = window.todosLosProductos;
+      if (grupoActivo) {
+        productosFiltrados = productosFiltrados.filter(
+          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
+        );
+      }
+      if (subActivo) {
+        productosFiltrados = productosFiltrados.filter(
+          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
+        );
+      }
+
+      productosFiltrados.sort((a, b) => {
+        const pa = parseFloat(a.precio) || 0;
+        const pb = parseFloat(b.precio) || 0;
+        return valor === "asc" ? pa - pb : pb - pa;
+      });
+
+      const cont = document.getElementById("productos");
+      cont.innerHTML = "";
+      productosFiltrados.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder";
+        card.innerHTML = `
+          <div class="card p-3 h-100">
+            <img src="${p.imagen_github || '/static/img/fallback.webp'}"
+                 alt="${p.nombre}" loading="lazy"
+                 style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
+            <div class="card-body">
+              <h5 class="card-title">${p.nombre}</h5>
+              <p class="card-text">${p.descripcion || ""}</p>
+              <p><strong>Precio:</strong> $${p.precio}</p>
+            </div>
+          </div>
+        `;
+        cont.appendChild(card);
+        setTimeout(() => card.classList.remove("fade-reorder"), 50);
+      });
+    });
+  }
 });
+  
 </script>
 <script type="module">
 const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
@@ -1334,66 +1408,7 @@ setTimeout(() => {
     filtrarSubcategoria(primerGrupo, subgrupos[0]);
   }
 }, 100);
-
-// ✅ Cerrar carrito al hacer clic fuera
-document.addEventListener('click', function(event) {
-  const carritoDiv = document.getElementById('carrito');
-  const toggleBtn = document.getElementById('toggleCarrito');
-  if (!carritoDiv || !toggleBtn) return;
-
-  const visible = carritoDiv.style.display === 'block';
-  const clicFuera = !carritoDiv.contains(event.target) && !toggleBtn.contains(event.target);
-  if (visible && clicFuera) {
-    carritoDiv.style.display = 'none';
-  }
-});
-
-// Ordenar productos por precio
-document.getElementById('ordenPrecio')?.addEventListener('change', function () {
-  const orden = this.value;
-  const grupoActivo = document.querySelector('.grupo-section.active');
-  if (!grupoActivo) return;
-
-  const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
-  bloques.forEach(bloque => {
-    const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
-    const contenedor = bloque.querySelector('.row');
-    if (!contenedor) return;
-
-    productos.sort((a, b) => {
-      const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-      const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-      return orden === 'asc' ? precioA - precioB : precioB - precioA;
-    });
-
-    // efecto visual opcional
-    productos.forEach(p => p.classList.add('fade-reorder'));
-    setTimeout(() => {
-      contenedor.innerHTML = '';
-      productos.forEach(p => {
-        p.classList.remove('fade-reorder');
-        contenedor.appendChild(p);
-      });
-    }, 200);
-  });
-});
-
-// Ocultar paneles al hacer clic fuera
-document.addEventListener('click', function(event) {
-  const panelGrupos = document.getElementById('panelGrupos');
-  const panelSub = document.getElementById('panelSubcategorias');
-  if (!panelGrupos || !panelSub) return;
-
-  const esClickDentroGrupos = panelGrupos.contains(event.target);
-  const esClickDentroSub = panelSub.contains(event.target);
-  const esBotonGrupo = event.target.classList.contains('btn-grupo');
-  const esBotonNavegacion = !!event.target.closest('.barra-navegacion');
-
-  if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
-    panelGrupos.classList.add('oculta');
-    panelSub.classList.add('oculta');
-  }
-});  
+   
 </script>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script>
