@@ -243,6 +243,41 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         print(traceback.format_exc())
         return {"ok": False, "error": str(e)}
 
+@app.route("/api/productos")
+def api_productos():
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "No estás logueado"}), 403
+
+    try:
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        docs = productos_ref.stream()
+
+        productos = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            productos.append({
+                "id": doc.id,  # ID interno de Firestore
+                "id_base": data.get("id_base"),
+                "nombre": data.get("nombre"),
+                "precio": data.get("precio"),
+                "grupo": data.get("grupo"),
+                "subgrupo": data.get("subgrupo"),
+                "descripcion": data.get("descripcion"),
+                "imagen_github": data.get("imagen_github"),
+                "orden": data.get("orden"),
+                "talles": data.get("talles", []),
+                "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
+            })
+
+        # Ordenar por 'orden' antes de devolver
+        productos = sorted(productos, key=lambda p: p.get("orden", 0))
+
+        return jsonify(productos)
+
+    except Exception as e:
+        print(f"[API_PRODUCTOS] Error al leer productos: {e}")
+        return jsonify({"error": str(e)}), 500
         
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
@@ -814,41 +849,31 @@ def step3():
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
             print(f"👕 [Step3] Talles={talle_lista}")
 
-           # --- Reemplazar la validación antigua de imagen_url dentro de step3 por este bloque ---
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
-            # Aceptar rutas locales (/static/img/...), URLs absolutas (http(s)://...) o basenames guardados en session
             imagen_para_guardar = None
 
             if not imagen_url:
                 print(f"⚠️ [Step3] Imagen vacía para producto {nombre}")
                 continue
 
-            # Caso 1: ruta local ya absoluta en servidor (/static/img/...)
             if imagen_url.startswith('/static/img/') or imagen_url.startswith('static/img/'):
                 imagen_para_guardar = imagen_url if imagen_url.startswith('/') else '/' + imagen_url
-
-            # Caso 2: URL absoluta (raw.githubusercontent u otro host)
             elif imagen_url.startswith('http://') or imagen_url.startswith('https://'):
                 imagen_para_guardar = imagen_url
-
-            # Caso 3: solo basename (p.ej. 'a9e73a9...webp') -> buscar en session['imagenes_step0']
             else:
                 basename = os.path.basename(imagen_url)
                 session_imgs = session.get('imagenes_step0') or []
-                # buscar coincidencia por basename en la lista guardada en session
                 matched = next((u for u in session_imgs if u.endswith(basename)), None)
                 if matched:
                     imagen_para_guardar = matched
                 else:
-                    # fallback: si existe localmente en UPLOAD_FOLDER, usar ruta estática
                     local_candidate = os.path.join(app.config['UPLOAD_FOLDER'], basename)
                     if os.path.exists(local_candidate):
                         imagen_para_guardar = f"/static/img/{basename}"
                     else:
-                        print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url} (basename: {basename})")
+                        print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url}")
                         continue
 
-            # Debug: mostrar la URL que vamos a guardar y enviar a Firestore
             print(f"🔍 [Step3] imagen_para_guardar para '{nombre}': {imagen_para_guardar}")
 
             bloques.append({
@@ -862,7 +887,6 @@ def step3():
                 'talles': talle_lista
             })
             print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_para_guardar}")
-# --- fin del reemplazo ---
 
         session['bloques'] = bloques
         print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
@@ -871,7 +895,6 @@ def step3():
         def subir_con_resultado(producto):
             try:
                 resultado = subir_a_firestore(producto, email)
-                # Imprimir resultado detallado para debugging
                 print(f"🔥 [Step3] Resultado subir_a_firestore para '{producto.get('nombre')}' -> {resultado}")
                 return resultado.get("ok") if isinstance(resultado, dict) else bool(resultado)
             except Exception as e:
@@ -888,7 +911,7 @@ def step3():
             exitos += sum(1 for r in resultados if r)
         print(f"📊 [Step3] Total exitos en Firestore: {exitos}")
 
-        # Agrupar para preview
+        # Grupos para preview
         grupos_dict = {}
         for producto in bloques:
             grupo = (producto.get('grupo') or 'General').strip().title()
@@ -896,20 +919,17 @@ def step3():
             grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
         print(f"📂 [Step3] Grupos generados: {list(grupos_dict.keys())}")
 
-        # Subir index.html, iconos, logo y fondo a GitHub
+        # Subir index dinámico al repo
         if repo_name:
             try:
-                print("⬆️ [Step3] Renderizando preview.html para subir a GitHub")
+                print("⬆️ [Step3] Renderizando index_dynamic.html para subir a GitHub")
                 html = render_template(
-                    'preview.html',
+                    'index_dynamic.html',
                     config=session,
-                    grupos=grupos_dict,
-                    modoAdmin=False,
-                    modoAdminIntentado=False,
                     firebase_config=firebase_config
                 )
                 subir_archivo(repo_name, html.encode('utf-8'), 'index.html')
-                print("✅ [Step3] index.html subido a GitHub")
+                print("✅ [Step3] index.html dinámico subido a GitHub")
             except Exception as e:
                 print("[Step3] Error subiendo index.html:", e)
 
@@ -922,20 +942,16 @@ def step3():
             logo = session.get('logo')
             if logo:
                 logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
-                print(f"🔍 [Step3] Verificando logo: {logo_path}")
                 if os.path.exists(logo_path):
                     with open(logo_path, "rb") as f:
-                        contenido = f.read()
-                    subir_archivo(repo_name, contenido, f"static/img/{logo}")
+                        subir_archivo(repo_name, f.read(), f"static/img/{logo}")
                     print(f"✅ [Step3] Logo subido: {logo}")
 
             estilo_visual = session.get('estilo_visual') or 'claro_moderno'
             fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{estilo_visual}.jpeg")
-            print(f"🔍 [Step3] Verificando fondo: {fondo_path}")
             if os.path.exists(fondo_path):
                 with open(fondo_path, "rb") as f:
-                    contenido = f.read()
-                subir_archivo(repo_name, contenido, f"static/img/{estilo_visual}.jpeg")
+                    subir_archivo(repo_name, f.read(), f"static/img/{estilo_visual}.jpeg")
                 print(f"✅ [Step3] Fondo subido: {estilo_visual}.jpeg")
 
         if exitos > 0:
