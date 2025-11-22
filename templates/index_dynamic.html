@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ config.get('nombre_emprendimiento', 'Mi Tienda') }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Estilos base -->
+  <link rel="stylesheet" href="static/css/style.css">
+
+  <style>
+    body {
+      font-family: {{ config.get('fuente', 'Arial, sans-serif') }};
+      background: url("static/img/{{ config.get('estilo_visual', 'claro_moderno') }}.jpeg") no-repeat center center fixed;
+      background-size: cover;
+      color: {{ config.get('color', '#333') }};
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      text-align: center;
+      padding: 2rem;
+    }
+    header img.logo {
+      max-height: 100px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 2rem;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .card {
+      border: {{ config.get('bordes', '1px solid #ccc') }};
+      border-radius: 8px;
+      padding: 1rem;
+      background: rgba(255,255,255,0.9);
+      flex: 1 1 calc(33% - 2rem);
+      box-sizing: border-box;
+      min-width: 250px;
+    }
+    .card img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .btn-comprar {
+      background: {{ config.get('botones', '#007bff') }};
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+    .btn-comprar:hover {
+      opacity: 0.8;
+    }
+    footer {
+      text-align: center;
+      padding: 2rem;
+      background: rgba(255,255,255,0.8);
+      margin-top: 2rem;
+    }
+    footer a {
+      color: {{ config.get('color', '#333') }};
+      text-decoration: none;
+      margin: 0 0.5rem;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+    .filters {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .pagination {
+      text-align: center;
+      margin-top: 2rem;
+    }
+    .pagination button {
+      margin: 0 0.25rem;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      background: {{ config.get('botones', '#007bff') }};
+      color: #fff;
+      cursor: pointer;
+    }
+    .pagination button.active {
+      background: #333;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    {% if config.get('logo') %}
+      <img src="static/img/{{ config.get('logo') }}" alt="Logo" class="logo">
+    {% endif %}
+    <h1>{{ config.get('nombre_emprendimiento', 'Mi Tienda') }}</h1>
+    <p>{{ config.get('descripcion', '') }}</p>
+  </header>
+
+  <main class="container">
+    <!-- Filtros -->
+    <div class="filters">
+      <input type="text" id="search" placeholder="Buscar producto..." style="padding:0.5rem; width:60%;">
+    </div>
+
+    <!-- Productos -->
+    <div id="productos" class="row"></div>
+
+    <!-- Paginación -->
+    <div class="pagination" id="pagination"></div>
+  </main>
+
+  <footer>
+    <p>&copy; {{ config.get('anio', '2025') }} {{ config.get('nombre_emprendimiento', 'Mi Tienda') }}</p>
+    <p>
+      {% if config.get('facebook') %}<a href="{{ config.get('facebook') }}">Facebook</a>{% endif %}
+      {% if config.get('instagram') %} | <a href="{{ config.get('instagram') }}">Instagram</a>{% endif %}
+      {% if config.get('whatsapp') %} | <a href="https://wa.me/{{ config.get('whatsapp') }}">WhatsApp</a>{% endif %}
+    </p>
+  </footer>
+
+  <!-- Script para cargar productos dinámicamente con filtros y paginación -->
+  <script>
+    let productos = [];
+    let productosFiltrados = [];
+    let currentPage = 1;
+    const itemsPerPage = 9;
+
+    function renderProductos() {
+      const cont = document.getElementById("productos");
+      cont.innerHTML = "";
+      const start = (currentPage - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      const pageItems = productosFiltrados.slice(start, end);
+
+      if (pageItems.length === 0) {
+        cont.innerHTML = "<p>No hay productos disponibles.</p>";
+        return;
+      }
+
+      pageItems.forEach(p => {
+        cont.insertAdjacentHTML("beforeend", `
+          <div class="card">
+            <img src="${p.imagen_github}" alt="${p.nombre}">
+            <h5>${p.nombre}</h5>
+            <p><strong>Precio:</strong> $${p.precio}</p>
+            <p>${p.descripcion || ""}</p>
+            ${p.talles && p.talles.length > 0 ? `<p><strong>Talles:</strong> ${p.talles.join(", ")}</p>` : ""}
+            <button class="btn-comprar">Comprar</button>
+          </div>
+        `);
+      });
+
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(productosFiltrados.length / itemsPerPage);
+      const pag = document.getElementById("pagination");
+      pag.innerHTML = "";
+
+      for (let i = 1; i <= totalPages; i++) {
+        pag.insertAdjacentHTML("beforeend", `
+          <button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>
+        `);
+      }
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      renderProductos();
+    }
+
+    function applyFilter() {
+      const searchTerm = document.getElementById("search").value.toLowerCase();
+      productosFiltrados = productos.filter(p =>
+        p.nombre.toLowerCase().includes(searchTerm) ||
+        (p.descripcion && p.descripcion.toLowerCase().includes(searchTerm)) ||
+        (p.grupo && p.grupo.toLowerCase().includes(searchTerm)) ||
+        (p.subgrupo && p.subgrupo.toLowerCase().includes(searchTerm))
+      );
+      currentPage = 1;
+      renderProductos();
+    }
+
+    document.getElementById("search").addEventListener("input", applyFilter);
+
+    fetch("/api/productos")
+      .then(r => r.json())
+      .then(lista => {
+        productos = lista || [];
+        productosFiltrados = productos;
+        renderProductos();
+      })
+      .catch(err => {
+        console.error("Error cargando productos:", err);
+        document.getElementById("productos").innerHTML = "<p>Error al cargar productos.</p>";
+      });
+  </script>
+</body>
+</html>
+
