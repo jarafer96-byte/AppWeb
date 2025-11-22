@@ -715,33 +715,50 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   saveStateDebounced();
 }
 
-  function ensureDB(callback) {
-      const request = indexedDB.open("imagenesDB", 2);
-      request.onupgradeneeded = e => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains("imagenes")) {
-          db.createObjectStore("imagenes");
-          console.log("📦 Store 'imagenes' creado (upgrade)");
-        }
-      };
-      request.onsuccess = e => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains("imagenes")) {
-          console.warn("⚠️ DB sin store. Borrando y recreando…");
-          db.close();
-          const del = indexedDB.deleteDatabase("imagenesDB");
-          del.onsuccess = () => {
-            const re = indexedDB.open("imagenesDB", 2);
-            re.onupgradeneeded = ev => ev.target.result.createObjectStore("imagenes");
-            re.onsuccess = ev => callback(ev.target.result);
-          };
-          del.onerror = () => { console.error("❌ No se pudo borrar la DB"); callback(db); };
-        } else {
-          callback(db);
-        }
-      };
-      request.onerror = e => console.error("❌ Error abriendo IndexedDB:", e.target.error);
+function ensureDB(callback) {
+  const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+  request.onupgradeneeded = e => {
+    const db = e.target.result;
+
+    if (!db.objectStoreNames.contains("imagenes")) {
+      db.createObjectStore("imagenes", { keyPath: "basename" });
+      console.log("📦 Store 'imagenes' creado (upgrade)");
     }
+
+    if (!db.objectStoreNames.contains("optimizadas")) {
+      db.createObjectStore("optimizadas", { keyPath: "basename" });
+      console.log("📦 Store 'optimizadas' creado (upgrade)");
+    }
+  };
+
+  request.onsuccess = e => {
+    const db = e.target.result;
+    const requiredStores = ["imagenes", "optimizadas"];
+    const missing = requiredStores.filter(s => !db.objectStoreNames.contains(s));
+
+    if (missing.length > 0) {
+      console.warn(`⚠️ DB sin stores ${missing.join(", ")}. Borrando y recreando…`);
+      db.close();
+      const del = indexedDB.deleteDatabase(DB_NAME);
+      del.onsuccess = () => {
+        const re = indexedDB.open(DB_NAME, DB_VERSION);
+        re.onupgradeneeded = ev => {
+          const db2 = ev.target.result;
+          db2.createObjectStore("imagenes", { keyPath: "basename" });
+          db2.createObjectStore("optimizadas", { keyPath: "basename" });
+          console.log("📦 Stores 'imagenes' y 'optimizadas' recreados.");
+        };
+        re.onsuccess = ev => callback(ev.target.result);
+      };
+      del.onerror = () => { console.error("❌ No se pudo borrar la DB"); callback(db); };
+    } else {
+      callback(db);
+    }
+  };
+
+  request.onerror = e => console.error("❌ Error abriendo IndexedDB:", e.target.error);
+}
     
 function cargarImagenesDesdeIndexedDB(done) {
       ensureDB(db => {
