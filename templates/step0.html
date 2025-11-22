@@ -103,6 +103,9 @@ const downloadAllBtn = document.getElementById('downloadAllBtn');
 const uploadBtn = document.getElementById('uploadBtn');
 const continueBtn = document.getElementById('continueBtn');
 
+const DB_NAME = "imagenesDB";
+const DB_VERSION = 3;
+
 let originales = [];
 let optimizadas = [];
 let pageSize = parseInt(localStorage.getItem("pageSize") || "20", 10);
@@ -176,45 +179,39 @@ function renderPager(totalItems, currentPage, onGoToPage) {
   
 // IndexedDB helper: asegura store y se auto-repara si falta
 function ensureDB(callback) {
-  const request = indexedDB.open("imagenesDB", 3); // subimos versión para aplicar keyPath
+  const request = indexedDB.open(DB_NAME, DB_VERSION);
 
   request.onupgradeneeded = e => {
     const db = e.target.result;
-
-    // Crear store 'imagenes' con esquema robusto
     if (!db.objectStoreNames.contains("imagenes")) {
       const store = db.createObjectStore("imagenes", { keyPath: "basename" });
       store.createIndex("createdAt", "createdAt", { unique: false });
-      console.log("📦 [IndexedDB] Store 'imagenes' creado con keyPath 'basename'.");
+      console.log(`📦 [IndexedDB] Store 'imagenes' creado en '${DB_NAME}'.`);
     }
   };
 
   request.onsuccess = e => {
     const db = e.target.result;
-
-    // Verificación defensiva: si falta el store, recrear DB
     if (!db.objectStoreNames.contains("imagenes")) {
-      console.warn("⚠️ [IndexedDB] DB sin store 'imagenes'. Se borra y recrea.");
+      console.warn(`⚠️ [IndexedDB] '${DB_NAME}' sin store 'imagenes'. Se borra y recrea.`);
       db.close();
 
-      const del = indexedDB.deleteDatabase("imagenesDB");
+      const del = indexedDB.deleteDatabase(DB_NAME);
       del.onsuccess = () => {
-        const re = indexedDB.open("imagenesDB", 3);
+        const re = indexedDB.open(DB_NAME, DB_VERSION);
         re.onupgradeneeded = ev => {
           const db2 = ev.target.result;
           const store = db2.createObjectStore("imagenes", { keyPath: "basename" });
           store.createIndex("createdAt", "createdAt", { unique: false });
-          console.log("📦 [IndexedDB] Store 'imagenes' recreado.");
+          console.log(`📦 [IndexedDB] Store 'imagenes' recreado en '${DB_NAME}'.`);
         };
         re.onsuccess = ev => callback(ev.target.result);
-        re.onerror = err => {
-          console.error("❌ [IndexedDB] Error recreando DB:", err.target.error);
-        };
+        re.onerror = err => console.error("❌ [IndexedDB] Error recreando DB:", err.target.error);
       };
 
       del.onerror = () => {
-        console.error("❌ [IndexedDB] No se pudo borrar la DB.");
-        callback(db); // devolvemos el db aunque esté incompleto
+        console.error(`❌ [IndexedDB] No se pudo borrar '${DB_NAME}'.`);
+        callback(db);
       };
     } else {
       callback(db);
@@ -222,10 +219,11 @@ function ensureDB(callback) {
   };
 
   request.onerror = e => {
-    console.error("❌ [IndexedDB] Error abriendo DB:", e.target.error);
+    console.error(`❌ [IndexedDB] Error abriendo '${DB_NAME}':`, e.target.error);
   };
 }
-
+  
+// Guardar imagen en IndexedDB
 function guardarImagenEnIndexedDB(file) {
   ensureDB(db => {
     const tx = db.transaction("imagenes", "readwrite");
@@ -233,7 +231,7 @@ function guardarImagenEnIndexedDB(file) {
 
     const record = {
       basename: file.name,
-      blob: file, // File/Blob
+      blob: file,
       type: file.type,
       size: file.size,
       createdAt: Date.now()
@@ -391,37 +389,31 @@ input.addEventListener('change', () => {
 clearBtn.addEventListener('click', () => {
   console.log("🗑️ [FRONT] Limpiando todas las imágenes...");
 
-  // Revocar URLs de optimizadas
   optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
   optimizadas = [];
   originales = [];
   previewEl.innerHTML = '';
   actualizarMeta();
 
-  // Deshabilitar botones dependientes
   downloadAllBtn.disabled = true;
   downloadAllBtn.classList.add('btn-disabled');
   uploadBtn.disabled = true;
   uploadBtn.classList.add('btn-disabled');
 
-  // Reset input y contador
   syncInputWithOriginales();
   input.value = '';
   actualizarFileCount();
 
-  // Limpiar cache local
   localStorage.removeItem("imagenesLista");
   localStorage.removeItem("imagenesOriginales");
   localStorage.removeItem("imagenes_step0");
   localStorage.removeItem("imagenesUsadas");
-  localStorage.removeItem("imagenes_mapping");   // 🔑 nuevo: borrar mapping
-  localStorage.removeItem("repoDestino");        // 🔑 nuevo: borrar repo destino
+  localStorage.removeItem("imagenes_mapping");
+  localStorage.removeItem("repoDestino");
 
-  // Borrar IndexedDB
-  const del = indexedDB.deleteDatabase("imagenesDB");
-  del.onsuccess = () => console.log("🗑️ [IndexedDB] borrada al limpiar todas");
+  const del = indexedDB.deleteDatabase(DB_NAME);
+  del.onsuccess = () => console.log(`🗑️ [IndexedDB] '${DB_NAME}' borrada al limpiar todas`);
 });
-
 
 function actualizarMeta() {
   const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
