@@ -787,6 +787,9 @@ async function enviarOptimizado(batchSize = 5) {
   uploadBtn.disabled = true;
   uploadBtn.textContent = "Subiendo...";
 
+  // ✅ limpiar estado previo de usadas para no arrastrar sesiones anteriores
+  localStorage.removeItem("imagenesUsadas");
+
   let okCount = 0;
   let failCount = 0;
 
@@ -817,6 +820,9 @@ async function enviarOptimizado(batchSize = 5) {
 
         // 🔑 Guardar mapping original → generado
         const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+        if (typeof mapping !== "object" || mapping === null) {
+          console.warn("⚠️ [FRONT] Mapping corrupto, se reinicia.");
+        }
         data.imagenes.forEach((rutaFinal, idx) => {
           const originalName = batch[idx].name; // ej: "shopping (21).webp"
           const nombreGenerado = rutaFinal.split("/").pop(); // ej: "56fd002c4b62...webp"
