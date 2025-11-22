@@ -682,8 +682,12 @@ function mostrarGrupo(nombre, event, auto = false) {
   if (!panel) return;
   panel.innerHTML = "";
 
-  const productosGrupo = window.todosLosProductos.filter(p => p.grupo?.toLowerCase() === nombre.toLowerCase());
-  const subcategorias = [...new Set(productosGrupo.map(p => p.subgrupo).filter(s => s && s.toLowerCase() !== 'general'))];
+  const productosGrupo = window.todosLosProductos.filter(
+    p => p.grupo?.toLowerCase() === nombre.toLowerCase()
+  );
+  const subcategorias = [...new Set(
+    productosGrupo.map(p => p.subgrupo).filter(s => s && s.toLowerCase() !== 'general')
+  )];
 
   subcategorias.forEach(sub => {
     const btn = document.createElement('button');
@@ -705,38 +709,8 @@ function mostrarGrupo(nombre, event, auto = false) {
     // Si no hay subcategorías, mostrar todos los productos del grupo
     cont.innerHTML = "";
     productosGrupo.forEach(p => {
-      cont.insertAdjacentHTML("beforeend", `
-        <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-          <div class="card p-3 h-100">
-            <img src="${p.imagen_github || '/static/img/fallback.webp'}"
-                 alt="${p.nombre}" loading="lazy"
-                 style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
-            <div class="card-body">
-              <h5 class="card-title">${p.nombre}</h5>
-              <p class="card-text">${p.descripcion || ""}</p>
-              <p><strong>Precio:</strong> $<span id="precio_${p.id_base}">${p.precio}</span></p>
-              ${Array.isArray(p.talles) && p.talles.length ? `
-                <div class="mb-2">
-                  <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-                  <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block">
-                    ${p.talles.map(t => `<option value="${t}">${t}</option>`).join("")}
-                  </select>
-                </div>` : ""}
-              ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
-              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                <label class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                <input type="number" min="1" max="100" value="1"
-                       id="cantidad_${p.id_base}"
-                       class="form-control form-control-sm" style="width: 70px;">
-                <button type="button" class="btn btn-secondary"
-                  onclick="agregarAlCarritoDOM('${p.nombre}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${p.grupo}', '${p.subgrupo}')">
-                  Agregar al carrito
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `);
+      const card = renderProducto(p); // 👈 ahora usás tu función centralizada
+      cont.appendChild(card);
     });
   }
 
@@ -761,43 +735,15 @@ function filtrarSubcategoria(grupo, subgrupo) {
   );
 
   productosFiltrados.forEach(p => {
-    cont.insertAdjacentHTML("beforeend", `
-      <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-        <div class="card p-3 h-100">
-          <img src="${p.imagen_github || '/static/img/fallback.webp'}"
-               alt="${p.nombre}" loading="lazy"
-               style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
-          <div class="card-body">
-            <h5 class="card-title">${p.nombre}</h5>
-            <p class="card-text">${p.descripcion || ""}</p>
-            <p><strong>Precio:</strong> $<span id="precio_${p.id_base}">${p.precio}</span></p>
-            ${Array.isArray(p.talles) && p.talles.length ? `
-              <div class="mb-2">
-                <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-                <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block">
-                  ${p.talles.map(t => `<option value="${t}">${t}</option>`).join("")}
-                </select>
-              </div>` : ""}
-            ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
-            <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-              <label class="mb-0" style="font-size: 14px;">Cantidad:</label>
-              <input type="number" min="1" max="100" value="1"
-                     id="cantidad_${p.id_base}"
-                     class="form-control form-control-sm" style="width: 70px;">
-              <button type="button" class="btn btn-secondary"
-                onclick="agregarAlCarritoDOM('${p.nombre}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${p.grupo}', '${p.subgrupo}')">
-                Agregar al carrito
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `);
+    const card = renderProducto(p); // 👈 ahora usás tu función centralizada
+    cont.appendChild(card);
   });
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
-window.filtrarSubcategoria = filtrarSubcategoria; // si usás type="module"
+
+// Si usás type="module", exponerla al global:
+window.filtrarSubcategoria = filtrarSubcategoria;
 
 window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
@@ -1242,6 +1188,25 @@ function irAContacto() {
   if (contacto) contacto.scrollIntoView({ behavior: 'auto' });
 }
 
+function renderProducto(p) {
+  const card = document.createElement("div");
+  card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder";
+  card.innerHTML = `
+    <div class="card p-3 h-100">
+      <img src="${p.imagen_github || '/static/img/fallback.webp'}"
+           alt="${p.nombre}" loading="lazy"
+           style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
+      <div class="card-body">
+        <h5 class="card-title">${p.nombre}</h5>
+        <p class="card-text">${p.descripcion || ""}</p>
+        <p><strong>Precio:</strong> $${p.precio}</p>
+        <!-- aquí incluís talles, cantidad, botón de carrito, etc. -->
+      </div>
+    </div>
+  `;
+  return card;
+}
+    
 function ajustarPosicionesPaneles() {
   const panelGrupos = document.getElementById('panelGrupos');
   const panelSub = document.getElementById('panelSubcategorias');
@@ -1338,58 +1303,47 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 👉 Ordenar por precio
-  const ordenSelect = document.getElementById("ordenPrecio");
-  if (ordenSelect) {
-    ordenSelect.addEventListener("change", (e) => {
-      const valor = e.target.value; // "asc" o "desc"
+const ordenSelect = document.getElementById("ordenPrecio");
+if (ordenSelect) {
+  ordenSelect.addEventListener("change", (e) => {
+    const valor = e.target.value; // "asc" o "desc"
 
-      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
-      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+    const grupoActivoBtn = document.querySelector(".btn-grupo.active");
+    const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
 
-      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
-      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+    const subActivoBtn = document.querySelector(".btn-subgrupo.active");
+    const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-      let productosFiltrados = window.todosLosProductos;
-      if (grupoActivo) {
-        productosFiltrados = productosFiltrados.filter(
-          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
-        );
-      }
-      if (subActivo) {
-        productosFiltrados = productosFiltrados.filter(
-          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
-        );
-      }
+    let productosFiltrados = window.todosLosProductos;
+    if (grupoActivo) {
+      productosFiltrados = productosFiltrados.filter(
+        p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
+      );
+    }
+    if (subActivo) {
+      productosFiltrados = productosFiltrados.filter(
+        p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
+      );
+    }
 
-      productosFiltrados.sort((a, b) => {
-        const pa = parseFloat(a.precio) || 0;
-        const pb = parseFloat(b.precio) || 0;
-        return valor === "asc" ? pa - pb : pb - pa;
-      });
-
-      const cont = document.getElementById("productos");
-      cont.innerHTML = "";
-      productosFiltrados.forEach(p => {
-        const card = document.createElement("div");
-        card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder";
-        card.innerHTML = `
-          <div class="card p-3 h-100">
-            <img src="${p.imagen_github || '/static/img/fallback.webp'}"
-                 alt="${p.nombre}" loading="lazy"
-                 style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
-            <div class="card-body">
-              <h5 class="card-title">${p.nombre}</h5>
-              <p class="card-text">${p.descripcion || ""}</p>
-              <p><strong>Precio:</strong> $${p.precio}</p>
-            </div>
-          </div>
-        `;
-        cont.appendChild(card);
-        setTimeout(() => card.classList.remove("fade-reorder"), 50);
-      });
+    productosFiltrados.sort((a, b) => {
+      const pa = parseFloat(a.precio) || 0;
+      const pb = parseFloat(b.precio) || 0;
+      return valor === "asc" ? pa - pb : pb - pa;
     });
-  }
-});
+
+    const cont = document.getElementById("productos");
+    cont.innerHTML = "";
+
+    // 🔑 Usar tu función original de renderizado
+    productosFiltrados.forEach(p => {
+      const card = renderProducto(p); // 👈 esta función debe devolver la card completa
+      cont.appendChild(card);
+      setTimeout(() => card.classList.remove("fade-reorder"), 50);
+    });
+  });
+}
+
   
 </script>
 <script type="module">
