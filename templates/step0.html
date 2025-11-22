@@ -173,28 +173,37 @@ function renderPager(totalItems, currentPage, onGoToPage) {
   next.onclick = () => onGoToPage(currentPage + 1);
   pagerEl.appendChild(next);
 }
+  
 // IndexedDB helper: asegura store y se auto-repara si falta
 function ensureDB(callback) {
-  const request = indexedDB.open("imagenesDB", 2);
+  const request = indexedDB.open("imagenesDB", 3); // subimos versión para aplicar keyPath
 
   request.onupgradeneeded = e => {
     const db = e.target.result;
+
+    // Crear store 'imagenes' con esquema robusto
     if (!db.objectStoreNames.contains("imagenes")) {
-      db.createObjectStore("imagenes");
-      console.log("📦 [IndexedDB] Store 'imagenes' creado.");
+      const store = db.createObjectStore("imagenes", { keyPath: "basename" });
+      store.createIndex("createdAt", "createdAt", { unique: false });
+      console.log("📦 [IndexedDB] Store 'imagenes' creado con keyPath 'basename'.");
     }
   };
 
   request.onsuccess = e => {
     const db = e.target.result;
+
+    // Verificación defensiva: si falta el store, recrear DB
     if (!db.objectStoreNames.contains("imagenes")) {
-      console.warn("⚠️ [IndexedDB] DB sin store. Se borra y recrea.");
+      console.warn("⚠️ [IndexedDB] DB sin store 'imagenes'. Se borra y recrea.");
       db.close();
+
       const del = indexedDB.deleteDatabase("imagenesDB");
       del.onsuccess = () => {
-        const re = indexedDB.open("imagenesDB", 2);
+        const re = indexedDB.open("imagenesDB", 3);
         re.onupgradeneeded = ev => {
-          ev.target.result.createObjectStore("imagenes");
+          const db2 = ev.target.result;
+          const store = db2.createObjectStore("imagenes", { keyPath: "basename" });
+          store.createIndex("createdAt", "createdAt", { unique: false });
           console.log("📦 [IndexedDB] Store 'imagenes' recreado.");
         };
         re.onsuccess = ev => callback(ev.target.result);
@@ -202,6 +211,7 @@ function ensureDB(callback) {
           console.error("❌ [IndexedDB] Error recreando DB:", err.target.error);
         };
       };
+
       del.onerror = () => {
         console.error("❌ [IndexedDB] No se pudo borrar la DB.");
         callback(db); // devolvemos el db aunque esté incompleto
@@ -219,10 +229,20 @@ function ensureDB(callback) {
 function guardarImagenEnIndexedDB(file) {
   ensureDB(db => {
     const tx = db.transaction("imagenes", "readwrite");
-    tx.objectStore("imagenes").put(file, file.name);
+    const store = tx.objectStore("imagenes");
+
+    const record = {
+      basename: file.name,
+      blob: file, // File/Blob
+      type: file.type,
+      size: file.size,
+      createdAt: Date.now()
+    };
+
+    store.put(record);
 
     tx.oncomplete = () => {
-      console.log("✅ [IndexedDB] Imagen guardada:", file.name);
+      console.log("✅ [IndexedDB] Original guardado:", file.name);
       let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
       if (!lista.includes(file.name)) {
         lista.push(file.name);
@@ -230,11 +250,10 @@ function guardarImagenEnIndexedDB(file) {
       }
     };
 
-    tx.onerror = e => {
-      console.error("❌ [IndexedDB] Error guardando imagen:", e.target.error);
-    };
+    tx.onerror = e => console.error("❌ [IndexedDB] Error guardando original:", e.target.error);
   });
 }
+
 
 // Restaurar al cargar desde IndexedDB usando la lista de nombres
 window.addEventListener("DOMContentLoaded", () => {
@@ -336,26 +355,17 @@ input.addEventListener('change', () => {
       guardarImagenEnIndexedDB(f);
       console.log("✅ [FRONT] Imagen agregada:", f.name);
 
-      // 🔑 Guardar mapping y rutas reales
+      // 🔑 Guardar mapping preliminar (basename → nombre provisional)
       const basenameOriginal = f.name;
       const nombreGenerado = f.name; // si luego renombrás con hash, usá ese valor
-
       const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
       mapping[basenameOriginal] = nombreGenerado;
       localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
 
-      // Base dinámica: si hay repoDestino en localStorage → GitHub raw, si no → local /static
-      const repoDestino = localStorage.getItem("repoDestino");
-      const baseUrl = repoDestino
-        ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
-        : "";
-
-      const imagenes = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
-      const rutaFinal = baseUrl
-        ? `${baseUrl}/static/img/${nombreGenerado}`
-        : `/static/img/${nombreGenerado}`;
-      imagenes.push(rutaFinal);
-      localStorage.setItem("imagenes_step0", JSON.stringify(imagenes));
+      // ⚠️ Importante: NO generar rutas finales aquí.
+      // Las rutas reales (GitHub raw o /static) se guardan recién en enviarOptimizado()
+      // cuando el backend devuelve los nombres definitivos.
+      console.log("ℹ️ [FRONT] Ruta final se establecerá después del upload para:", nombreGenerado);
 
     } else {
       duplicados++;
@@ -375,6 +385,7 @@ input.addEventListener('change', () => {
   renderOriginales();
   actualizarMeta();
 });
+
 
 // Quitar todas
 clearBtn.addEventListener('click', () => {
@@ -538,6 +549,93 @@ async function resizeToWebP(file) {
   return blob;
 }
 
+function guardarOptimizadaEnIndexedDB(name, blob) {
+  ensureDB(db => {
+    // Asegurate de haber creado este store en onupgradeneeded
+    const tx = db.transaction("optimizadas", "readwrite");
+    const store = tx.objectStore("optimizadas");
+
+    const rec = {
+      basename: name,
+      blob,
+      type: blob.type,
+      size: blob.size,
+      createdAt: Date.now()
+    };
+
+    store.put(rec);
+    tx.oncomplete = () => console.log("✅ [IndexedDB] Optimizada guardada:", name);
+    tx.onerror = e => console.error("❌ [IndexedDB] Error guardando optimizada:", e.target.error);
+  });
+}
+
+// Dentro de optimizeInBatches, luego de crear el blob:
+guardarOptimizadaEnIndexedDB(finalName, blob);
+
+function fetchOriginalesPage(pagina) {
+  const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+  if (!Array.isArray(lista) || lista.length === 0) {
+    previewEl.innerHTML = '';
+    showError("⚠️ No hay imágenes originales para mostrar.");
+    return;
+  }
+
+  const start = (pagina - 1) * pageSize;
+  const end = Math.min(start + pageSize, lista.length);
+  const items = lista.slice(start, end);
+
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readonly");
+    const store = tx.objectStore("imagenes");
+    previewEl.innerHTML = '';
+
+    let pending = items.length;
+    items.forEach(name => {
+      const req = store.get(name);
+      req.onsuccess = e => {
+        const rec = e.target.result;
+        if (rec?.blob) {
+          const reader = new FileReader();
+          reader.onload = ev => {
+            const div = document.createElement("div");
+            div.className = "preview-item";
+            const img = document.createElement("img");
+            img.src = ev.target.result;
+            img.loading = "lazy";
+            img.decoding = "async";
+            img.alt = name;
+
+            const badge = document.createElement("div");
+            badge.className = "badge";
+            badge.textContent = `${name} — ${bytesToKB(rec.size)} KB`;
+
+            div.appendChild(img);
+            div.appendChild(badge);
+            previewEl.appendChild(div);
+          };
+          reader.readAsDataURL(rec.blob);
+        }
+        if (--pending === 0) {
+          renderPager(lista.length, pagina, (p) => {
+            pageOrig = p;
+            fetchOriginalesPage(p);
+          });
+          showInfo(`📄 Página ${pagina} de ${Math.max(1, Math.ceil(lista.length / pageSize))} — mostrando ${items.length} de ${lista.length} originales.`);
+        }
+      };
+      req.onerror = () => {
+        console.warn("⚠️ [IndexedDB] Fallo leyendo:", name);
+        if (--pending === 0) {
+          renderPager(lista.length, pagina, (p) => {
+            pageOrig = p;
+            fetchOriginalesPage(p);
+          });
+        }
+      };
+    });
+  });
+}
+  
 // Render optimizadas con paginación + lazy loading + feedback
 function renderOptimizadas() {
   previewEl.innerHTML = '';
@@ -691,7 +789,10 @@ async function enviarOptimizado(batchSize = 5) {
 
   let okCount = 0;
   let failCount = 0;
+
+  // Asegurar array válido en localStorage
   let rutasFinales = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+  if (!Array.isArray(rutasFinales)) rutasFinales = [];
 
   for (let i = 0; i < optimizadas.length; i += batchSize) {
     const batch = optimizadas.slice(i, i + batchSize);
@@ -702,11 +803,12 @@ async function enviarOptimizado(batchSize = 5) {
       const resp = await fetch("/upload-image", { method: "POST", body: formData });
       if (!resp.ok) {
         failCount += batch.length;
+        console.warn("⚠️ [FRONT] Fallo en respuesta HTTP para batch:", batch.map(b => b.name));
         continue;
       }
 
       const data = await resp.json();
-      if (data.ok) {
+      if (data.ok && Array.isArray(data.imagenes)) {
         okCount += data.imagenes.length;
 
         // 🔑 Guardar rutas reales en localStorage
@@ -731,19 +833,22 @@ async function enviarOptimizado(batchSize = 5) {
 
       } else {
         failCount += batch.length;
+        console.warn("⚠️ [FRONT] Backend no devolvió imágenes válidas para batch:", batch.map(b => b.name));
       }
     } catch (err) {
       failCount += batch.length;
-      console.error("💥 Error en fetch:", err);
+      console.error("💥 [FRONT] Error en fetch:", err);
     }
   }
 
   // Persistir rutas reales para Step3
   localStorage.setItem("imagenes_step0", JSON.stringify(rutasFinales));
 
+  // Restaurar botón
   uploadBtn.disabled = false;
   uploadBtn.textContent = "Subir optimizadas";
 
+  // Feedback visual
   const feedback = document.getElementById("feedback");
   feedback.textContent = `✅ ${okCount} imágenes subidas, ⚠️ ${failCount} fallidas`;
 
