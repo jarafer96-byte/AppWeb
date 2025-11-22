@@ -638,7 +638,6 @@ fetch("/api/productos")
       console.warn("⚠️ Faltan paneles #panelGrupos o #panelSubcategorias en el DOM");
     }
 
-    // Generar grupos
     const grupos = [...new Set(window.todosLosProductos.map(p => p.grupo).filter(Boolean))];
     if (contGrupos) {
       grupos.forEach(g => {
@@ -646,7 +645,6 @@ fetch("/api/productos")
           <button class="btn-grupo" onclick="mostrarGrupo('${g}', event)">${g}</button>
         `);
       });
-      contGrupos.classList.remove('oculta');
     }
 
     // Render inicial: primer grupo y subgrupo
@@ -991,11 +989,22 @@ function loginAdmin(event) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Login admin
   const form = document.getElementById("form-login-admin");
   if (form) {
     form.addEventListener("submit", loginAdmin);
   }
+
+  // Otros inicializadores
+  const btnProductos = document.getElementById("btnProductos");
+  if (btnProductos) {
+    btnProductos.addEventListener("click", () => {
+      const panelGrupos = document.getElementById("panelGrupos");
+      if (panelGrupos) panelGrupos.classList.remove("oculta");
+    });
+  }
 });
+
 
 function editarTalles(id) {
   const select = document.getElementById("talle_" + id);
