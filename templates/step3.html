@@ -537,15 +537,51 @@ function inicializarCarrusel() {
       const imagenesFinales = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
       if (Array.isArray(imagenesFinales) && imagenesFinales.length) {
         let first = true, buffer = [];
+
         imagenesFinales.forEach(ruta => {
-          const basename = ruta.split('/').pop();
-          buffer.push({ nombre: basename, url: ruta });
+          if (!ruta) return;
+
+          let url = ruta;
+          let basename = ruta.split("/").pop();
+
+          // 🔎 Normalizar: si es blob, intentar mapear a ruta real
+          if (ruta.startsWith("blob:")) {
+            const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+            const nombreGenerado = mapping[basename];
+            const repoDestino = localStorage.getItem("repoDestino");
+            const baseUrl = repoDestino
+              ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+              : "";
+
+            if (nombreGenerado) {
+              url = `${baseUrl}/static/img/${nombreGenerado}`;
+              basename = nombreGenerado;
+              console.log("🔄 [Step3] Blob reemplazado:", ruta, "→", url);
+            } else {
+              url = "/static/img/fallback.webp";
+              basename = "fallback.webp";
+              console.warn("⚠️ [Step3] Blob sin mapping, usando fallback");
+            }
+          }
+
+          // 🔎 Si no es URL absoluta, asumir que es nombre de archivo
+          else if (!ruta.startsWith("http")) {
+            const repoDestino = localStorage.getItem("repoDestino");
+            const baseUrl = repoDestino
+              ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+              : "";
+            url = `${baseUrl}/static/img/${basename}`;
+          }
+
+          buffer.push({ nombre: basename, url });
+
           if (buffer.length === 8) {
             agregarSlide(buffer, first);
             first = false;
             buffer = [];
           }
         });
+
         if (buffer.length) agregarSlide(buffer, first);
         console.log("📦 Carrusel inicializado con imágenes finales:", imagenesFinales.length);
       } else {
@@ -744,37 +780,52 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     }
     
 function cargarImagenesDesdeIndexedDB(done) {
-      ensureDB(db => {
-        const tx = db.transaction("imagenes", "readonly");
-        const store = tx.objectStore("imagenes");
-        const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
-        let first = true, buffer = [];
-        let count = 0;
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readonly");
+    const store = tx.objectStore("imagenes");
+    const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+    let first = true, buffer = [];
+    let count = 0;
 
-        lista.forEach(nombre => {
-          const getReq = store.get(nombre);
-          getReq.onsuccess = e => {
-            const blob = e.target.result;
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              buffer.push({ nombre, url });
-              count++;
-              if (buffer.length === 8) {
-                agregarSlide(buffer, first);
-                first = false;
-                buffer = [];
-              }
-            }
-          };
-          getReq.onerror = err => console.error("❌ Error leyendo imagen:", nombre, err.target.error);
-        });
+    lista.forEach(nombre => {
+      const getReq = store.get(nombre);
+      getReq.onsuccess = e => {
+        const blob = e.target.result;
+        if (blob) {
+          // 🔑 Normalizar: usar mapping para obtener nombre final
+          const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+          const nombreGenerado = mapping[nombre];
+          let url;
 
-        tx.oncomplete = () => {
-          if (buffer.length) agregarSlide(buffer, first);
-          done(count); // cantidad cargada desde IndexedDB
-        };
-      });
-    }
+          if (nombreGenerado) {
+            const repoDestino = localStorage.getItem("repoDestino");
+            const baseUrl = repoDestino
+              ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+              : "";
+            url = `${baseUrl}/static/img/${nombreGenerado}`;
+          } else {
+            // fallback si no hay mapping
+            url = "/static/img/fallback.webp";
+          }
+
+          buffer.push({ nombre, url });
+          count++;
+          if (buffer.length === 8) {
+            agregarSlide(buffer, first);
+            first = false;
+            buffer = [];
+          }
+        }
+      };
+      getReq.onerror = err => console.error("❌ Error leyendo imagen:", nombre, err.target.error);
+    });
+
+    tx.oncomplete = () => {
+      if (buffer.length) agregarSlide(buffer, first);
+      done(count); // cantidad cargada desde IndexedDB
+    };
+  });
+}
 
 function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
@@ -1047,10 +1098,10 @@ function confirmarImagen() {
   }
 
   let imagenFinal = window.imagenSeleccionadaUrl;
+  const basename = window.imagenSeleccionada;
 
-  // Si la URL es blob, reemplazar por ruta real usando mapping
+  // 🔎 Normalizar: si la URL es blob, reemplazar por ruta real usando mapping
   if (imagenFinal.startsWith("blob:")) {
-    const basename = window.imagenSeleccionada;
     const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
     const nombreGenerado = mapping[basename];
 
@@ -1061,21 +1112,19 @@ function confirmarImagen() {
       const baseUrl = repoDestino
         ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
         : "";
-
       imagenFinal = baseUrl
         ? `${baseUrl}/static/img/${nombreGenerado}`
         : `/static/img/${nombreGenerado}`;
-
       console.log("🔄 [Step3] Blob reemplazado usando mapping:", basename, "→", imagenFinal);
     } else {
       console.error("❌ [Step3] No se encontró mapping para basename", basename);
-      return;
+      imagenFinal = "/static/img/fallback.webp"; // fallback seguro
     }
   }
 
   console.log("✅ [Step3] Imagen final confirmada:", imagenFinal);
 
-  // Guardar en hidden inputs
+  // 💾 Guardar en hidden inputs
   const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
   if (hiddenUrl) {
     hiddenUrl.value = imagenFinal;
@@ -1090,19 +1139,18 @@ function confirmarImagen() {
     filaActual.appendChild(hiddenBase);
     console.log("➕ [Step3] Creado hidden imagen_basename");
   }
-  hiddenBase.value = window.imagenSeleccionada;
-  console.log("💾 [Step3] Guardado en hidden imagen_basename:", window.imagenSeleccionada);
+  hiddenBase.value = basename;
+  console.log("💾 [Step3] Guardado en hidden imagen_basename:", basename);
 
-  // Preview
+  // 🖼️ Preview
   filaActual.querySelector(".preview-imagen").innerHTML =
     `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
   console.log("🖼️ [Step3] Preview actualizada con:", imagenFinal);
 
-  // ✅ Marcar como usada y persistir GLOBAL
+  // 📌 Marcar como usada y persistir GLOBAL (siempre basename)
   imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
   if (!Array.isArray(imagenesUsadas)) imagenesUsadas = [];
 
-  const basename = window.imagenSeleccionada;
   if (!imagenesUsadas.includes(basename)) {
     imagenesUsadas.push(basename);
     localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
@@ -1111,6 +1159,7 @@ function confirmarImagen() {
 
   marcarImagenesUsadas();
 
+  // 📂 Cerrar modal
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   if (modal) {
     modal.hide();
@@ -1134,7 +1183,11 @@ function loadState() {
 
     // Limpiar UI actual
     document.getElementById("grupos").innerHTML = "";
-    imagenesUsadas = state.imagenesUsadas || [];
+
+    // 🔎 Normalizar imágenes usadas: siempre basenames, sin blobs ni URLs completas
+    imagenesUsadas = (state.imagenesUsadas || [])
+      .map(n => n ? n.split("/").pop() : "")
+      .filter(n => n && !n.startsWith("blob:"));
 
     // Reconstruir grupos
     (state.grupos || []).forEach(g => {
@@ -1179,14 +1232,20 @@ function loadState() {
       });
     });
 
-    // Marcar imágenes usadas en carrusel
+    // ✅ Marcar imágenes usadas en carrusel (comparando siempre basenames)
     document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-      if (imagenesUsadas.includes(img.dataset.nombre)) {
+      const nombre = img.dataset.nombre;
+      if (imagenesUsadas.includes(nombre)) {
         img.classList.add('usada');
         img.style.opacity = "0.25";
         img.style.filter = "grayscale(100%) brightness(0.6)";
         img.style.pointerEvents = "none";
-        console.log(`🖼️ [Step3] Imagen marcada como usada: ${img.dataset.nombre}`);
+        console.log(`🖼️ [Step3] Imagen marcada como usada: ${nombre}`);
+      } else {
+        img.classList.remove('usada');
+        img.style.opacity = "1";
+        img.style.filter = "none";
+        img.style.pointerEvents = "auto";
       }
     });
 
