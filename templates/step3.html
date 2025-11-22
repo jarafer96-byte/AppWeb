@@ -716,7 +716,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
 }
 
   function ensureDB(callback) {
-      const request = indexedDB.open("imagenesDB", 2);
+      const request = indexedDB.open("imagenesDB", 3);
       request.onupgradeneeded = e => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains("imagenes")) {
