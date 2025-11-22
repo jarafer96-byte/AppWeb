@@ -45,6 +45,16 @@ body::before {
   background: rgba(0,0,0,0.4);
   z-index: -1;
 }
+.fade-reorder {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-reorder:not(.fade-reorder) {
+  opacity: 1;
+  transform: scale(1);
+}  
 .fondo-animado {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
