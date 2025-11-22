@@ -74,7 +74,7 @@
     <a href="/contenido" class="btn-gradient mb-4">Saltar este paso</a>
 
     <!-- Texto separado con margen -->
-    <p class="mt-3">Si no tenés un Excel, completá las filas con tus grupos y subgrupos de productos. Podés agregar más si lo necesitás:</p>
+    <p class="mt-3">Si no tenés un Excel, completá las filas con tus grupos, subgrupos y productos base. Podés agregar más si lo necesitás:</p>
     
     <!-- Formulario con filas dinámicas -->
 <form method="post" action="/step2-5" class="card mb-4" onsubmit="prepararStep3()">
@@ -85,8 +85,8 @@
       <span class="fw-bold">#{{ i }}</span>
       <input type="text" name="grupo_{{ i }}" class="form-control" placeholder="Grupo (ej: Ropa Hombre)">
       <input type="text" name="subgrupo_{{ i }}" class="form-control" placeholder="Subgrupo (ej: Pantalones)">
-      <input type="number" name="filas_{{ i }}" class="form-control" placeholder="Filas (ej: 10, genera Pantalon1 al Pantalon10)" min="1" value="1" style="width:100px;">
-      <!-- 👉 Campo de talles -->
+      <input type="text" name="producto_{{ i }}" class="form-control" placeholder="Producto base (ej: Pantalón)">
+      <input type="number" name="filas_{{ i }}" class="form-control" placeholder="Filas (ej: 10)" min="1" value="1" style="width:100px;">
       <input type="text" name="talles_{{ i }}" class="form-control" placeholder="Talles (ej: S,M,L,XL)" style="width:160px;">
     </div>
     {% endfor %}
@@ -98,7 +98,6 @@
   <!-- Botón para generar Excel -->
   <button type="submit" class="btn-gradient mt-3">Generar XLS</button>
 </form>
-
 
     <!-- Botón continuar -->
     <div class="mt-3">
@@ -117,24 +116,17 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalones1</td></tr>
-          <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalones2</td></tr>
-          <tr><td>Ropa Hombre</td><td>Pantalones</td><td>Pantalones3</td></tr>
-          <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remeras1</td></tr>
-          <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remeras2</td></tr>
-          <tr><td>Ropa Mujer</td><td>Zapatillas</td><td>Zapatillas1</td></tr>
-          <tr><td>Ropa Mujer</td><td>Zapatillas</td><td>Zapatillas2</td></tr>
-          <tr><td>Ropa Mujer</td><td>Camperas</td><td>Camperas1</td></tr>
-          <tr><td>Ropa Niños</td><td>Remeras</td><td>Remeras1</td></tr>
-          <tr><td>Ropa Niños</td><td>Zapatillas</td><td>Zapatillas1</td></tr>
-          <tr><td>Ropa Niños</td><td>Zapatillas</td><td>Zapatillas2</td></tr>
+          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalón1</td></tr>
+          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalón2</td></tr>
+          <tr><td>Mochilas</td><td></td><td>Mochila1</td></tr>
+          <tr><td>Mochilas</td><td></td><td>Mochila2</td></tr>
+          <tr><td></td><td></td><td>Genérico1</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
 <script>
-  
 function agregarFila() {
   const container = document.getElementById('listas-container');
   const index = container.children.length + 1;
@@ -144,12 +136,13 @@ function agregarFila() {
     <span class="fw-bold">#${index}</span>
     <input type="text" name="grupo_${index}" class="form-control" placeholder="Grupo (ej: Ropa Hombre)">
     <input type="text" name="subgrupo_${index}" class="form-control" placeholder="Subgrupo (ej: Pantalones)">
+    <input type="text" name="producto_${index}" class="form-control" placeholder="Producto base (ej: Pantalón)">
     <input type="number" name="filas_${index}" class="form-control" placeholder="Filas" min="1" value="1" style="width:100px;">
     <input type="text" name="talles_${index}" class="form-control" placeholder="Talles (ej: S,M,L,XL)" style="width:160px;">
   `;
   container.appendChild(div);
 }
-  
+
 function prepararStep3() {
   // 🧹 limpiar estado viejo
   localStorage.removeItem("step3_state");
@@ -160,18 +153,19 @@ function prepararStep3() {
   container.querySelectorAll('div').forEach((fila, idx) => {
     const grupo = fila.querySelector(`[name="grupo_${idx+1}"]`)?.value || "";
     const subgrupo = fila.querySelector(`[name="subgrupo_${idx+1}"]`)?.value || "";
+    const productoBase = fila.querySelector(`[name="producto_${idx+1}"]`)?.value || "";
     const cantidad = fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1";
     const talles = fila.querySelector(`[name="talles_${idx+1}"]`)?.value || "";
 
-    if (grupo || subgrupo) {
-      filas.push({ grupo, subgrupo, cantidad, talles });
+    // Guardar fila si hay al menos un dato
+    if (grupo || subgrupo || productoBase) {
+      filas.push({ grupo, subgrupo, productoBase, cantidad, talles });
     }
   });
 
   localStorage.setItem("listas_step2-5", JSON.stringify(filas));
   console.log("💾 [Step2-5] Guardada estructura en listas_step2-5:", filas);
 }
-   
 </script>
 </body>
 </html>
