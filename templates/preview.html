@@ -672,8 +672,10 @@ function mostrarGrupo(nombre, event, auto = false) {
     return;
   }
 
-  // Resetear botones de grupo
+  // Resetear botones de grupo (quita la clase active de todos)
   document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
+  
+  // Si hay un evento (click del usuario), marca este botón como activo
   if (event?.target) event.target.classList.add('active');
 
   // Calcular subcategorías dinámicas desde productos cargados
@@ -684,10 +686,13 @@ function mostrarGrupo(nombre, event, auto = false) {
   const productosGrupo = window.todosLosProductos.filter(
     p => p.grupo?.toLowerCase() === nombre.toLowerCase()
   );
+  
+  // Filtrar subcategorías únicas (excluyendo 'general' si lo usas así)
   const subcategorias = [...new Set(
     productosGrupo.map(p => p.subgrupo).filter(s => s && s.toLowerCase() !== 'general')
   )];
 
+  // Generar botones en el panel (aunque esté oculto)
   subcategorias.forEach(sub => {
     const btn = document.createElement('button');
     btn.textContent = sub;
@@ -696,19 +701,24 @@ function mostrarGrupo(nombre, event, auto = false) {
     panel.appendChild(btn);
   });
 
-  // Mostrar panel de subcategorías si hay
+  // Lógica de visualización del panel
   if (subcategorias.length > 0) {
-    panel.classList.remove('oculta');
-    // Si no es carga automática, mostrar la primera subcategoría
+    // ✅ CORRECCIÓN AQUÍ:
     if (!auto) {
+      // Si NO es automático (es click del usuario), mostramos el panel y filtramos
+      panel.classList.remove('oculta');
       filtrarSubcategoria(nombre, subcategorias[0]);
+    } else {
+      // Si ES automático (carga inicial), mantenemos el panel OCULTO.
+      // La carga de productos inicial se maneja en window.onload, aquí solo preparamos el HTML.
+      panel.classList.add('oculta');
     }
   } else {
+    // Si no hay subcategorías, ocultamos panel y mostramos todo el grupo
     panel.classList.add('oculta');
-    // Si no hay subcategorías, mostrar todos los productos del grupo
     cont.innerHTML = "";
     productosGrupo.forEach(p => {
-      const card = renderProducto(p); // 👈 ahora usás tu función centralizada
+      const card = renderProducto(p);
       cont.appendChild(card);
     });
   }
@@ -716,7 +726,7 @@ function mostrarGrupo(nombre, event, auto = false) {
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
-// Si usás type="module", exponerla al global:
+// Exponer al global si es necesario
 window.mostrarGrupo = mostrarGrupo;
 
 
