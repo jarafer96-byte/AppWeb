@@ -672,13 +672,10 @@ function mostrarGrupo(nombre, event, auto = false) {
     return;
   }
 
-  // Resetear botones de grupo (quita la clase active de todos)
+  // Resetear botones de grupo
   document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
-  
-  // Si hay un evento (click del usuario), marca este botón como activo
   if (event?.target) event.target.classList.add('active');
 
-  // Calcular subcategorías dinámicas desde productos cargados
   const panel = document.getElementById('panelSubcategorias');
   if (!panel) return;
   panel.innerHTML = "";
@@ -686,13 +683,11 @@ function mostrarGrupo(nombre, event, auto = false) {
   const productosGrupo = window.todosLosProductos.filter(
     p => p.grupo?.toLowerCase() === nombre.toLowerCase()
   );
-  
-  // Filtrar subcategorías únicas (excluyendo 'general' si lo usas así)
+
   const subcategorias = [...new Set(
     productosGrupo.map(p => p.subgrupo).filter(s => s && s.toLowerCase() !== 'general')
   )];
 
-  // Generar botones en el panel (aunque esté oculto)
   subcategorias.forEach(sub => {
     const btn = document.createElement('button');
     btn.textContent = sub;
@@ -701,34 +696,29 @@ function mostrarGrupo(nombre, event, auto = false) {
     panel.appendChild(btn);
   });
 
-  // Lógica de visualización del panel
   if (subcategorias.length > 0) {
-    // ✅ CORRECCIÓN AQUÍ:
     if (!auto) {
-      // Si NO es automático (es click del usuario), mostramos el panel y filtramos
       panel.classList.remove('oculta');
       filtrarSubcategoria(nombre, subcategorias[0]);
     } else {
-      // Si ES automático (carga inicial), mantenemos el panel OCULTO.
-      // La carga de productos inicial se maneja en window.onload, aquí solo preparamos el HTML.
       panel.classList.add('oculta');
     }
   } else {
-    // Si no hay subcategorías, ocultamos panel y mostramos todo el grupo
+    // Caso sin subcategorías → mostrar todo el grupo
     panel.classList.add('oculta');
     cont.innerHTML = "";
     productosGrupo.forEach(p => {
       const card = renderProducto(p);
       cont.appendChild(card);
+      // 👇 activar transición al siguiente frame
+      requestAnimationFrame(() => card.classList.add("show"));
     });
   }
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
-// Exponer al global si es necesario
 window.mostrarGrupo = mostrarGrupo;
-
 
 function filtrarSubcategoria(grupo, subgrupo) {
   const cont = document.getElementById("productos");
@@ -738,10 +728,19 @@ function filtrarSubcategoria(grupo, subgrupo) {
   }
   cont.innerHTML = "";
 
-  const productosFiltrados = window.todosLosProductos.filter(p =>
-    p.grupo?.toLowerCase() === grupo.toLowerCase() &&
-    p.subgrupo?.toLowerCase() === subgrupo.toLowerCase()
-  );
+  let productosFiltrados;
+  if (subgrupo && subgrupo.trim() !== "") {
+    // Caso grupo + subgrupo
+    productosFiltrados = window.todosLosProductos.filter(p =>
+      p.grupo?.toLowerCase() === grupo.toLowerCase() &&
+      p.subgrupo?.toLowerCase() === subgrupo.toLowerCase()
+    );
+  } else {
+    // Caso solo grupo
+    productosFiltrados = window.todosLosProductos.filter(p =>
+      p.grupo?.toLowerCase() === grupo.toLowerCase()
+    );
+  }
 
   productosFiltrados.forEach(p => {
     const card = renderProducto(p); // 👈 devuelve el div con fade-reorder
