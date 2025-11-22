@@ -457,18 +457,18 @@ html {
       <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
       <button id="btnContacto" onclick="irAContacto()">Contacto</button>
     </nav>
+
+    <!-- Panel de grupos: ahora vacío, se llena con JS -->
     <div id="panelGrupos" class="panel-grupos oculta">
-      {% for grupo in grupos.keys() %}
-        <button class="btn-grupo" onclick="mostrarGrupo('{{ grupo }}', event)">
-          {{ grupo }}
-        </button>
-      {% endfor %}
+      <!-- Los botones de grupo se generan dinámicamente desde la API -->
     </div>
   </div>
 
+  <!-- Panel de subcategorías: también se llena con JS -->
   <div id="panelSubcategorias" class="panel-subcategorias oculta"></div>
-
-  <button id="volverArriba" class="btn btn-volver-arriba" style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
+  
+  <button id="volverArriba" class="btn btn-volver-arriba" 
+          style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
   </button>
 
@@ -480,36 +480,34 @@ html {
     </div>
   {% endif %}
 
-
   {% if modoAdminIntentado and not modoAdmin %}
     <div id="login-admin" class="container mt-4">
       <h3 class="text-center">🔐 Ingresá tu clave de administrador</h3>
       <form id="form-login-admin" class="text-center">
         <input type="text" id="usuario_login" placeholder="Usuario" required>
         <input type="password" id="clave_login" placeholder="Contraseña" required>
-        <button type="submit" style="margin-top: 10px;">Entrar</button> <!-- ✅ Este es el que faltaba -->
+        <button type="submit" style="margin-top: 10px;">Entrar</button>
       </form>
     </div>
   {% endif %}
 
   {% if modoAdmin %}
-  <div class="text-center mt-3">
-    <!-- 🔓 Botón para salir del modo administrador -->
-    <a href="/logout-admin" class="btn btn-sm btn-outline-light">🔓 Salir del modo administrador</a>
+    <div class="text-center mt-3">
+      <!-- 🔓 Botón para salir del modo administrador -->
+      <a href="/logout-admin" class="btn btn-sm btn-outline-light">🔓 Salir del modo administrador</a>
 
-    <!-- 💳 Botón para configurar / reconfigurar Mercado Pago -->
-    <a href="{{ url_for('conectar_mp') }}" class="btn btn-sm btn-primary mt-2">
-      <img src="{{ url_for('static', filename='img/mercadopago.png') }}" 
-           alt="Mercado Pago" style="height:20px; margin-right:8px;">
-      {% if config.mercado_pago %}
-        Reconfigurar Mercado Pago
-      {% else %}
-        Configurar Mercado Pago
-      {% endif %}
-    </a>
-  </div>
-{% endif %}
-
+      <!-- 💳 Botón para configurar / reconfigurar Mercado Pago -->
+      <a href="{{ url_for('conectar_mp') }}" class="btn btn-sm btn-primary mt-2">
+        <img src="{{ url_for('static', filename='img/mercadopago.png') }}" 
+             alt="Mercado Pago" style="height:20px; margin-right:8px;">
+        {% if config.mercado_pago %}
+          Reconfigurar Mercado Pago
+        {% else %}
+          Configurar Mercado Pago
+        {% endif %}
+      </a>
+    </div>
+  {% endif %}
 
   <div class="text-center my-4">
     <select id="ordenPrecio" class="form-select w-auto d-inline-block">
@@ -518,199 +516,176 @@ html {
     </select>
   </div>
 
-
-  {% if config.sobre_mi %}
-    <div class="text-center mb-4">
-      <div class="descripcion-emprendimiento">
-        {{ config.sobre_mi | replace('\n', '<br>') | safe }}
-      </div>
+{% if config.sobre_mi %}
+  <div class="text-center mb-4">
+    <div class="descripcion-emprendimiento">
+       {{ config.sobre_mi | replace('\n', '<br>') | safe }}
     </div>
-  {% endif %}
-
-{% for grupo, subgrupos in grupos.items() %}
-  <div id="grupo_{{ grupo | lower | replace(' ', '_') }}" class="grupo-section">
-    {% for subgrupo, productos in subgrupos.items() %}
-      <div class="subgrupo-bloque" data-subgrupo="{{ subgrupo | lower | trim }}">
-        <div class="row">
-          {% for producto in productos %}
-            {% set id_base = producto.id_base %}
-
-            <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-              {% if modoAdmin %}
-                <div class="text-muted small mb-2">
-                  <strong>ID base:</strong> {{ id_base }} |
-                  <strong>Grupo:</strong> {{ grupo }} |
-                  <strong>Subgrupo:</strong> {{ subgrupo }} |
-                  <strong>Nombre:</strong> {{ producto.nombre }} |
-                  <strong>Orden:</strong> {{ producto.orden }}
-                </div>
-              {% endif %}
-
-              <div class="card p-3 h-100">
-                <img src="{% if producto.imagen_github and (producto.imagen_github.startswith('http')) %}{{ producto.imagen_github }}{% elif producto.imagen_github %}{{ url_for('static', filename='img/' + producto.imagen_github.split('/')[-1]) }}{% elif producto.imagen_backblaze %}{{ producto.imagen_backblaze }}{% else %}{{ url_for('static', filename='img/fallback.webp') }}{% endif %}"
-                     alt="{{ producto.nombre }}"
-                     loading="lazy"
-                     style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
-                
-                <div class="card-body">
-                  {% if modoAdmin %}
-                    <div class="text-muted small mb-2">
-                      <strong>ID base:</strong> {{ id_base }}
-                    </div>
-                  {% endif %}
-
-                  <h5 class="card-title">{{ producto.nombre }}</h5>
-                  <p class="card-text">{{ producto.descripcion }}</p>
-
-                  <p>
-                    <strong>Precio:</strong> 
-                    $<span id="precio_{{ id_base }}">{{ producto.precio }}</span>
-                    {% if modoAdmin %}
-                      <button onclick="editarPrecio('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
-                    {% endif %}
-                  </p>
-
-                  <div class="mb-2">
-                    <label for="talle_{{ id_base }}" class="form-label mb-1" style="font-size: 14px;">
-                      <strong>Talle:</strong>
-                    </label>
-                    <select id="talle_{{ id_base }}" class="form-select form-select-sm w-auto d-inline-block">
-                      {% if producto.talles %}
-                        {% for t in producto.talles %}
-                          <option value="{{ t }}">{{ t }}</option>
-                        {% endfor %}
-                      {% else %}
-                        <option value="">Sin talles</option>
-                      {% endif %}
-                    </select>
-                    {% if modoAdmin %}
-                      <button onclick="editarTalles('{{ id_base }}')" class="btn btn-sm btn-outline-secondary ms-2">🖉</button>
-                    {% endif %}
-                  </div>
-
-                  {% if config.whatsapp %}
-                    <a href="{{ config.whatsapp }}" class="btn btn-whatsapp">Contactar por WhatsApp</a>
-                  {% endif %}
-
-                  <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                    <label for="cantidad_{{ id_base }}" class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                    <input type="number" min="1" max="100" value="1"
-                           class="form-control form-control-sm" style="width: 70px;"
-                           id="cantidad_{{ id_base }}">
-                    <button type="button" class="btn btn-secondary"
-                      onclick="agregarAlCarritoDOM('{{ producto.nombre }}',
-                                                   'precio_{{ id_base }}',
-                                                   'cantidad_{{ id_base }}',
-                                                   '{{ id_base }}')">
-                      Agregar al carrito
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div> <!-- cierre col -->
-          {% endfor %}
-        </div>
-      </div>
-    {% endfor %}
   </div>
-{% endfor %}
+{% endif %}  
 
+<div id="contenedor-grupos"></div>
 
-  <div id="contenedor-grupos"></div>
+<div class="text-center mt-5">
+  <a href="/descargar" class="btn btn-primary px-5">
+    Descargar sitio
+  </a>
+</div>
 
-  <div class="text-center mt-5">
-    <a href="/descargar" class="btn btn-primary px-5">
-      Descargar sitio
+<div class="social-icons">
+  {% if config.facebook %}
+    <a href="{{ config.facebook }}" target="_blank">
+      <img src="/static/img/facebook.png" alt="Facebook">
     </a>
-  </div>
-
-  <div class="social-icons">
-    {% if config.facebook %}
-      <a href="{{ config.facebook }}" target="_blank">
-        <img src="/static/img/facebook.png" alt="Facebook">
-      </a>
-    {% endif %}
-    {% if config.instagram %}
-      <a href="{{ config.instagram }}" target="_blank">
-        <img src="/static/img/instagram.png" alt="Instagram">
-      </a>
-    {% endif %}
-    {% if config.whatsapp %}
-      <a href="{{ config.whatsapp }}" target="_blank">
-        <img src="/static/img/whatsapp.png" alt="WhatsApp">
-      </a>
-    {% endif %}
-  </div>
-
-  {% if config.ubicacion %}
-    <div id="ubicacion" class="bloque-ubicacion text-center mt-4">
-      <p style="margin-bottom: 6px;">
-        📍 {{ config.ubicacion }}
-      </p>
-      {% if config.link_mapa %}
-        <a href="{{ config.link_mapa }}" target="_blank" style="text-decoration: none;">
-          <span style="margin-right: 6px;">➜</span>
-          <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
-        </a>
-      {% endif %}
-    </div>
   {% endif %}
-
-  <button id="toggleCarrito">🛒</button>
-
-  <div id="carrito">
-    <h5>🛒 Tu carrito</h5>
-    <ul id="listaCarrito"></ul>
-    <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
-    <div class="d-grid gap-2">
-  <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
-
-  {% if config.mercado_pago and config.public_key %}
-    <button id="btn_pagar" class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
-  {% else %}
-    <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+  {% if config.instagram %}
+    <a href="{{ config.instagram }}" target="_blank">
+      <img src="/static/img/instagram.png" alt="Instagram">
+    </a>
   {% endif %}
+  {% if config.whatsapp %}
+    <a href="{{ config.whatsapp }}" target="_blank">
+      <img src="/static/img/whatsapp.png" alt="WhatsApp">
+    </a>
+  {% endif %}
+</div>
 
+{% if config.ubicacion %}
+  <div id="ubicacion" class="bloque-ubicacion text-center mt-4">
+    <p style="margin-bottom: 6px;">
+      📍 {{ config.ubicacion }}
+    </p>
+    {% if config.link_mapa %}
+      <a href="{{ config.link_mapa }}" target="_blank" style="text-decoration: none;">
+        <span style="margin-right: 6px;">➜</span>
+        <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
+      </a>
+    {% endif %}
   </div>
+{% endif %}
+
+<button id="toggleCarrito">🛒</button>
+
+<div id="carrito">
+  <h5>🛒 Tu carrito</h5>
+  <ul id="listaCarrito"></ul>
+  <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+  <div class="d-grid gap-2">
+    <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+
+    {% if config.mercado_pago and config.public_key %}
+      <button id="btn_pagar" class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
+    {% else %}
+      <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+    {% endif %}
+  </div>
+</div>
+
 <!-- Aviso flotante de precio actualizado -->
 <div id="avisoPrecio" class="alert alert-success text-center" role="alert"
      style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;">
   ✔ Precio actualizado
 </div>
 
-    <!-- Aviso flotante de talle actualizado -->
+<!-- Aviso flotante de talle actualizado -->
 <div id="avisoTalle" class="alert alert-info text-center" role="alert"
      style="display: none; position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 9999;">
   ✔ Talle actualizado
 </div>
 
   <script>
-    const configWhatsApp = "{{ config.whatsapp }}";
-    const EMAIL_VENDEDOR = "{{ session.get('email') }}";
-    const URL_BACKEND = "https://appweb-n4cl.onrender.com"; // Tu URL central
-    
-    window.addEventListener('scroll', () => {
-      const btn = document.getElementById('volverArriba');
-      btn.style.display = window.scrollY > 300 ? 'block' : 'none';
-      btn.style.backgroundColor = 'white';
-      btn.style.color = 'black';
-    });
-    const subcategoriasPorGrupo = {
-      {% for grupo, subgrupos in grupos.items() %}
-        "{{ grupo }}": [{% for sub in subgrupos.keys() %}"{{ sub }}"{% if not loop.last %}, {% endif %}{% endfor %}],
-      {% endfor %}
-    };
+const configWhatsApp = "{{ config.whatsapp }}";
+const EMAIL_VENDEDOR = "{{ session.get('email') }}";
+const URL_BACKEND = "https://appweb-n4cl.onrender.com"; // Tu URL central
 
-    document.getElementById('volverArriba').onclick = () => {
-      window.scrollTo({ top: 0, behavior: 'auto' }); // Cambiado a 'auto' para evitar deslizamiento
-    };
+  // Mostrar/ocultar botón volver arriba
+  window.addEventListener('scroll', () => {
+    const btn = document.getElementById('volverArriba');
+    btn.style.display = window.scrollY > 300 ? 'block' : 'none';
+    btn.style.backgroundColor = 'white';
+    btn.style.color = 'black';
+  });
+
+  document.getElementById('volverArriba').onclick = () => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  // Cargar productos desde la API
+  fetch("/api/productos")
+    .then(r => r.json())
+    .then(lista => {
+      const cont = document.getElementById("productos");
+
+      // Generar dinámicamente grupos y subgrupos
+      const grupos = [...new Set(lista.map(p => p.grupo))];
+      const subgrupos = [...new Set(lista.map(p => p.subgrupo))];
+
+      const contGrupos = document.getElementById("panelGrupos");
+      grupos.forEach(g => {
+        contGrupos.insertAdjacentHTML("beforeend", `
+          <button class="btn-grupo" onclick="mostrarGrupo('${g}', event)">
+            ${g}
+          </button>
+        `);
+      });
+
+      const contSub = document.getElementById("panelSubcategorias");
+      subgrupos.forEach(s => {
+        contSub.insertAdjacentHTML("beforeend", `
+          <button class="btn-subgrupo" onclick="mostrarSubgrupo('${s}', event)">
+            ${s}
+          </button>
+        `);
+      });
+
+      // Renderizar cards de productos
+      lista.forEach(p => {
+        cont.insertAdjacentHTML("beforeend", `
+          <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+            <div class="card p-3 h-100">
+              <img src="${p.imagen_github || '/static/img/fallback.webp'}"
+                   alt="${p.nombre}"
+                   loading="lazy"
+                   style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
+              <div class="card-body">
+                <h5 class="card-title">${p.nombre}</h5>
+                <p class="card-text">${p.descripcion || ""}</p>
+                <p><strong>Precio:</strong> $${p.precio}</p>
+                ${p.talles && p.talles.length > 0 ? `
+                  <div class="mb-2">
+                    <label class="form-label mb-1" style="font-size: 14px;">
+                      <strong>Talle:</strong>
+                    </label>
+                    <select class="form-select form-select-sm w-auto d-inline-block">
+                      ${p.talles.map(t => `<option value="${t}">${t}</option>`).join("")}
+                    </select>
+                  </div>` : ""}
+                ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
+                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                  <label class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                  <input type="number" min="1" max="100" value="1"
+                         class="form-control form-control-sm" style="width: 70px;">
+                  <button type="button" class="btn btn-secondary">
+                    Agregar al carrito
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `);
+      });
+    })
+    .catch(err => {
+      console.error("Error cargando productos:", err);
+      document.getElementById("productos").innerHTML = "<p>Error al cargar productos.</p>";
+    });
     
-   function mostrarGrupo(nombre, event, auto = false) {
+function mostrarGrupo(nombre, event, auto = false) {
   const grupoId = 'grupo_' + nombre.toLowerCase().replace(/\s+/g, '_');
   const grupoActivo = document.getElementById(grupoId);
 
   // Resetear estado de grupos
-  document.querySelectorAll('.grupo-section').forEach(div => 
+  document.querySelectorAll('.grupo-section').forEach(div =>
     div.classList.remove('active', 'initial-load')
   );
   if (grupoActivo) {
@@ -722,15 +697,15 @@ html {
   document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
   if (event?.target) event.target.classList.add('active');
 
-  // Subcategorías dinámicas
-  const subcategorias = subcategoriasPorGrupo[nombre] || [];
+  // Subcategorías dinámicas: calcular desde productos cargados
   const panel = document.getElementById('panelSubcategorias');
   panel.innerHTML = '';
 
-  const bloques = grupoActivo?.querySelectorAll('.subgrupo-bloque');
+  // Filtrar productos del grupo actual
+  const productosGrupo = window.todosLosProductos.filter(p => p.grupo === nombre);
+  const subcategorias = [...new Set(productosGrupo.map(p => p.subgrupo).filter(s => s && s.toLowerCase() !== 'general'))];
 
   subcategorias.forEach(sub => {
-    if (!sub || sub.trim().toLowerCase() === 'general') return;
     const btn = document.createElement('button');
     btn.textContent = sub;
     btn.className = 'btn-grupo';
@@ -740,7 +715,8 @@ html {
 
   if (!auto) {
     panel.classList.remove('oculta');
-    bloques?.forEach(bloque => {
+    // Mostrar todos los bloques del grupo (si los tenés renderizados por separado)
+    grupoActivo?.querySelectorAll('.subgrupo-bloque')?.forEach(bloque => {
       bloque.style.display = 'block';
     });
 
@@ -755,20 +731,49 @@ html {
   }
 }
 
-   function filtrarSubcategoria(grupo, subgrupo) {
+function filtrarSubcategoria(grupo, subgrupo) {
+  const cont = document.getElementById("productos");
+  cont.innerHTML = "";
 
-  const grupoId = 'grupo_' + grupo.toLowerCase().replace(/\s+/g, '_');
-  const grupoDiv = document.getElementById(grupoId);
-  if (!grupoDiv) {
-    console.warn("⚠️ Grupo no encontrado:", grupoId);
-    return;
-  }
-  const bloques = grupoDiv.querySelectorAll('.subgrupo-bloque');
+  // Filtrar productos por grupo y subgrupo
+  const productosFiltrados = window.todosLosProductos.filter(p =>
+    p.grupo === grupo && p.subgrupo?.toLowerCase() === subgrupo.toLowerCase()
+  );
 
-  bloques.forEach((bloque, i) => {
-    const subgrupoActual = bloque.dataset.subgrupo?.trim() || '';
-    const mostrar = subgrupoActual.toLowerCase() === subgrupo.trim().toLowerCase();
-    bloque.style.display = mostrar ? 'block' : 'none';
+  productosFiltrados.forEach(p => {
+    cont.insertAdjacentHTML("beforeend", `
+      <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+        <div class="card p-3 h-100">
+          <img src="${p.imagen_github || '/static/img/fallback.webp'}"
+               alt="${p.nombre}"
+               loading="lazy"
+               style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
+          <div class="card-body">
+            <h5 class="card-title">${p.nombre}</h5>
+            <p class="card-text">${p.descripcion || ""}</p>
+            <p><strong>Precio:</strong> $${p.precio}</p>
+            ${p.talles && p.talles.length > 0 ? `
+              <div class="mb-2">
+                <label class="form-label mb-1" style="font-size: 14px;">
+                  <strong>Talle:</strong>
+                </label>
+                <select class="form-select form-select-sm w-auto d-inline-block">
+                  ${p.talles.map(t => `<option value="${t}">${t}</option>`).join("")}
+                </select>
+              </div>` : ""}
+            ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
+            <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+              <label class="mb-0" style="font-size: 14px;">Cantidad:</label>
+              <input type="number" min="1" max="100" value="1"
+                     class="form-control form-control-sm" style="width: 70px;">
+              <button type="button" class="btn btn-secondary">
+                Agregar al carrito
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
   });
 
   window.scrollTo({ top: 0, behavior: 'auto' });
@@ -780,12 +785,20 @@ window.onload = function() {
   panelSubcategorias.classList.add('oculta');
   panelGrupos.classList.add('oculta');
 
-  const primerGrupo = Object.keys(subcategoriasPorGrupo)[0];
-  const primerSub = subcategoriasPorGrupo[primerGrupo]?.find(s => s.toLowerCase() !== 'general') || '';
-  if (primerGrupo && primerSub) {
-    mostrarGrupo(primerGrupo, null, true);
-    filtrarSubcategoria(primerGrupo, primerSub);
-  }
+  // Usar los datos de la API para inicializar
+  fetch("/api/productos")
+    .then(r => r.json())
+    .then(lista => {
+      window.todosLosProductos = lista;
+
+      const primerGrupo = [...new Set(lista.map(p => p.grupo))][0];
+      const primerSub = lista.find(p => p.grupo === primerGrupo && p.subgrupo?.toLowerCase() !== "general")?.subgrupo;
+
+      if (primerGrupo && primerSub) {
+        mostrarGrupo(primerGrupo, null, true);
+        filtrarSubcategoria(primerGrupo, primerSub);
+      }
+    });
 
   document.getElementById('toggleCarrito').onclick = function() {
     const carritoDiv = document.getElementById('carrito');
@@ -794,23 +807,22 @@ window.onload = function() {
   };
 };
 
+let carrito = [];
 
-    let carrito = [];
-
-   function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base) {
+function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = "", subgrupo = "") {
   const cantidadInput = document.getElementById(idCantidad);
   const precioSpan = document.getElementById(idPrecioSpan);
   const talleSelect = document.getElementById("talle_" + id_base);
 
   const cantidad = parseInt(cantidadInput?.value) || 1;
   const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
-  const talleElegido = talleSelect?.value || "";
+  const talleElegido = talleSelect?.value || "Sin talle";
 
   const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
   if (existente) {
     existente.cantidad += cantidad;
   } else {
-    const nuevoItem = { nombre, precio, cantidad, id_base, talle: talleElegido };
+    const nuevoItem = { nombre, precio, cantidad, id_base, talle: talleElegido, grupo, subgrupo };
     carrito.push(nuevoItem);
   }
 
@@ -819,29 +831,34 @@ window.onload = function() {
 
 async function pagarConMercadoPago() {
   try {
+    if (!carrito.length) {
+      alert("Tu carrito está vacío");
+      return;
+    }
+
     const response = await fetch(`${URL_BACKEND}/pagar`, { 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-          carrito: carrito,
-          email_vendedor: EMAIL_VENDEDOR,
-          url_retorno: window.location.href
+        carrito,
+        email_vendedor: EMAIL_VENDEDOR,
+        url_retorno: window.location.href
       })
     });
-    
+
     const data = await response.json();
-    
+
     if (data.preference_id) {
-      // Usando Checkout Pro con el SDK
+      // ✅ Checkout Pro con SDK
       mp.checkout({
         preference: { id: data.preference_id },
         autoOpen: true
       });
     } else if (data.init_point) {
-      // Usando redirect clásico
+      // ✅ Fallback clásico
       window.location.href = data.init_point;
     } else {
-      alert("Error al generar el pago");
+      alert("Error al generar el pago: " + (data.error || "desconocido"));
     }
   } catch (err) {
     console.error("⚠️ Error al conectar con backend central:", err);
@@ -849,13 +866,9 @@ async function pagarConMercadoPago() {
   }
 }
 
-
-
 function editarPrecio(id) {
   const span = document.getElementById("precio_" + id);
-  if (!span) {
-    return; // si no existe el span, no hace nada
-  }
+  if (!span) return;
 
   const valorActual = span.textContent.replace("$", "").trim();
 
@@ -866,16 +879,10 @@ function editarPrecio(id) {
   input.style.width = "80px";
   input.id = "input_precio_" + id;
 
-  // Guardar al salir del input
-  input.onblur = () => {
-    guardarPrecio(id);
-  };
+  input.onblur = () => guardarPrecio(id);
 
-  // Guardar al presionar Enter
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      input.blur(); // dispara onblur
-    }
+    if (e.key === "Enter") input.blur(); // dispara onblur
   });
 
   span.replaceWith(input);
@@ -884,9 +891,7 @@ function editarPrecio(id) {
 
 function guardarPrecio(id) {
   const input = document.getElementById("input_precio_" + id);
-  if (!input) {
-    return; // si no existe el input, no hace nada
-  }
+  if (!input) return;
 
   const nuevoValor = parseFloat(input.value);
   if (isNaN(nuevoValor)) {
@@ -902,11 +907,10 @@ function guardarPrecio(id) {
     .then(res => res.json())
     .then(data => {
       if (data.status === "ok") {
-        // Feedback visual inmediato en DOM
         const span = document.createElement("span");
         span.id = "precio_" + id;
         const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        span.textContent = fmt.format(nuevoValor);
+        span.textContent = "$" + fmt.format(nuevoValor);
         span.className = input.className;
         span.classList.add("text-success");
         input.replaceWith(span);
@@ -928,6 +932,11 @@ function loginAdmin(event) {
   const usuario = document.getElementById("usuario_login").value.trim();
   const clave = document.getElementById("clave_login").value.trim();
 
+  if (!usuario || !clave) {
+    alert("❌ Usuario y clave requeridos");
+    return;
+  }
+
   const btn = event.target.querySelector('button[type="submit"]');
   if (btn) {
     btn.disabled = true;
@@ -943,7 +952,7 @@ function loginAdmin(event) {
     .then(data => {
       if (data.status === "ok") {
         alert("✅ Acceso concedido");
-        location.href = window.location.href;
+        location.href = "/preview"; // redirigir directo al preview
       } else {
         alert("❌ " + data.message);
       }
@@ -968,9 +977,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function editarTalles(id) {
   const select = document.getElementById("talle_" + id);
-  if (!select) {
-    return; // si no existe el select, no hace nada
-  }
+  if (!select) return;
 
   const opciones = Array.from(select.options).map(opt => opt.value).filter(Boolean);
   const valorActual = opciones.join(", ");
@@ -982,13 +989,8 @@ function editarTalles(id) {
   input.style.width = "200px";
   input.id = "input_talles_" + id;
 
-  input.onblur = () => {
-    guardarTalles(id);
-  };
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") input.blur();
-  });
+  input.onblur = () => guardarTalles(id);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); });
 
   select.replaceWith(input);
   input.focus();
@@ -996,9 +998,7 @@ function editarTalles(id) {
 
 function guardarTalles(id) {
   const input = document.getElementById("input_talles_" + id);
-  if (!input) {
-    return; // si no existe el input, no hace nada
-  }
+  if (!input) return;
 
   const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
 
@@ -1031,6 +1031,8 @@ function guardarTalles(id) {
         input.replaceWith(nuevoSelect);
         nuevoSelect.classList.add("text-success");
         setTimeout(() => nuevoSelect.classList.remove("text-success"), 1000);
+
+        if (typeof mostrarAvisoTalle === "function") mostrarAvisoTalle();
       } else {
         alert("❌ No se pudo actualizar los talles en el servidor");
       }
@@ -1042,7 +1044,7 @@ function guardarTalles(id) {
 
 function actualizarFirestore(id, datos) {
   if (!id || typeof datos !== "object" || Object.keys(datos).length === 0) {
-    return; // no hace nada si los datos son inválidos
+    return;
   }
 
   fetch("/actualizar-firestore", {
@@ -1053,20 +1055,17 @@ function actualizarFirestore(id, datos) {
     .then(res => res.json())
     .then(data => {
       if (data.status === "ok") {
-        if (typeof mostrarAvisoFirestore === "function") {
-          mostrarAvisoFirestore();
-        }
+        if (typeof mostrarAvisoFirestore === "function") mostrarAvisoFirestore();
       } else {
-        alert("❌ No se pudo actualizar Firestore");
+        mostrarAviso("❌ " + (data.error || "No se pudo actualizar Firestore"));
       }
     })
     .catch(() => {
-      alert("❌ Error de conexión al guardar los datos");
+      mostrarAviso("❌ Error de conexión al guardar los datos");
     });
 }
 
-
-    function guardarProducto(producto) {
+function guardarProducto(producto) {
   fetch('/guardar-producto', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1075,9 +1074,9 @@ function actualizarFirestore(id, datos) {
     .then(res => res.json())
     .then(data => {
       if (data.status === 'ok') {
-        mostrarAviso("Producto guardado correctamente");
+        mostrarAviso("✅ Producto guardado correctamente");
       } else {
-        mostrarAviso("❌ Error al guardar producto");
+        mostrarAviso("❌ " + (data.error || "Error al guardar producto"));
       }
     })
     .catch(() => {
@@ -1089,7 +1088,11 @@ function cargarProductos() {
   fetch('/ver-productos')
     .then(res => res.json())
     .then(productos => {
-      renderizarProductos(productos);
+      if (Array.isArray(productos)) {
+        renderizarProductos(productos);
+      } else {
+        mostrarAviso("❌ Respuesta inválida del servidor");
+      }
     })
     .catch(() => {
       mostrarAviso("❌ Error al cargar productos");
@@ -1098,6 +1101,7 @@ function cargarProductos() {
 
 function mostrarAvisoPrecio() {
   const aviso = document.getElementById("avisoPrecio");
+  if (!aviso) return;
   aviso.style.display = "block";
   setTimeout(() => {
     aviso.style.display = "none";
@@ -1105,7 +1109,7 @@ function mostrarAvisoPrecio() {
 }
 
 function eliminarProducto(id_base, talle, event) {
-  event.stopPropagation();
+  if (event?.stopPropagation) event.stopPropagation();
   carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
   actualizarCarrito();
 }
@@ -1139,175 +1143,205 @@ function sincronizarPreciosDelCarrito() {
   });
 }
 
-
 function actualizarCarrito() {
   sincronizarPreciosDelCarrito();
 
   const lista = document.getElementById('listaCarrito');
   const total = document.getElementById('totalCarrito');
-  if (!lista || !total) {
-    return; // si no existen los elementos, no hace nada
-  }
+  const link = document.getElementById('enviarCarrito');
+  if (!lista || !total) return;
 
   lista.innerHTML = '';
   let suma = 0;
+
+  if (carrito.length === 0) {
+    lista.innerHTML = "<li>🛒 Carrito vacío</li>";
+    total.textContent = "0.00";
+    if (link) link.href = configWhatsApp;
+    return;
+  }
+
+  const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   carrito.forEach(item => {
     const subtotal = item.precio * item.cantidad;
     suma += subtotal;
 
-    lista.innerHTML += `
+    lista.insertAdjacentHTML("beforeend", `
       <li style="display: flex; justify-content: space-between; align-items: center;">
-        <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${subtotal.toFixed(2)}</span>
+        <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${fmt.format(subtotal)}</span>
         <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" 
                 style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">
           ❌
         </button>
-      </li>`;
+      </li>`);
   });
 
-  total.textContent = suma.toFixed(2);
+  total.textContent = fmt.format(suma);
 
   const mensaje = encodeURIComponent(
     `Hola, quiero consultar por:\n` +
-    carrito.map(i => `- ${i.nombre}${i.talle ? ' (' + i.talle + ')' : ''} x ${i.cantidad}: $${(i.precio * i.cantidad).toFixed(2)}`).join('\n') +
-    `\nTotal estimado: $${suma.toFixed(2)}`
+    carrito.map(i => `- ${i.nombre}${i.talle ? ' (' + i.talle + ')' : ''} x ${i.cantidad}: $${fmt.format(i.precio * i.cantidad)}`).join('\n') +
+    `\nTotal estimado: $${fmt.format(suma)}`
   );
 
-  const link = document.getElementById('enviarCarrito');
   if (link) {
     link.href = configWhatsApp + '?text=' + mensaje;
   }
 }
 
-    function mostrarTodos() {
-      const panelGrupos = document.getElementById('panelGrupos');
-      const panelSub = document.getElementById('panelSubcategorias');
+function mostrarTodos() {
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
 
-      panelGrupos.classList.toggle('oculta');
+  if (!panelGrupos || !panelSub) return;
 
-      if (!panelSub.classList.contains('oculta')) {
-        panelSub.classList.add('oculta');
-      }
-    }
-    function irAContacto() {
-      const contacto = document.getElementById('ubicacion');
-      if (contacto) contacto.scrollIntoView({ behavior: 'auto' }); // Cambiado a 'auto'
-    }
-    function ajustarPosicionesPaneles() {
-      const panelGrupos = document.getElementById('panelGrupos');
-      const panelSub = document.getElementById('panelSubcategorias');
-      const barraNav = document.querySelector('.barra-navegacion');
+  panelGrupos.classList.toggle('oculta');
 
-      if (!panelGrupos.classList.contains('oculta')) {
-        const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
-        const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
-        panelGrupos.style.top = alturaBarra + 'px';
-        panelGrupos.style.position = 'fixed';
-        panelGrupos.style.left = '0';
-        panelGrupos.style.right = '0';
-      }
-      if (!panelSub.classList.contains('oculta')) {
-        const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
-        const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
-        const margenAdicional = 19; // Margen para evitar superposiciones
-        const desplazamientoArriba = -20; // Ajuste para subir un poco si lo necesitas
-        panelSub.style.top = (alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba) + 'px';
-        panelSub.style.position = 'fixed';
-        panelSub.style.left = '0';
-        panelSub.style.right = '0';
-      } else {
-        panelSub.style.top = '';
-      }
-    }
-    // Recalcular posiciones al cargar y al cambiar el tamaño de la ventana
-    window.addEventListener('load', ajustarPosicionesPaneles);
-    window.addEventListener('resize', ajustarPosicionesPaneles);
-    // Recalcular posiciones cuando se muestra un panel
-    document.getElementById('btnProductos').addEventListener('click', function() {
-      setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de que el DOM se actualice
+  if (!panelSub.classList.contains('oculta')) {
+    panelSub.classList.add('oculta');
+  }
+}
+
+function irAContacto() {
+  const contacto = document.getElementById('ubicacion');
+  if (contacto) contacto.scrollIntoView({ behavior: 'auto' });
+}
+
+function ajustarPosicionesPaneles() {
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
+  const barraNav = document.querySelector('.barra-navegacion');
+
+  if (!panelGrupos || !panelSub) return;
+
+  if (!panelGrupos.classList.contains('oculta')) {
+    const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+    panelGrupos.style.top = alturaBarra + 'px';
+    panelGrupos.style.position = 'fixed';
+    panelGrupos.style.left = '0';
+    panelGrupos.style.right = '0';
+  }
+
+  if (!panelSub.classList.contains('oculta')) {
+    const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
+    const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
+    const margenAdicional = 19;
+    const desplazamientoArriba = -20;
+    panelSub.style.top = (alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba) + 'px';
+    panelSub.style.position = 'fixed';
+    panelSub.style.left = '0';
+    panelSub.style.right = '0';
+  } else {
+    panelSub.style.top = '';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('load', ajustarPosicionesPaneles);
+  window.addEventListener('resize', ajustarPosicionesPaneles);
+
+  const btnProductos = document.getElementById('btnProductos');
+  if (btnProductos) {
+    btnProductos.addEventListener('click', () => {
+      setTimeout(ajustarPosicionesPaneles, 0);
     });
-    document.querySelectorAll('.btn-grupo').forEach(btn => {
-      btn.addEventListener('click', function() {
-        setTimeout(ajustarPosicionesPaneles, 0); // Ajuste después de mostrar subcategorías
-      });
-    });
-  </script>
+  }
+
+  // Delegación de eventos para botones de grupo dinámicos
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('btn-grupo')) {
+      setTimeout(ajustarPosicionesPaneles, 0);
+    }
+  });
+});
+</script>
 <script type="module">
-  const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
-  const email = "{{ session.get('email') or '' }}";
-  const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
-  const grupos = {{ grupos|tojson }};
+const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
+const email = "{{ session.get('email') or '' }}";
+const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
 
-  // ✅ Mantener el resto de la lógica
-  setTimeout(() => {
-    const grupoKeys = Object.keys(grupos);
-    if (grupoKeys.length === 0) return;
+// ✅ Inicializar primer grupo/subgrupo dinámicamente
+setTimeout(() => {
+  if (!window.todosLosProductos || window.todosLosProductos.length === 0) return;
 
-    const primerGrupoId = grupoKeys[0].trim().toLowerCase().replace(/\s+/g, '_');
-    const primerGrupoDiv = document.getElementById('grupo_' + primerGrupoId);
-    if (primerGrupoDiv) primerGrupoDiv.classList.add('active');
+  const primerGrupo = [...new Set(window.todosLosProductos.map(p => p.grupo))][0];
+  if (!primerGrupo) return;
 
-    const subgrupos = Object.keys(grupos[grupoKeys[0]]);
-    const primerSubgrupoNombre = subgrupos[0]?.trim().toLowerCase();
+  const primerGrupoId = primerGrupo.trim().toLowerCase().replace(/\s+/g, '_');
+  const primerGrupoDiv = document.getElementById('grupo_' + primerGrupoId);
+  if (primerGrupoDiv) primerGrupoDiv.classList.add('active');
 
-    if (primerGrupoId && primerSubgrupoNombre) {
-      filtrarSubcategoria(grupoKeys[0], subgrupos[0]);
-    }
-  }, 100);
+  const subgrupos = [...new Set(window.todosLosProductos
+    .filter(p => p.grupo === primerGrupo)
+    .map(p => p.subgrupo))];
 
-  // Cerrar carrito al hacer clic fuera
-  document.addEventListener('click', function(event) {
-    const carritoDiv = document.getElementById('carrito');
-    const toggleBtn = document.getElementById('toggleCarrito');
-    if (!carritoDiv || !toggleBtn) return;
+  const primerSubgrupoNombre = subgrupos[0]?.trim().toLowerCase();
 
-    const visible = carritoDiv.style.display === 'block';
-    const clicFuera = !carritoDiv.contains(event.target) && !toggleBtn.contains(event.target);
-    if (visible && clicFuera) {
-      carritoDiv.style.display = 'none';
-    }
-  });
+  if (primerGrupoId && primerSubgrupoNombre) {
+    filtrarSubcategoria(primerGrupo, subgrupos[0]);
+  }
+}, 100);
 
-  // Ordenar productos por precio
-  document.getElementById('ordenPrecio')?.addEventListener('change', function () {
-    const orden = this.value;
-    const grupoActivo = document.querySelector('.grupo-section.active');
-    if (!grupoActivo) return;
+// ✅ Cerrar carrito al hacer clic fuera
+document.addEventListener('click', function(event) {
+  const carritoDiv = document.getElementById('carrito');
+  const toggleBtn = document.getElementById('toggleCarrito');
+  if (!carritoDiv || !toggleBtn) return;
 
-    const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
-    bloques.forEach(bloque => {
-      const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
-      const contenedor = bloque.querySelector('.row');
-      if (!contenedor) return;
+  const visible = carritoDiv.style.display === 'block';
+  const clicFuera = !carritoDiv.contains(event.target) && !toggleBtn.contains(event.target);
+  if (visible && clicFuera) {
+    carritoDiv.style.display = 'none';
+  }
+});
 
-      productos.sort((a, b) => {
-        const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent) || 0;
-        const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent) || 0;
-        return orden === 'asc' ? precioA - precioB : precioB - precioA;
-      });
+// Ordenar productos por precio
+document.getElementById('ordenPrecio')?.addEventListener('change', function () {
+  const orden = this.value;
+  const grupoActivo = document.querySelector('.grupo-section.active');
+  if (!grupoActivo) return;
 
-      contenedor.innerHTML = '';
-      productos.forEach(p => contenedor.appendChild(p));
+  const bloques = grupoActivo.querySelectorAll('.subgrupo-bloque');
+  bloques.forEach(bloque => {
+    const productos = Array.from(bloque.querySelectorAll('.col-lg-4, .col-md-6, .col-sm-12'));
+    const contenedor = bloque.querySelector('.row');
+    if (!contenedor) return;
+
+    productos.sort((a, b) => {
+      const precioA = parseFloat(a.querySelector('span[id^="precio_"]').textContent.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+      const precioB = parseFloat(b.querySelector('span[id^="precio_"]').textContent.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+      return orden === 'asc' ? precioA - precioB : precioB - precioA;
     });
+
+    // efecto visual opcional
+    productos.forEach(p => p.classList.add('fade-reorder'));
+    setTimeout(() => {
+      contenedor.innerHTML = '';
+      productos.forEach(p => {
+        p.classList.remove('fade-reorder');
+        contenedor.appendChild(p);
+      });
+    }, 200);
   });
+});
 
-  // Ocultar paneles al hacer clic fuera
-  document.addEventListener('click', function(event) {
-    const panelGrupos = document.getElementById('panelGrupos');
-    const panelSub = document.getElementById('panelSubcategorias');
-    if (!panelGrupos || !panelSub) return;
+// Ocultar paneles al hacer clic fuera
+document.addEventListener('click', function(event) {
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
+  if (!panelGrupos || !panelSub) return;
 
-    const esClickDentroGrupos = panelGrupos.contains(event.target);
-    const esClickDentroSub = panelSub.contains(event.target);
-    const esBotonGrupo = event.target.classList.contains('btn-grupo');
-    const esBotonNavegacion = !!event.target.closest('.barra-navegacion');
+  const esClickDentroGrupos = panelGrupos.contains(event.target);
+  const esClickDentroSub = panelSub.contains(event.target);
+  const esBotonGrupo = event.target.classList.contains('btn-grupo');
+  const esBotonNavegacion = !!event.target.closest('.barra-navegacion');
 
-    if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
-      panelGrupos.classList.add('oculta');
-      panelSub.classList.add('oculta');
-    }
-  });
+  if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
+    panelGrupos.classList.add('oculta');
+    panelSub.classList.add('oculta');
+  }
+});
 </script>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script>
