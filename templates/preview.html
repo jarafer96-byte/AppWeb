@@ -1293,7 +1293,17 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
+  // Botón Subcategorías
+  const btnSubcategorias = document.getElementById("btnSubcategorias");
+  if (btnSubcategorias) {
+    btnSubcategorias.addEventListener("click", () => {
+      const panelSub = document.getElementById("panelSubcategorias");
+      if (panelSub) panelSub.classList.remove("oculta");
 
+      // Ajustar posiciones después de mostrar
+      setTimeout(ajustarPosicionesPaneles, 0);
+    });
+  }
   // Delegación de eventos para botones de grupo dinámicos
   document.addEventListener("click", (e) => {
     if (e.target.classList.contains("btn-grupo")) {
