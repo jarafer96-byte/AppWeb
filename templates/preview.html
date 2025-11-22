@@ -535,6 +535,7 @@ html {
 {% endif %}  
 
 <div id="contenedor-grupos"></div>
+<div id="productos" class="row mt-4"></div>
 
 <div class="text-center mt-5">
   <a href="/descargar" class="btn btn-primary px-5">
@@ -620,134 +621,145 @@ const URL_BACKEND = "https://appweb-n4cl.onrender.com"; // Tu URL central
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
-  // Cargar productos desde la API
-  fetch("/api/productos")
-    .then(r => r.json())
-    .then(lista => {
-      const cont = document.getElementById("productos");
+fetch("/api/productos")
+  .then(r => r.json())
+  .then(lista => {
+    window.todosLosProductos = Array.isArray(lista) ? lista : [];
 
-      // Generar dinámicamente grupos y subgrupos
-      const grupos = [...new Set(lista.map(p => p.grupo))];
-      const subgrupos = [...new Set(lista.map(p => p.subgrupo))];
+    const cont = document.getElementById("productos");
+    const contGrupos = document.getElementById("panelGrupos");
+    const contSub = document.getElementById("panelSubcategorias");
 
-      const contGrupos = document.getElementById("panelGrupos");
+    if (!cont) {
+      console.warn("⚠️ No existe #productos en el DOM");
+      return;
+    }
+    if (!contGrupos || !contSub) {
+      console.warn("⚠️ Faltan paneles #panelGrupos o #panelSubcategorias en el DOM");
+    }
+
+    // Generar grupos
+    const grupos = [...new Set(window.todosLosProductos.map(p => p.grupo).filter(Boolean))];
+    if (contGrupos) {
       grupos.forEach(g => {
         contGrupos.insertAdjacentHTML("beforeend", `
-          <button class="btn-grupo" onclick="mostrarGrupo('${g}', event)">
-            ${g}
-          </button>
+          <button class="btn-grupo" onclick="mostrarGrupo('${g}', event)">${g}</button>
         `);
       });
+      contGrupos.classList.remove('oculta');
+    }
 
-      const contSub = document.getElementById("panelSubcategorias");
-      subgrupos.forEach(s => {
-        contSub.insertAdjacentHTML("beforeend", `
-          <button class="btn-subgrupo" onclick="mostrarSubgrupo('${s}', event)">
-            ${s}
-          </button>
-        `);
-      });
+    // Render inicial: primer grupo y subgrupo
+    const primerGrupo = grupos[0];
+    const subgruposPrimer = [...new Set(window.todosLosProductos
+      .filter(p => p.grupo === primerGrupo)
+      .map(p => p.subgrupo).filter(Boolean))];
 
-      // Renderizar cards de productos
-      lista.forEach(p => {
-        cont.insertAdjacentHTML("beforeend", `
-          <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-            <div class="card p-3 h-100">
-              <img src="${p.imagen_github || '/static/img/fallback.webp'}"
-                   alt="${p.nombre}"
-                   loading="lazy"
-                   style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
-              <div class="card-body">
-                <h5 class="card-title">${p.nombre}</h5>
-                <p class="card-text">${p.descripcion || ""}</p>
-                <p><strong>Precio:</strong> $${p.precio}</p>
-                ${p.talles && p.talles.length > 0 ? `
-                  <div class="mb-2">
-                    <label class="form-label mb-1" style="font-size: 14px;">
-                      <strong>Talle:</strong>
-                    </label>
-                    <select class="form-select form-select-sm w-auto d-inline-block">
-                      ${p.talles.map(t => `<option value="${t}">${t}</option>`).join("")}
-                    </select>
-                  </div>` : ""}
-                ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
-                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-                  <label class="mb-0" style="font-size: 14px;">Cantidad:</label>
-                  <input type="number" min="1" max="100" value="1"
-                         class="form-control form-control-sm" style="width: 70px;">
-                  <button type="button" class="btn btn-secondary">
-                    Agregar al carrito
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        `);
-      });
-    })
-    .catch(err => {
-      console.error("Error cargando productos:", err);
-      document.getElementById("productos").innerHTML = "<p>Error al cargar productos.</p>";
-    });
+    if (primerGrupo) {
+      mostrarGrupo(primerGrupo, null, true);
+      if (subgruposPrimer.length > 0) {
+        filtrarSubcategoria(primerGrupo, subgruposPrimer[0]);
+      }
+    }
+  })
+  .catch(err => {
+    console.error("Error cargando productos:", err);
+    const cont = document.getElementById("productos");
+    if (cont) cont.innerHTML = "<p>Error al cargar productos.</p>";
+  });
     
 function mostrarGrupo(nombre, event, auto = false) {
-  const grupoId = 'grupo_' + nombre.toLowerCase().replace(/\s+/g, '_');
-  const grupoActivo = document.getElementById(grupoId);
-
-  // Resetear estado de grupos
-  document.querySelectorAll('.grupo-section').forEach(div =>
-    div.classList.remove('active', 'initial-load')
-  );
-  if (grupoActivo) {
-    grupoActivo.classList.add('active');
-    if (auto) grupoActivo.classList.add('initial-load');
+  const cont = document.getElementById("productos");
+  if (!cont) {
+    console.warn("⚠️ No existe #productos en el DOM");
+    return;
   }
 
   // Resetear botones de grupo
   document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
   if (event?.target) event.target.classList.add('active');
 
-  // Subcategorías dinámicas: calcular desde productos cargados
+  // Calcular subcategorías dinámicas desde productos cargados
   const panel = document.getElementById('panelSubcategorias');
-  panel.innerHTML = '';
+  if (!panel) return;
+  panel.innerHTML = "";
 
-  // Filtrar productos del grupo actual
-  const productosGrupo = window.todosLosProductos.filter(p => p.grupo === nombre);
+  const productosGrupo = window.todosLosProductos.filter(p => p.grupo?.toLowerCase() === nombre.toLowerCase());
   const subcategorias = [...new Set(productosGrupo.map(p => p.subgrupo).filter(s => s && s.toLowerCase() !== 'general'))];
 
   subcategorias.forEach(sub => {
     const btn = document.createElement('button');
     btn.textContent = sub;
-    btn.className = 'btn-grupo';
+    btn.className = 'btn-subgrupo';
     btn.onclick = () => filtrarSubcategoria(nombre, sub);
     panel.appendChild(btn);
   });
 
-  if (!auto) {
+  // Mostrar panel de subcategorías si hay
+  if (subcategorias.length > 0) {
     panel.classList.remove('oculta');
-    // Mostrar todos los bloques del grupo (si los tenés renderizados por separado)
-    grupoActivo?.querySelectorAll('.subgrupo-bloque')?.forEach(bloque => {
-      bloque.style.display = 'block';
-    });
-
-    if (subcategorias.length > 0) {
+    // Si no es carga automática, mostrar la primera subcategoría
+    if (!auto) {
       filtrarSubcategoria(nombre, subcategorias[0]);
     }
   } else {
     panel.classList.add('oculta');
-    if (subcategorias.length > 0) {
-      filtrarSubcategoria(nombre, subcategorias[0]);
-    }
+    // Si no hay subcategorías, mostrar todos los productos del grupo
+    cont.innerHTML = "";
+    productosGrupo.forEach(p => {
+      cont.insertAdjacentHTML("beforeend", `
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+          <div class="card p-3 h-100">
+            <img src="${p.imagen_github || '/static/img/fallback.webp'}"
+                 alt="${p.nombre}" loading="lazy"
+                 style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
+            <div class="card-body">
+              <h5 class="card-title">${p.nombre}</h5>
+              <p class="card-text">${p.descripcion || ""}</p>
+              <p><strong>Precio:</strong> $<span id="precio_${p.id_base}">${p.precio}</span></p>
+              ${Array.isArray(p.talles) && p.talles.length ? `
+                <div class="mb-2">
+                  <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+                  <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block">
+                    ${p.talles.map(t => `<option value="${t}">${t}</option>`).join("")}
+                  </select>
+                </div>` : ""}
+              ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
+              <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                <label class="mb-0" style="font-size: 14px;">Cantidad:</label>
+                <input type="number" min="1" max="100" value="1"
+                       id="cantidad_${p.id_base}"
+                       class="form-control form-control-sm" style="width: 70px;">
+                <button type="button" class="btn btn-secondary"
+                  onclick="agregarAlCarritoDOM('${p.nombre}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${p.grupo}', '${p.subgrupo}')">
+                  Agregar al carrito
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `);
+    });
   }
+
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
+
+// Si usás type="module", exponerla al global:
+window.mostrarGrupo = mostrarGrupo;
+
 
 function filtrarSubcategoria(grupo, subgrupo) {
   const cont = document.getElementById("productos");
+  if (!cont) {
+    console.warn("⚠️ No existe #productos en el DOM");
+    return;
+  }
   cont.innerHTML = "";
 
-  // Filtrar productos por grupo y subgrupo
   const productosFiltrados = window.todosLosProductos.filter(p =>
-    p.grupo === grupo && p.subgrupo?.toLowerCase() === subgrupo.toLowerCase()
+    p.grupo?.toLowerCase() === grupo.toLowerCase() &&
+    p.subgrupo?.toLowerCase() === subgrupo.toLowerCase()
   );
 
   productosFiltrados.forEach(p => {
@@ -755,19 +767,16 @@ function filtrarSubcategoria(grupo, subgrupo) {
       <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
         <div class="card p-3 h-100">
           <img src="${p.imagen_github || '/static/img/fallback.webp'}"
-               alt="${p.nombre}"
-               loading="lazy"
+               alt="${p.nombre}" loading="lazy"
                style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
           <div class="card-body">
             <h5 class="card-title">${p.nombre}</h5>
             <p class="card-text">${p.descripcion || ""}</p>
-            <p><strong>Precio:</strong> $${p.precio}</p>
-            ${p.talles && p.talles.length > 0 ? `
+            <p><strong>Precio:</strong> $<span id="precio_${p.id_base}">${p.precio}</span></p>
+            ${Array.isArray(p.talles) && p.talles.length ? `
               <div class="mb-2">
-                <label class="form-label mb-1" style="font-size: 14px;">
-                  <strong>Talle:</strong>
-                </label>
-                <select class="form-select form-select-sm w-auto d-inline-block">
+                <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+                <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block">
                   ${p.talles.map(t => `<option value="${t}">${t}</option>`).join("")}
                 </select>
               </div>` : ""}
@@ -775,8 +784,10 @@ function filtrarSubcategoria(grupo, subgrupo) {
             <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
               <label class="mb-0" style="font-size: 14px;">Cantidad:</label>
               <input type="number" min="1" max="100" value="1"
+                     id="cantidad_${p.id_base}"
                      class="form-control form-control-sm" style="width: 70px;">
-              <button type="button" class="btn btn-secondary">
+              <button type="button" class="btn btn-secondary"
+                onclick="agregarAlCarritoDOM('${p.nombre}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${p.grupo}', '${p.subgrupo}')">
                 Agregar al carrito
               </button>
             </div>
@@ -788,6 +799,7 @@ function filtrarSubcategoria(grupo, subgrupo) {
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
+window.filtrarSubcategoria = filtrarSubcategoria; // si usás type="module"
 
 window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
@@ -1123,6 +1135,27 @@ function eliminarProducto(id_base, talle, event) {
   carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
   actualizarCarrito();
 }
+    
+function mostrarSubgrupo(subgrupo, event) {
+  // Buscar el grupo actualmente activo (botón marcado)
+  const grupoActivoBtn = document.querySelector('.btn-grupo.active');
+  const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+
+  if (!grupoActivo) {
+    console.warn("⚠️ No hay grupo activo para mostrar subgrupo:", subgrupo);
+    return;
+  }
+
+  // Resetear botones de subgrupo
+  document.querySelectorAll('.btn-subgrupo').forEach(btn => btn.classList.remove('active'));
+  if (event?.target) event.target.classList.add('active');
+
+  // Filtrar y renderizar productos del grupo + subgrupo
+  filtrarSubcategoria(grupoActivo, subgrupo);
+}
+
+// Si usás type="module", exponerla al global:
+window.mostrarSubgrupo = mostrarSubgrupo;
 
 function vaciarCarrito() {
   carrito = [];
@@ -1351,7 +1384,7 @@ document.addEventListener('click', function(event) {
     panelGrupos.classList.add('oculta');
     panelSub.classList.add('oculta');
   }
-});
+});  
 </script>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script>
