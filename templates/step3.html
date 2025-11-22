@@ -257,48 +257,58 @@
 </div>
 
 <script>
-  let grupoId = 0;
-  let contadorOrden = 1;
-  let imagenSeleccionada = null;   // guarda el nombre del archivo seleccionado
-  let filaActual = null;           // referencia a la fila activa
-  let imagenesUsadas = [];         // lista global de imágenes ya asignadas
+let grupoId = 0;
+let contadorOrden = 1;
+let imagenSeleccionada = null;   // guarda el nombre del archivo seleccionado
+let filaActual = null;           // referencia a la fila activa
+let imagenesUsadas = [];         // lista global de imágenes ya asignadas
 
-  // 🔑 Definir base dinámica para imágenes
-  const repoDestino = localStorage.getItem("repoDestino");
-  const STATIC_BASE_URL = repoDestino
-    ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
-    : "";
+// 🔑 Definir base dinámica para imágenes
+const repoDestino = localStorage.getItem("repoDestino");
+const STATIC_BASE_URL = repoDestino
+  ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+  : "";
   
-  const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
-  console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
+const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
+console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
 
-  function eliminarProducto(boton) {
-    const fila = boton.closest('.fila-producto');
-    const grupo = boton.closest('.card');
-    fila.remove();
-    actualizarContador(grupo);
-  }
-    
+function eliminarProducto(boton) {
+  const fila = boton.closest('.fila-producto');
+  const grupo = boton.closest('.card');
+  fila.remove();
+  actualizarContador(grupo);
+}    
 const LS_KEY = "step3_state";
+
 // Función que arma el JSON y lo guarda en localStorage
 function saveState() {
-  const state = { grupos: [], imagenesUsadas: [...imagenesUsadas] };
+  const state = { grupos: [], imagenesUsadas: Array.isArray(imagenesUsadas) ? [...imagenesUsadas] : [] };
 
   document.querySelectorAll(".card:not(.subgrupo)").forEach(grupoCard => {
     const nombreGrupo = grupoCard.querySelector("h4")?.textContent?.trim() || "Sin nombre";
+    const idGrupo = grupoCard.id || null;
+    const ordenGrupo = grupoCard.getAttribute("data-orden") || null;
 
-    const productosGrupo = [...grupoCard.querySelectorAll(".productos > .fila-producto")].map(fila => filaToObj(fila));
+    const productosGrupo = Array.from(grupoCard.querySelectorAll(".productos > .fila-producto"))
+      .map(fila => filaToObj(fila));
 
-    const subgrupos = [...grupoCard.querySelectorAll(".subgrupo")].map(subCard => {
+    const subgrupos = Array.from(grupoCard.querySelectorAll(".subgrupo")).map(subCard => {
       const nombreSub = subCard.querySelector(".nombre-subgrupo")?.textContent?.trim() || "Sin subgrupo";
-      const productosSub = [...subCard.querySelectorAll(".productos > .fila-producto")].map(fila => filaToObj(fila));
-      return { nombre: nombreSub, productos: productosSub };
+      const idSub = subCard.id || null;
+      const productosSub = Array.from(subCard.querySelectorAll(".productos > .fila-producto"))
+        .map(fila => filaToObj(fila));
+      return { id: idSub, nombre: nombreSub, productos: productosSub };
     });
 
-    state.grupos.push({ nombre: nombreGrupo, productos: productosGrupo, subgrupos });
+    state.grupos.push({ id: idGrupo, nombre: nombreGrupo, orden: ordenGrupo, productos: productosGrupo, subgrupos });
   });
 
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    console.log("💾 [Step3] Estado guardado:", state);
+  } catch (err) {
+    console.error("❌ [Step3] Error guardando estado en localStorage:", err);
+  }
 }
 
 // Debounce wrapper
@@ -310,7 +320,6 @@ const saveStateDebounced = (() => {
   }
 })();
 
-// Utilidad para convertir fila en objeto
 function filaToObj(fila) {
   return {
     nombre: fila.querySelector("input[name='nombre']")?.value || "",
@@ -321,7 +330,7 @@ function filaToObj(fila) {
     imagen_basename: fila.querySelector("input[name='imagen_basename']")?.value || ""
   };
 }
-  
+ 
 function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
   if (!nombre) return alert("Ingresá un nombre para el grupo");
@@ -345,7 +354,6 @@ function crearGrupo() {
       </div>
     </div>
     <div class="productos"></div>
-    <!-- ✅ Botón para agregar fila directamente al grupo -->
     <div class="text-center mt-2">
       <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
     </div>
@@ -359,18 +367,30 @@ function crearGrupo() {
 
   document.getElementById('grupos').appendChild(grupo);
   document.getElementById('nombreGrupo').value = '';
-  
-  saveStateDebounced()
+
+  actualizarContador(grupo);   // recalcular contador inicial
+  saveStateDebounced();        // persistir estado
 }
-  
+
 function hydrateFila(filaData, filaEl) {
   console.log("🟢 [Step3] hydrateFila →", filaData);
 
+  // Restaurar campos básicos
+  filaEl.querySelector("input[name='nombre']").value = filaData.nombre || "";
+  filaEl.querySelector("textarea[name='descripcion']").value = filaData.descripcion || "";
+  filaEl.querySelector("input[name='precio']").value = filaData.precio || "";
+  filaEl.querySelector("input[name='talles']").value = filaData.talles || "";
+
   // Restaurar imagen elegida
-  if (filaData.imagen_elegida) {
-    filaEl.querySelector("input[name='imagen_elegida']").value = filaData.imagen_elegida;
-    filaEl.querySelector(".preview-imagen").innerHTML =
-      `<img src="${filaData.imagen_elegida}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+  if (filaData.imagen_url) {
+    const inputImg = filaEl.querySelector("input[name='imagen_elegida']");
+    if (inputImg) inputImg.value = filaData.imagen_url;
+
+    const preview = filaEl.querySelector(".preview-imagen");
+    if (preview) {
+      preview.innerHTML =
+        `<img src="${filaData.imagen_url}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+    }
   }
 
   // Restaurar basename
@@ -395,6 +415,7 @@ function editarNombreGrupo(btn) {
   input.type = 'text';
   input.value = valorActual;
   input.className = 'form-control form-control-sm d-inline-block w-50';
+  input.setAttribute("aria-label", "Editar nombre del grupo");
 
   input.onblur = () => guardarNombreGrupo(card, input.value);
   input.addEventListener('keydown', e => {
@@ -403,21 +424,35 @@ function editarNombreGrupo(btn) {
 
   h4.replaceWith(input);
   input.focus();
+  input.select(); // seleccionar texto para edición rápida
   saveStateDebounced();
 }
 
 function guardarNombreGrupo(card, nuevoNombre) {
   const h4 = document.createElement('h4');
   h4.className = 'mb-0 nombre-grupo';
-  h4.textContent = nuevoNombre || 'Sin nombre';
+  h4.textContent = nuevoNombre.trim() || 'Sin nombre';
 
   const input = card.querySelector('input[type="text"]');
   if (input) input.replaceWith(h4);
 
   // ✅ Actualizar hidden inputs de todas las filas dentro del grupo
-  card.querySelectorAll('input[name="grupo"]').forEach(h => h.value = nuevoNombre);
+  card.querySelectorAll('input[name="grupo"]').forEach(h => h.value = nuevoNombre.trim() || 'Sin nombre');
+
   saveStateDebounced();
 }
+
+
+function actualizarContador(elemento) {
+  const card = elemento.classList.contains('productos')
+    ? elemento.closest('.card')
+    : elemento;
+
+  const contador = card.querySelector('.contador');
+  const productos = card.querySelectorAll('.productos > .fila-producto');
+  contador.textContent = productos.length;
+}
+
 
 function actualizarContador(elemento) {
   const card = elemento.classList.contains('productos')
@@ -498,32 +533,54 @@ function abrirCarrusel(btn) {
     }
   });
 
-  // Si la fila ya tenía imagen elegida, remarcarla
+  // 📌 Si la fila ya tenía imagen elegida, remarcarla
   const hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
   if (hiddenBase && hiddenBase.value) {
-    const nombreActual = hiddenBase.value;
-    console.log("📌 [Step3] Fila ya tenía imagen:", nombreActual);
-    const imgActual = document.querySelector(`#carouselGlobal img[data-nombre="${nombreActual}"]`);
-    if (imgActual) {
-      seleccionarImagen(imgActual);
-      console.log("🎯 [Step3] Imagen marcada como seleccionada:", nombreActual);
-    } else {
-      console.warn("⚠️ [Step3] No se encontró imgActual para:", nombreActual);
-    }
+    const imgActual = document.querySelector(`#carouselGlobal img[data-nombre="${hiddenBase.value}"]`);
+    if (imgActual) seleccionarImagen(imgActual);
   } else {
     // Seleccionar la primera disponible si no había nada
     const firstImg = document.querySelector("#carouselGlobal .carousel-item.active img:not(.usada)");
-    if (firstImg) {
-      console.log("✅ [Step3] Seleccionando primera disponible:", firstImg.dataset.nombre);
-      seleccionarImagen(firstImg);
-    } else {
-      console.warn("⚠️ [Step3] No hay imagen disponible para seleccionar");
-    }
+    if (firstImg) seleccionarImagen(firstImg);
   }
 
-  console.log("📂 [Step3] Abriendo carrusel para fila:", filaActual);
+  // Finalmente mostrar el modal
   modal.show();
 }
+
+// Si la fila ya tenía imagen elegida, remarcarla
+if (!filaActual) {
+  console.error("❌ [Step3] No se encontró filaActual al abrir carrusel");
+  return;
+}
+
+const hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
+if (hiddenBase && hiddenBase.value) {
+  const nombreActual = hiddenBase.value;
+  console.log("📌 [Step3] Fila ya tenía imagen:", nombreActual);
+  const imgActual = document.querySelector(`#carouselGlobal img[data-nombre="${nombreActual}"]`);
+  if (imgActual) {
+    seleccionarImagen(imgActual);
+    console.log("🎯 [Step3] Imagen marcada como seleccionada:", nombreActual);
+    saveStateDebounced();
+  } else {
+    console.warn("⚠️ [Step3] No se encontró imgActual para:", nombreActual);
+  }
+} else {
+  // Seleccionar la primera disponible si no había nada
+  const firstImg = document.querySelector("#carouselGlobal .carousel-item.active img:not(.usada)")
+                || document.querySelector("#carouselGlobal .carousel-item img:not(.usada)");
+  if (firstImg) {
+    console.log("✅ [Step3] Seleccionando primera disponible:", firstImg.dataset.nombre);
+    seleccionarImagen(firstImg);
+    saveStateDebounced();
+  } else {
+    console.warn("⚠️ [Step3] No hay imagen disponible para seleccionar");
+  }
+}
+
+console.log("📂 [Step3] Abriendo carrusel para fila:", filaActual);
+modal.show();
 
 function inicializarCarrusel() {
   const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
@@ -553,12 +610,16 @@ function inicializarCarrusel() {
       }
     }
 
-    // Selección inicial
-    const firstImg = document.querySelector('#carouselGlobal .carousel-item.active img:not(.usada)');
+    // Selección inicial robusta
+    const firstImg = document.querySelector('#carouselGlobal .carousel-item.active img:not(.usada)')
+                  || document.querySelector('#carouselGlobal .carousel-item img:not(.usada)');
     if (firstImg) {
       seleccionarImagen(firstImg);
       console.log("✅ Selección inicial:", window.imagenSeleccionada, window.imagenSeleccionadaUrl);
+      saveStateDebounced(); // persistir selección inicial
     }
+
+    console.log(`📊 [Step3] Carrusel renderizado con ${document.querySelectorAll('#carouselGlobal .carousel-item').length} slides`);
   });
 }
 
@@ -595,10 +656,10 @@ function leerArchivoProductos() {
 
         const nombre      = partes[0] || "";
         const descripcion = partes[1] || "";
-        const precio      = partes[2] || "";
+        const precio      = (partes[2] || "").replace(",", ".").trim();
         const grupo       = partes[3] || "";
         const subgrupo    = partes[4] || "";
-        const talles      = partes[5] || "";
+        const talles      = (partes[5] || "").split(/[,|]/).map(t => t.trim()).filter(Boolean).join(", ");
 
         console.log("🧩 Valores parseados:", { nombre, descripcion, precio, grupo, subgrupo, talles });
 
@@ -609,57 +670,58 @@ function leerArchivoProductos() {
 
         agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
         filasAgregadas++;
+        saveStateDebounced();
       });
 
-      alert(filasAgregadas > 0
+      console.log(filasAgregadas > 0
         ? `✅ Productos importados: ${filasAgregadas}`
         : "❌ No se importaron filas desde CSV/TXT");
     };
+    reader.onerror = () => console.error("❌ Error leyendo archivo CSV/TXT");
     reader.readAsText(file);
   }
 
   // 👉 Excel XLS / XLSX
   else if (ext === "xls" || ext === "xlsx") {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const data = new Uint8Array(e.target.result);
-    const wb = XLSX.read(data, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws); // usa encabezados
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws); // usa encabezados
 
-    console.log("📊 Total filas Excel:", rows.length);
-    console.log("📊 Primeras filas:", rows.slice(0, 5));
+      console.log("📊 Total filas Excel:", rows.length);
+      console.log("📊 Primeras filas:", rows.slice(0, 5));
 
-    rows.forEach((obj, idx) => {
-      console.log(`➡️ Fila #${idx}:`, obj);
+      rows.forEach((obj, idx) => {
+        console.log(`➡️ Fila #${idx}:`, obj);
 
-      // 👉 acepta tanto "Grupo" como "Categoria"
-      const grupo       = obj.Grupo       || obj.Categoria    || "";
-      // 👉 acepta tanto "Subgrupo" como "Subcategoria"
-      const subgrupo    = obj.Subgrupo    || obj.Subcategoria || "";
-      // 👉 acepta tanto "Nombre" como "Producto"
-      const nombre      = obj.Nombre      || obj.Producto     || "";
-      const descripcion = obj.Descripcion || "";
-      const precio      = obj.Precio      || "";
-      const talles      = obj.Talles      || "";
+        const grupo       = obj.Grupo       || obj.Categoria    || "";
+        const subgrupo    = obj.Subgrupo    || obj.Subcategoria || "";
+        const nombre      = obj.Nombre      || obj.Producto     || "";
+        const descripcion = obj.Descripcion || "";
+        const precio      = (obj.Precio || "").toString().replace(",", ".").trim();
+        const talles      = (obj.Talles || "").toString().split(/[,|]/).map(t => t.trim()).filter(Boolean).join(", ");
 
-      console.log("🧩 Valores parseados:", { nombre, descripcion, precio, grupo, subgrupo, talles });
+        console.log("🧩 Valores parseados:", { nombre, descripcion, precio, grupo, subgrupo, talles });
 
-      if (!(grupo && subgrupo)) {
-        console.warn("⚠️ Fila descartada por falta de grupo/subgrupo:", obj);
-        return;
-      }
+        if (!(grupo && subgrupo)) {
+          console.warn("⚠️ Fila descartada por falta de grupo/subgrupo:", obj);
+          return;
+        }
 
-      agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
-      filasAgregadas++;
-    });
+        agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
+        filasAgregadas++;
+        saveStateDebounced();
+      });
 
-    alert(filasAgregadas > 0
-      ? `✅ Productos importados desde Excel: ${filasAgregadas}`
-      : "❌ No se importaron filas desde Excel");
-  };
-  reader.readAsArrayBuffer(file);
-}
+      console.log(filasAgregadas > 0
+        ? `✅ Productos importados desde Excel: ${filasAgregadas}`
+        : "❌ No se importaron filas desde Excel");
+    };
+    reader.onerror = () => console.error("❌ Error leyendo archivo Excel");
+    reader.readAsArrayBuffer(file);
+  }
 
   else {
     alert("⚠️ Formato no soportado. Subí CSV, TXT o Excel (.xls/.xlsx)");
@@ -683,7 +745,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
 
   // Buscar o crear subgrupo
   let subgrupoCard = grupoCard && [...grupoCard.querySelectorAll(".subgrupo")].find(
-    s => s.querySelector("strong")?.textContent.trim() === subgrupo
+    s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === subgrupo
   );
   if (!subgrupoCard && grupoCard) {
     const grupoIdx = grupoCard.id.split("_")[1];
@@ -693,7 +755,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
       inputSub.value = subgrupo;
       crearSubgrupo(btnCrearSub);
       subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
-        s => s.querySelector("strong")?.textContent.trim() === subgrupo
+        s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === subgrupo
       );
     }
   }
@@ -705,13 +767,19 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
 
   // Crear fila y rellenar datos
   const fila = crearFila(subgrupo, grupo);
-  fila.querySelector("input[name='nombre']").value = nombre;
-  fila.querySelector("textarea[name='descripcion']").value = descripcion;
-  fila.querySelector("input[name='precio']").value = precio;
-  fila.querySelector("input[name='talles']").value = talles;
+  if (!fila) {
+    console.error("❌ No se pudo crear fila para:", { grupo, subgrupo });
+    return;
+  }
+
+  fila.querySelector("input[name='nombre']").value = (nombre || "").trim();
+  fila.querySelector("textarea[name='descripcion']").value = (descripcion || "").trim();
+  fila.querySelector("input[name='precio']").value = (precio || "").trim();
+  fila.querySelector("input[name='talles']").value = (talles || "").trim();
 
   subgrupoCard.querySelector(".productos").appendChild(fila);
   actualizarContador(subgrupoCard);
+  actualizarContador(grupoCard);
   saveStateDebounced();
 }
 
@@ -722,12 +790,14 @@ function ensureDB(callback) {
     const db = e.target.result;
 
     if (!db.objectStoreNames.contains("imagenes")) {
-      db.createObjectStore("imagenes", { keyPath: "basename" });
+      const storeImg = db.createObjectStore("imagenes", { keyPath: "basename" });
+      storeImg.createIndex("createdAt", "createdAt", { unique: false });
       console.log("📦 Store 'imagenes' creado (upgrade)");
     }
 
     if (!db.objectStoreNames.contains("optimizadas")) {
-      db.createObjectStore("optimizadas", { keyPath: "basename" });
+      const storeOpt = db.createObjectStore("optimizadas", { keyPath: "basename" });
+      storeOpt.createIndex("createdAt", "createdAt", { unique: false });
       console.log("📦 Store 'optimizadas' creado (upgrade)");
     }
   };
@@ -745,53 +815,73 @@ function ensureDB(callback) {
         const re = indexedDB.open(DB_NAME, DB_VERSION);
         re.onupgradeneeded = ev => {
           const db2 = ev.target.result;
-          db2.createObjectStore("imagenes", { keyPath: "basename" });
-          db2.createObjectStore("optimizadas", { keyPath: "basename" });
+          const storeImg = db2.createObjectStore("imagenes", { keyPath: "basename" });
+          storeImg.createIndex("createdAt", "createdAt", { unique: false });
+          const storeOpt = db2.createObjectStore("optimizadas", { keyPath: "basename" });
+          storeOpt.createIndex("createdAt", "createdAt", { unique: false });
           console.log("📦 Stores 'imagenes' y 'optimizadas' recreados.");
         };
         re.onsuccess = ev => callback(ev.target.result);
+        re.onerror = err => {
+          console.error("❌ Error recreando DB:", err.target.error);
+          callback(null);
+        };
       };
-      del.onerror = () => { console.error("❌ No se pudo borrar la DB"); callback(db); };
+      del.onerror = () => {
+        console.error("❌ No se pudo borrar la DB");
+        callback(null);
+      };
     } else {
       callback(db);
     }
   };
 
-  request.onerror = e => console.error("❌ Error abriendo IndexedDB:", e.target.error);
+  request.onerror = e => {
+    console.error("❌ Error abriendo IndexedDB:", e.target.error);
+    if (request.result) request.result.close();
+    callback(null);
+  };
 }
-    
+
 function cargarImagenesDesdeIndexedDB(done) {
-      ensureDB(db => {
-        const tx = db.transaction("imagenes", "readonly");
-        const store = tx.objectStore("imagenes");
-        const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
-        let first = true, buffer = [];
-        let count = 0;
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readonly");
+    const store = tx.objectStore("imagenes");
+    const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+    let first = true, buffer = [];
+    let count = 0;
 
-        lista.forEach(nombre => {
-          const getReq = store.get(nombre);
-          getReq.onsuccess = e => {
-            const blob = e.target.result;
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              buffer.push({ nombre, url });
-              count++;
-              if (buffer.length === 8) {
-                agregarSlide(buffer, first);
-                first = false;
-                buffer = [];
-              }
-            }
-          };
-          getReq.onerror = err => console.error("❌ Error leyendo imagen:", nombre, err.target.error);
-        });
-
-        tx.oncomplete = () => {
-          if (buffer.length) agregarSlide(buffer, first);
-          done(count); // cantidad cargada desde IndexedDB
-        };
-      });
+    if (!lista.length) {
+      console.warn("⚠️ [IndexedDB] Lista de imágenes vacía en localStorage");
     }
+
+    lista.forEach(nombre => {
+      const getReq = store.get(nombre);
+      getReq.onsuccess = e => {
+        const blob = e.target.result;
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          buffer.push({ nombre, url });
+          count++;
+          if (buffer.length === 8) {
+            agregarSlide(buffer, first);
+            first = false;
+            buffer = [];
+          }
+        } else {
+          console.warn("⚠️ [IndexedDB] Imagen no encontrada:", nombre);
+        }
+      };
+      getReq.onerror = err => console.error("❌ Error leyendo imagen:", nombre, err.target.error);
+    });
+
+    tx.oncomplete = () => {
+      if (buffer.length) agregarSlide(buffer, first);
+      console.log(`📊 [IndexedDB] Cargadas ${count} imágenes desde IndexedDB`);
+      if (typeof done === "function") done(count);
+    };
+  });
+}
 
 function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
@@ -800,6 +890,14 @@ function crearSubgrupo(btn) {
   const input = grupo.querySelector('input[id^="inputSubgrupo"]');
   const nombreSubgrupo = input.value.trim();
   if (!nombreSubgrupo) return alert("Ingresá un nombre para el subgrupo");
+
+  // ⚠️ Evitar duplicados
+  const existe = [...grupo.querySelectorAll('.subgrupo .nombre-subgrupo')]
+    .some(el => el.textContent.trim().toLowerCase() === nombreSubgrupo.toLowerCase());
+  if (existe) {
+    alert("⚠️ Ya existe un subgrupo con ese nombre en este grupo");
+    return;
+  }
 
   const subgrupo = document.createElement('div');
   subgrupo.className = 'card p-2 mb-3 subgrupo';
@@ -822,9 +920,10 @@ function crearSubgrupo(btn) {
 
   const contenedor = subgrupo.querySelector('.productos');
   const fila = crearFila(nombreSubgrupo, nombreGrupo);
-  contenedor.appendChild(fila);
+  if (fila) contenedor.appendChild(fila);
 
   actualizarContador(subgrupo);
+  actualizarContador(grupo);
 
   // ✅ Guardar estado después de crear el subgrupo y su primera fila
   saveStateDebounced();
@@ -839,6 +938,7 @@ function editarNombreSubgrupo(btn) {
   input.type = 'text';
   input.value = valorActual;
   input.className = 'form-control form-control-sm d-inline-block w-50';
+  input.setAttribute("aria-label", "Editar nombre del subgrupo");
 
   input.onblur = () => guardarNombreSubgrupo(card, input.value);
   input.addEventListener('keydown', e => {
@@ -847,19 +947,22 @@ function editarNombreSubgrupo(btn) {
 
   strong.replaceWith(input);
   input.focus();
+  input.select(); // seleccionar texto para edición rápida
   saveStateDebounced();
 }
 
 function guardarNombreSubgrupo(card, nuevoNombre) {
+  const grupo = card.closest('.card');
   const strong = document.createElement('strong');
   strong.className = 'nombre-subgrupo';
-  strong.textContent = nuevoNombre || 'Sin subgrupo';
+  strong.textContent = nuevoNombre.trim() || 'Sin subgrupo';
 
   const input = card.querySelector('input[type="text"]');
   if (input) input.replaceWith(strong);
 
   // ✅ Actualizar hidden inputs de todas las filas dentro del subgrupo
-  card.querySelectorAll('input[name="subgrupo"]').forEach(h => h.value = nuevoNombre);
+  card.querySelectorAll('input[name="subgrupo"]').forEach(h => h.value = nuevoNombre.trim() || 'Sin subgrupo');
+
   saveStateDebounced();
 }
 
@@ -903,27 +1006,24 @@ function agregarFila(btn) {
 
   if (subgrupo) {
     contenedor = subgrupo.querySelector('.productos');
-    nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
-    nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+    nombreSubgrupo = (subgrupo.querySelector('.nombre-subgrupo')?.textContent || 'Sin subgrupo').trim();
+    nombreGrupo = (grupo.querySelector('h4')?.textContent || 'General').trim();
   } else {
     contenedor = grupo.querySelector('.productos');
     nombreSubgrupo = 'General';
-    nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+    nombreGrupo = (grupo.querySelector('h4')?.textContent || 'General').trim();
   }
 
   const fila = crearFila(nombreSubgrupo, nombreGrupo);
-  contenedor.appendChild(fila);
+  if (fila) contenedor.appendChild(fila);
 
   actualizarContador(contenedor);
+  actualizarContador(grupo);
   saveStateDebounced();
 }
 
 function eliminarSubgrupo(btn) {
   const subgrupo = btn.closest('.subgrupo');
-
-  // liberar imágenes del subgrupo
-  let usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
-  if (!Array.isArray(usadas)) usadas = [];
 
   subgrupo.querySelectorAll('.fila-producto').forEach(fila => {
     const hiddenBase = fila.querySelector('input[name="imagen_basename"]');
@@ -931,7 +1031,7 @@ function eliminarSubgrupo(btn) {
     if (!basename) return;
 
     // quitar del array global
-    usadas = usadas.filter(n => n !== basename);
+    imagenesUsadas = imagenesUsadas.filter(n => n !== basename);
 
     // liberar en carrusel
     const img = document.querySelector(`#carouselGlobal img[data-nombre="${basename}"]`);
@@ -940,13 +1040,18 @@ function eliminarSubgrupo(btn) {
       img.style.opacity = "1";
       img.style.filter = "none";
       img.style.pointerEvents = "auto";
+      URL.revokeObjectURL(img.src); // liberar URL temporal si aplica
     }
   });
 
-  localStorage.setItem("imagenesUsadas", JSON.stringify(usadas));
-  marcarImagenesUsadas();
+  localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
+  try { marcarImagenesUsadas(); } catch(e) { console.warn("⚠️ No se pudo refrescar carrusel:", e); }
 
   subgrupo.remove();
+
+  const grupo = subgrupo.closest('.card:not(.subgrupo)');
+  if (grupo) actualizarContador(grupo);
+
   saveStateDebounced();
 }
 
@@ -965,6 +1070,7 @@ function eliminarFila(btn) {
         img.style.opacity = "1";
         img.style.filter = "none";
         img.style.pointerEvents = "auto";
+        URL.revokeObjectURL(img.src); // liberar URL temporal si aplica
         console.log(`🔓 [Step3] Imagen liberada: ${basename}`);
       }
     });
@@ -974,13 +1080,13 @@ function eliminarFila(btn) {
     localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
 
     // Refrescar carrusel
-    marcarImagenesUsadas();
+    try { marcarImagenesUsadas(); } catch(e) { console.warn("⚠️ No se pudo refrescar carrusel:", e); }
   }
 
   // Eliminar fila si hay más de una
   if (contenedor.querySelectorAll('.fila-producto').length > 1) {
     fila.remove();
-    actualizarContador(contenedor); // usa la versión unificada
+    actualizarContador(contenedor);
     console.log("✅ [Step3] Fila eliminada");
   } else {
     alert("No se puede eliminar la última fila");
@@ -1006,6 +1112,7 @@ function eliminarGrupo(btn) {
           img.style.opacity = "1";
           img.style.filter = "none";
           img.style.pointerEvents = "auto";
+          URL.revokeObjectURL(img.src); // liberar URL temporal si aplica
           console.log(`🔓 [Step3] Imagen liberada al eliminar grupo: ${basename}`);
         }
       });
@@ -1017,7 +1124,7 @@ function eliminarGrupo(btn) {
 
   // 📝 Actualizar localStorage y refrescar carrusel
   localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
-  marcarImagenesUsadas();
+  try { marcarImagenesUsadas(); } catch(e) { console.warn("⚠️ No se pudo refrescar carrusel:", e); }
 
   // 🗑️ Eliminar el grupo
   grupo.remove();
@@ -1025,14 +1132,16 @@ function eliminarGrupo(btn) {
 
   saveStateDebounced();
 }
-  
+
 function seleccionarImagen(img) {
   // Quitar selección previa
   document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
+  document.querySelectorAll('#carouselGlobal .imagen-carrusel').forEach(el => el.classList.remove('seleccionada'));
 
-  // Marcar nuevo wrapper
+  // Marcar nuevo wrapper e imagen
   const wrapper = img.closest('.thumb-wrapper');
   if (wrapper) wrapper.classList.add('seleccionada');
+  img.classList.add('seleccionada');
 
   // Guardar selección en variables globales
   window.imagenSeleccionada = img.dataset.nombre;
@@ -1041,14 +1150,8 @@ function seleccionarImagen(img) {
   console.log("🖱️ Imagen clickeada:", img.src);
   console.log("✅ Imagen seleccionada:", window.imagenSeleccionada);
   console.log("🔗 URL seleccionada:", window.imagenSeleccionadaUrl);
-
-  // Feedback visual
-  document.querySelectorAll('#carouselGlobal .imagen-carrusel').forEach(el => {
-    el.style.outline = "";
-  });
-  img.style.outline = "3px solid #00c853"; // verde para destacar
 }
-  
+
 function confirmarImagen() {
   console.log("🟢 [Step3] confirmarImagen → seleccionada:", window.imagenSeleccionada, 
               "url:", window.imagenSeleccionadaUrl, 
@@ -1067,7 +1170,7 @@ function confirmarImagen() {
 
   // Si la URL es blob, reemplazar por ruta real usando mapping
   if (imagenFinal.startsWith("blob:")) {
-    const basename = window.imagenSeleccionada;
+    const basename = (window.imagenSeleccionada || "").trim();
     const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
     const nombreGenerado = mapping[basename];
 
@@ -1078,12 +1181,11 @@ function confirmarImagen() {
       const baseUrl = repoDestino
         ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
         : "";
-
       imagenFinal = baseUrl
         ? `${baseUrl}/static/img/${nombreGenerado}`
         : `/static/img/${nombreGenerado}`;
-
       console.log("🔄 [Step3] Blob reemplazado usando mapping:", basename, "→", imagenFinal);
+      URL.revokeObjectURL(window.imagenSeleccionadaUrl); // liberar blob temporal
     } else {
       console.error("❌ [Step3] No se encontró mapping para basename", basename);
       return;
@@ -1107,26 +1209,29 @@ function confirmarImagen() {
     filaActual.appendChild(hiddenBase);
     console.log("➕ [Step3] Creado hidden imagen_basename");
   }
-  hiddenBase.value = window.imagenSeleccionada;
+  hiddenBase.value = (window.imagenSeleccionada || "").trim();
   console.log("💾 [Step3] Guardado en hidden imagen_basename:", window.imagenSeleccionada);
 
   // Preview
-  filaActual.querySelector(".preview-imagen").innerHTML =
-    `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
-  console.log("🖼️ [Step3] Preview actualizada con:", imagenFinal);
-
-  // ✅ Marcar como usada y persistir GLOBAL
-  imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
-  if (!Array.isArray(imagenesUsadas)) imagenesUsadas = [];
-
-  const basename = window.imagenSeleccionada;
-  if (!imagenesUsadas.includes(basename)) {
-    imagenesUsadas.push(basename);
-    localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
-    console.log("📌 [Step3] imagenesUsadas actualizado:", imagenesUsadas);
+  const preview = filaActual.querySelector(".preview-imagen");
+  if (preview) {
+    preview.innerHTML =
+      `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+    console.log("🖼️ [Step3] Preview actualizada con:", imagenFinal);
   }
 
-  marcarImagenesUsadas();
+  // ✅ Marcar como usada y persistir GLOBAL
+  let usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(usadas)) usadas = [];
+  const basename = (window.imagenSeleccionada || "").trim();
+  if (!usadas.includes(basename)) {
+    usadas.push(basename);
+    localStorage.setItem("imagenesUsadas", JSON.stringify(usadas));
+    console.log("📌 [Step3] imagenesUsadas actualizado:", usadas);
+  }
+  imagenesUsadas = usadas;
+
+  try { marcarImagenesUsadas(); } catch(e) { console.warn("⚠️ No se pudo refrescar carrusel:", e); }
 
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
   if (modal) {
@@ -1137,7 +1242,7 @@ function confirmarImagen() {
   saveStateDebounced();
   console.log("💾 [Step3] Estado guardado (debounced)");
 }
-  
+
 function loadState() {
   const raw = localStorage.getItem(LS_KEY);
   if (!raw) {
@@ -1168,8 +1273,10 @@ function loadState() {
         .sort((a, b) => (a.orden || 0) - (b.orden || 0))
         .forEach(p => {
           const fila = crearFila("General", g.nombre);
-          hydrateFila(fila, p);
-          contGrupo.appendChild(fila);
+          if (fila) {
+            hydrateFila(fila, p);
+            contGrupo.appendChild(fila);
+          }
         });
       actualizarContador(contGrupo);
 
@@ -1189,29 +1296,27 @@ function loadState() {
           .sort((a, b) => (a.orden || 0) - (b.orden || 0))
           .forEach(p => {
             const fila = crearFila(sg.nombre, g.nombre);
-            hydrateFila(fila, p);
-            contSub.appendChild(fila);
+            if (fila) {
+              hydrateFila(fila, p);
+              contSub.appendChild(fila);
+            }
           });
         actualizarContador(subCard);
       });
     });
 
     // Marcar imágenes usadas en carrusel
-    document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-      if (imagenesUsadas.includes(img.dataset.nombre)) {
-        img.classList.add('usada');
-        img.style.opacity = "0.25";
-        img.style.filter = "grayscale(100%) brightness(0.6)";
-        img.style.pointerEvents = "none";
-        console.log(`🖼️ [Step3] Imagen marcada como usada: ${img.dataset.nombre}`);
-      }
-    });
+    try { marcarImagenesUsadas(); } catch(e) {
+      console.warn("⚠️ [Step3] No se pudo refrescar carrusel:", e);
+    }
+
+    console.log(`📊 [Step3] Reconstruidos ${state.grupos?.length || 0} grupos`);
 
   } catch (e) {
     console.error("❌ [Step3] Error al cargar estado:", e);
   }
 }
-  
+
 function iniciarStep3() {
   // 🧹 Siempre limpiar el estado viejo de Step3
   localStorage.removeItem("step3_state");
@@ -1233,18 +1338,19 @@ function iniciarStep3() {
 }
 
 function marcarImagenesUsadas() {
-  let usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
-  if (!Array.isArray(usadas)) usadas = [];
+  imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(imagenesUsadas)) imagenesUsadas = [];
 
   document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
-    const estaUsada = usadas.includes(img.dataset.nombre);
+    const estaUsada = imagenesUsadas.includes(img.dataset.nombre);
     img.classList.toggle('usada', estaUsada);
     img.style.opacity = estaUsada ? "0.25" : "1";
     img.style.filter = estaUsada ? "grayscale(100%) brightness(0.6)" : "none";
     img.style.pointerEvents = estaUsada ? "none" : "auto";
   });
-}
 
+  console.log(`📊 [Step3] Imágenes marcadas como usadas: ${imagenesUsadas.length}`);
+}
 
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
@@ -1287,21 +1393,19 @@ function validarYEnviar() {
   }
 
   // Mostrar spinner y limpiar estado antes de enviar
-  document.getElementById('spinner').style.display = 'flex';
+  const spinner = document.getElementById('spinner');
+  if (spinner) spinner.style.display = 'flex';
   localStorage.removeItem("step3_state"); // ✅ limpiar cache del paso
-  document.getElementById('formulario').submit();
+  const form = document.getElementById('formulario');
+  if (form) form.submit();
 }
 
 window.addEventListener("load", () => {
   console.log("🚀 [Step3] Inicializando...");
 
-  // 🧹 Inicializar Step3 (limpia estado viejo y usa listas_step2-5 si existen)
   iniciarStep3();
-
-  // 🔢 Contador de orden
   contadorOrden = 1;
 
-  // 📥 Cargar imágenes desde IndexedDB
   cargarImagenesDesdeIndexedDB(count => {
     console.log("📥 [Step3] Imágenes cargadas desde IndexedDB:", count);
 
@@ -1310,19 +1414,15 @@ window.addEventListener("load", () => {
       inicializarCarrusel();
     }
 
-    // 🔑 Inicializar lista de imágenes usadas desde localStorage
     imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
     console.log("🟢 [Step3] imagenesUsadas al cargar:", imagenesUsadas);
 
-    // También conviene loguear las rutas reales guardadas en Step0
     const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
     console.log("🟢 [Step3] imagenes_step0 al cargar:", rutasStep0);
 
-    // Intentar restaurar estado guardado (si no venís de Step2-5)
     loadState();
     console.log("💾 [Step3] Estado restaurado desde localStorage");
 
-    // ✅ volver a marcar imágenes usadas
     marcarImagenesUsadas();
   });
 });
