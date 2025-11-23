@@ -109,7 +109,9 @@ def subir_a_firestore(producto, email):
             return {"ok": False, "error": "Faltan campos obligatorios: nombre/grupo/precio"}
 
         grupo_original = producto["grupo"].strip()
-        subgrupo_original = producto.get("subgrupo", "general").strip()
+        subgrupo_original = producto.get("subgrupo", "").strip()
+        if not subgrupo_original:
+            subgrupo_original = f"General_{grupo_original}"
         nombre_original = producto["nombre"].strip()
         print(f"[FIRESTORE] Campos normalizados: nombre={nombre_original}, grupo={grupo_original}, subgrupo={subgrupo_original}")
 
@@ -177,7 +179,6 @@ def subir_a_firestore(producto, email):
         tb = traceback.format_exc()
         print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
         return {"ok": False, "error": str(e), "trace": tb}
-
 
 
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
