@@ -1268,20 +1268,6 @@ function ajustarPosicionesPaneles() {
     panelSub.style.top = '';
   }
 }
-    
-function ordenarDentroDeBloques(asc = true) {
-  const bloques = document.querySelectorAll(".bloque-subgrupo");
-  bloques.forEach(bloque => {
-    const cards = Array.from(bloque.querySelectorAll(".card-producto"));
-    cards.sort((a, b) => {
-      const pa = Number(a.dataset.precio) || 0;
-      const pb = Number(b.dataset.precio) || 0;
-      return asc ? pa - pb : pb - pa;
-    });
-    bloque.innerHTML = "";
-    cards.forEach(card => bloque.appendChild(card));
-  });
-}
 
 document.addEventListener("DOMContentLoaded", () => {
   // Login admin
@@ -1363,22 +1349,67 @@ document.addEventListener("DOMContentLoaded", () => {
       const subActivoBtn = document.querySelector(".btn-subgrupo.active");
       const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
+      // Tomamos la fuente original
+      let productosFiltrados = window.todosLosProductos || [];
+
+      // Filtramos por grupo activo si existe
+      if (grupoActivo) {
+        productosFiltrados = productosFiltrados.filter(
+          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
+        );
+      }
+
       if (grupoActivo && subActivo) {
         // Caso 1: hay subgrupo activo → ordenar solo ese subgrupo
-        const bloque = document.querySelector(`.bloque-subgrupo[data-subgrupo="${subActivo}"]`);
-        if (bloque) {
-          const cards = Array.from(bloque.querySelectorAll(".card-producto"));
-          cards.sort((a, b) => {
-            const pa = Number(a.dataset.precio) || 0;
-            const pb = Number(b.dataset.precio) || 0;
+        productosFiltrados = productosFiltrados.filter(
+          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
+        );
+
+        productosFiltrados.sort((a, b) => {
+          const pa = Number(a.precio) || 0;
+          const pb = Number(b.precio) || 0;
+          return asc ? pa - pb : pb - pa;
+        });
+
+        const cont = document.getElementById("productos");
+        cont.innerHTML = "";
+        productosFiltrados.forEach(p => {
+          const card = renderProducto(p);
+          cont.appendChild(card);
+          setTimeout(() => card.classList.remove("fade-reorder"), 50);
+        });
+
+      } else if (grupoActivo) {
+        // Caso 2: NO hay subgrupo activo → recrear bloques por subgrupo y ordenar dentro
+        const cont = document.getElementById("productos");
+        cont.innerHTML = "";
+
+        let subgrupos = [...new Set(productosFiltrados.map(p => p.subgrupo).filter(Boolean))];
+        subgrupos.sort((a, b) => asc ? a.localeCompare(b) : b.localeCompare(a));
+
+        subgrupos.forEach(sg => {
+          // 👉 crear bloque contenedor por subgrupo
+          const bloqueSub = document.createElement("div");
+          bloqueSub.className = "bloque-subgrupo";
+          bloqueSub.dataset.subgrupo = sg;
+          cont.appendChild(bloqueSub);
+
+          const productosSub = productosFiltrados.filter(
+            p => p.subgrupo?.toLowerCase() === sg.toLowerCase()
+          );
+
+          productosSub.sort((a, b) => {
+            const pa = Number(a.precio) || 0;
+            const pb = Number(b.precio) || 0;
             return asc ? pa - pb : pb - pa;
           });
-          bloque.innerHTML = "";
-          cards.forEach(card => bloque.appendChild(card));
-        }
-      } else if (grupoActivo) {
-        // Caso 2: NO hay subgrupo activo → ordenar dentro de cada bloque ya existente
-        ordenarDentroDeBloques(asc);
+
+          productosSub.forEach(p => {
+            const card = renderProducto(p);
+            bloqueSub.appendChild(card);
+            setTimeout(() => card.classList.remove("fade-reorder"), 50);
+          });
+        });
       }
     });
   }
@@ -1396,6 +1427,7 @@ if (btnProductos) {
     
     // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
+}
   
 </script>
 <script type="module">
