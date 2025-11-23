@@ -310,22 +310,19 @@ html {
   background-color: white;
   color: black;
 }
-.grupo-section {
-  display: none;
-  min-height: 100vh;
-}
 .grupo-section.active {
   display: block !important;
 }
 /* Bloque de grupo */
 .grupo-section {
+  display: block;          /* visible por defecto */
+  min-height: 100vh;       /* si querés que ocupe toda la altura */
   margin: 20px 0;
   padding: 15px;
   border: 2px solid #333;
   border-radius: 6px;
   background: #fafafa;
 }
-
 /* Título de grupo */
 .grupo-section > h3 {
   margin: 0 0 10px;
