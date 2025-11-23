@@ -504,6 +504,29 @@ html {
 </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
+{% if config.logo %}
+  <div class="text-center mt-4">
+    <img src="{{ url_for('static', filename='img/' + config.logo) }}"
+          alt="Logo"
+          class="img-fluid logo mx-auto d-block">
+  </div>
+{% endif %}
+
+{% if config.sobre_mi %}
+  <div class="text-center mb-4">
+    <div class="descripcion-emprendimiento">
+       {{ config.sobre_mi | replace('\n', '<br>') | safe }}
+    </div>
+  </div>
+{% endif %} 
+
+  <div class="text-center my-4">
+    <select id="ordenPrecio" class="form-select w-auto d-inline-block">
+      <option value="asc">Precio: Menor a mayor</option>
+      <option value="desc">Precio: Mayor a menor</option>
+    </select>
+  </div>
+  
   <div class="barra-wrapper">
     <nav class="barra-navegacion">
       <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
@@ -525,14 +548,6 @@ html {
           style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
   </button>
-
-  {% if config.logo %}
-    <div class="text-center mt-4">
-      <img src="{{ url_for('static', filename='img/' + config.logo) }}"
-           alt="Logo"
-           class="img-fluid logo mx-auto d-block">
-    </div>
-  {% endif %}
 
   {% if modoAdminIntentado and not modoAdmin %}
     <div id="login-admin" class="container mt-4">
@@ -562,21 +577,6 @@ html {
       </a>
     </div>
   {% endif %}
-
-  <div class="text-center my-4">
-    <select id="ordenPrecio" class="form-select w-auto d-inline-block">
-      <option value="asc">Precio: Menor a mayor</option>
-      <option value="desc">Precio: Mayor a menor</option>
-    </select>
-  </div>
-
-{% if config.sobre_mi %}
-  <div class="text-center mb-4">
-    <div class="descripcion-emprendimiento">
-       {{ config.sobre_mi | replace('\n', '<br>') | safe }}
-    </div>
-  </div>
-{% endif %}  
 
 <div id="contenedor-grupos"></div>
 
