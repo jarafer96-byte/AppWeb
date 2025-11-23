@@ -152,11 +152,13 @@ function prepararStep3() {
   container.querySelectorAll('div').forEach((fila, idx) => {
     const grupo = fila.querySelector(`[name="grupo_${idx+1}"]`)?.value || "";
     const subgrupo = fila.querySelector(`[name="subgrupo_${idx+1}"]`)?.value || "";
+    const productoBase = fila.querySelector(`[name="producto_${idx+1}"]`)?.value || "";
     const cantidad = fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1";
     const talles = fila.querySelector(`[name="talles_${idx+1}"]`)?.value || "";
 
-    if (grupo || subgrupo) {
-      filas.push({ grupo, subgrupo, cantidad, talles });
+    // Guardar fila si hay al menos un dato
+    if (grupo || subgrupo || productoBase) {
+      filas.push({ grupo, subgrupo, productoBase, cantidad, talles });
     }
   });
 
