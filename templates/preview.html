@@ -1269,42 +1269,17 @@ function ajustarPosicionesPaneles() {
   }
 }
     
-function ordenarGrupo(grupo, asc = true) {
-  const cont = document.getElementById("productos");
-  cont.innerHTML = "";
-
-  // Obtener subgrupos únicos del grupo
-  const subgrupos = [...new Set(window.todosLosProductos
-    .filter(p => p.grupo?.toLowerCase() === grupo.toLowerCase())
-    .map(p => p.subgrupo)
-    .filter(Boolean))];
-
-  subgrupos.forEach(sub => {
-    // 👉 recrear el bloque del subgrupo
-    const bloqueSub = document.createElement("div");
-    bloqueSub.className = "bloque-subgrupo";
-    bloqueSub.dataset.subgrupo = sub;
-    cont.appendChild(bloqueSub);
-
-    // Filtrar productos del subgrupo
-    const productosSub = window.todosLosProductos.filter(p =>
-      p.grupo?.toLowerCase() === grupo.toLowerCase() &&
-      p.subgrupo?.toLowerCase() === sub.toLowerCase()
-    );
-
-    // Ordenar dentro del subgrupo
-    productosSub.sort((a, b) => {
-      const pa = Number(a.precio) || 0;
-      const pb = Number(b.precio) || 0;
+function ordenarDentroDeBloques(asc = true) {
+  const bloques = document.querySelectorAll(".bloque-subgrupo");
+  bloques.forEach(bloque => {
+    const cards = Array.from(bloque.querySelectorAll(".card-producto"));
+    cards.sort((a, b) => {
+      const pa = Number(a.dataset.precio) || 0;
+      const pb = Number(b.dataset.precio) || 0;
       return asc ? pa - pb : pb - pa;
     });
-
-    // Renderizar productos dentro del bloque del subgrupo
-    productosSub.forEach(p => {
-      const card = renderProducto(p);
-      bloqueSub.appendChild(card);
-      requestAnimationFrame(() => card.classList.add("show"));
-    });
+    bloque.innerHTML = "";
+    cards.forEach(card => bloque.appendChild(card));
   });
 }
 
@@ -1388,67 +1363,22 @@ document.addEventListener("DOMContentLoaded", () => {
       const subActivoBtn = document.querySelector(".btn-subgrupo.active");
       const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-      // Tomamos la fuente original
-      let productosFiltrados = window.todosLosProductos || [];
-
-      // Filtramos por grupo activo si existe
-      if (grupoActivo) {
-        productosFiltrados = productosFiltrados.filter(
-          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
-        );
-      }
-
       if (grupoActivo && subActivo) {
         // Caso 1: hay subgrupo activo → ordenar solo ese subgrupo
-        productosFiltrados = productosFiltrados.filter(
-          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
-        );
-
-        productosFiltrados.sort((a, b) => {
-          const pa = Number(a.precio) || 0;
-          const pb = Number(b.precio) || 0;
-          return asc ? pa - pb : pb - pa;
-        });
-
-        const cont = document.getElementById("productos");
-        cont.innerHTML = "";
-        productosFiltrados.forEach(p => {
-          const card = renderProducto(p);
-          cont.appendChild(card);
-          setTimeout(() => card.classList.remove("fade-reorder"), 50);
-        });
-
-      } else if (grupoActivo) {
-        // Caso 2: NO hay subgrupo activo → recrear bloques por subgrupo y ordenar dentro
-        const cont = document.getElementById("productos");
-        cont.innerHTML = "";
-
-        let subgrupos = [...new Set(productosFiltrados.map(p => p.subgrupo).filter(Boolean))];
-        subgrupos.sort((a, b) => asc ? a.localeCompare(b) : b.localeCompare(a));
-
-        subgrupos.forEach(sg => {
-          // 👉 crear bloque contenedor por subgrupo
-          const bloqueSub = document.createElement("div");
-          bloqueSub.className = "bloque-subgrupo";
-          bloqueSub.dataset.subgrupo = sg;
-          cont.appendChild(bloqueSub);
-
-          const productosSub = productosFiltrados.filter(
-            p => p.subgrupo?.toLowerCase() === sg.toLowerCase()
-          );
-
-          productosSub.sort((a, b) => {
-            const pa = Number(a.precio) || 0;
-            const pb = Number(b.precio) || 0;
+        const bloque = document.querySelector(`.bloque-subgrupo[data-subgrupo="${subActivo}"]`);
+        if (bloque) {
+          const cards = Array.from(bloque.querySelectorAll(".card-producto"));
+          cards.sort((a, b) => {
+            const pa = Number(a.dataset.precio) || 0;
+            const pb = Number(b.dataset.precio) || 0;
             return asc ? pa - pb : pb - pa;
           });
-
-          productosSub.forEach(p => {
-            const card = renderProducto(p);
-            bloqueSub.appendChild(card);
-            setTimeout(() => card.classList.remove("fade-reorder"), 50);
-          });
-        });
+          bloque.innerHTML = "";
+          cards.forEach(card => bloque.appendChild(card));
+        }
+      } else if (grupoActivo) {
+        // Caso 2: NO hay subgrupo activo → ordenar dentro de cada bloque ya existente
+        ordenarDentroDeBloques(asc);
       }
     });
   }
@@ -1466,7 +1396,6 @@ if (btnProductos) {
     
     // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
-}
   
 </script>
 <script type="module">
