@@ -811,9 +811,17 @@ function mostrarGrupo(nombre, event, auto = false) {
       productosSub.forEach(p => {
         const card = renderProducto(p);
         subDiv.appendChild(card);
-        // 🔁 Fix: aplicar transición y remover fade-reorder
-        requestAnimationFrame(() => card.classList.add("show"));
-        setTimeout(() => card.classList.remove("fade-reorder"), 50);
+
+        // 🔁 Aplicar transición y remover fade-reorder
+        requestAnimationFrame(() => {
+          card.classList.add("show");
+          console.log("🔎 Clases tras add(show):", card.className);
+        });
+        setTimeout(() => {
+          card.classList.remove("fade-reorder");
+          console.log("🔎 Clases tras remove(fade-reorder):", card.className);
+        }, 50);
+
         console.log("🛒 Card insertada en subgrupo:", p.nombre);
       });
 
@@ -832,9 +840,17 @@ function mostrarGrupo(nombre, event, auto = false) {
     productosGrupo.forEach(p => {
       const card = renderProducto(p);
       subDiv.appendChild(card);
-      // 🔁 Fix: aplicar transición y remover fade-reorder
-      requestAnimationFrame(() => card.classList.add("show"));
-      setTimeout(() => card.classList.remove("fade-reorder"), 50);
+
+      // 🔁 Aplicar transición y remover fade-reorder
+      requestAnimationFrame(() => {
+        card.classList.add("show");
+        console.log("🔎 Clases tras add(show):", card.className);
+      });
+      setTimeout(() => {
+        card.classList.remove("fade-reorder");
+        console.log("🔎 Clases tras remove(fade-reorder):", card.className);
+      }, 50);
+
       console.log("🛒 Card insertada en bloque General:", p.nombre);
     });
 
@@ -913,9 +929,17 @@ function filtrarSubcategoria(grupo, subgrupo) {
     console.log("   ➕ Renderizando producto:", p);
     const card = renderProducto(p);
     subDiv.appendChild(card);
-    // 🔁 Fix: aplicar transición y remover fade-reorder
-    requestAnimationFrame(() => card.classList.add("show"));
-    setTimeout(() => card.classList.remove("fade-reorder"), 50);
+
+    // 🔁 Aplicar transición y remover fade-reorder
+    requestAnimationFrame(() => {
+      card.classList.add("show");
+      console.log("🔎 Clases tras add(show):", card.className);
+    });
+    setTimeout(() => {
+      card.classList.remove("fade-reorder");
+      console.log("🔎 Clases tras remove(fade-reorder):", card.className);
+    }, 50);
+
     console.log("🛒 Card insertada en subgrupo:", p.nombre);
   });
 
@@ -936,6 +960,7 @@ function filtrarSubcategoria(grupo, subgrupo) {
 }
 
 window.filtrarSubcategoria = filtrarSubcategoria;
+
 
 
 
