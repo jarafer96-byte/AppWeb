@@ -686,10 +686,13 @@ fetch("/api/productos")
 
     const grupos = [...new Set(window.todosLosProductos.map(p => p.grupo).filter(Boolean))];
     if (contGrupos) {
+      contGrupos.innerHTML = ""; // limpiar antes de insertar
       grupos.forEach(g => {
-        contGrupos.insertAdjacentHTML("beforeend", `
-          <button class="btn-grupo" onclick="mostrarGrupo('${g}', event)">${g}</button>
-        `);
+        const btn = document.createElement("button");
+        btn.className = "btn-grupo";
+        btn.textContent = g;
+        btn.addEventListener("click", (e) => mostrarGrupo(g, e));
+        contGrupos.appendChild(btn);
       });
     }
 
@@ -711,6 +714,7 @@ fetch("/api/productos")
     const cont = document.getElementById("productos");
     if (cont) cont.innerHTML = "<p>Error al cargar productos.</p>";
   });
+
     
 function mostrarGrupo(nombre, event, auto = false) {
   const cont = document.getElementById("productos");
@@ -727,7 +731,10 @@ function mostrarGrupo(nombre, event, auto = false) {
   if (!panel) return;
   panel.innerHTML = "";
 
+  // Normalizar y guardar grupo activo
   const grupoCanon = String(nombre || "").trim();
+  window.currentGrupo = grupoCanon.toLowerCase();
+
   const productosGrupo = (window.todosLosProductos || []).filter(
     p => String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase()
   );
@@ -736,11 +743,12 @@ function mostrarGrupo(nombre, event, auto = false) {
     productosGrupo.map(p => p.subgrupo).filter(s => s && String(s).toLowerCase() !== 'general')
   )];
 
+  // Crear botones de subgrupo
   subcategorias.forEach(sub => {
     const btn = document.createElement('button');
     btn.textContent = sub;
     btn.className = 'btn-subgrupo';
-    btn.onclick = () => filtrarSubcategoria(grupoCanon, sub);
+    btn.addEventListener("click", (e) => mostrarSubgrupo(sub, e));
     panel.appendChild(btn);
   });
 
@@ -799,7 +807,6 @@ function mostrarGrupo(nombre, event, auto = false) {
 }
 
 window.mostrarGrupo = mostrarGrupo;
-
 
 function filtrarSubcategoria(grupo, subgrupo) {
   const cont = document.getElementById("productos");
