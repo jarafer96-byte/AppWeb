@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Contenido del sitio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+  /* ====== Base ====== */
+  body {
+    background-color: #000;
+    font-family: sans-serif;
+    color: white;
+  }
+  h2 {
+    color: white;
+  }
+  textarea {
+    resize: none;
+  }
+  .form-control {
+    background-color: rgba(255,255,255,0.05);
+    color: white;
+    border: none;
+    border-radius: 8px;
+  }
+  .form-control::placeholder {
+    color: #aaa;
+  }
+  .card {
+    background-color: rgba(255,255,255,0.05);
+    color: white;
+    border: none;
+    border-radius: 12px;
+  }
+  .card .row {
+    margin-bottom: 4px;
+  }
+  .card .form-control,
+  .card textarea {
+    padding: 4px 8px;
+    font-size: 0.85em;
+  }
+  .btn-gradient {
+    background: linear-gradient(135deg, #8e2de2, #ff6f61);
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(255,255,255,0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn-gradient:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255,255,255,0.5);
+  }
+
+  label.btn-imagen {
+    display: block;
+    width: 100%;
+    background-color: rgba(255,255,255,0.05);
+    color: white;
+    border: 1px dashed #888;
+    border-radius: 8px;
+    padding: 4px 8px;
+    text-align: center;
+    font-size: 0.75em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+  label.btn-imagen:hover {
+    background-color: rgba(255,255,255,0.15);
+    border-color: #ccc;
+  }
+  label.btn-imagen.cargado {
+    background-color: rgba(40,167,69,0.2);
+    border-color: #28a745;
+    color: #28a745;
+  }
+  label.btn-imagen.cargado::after {
+    content: " ✓";
+    color: #28a745;
+    margin-left: 4px;
+  }
+  #carouselGlobal {
+    position: relative;
+    z-index: 1;
+  }
+  #carouselGlobal .row {
+    margin: 0;
+  }
+  #carouselGlobal .col {
+    padding: 4px;
+  }
+  #carouselGlobal img {
+    max-height: 100px;
+    object-fit: contain;
+    cursor: pointer;
+  }
+  .carousel-control-prev {
+    left: -40px;       /* corre hacia afuera */
+    width: 40px;       /* achica área clickeable */
+    height: 100px;     /* limita altura */
+    top: 50%;          /* centra verticalmente */
+    transform: translateY(-50%);
+    z-index: 10;
+  }
+  .carousel-control-next {
+    right: -40px;
+    width: 40px;
+    height: 100px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+  }
+  .carousel-control-prev-icon,
+  .carousel-control-next-icon {
+    background-size: 80% 80%;
+    filter: drop-shadow(0 0 2px #000);
+  }
+  .imagen-carrusel {
+    max-height: 100px;
+    object-fit: contain;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, border 0.2s ease;
+  }
+  .imagen-carrusel.usada {
+    opacity: 0.25;              /* más oscura (antes 0.4) */
+    filter: grayscale(100%) brightness(0.6); /* escala de grises + menos brillo */
+    pointer-events: none;
+  }
+  .col.invisible {
+    visibility: hidden;
+  }
+  .thumb-wrapper {
+    width: 120px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255,255,255,0.05);
+    border-radius: 6px;
+  }
+  .thumb-wrapper img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .thumb-wrapper.seleccionada {
+    border: 2px solid #ff6f61;
+    box-shadow: 0 0 5px #ff6f61;
+  }
+  .mensaje-final {
+    margin-top: 30px;
+    font-style: italic;
+    text-align: center;
+    color: #ccc;
+  }
+  .mensaje-final span {
+    display: block;
+    margin-top: 10px;
+    color: #ffcc00;
+    font-weight: bold;
+  }
+  .loader {
+    border: 8px solid rgba(255,255,255,0.1);
+    border-top: 8px solid #ff6f61;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .precio-chico {
+    width: 10px;
+  }
+    
+</style>
+</head>
+<body>
+<div class="container py-5">
+  <h2 class="mb-4 text-center">Cargá el contenido de tu sitio</h2>
+
+  <!-- Importar productos -->
+  <div class="text-center mb-4">
+    <input type="file" id="archivoProductos" 
+           accept=".csv,.txt,.xls,.xlsx" 
+           class="form-control w-50 mx-auto mb-2">
+    <button type="button" class="btn-gradient btn-sm" onclick="leerArchivoProductos()">
+      📂 Importar lista de productos (CSV, TXT y .xls/.xlsx)
+    </button>
+  </div>
+
+  <!-- Crear grupo -->
+  <div class="mb-4 text-center">
+    <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" 
+           placeholder="Nombre del grupo (ej: Ropa Mujer)">
+    <button type="button" class="btn-gradient btn-sm" onclick="crearGrupo()">Crear grupo</button>
+  </div>
+
+<form id="formulario" method="POST" action="/contenido" enctype="multipart/form-data">
+  <div id="grupos"></div>
+
+  <div class="text-center mt-4">
+    <button type="submit" class="btn-gradient px-5 py-2">Continuar</button>
+  </div>
+</form>
+
+  <!-- Mensaje final -->
+  <div class="mensaje-final text-center mt-3">
+    ¿Tenés mucho contenido? 
+    <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
+    <br>
+    <span>⚠️ Si continuás, podrías perder todo el contenido si intentás volver a esta página.</span>
+  </div>
+</div>
+
+<!-- Spinner -->
+<div id="spinner" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
+  <div class="loader"></div>
+  <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
+</div>
+
+<!-- Modal carrusel -->
+<div class="modal fade" id="modalCarrusel" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark text-white">
+      <div class="modal-header">
+        <h5 class="modal-title">Elegí una imagen</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div style="padding: 0 40px;">
+          <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+              <!-- thumbnails se insertan dinámicamente -->
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselGlobal" data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let grupoId = 0;
+  let contadorOrden = 1;
+  let imagenSeleccionada = null;   // guarda el nombre del archivo seleccionado
+  let filaActual = null;           // referencia a la fila activa
+  let imagenesUsadas = [];         // lista global de imágenes ya asignadas
+
+  // 🔑 Definir base dinámica para imágenes
+  const repoDestino = localStorage.getItem("repoDestino");
+  const STATIC_BASE_URL = repoDestino
+    ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+    : "";
+  
+  const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
+  console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
+
+  function eliminarProducto(boton) {
+    const fila = boton.closest('.fila-producto');
+    const grupo = boton.closest('.card');
+    fila.remove();
+    actualizarContador(grupo);
+  }
+    
+const LS_KEY = "step3_state";
+// Función que arma el JSON y lo guarda en localStorage
+function saveState() {
+  const state = { grupos: [], imagenesUsadas: [...imagenesUsadas] };
+
+  document.querySelectorAll(".card:not(.subgrupo)").forEach(grupoCard => {
+    const nombreGrupo = grupoCard.querySelector("h4")?.textContent?.trim() || "Sin nombre";
+
+    const productosGrupo = [...grupoCard.querySelectorAll(".productos > .fila-producto")].map(fila => filaToObj(fila));
+
+    const subgrupos = [...grupoCard.querySelectorAll(".subgrupo")].map(subCard => {
+      const nombreSub = subCard.querySelector(".nombre-subgrupo")?.textContent?.trim() || "Sin subgrupo";
+      const productosSub = [...subCard.querySelectorAll(".productos > .fila-producto")].map(fila => filaToObj(fila));
+      return { nombre: nombreSub, productos: productosSub };
+    });
+
+    state.grupos.push({ nombre: nombreGrupo, productos: productosGrupo, subgrupos });
+  });
+
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+// Debounce wrapper
+const saveStateDebounced = (() => {
+  let t;
+  return function() {
+    clearTimeout(t);
+    t = setTimeout(() => saveState(), 200);
+  }
+})();
+
+// Utilidad para convertir fila en objeto
+function filaToObj(fila) {
+  return {
+    nombre: fila.querySelector("input[name='nombre']")?.value || "",
+    descripcion: fila.querySelector("textarea[name='descripcion']")?.value || "",
+    precio: fila.querySelector("input[name='precio']")?.value || "",
+    talles: fila.querySelector("input[name='talles']")?.value || "",
+    imagen_url: fila.querySelector("input[name='imagen_elegida']")?.value || "",
+    imagen_basename: fila.querySelector("input[name='imagen_basename']")?.value || ""
+  };
+}
+  
+function crearGrupo() {
+  const nombre = document.getElementById('nombreGrupo').value.trim();
+  if (!nombre) return alert("Ingresá un nombre para el grupo");
+
+  grupoId++;
+  const ordenGrupo = grupoId;
+
+  const grupo = document.createElement('div');
+  grupo.className = 'card p-3 mb-4';
+  grupo.id = 'grupo_' + grupoId;
+  grupo.setAttribute('data-orden', ordenGrupo);
+
+  grupo.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0 nombre-grupo">${nombre}</h4>
+      <div>
+        <button type="button" class="btn btn-sm btn-outline-light me-2" onclick="editarNombreGrupo(this)">🖉 Editar</button>
+        <button type="button" class="btn btn-sm btn-danger" onclick="eliminarGrupo(this)">
+          ✕ <span style="font-size: 0.75em;">(Borrar grupo)</span>
+        </button>
+      </div>
+    </div>
+    <div class="productos"></div>
+    <!-- ✅ Botón para agregar fila directamente al grupo -->
+    <div class="text-center mt-2">
+      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+    </div>
+    <div class="subgrupos"></div>
+    <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
+    <div class="text-center mt-2">
+      <input type="text" class="form-control w-50 d-inline-block" placeholder="Ej: Pantalones" id="inputSubgrupo_${grupoId}">
+      <button type="button" class="btn-gradient btn-sm" onclick="crearSubgrupo(this)">+ Crear subgrupo</button>
+    </div>
+  `;
+
+  document.getElementById('grupos').appendChild(grupo);
+  document.getElementById('nombreGrupo').value = '';
+  
+  saveStateDebounced()
+}
+  
+function hydrateFila(filaData, filaEl) {
+  console.log("🟢 [Step3] hydrateFila →", filaData);
+
+  // Restaurar imagen elegida
+  if (filaData.imagen_elegida) {
+    filaEl.querySelector("input[name='imagen_elegida']").value = filaData.imagen_elegida;
+    filaEl.querySelector(".preview-imagen").innerHTML =
+      `<img src="${filaData.imagen_elegida}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+  }
+
+  // Restaurar basename
+  if (filaData.imagen_basename) {
+    let hiddenBase = filaEl.querySelector("input[name='imagen_basename']");
+    if (!hiddenBase) {
+      hiddenBase = document.createElement("input");
+      hiddenBase.type = "hidden";
+      hiddenBase.name = "imagen_basename";
+      filaEl.appendChild(hiddenBase);
+    }
+    hiddenBase.value = filaData.imagen_basename;
+  }
+}
+
+function editarNombreGrupo(btn) {
+  const card = btn.closest('.card');
+  const h4 = card.querySelector('.nombre-grupo');
+  const valorActual = h4.textContent.trim();
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = valorActual;
+  input.className = 'form-control form-control-sm d-inline-block w-50';
+
+  input.onblur = () => guardarNombreGrupo(card, input.value);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+  });
+
+  h4.replaceWith(input);
+  input.focus();
+  saveStateDebounced();
+}
+
+function guardarNombreGrupo(card, nuevoNombre) {
+  const h4 = document.createElement('h4');
+  h4.className = 'mb-0 nombre-grupo';
+  h4.textContent = nuevoNombre || 'Sin nombre';
+
+  const input = card.querySelector('input[type="text"]');
+  if (input) input.replaceWith(h4);
+
+  // ✅ Actualizar hidden inputs de todas las filas dentro del grupo
+  card.querySelectorAll('input[name="grupo"]').forEach(h => h.value = nuevoNombre);
+  saveStateDebounced();
+}
+
+function actualizarContador(elemento) {
+  const card = elemento.classList.contains('productos')
+    ? elemento.closest('.card')
+    : elemento;
+
+  const contador = card.querySelector('.contador');
+  const productos = card.querySelectorAll('.productos > .fila-producto');
+  contador.textContent = productos.length;
+}
+
+function agregarSlide(items, makeActive) {
+  const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
+  const div = document.createElement("div");
+  div.className = "carousel-item" + (makeActive ? " active" : "");
+  const row = document.createElement("div");
+  row.className = "row row-cols-4 gx-2 gy-2";
+
+  items.forEach(({ nombre, url }) => {
+    const col = document.createElement("div");
+    col.className = "col";
+    col.innerHTML = `
+      <div class="thumb-wrapper">
+        <img src="${url}" class="imagen-carrusel" alt="${nombre}"
+             data-nombre="${nombre}" data-url="${url}"
+             onclick="seleccionarImagen(this)">
+      </div>`;
+    row.appendChild(col);
+  });
+
+  // Rellenar hasta 8 columnas
+  const faltantes = 8 - items.length;
+  for (let i = 0; i < faltantes; i++) {
+    const colInv = document.createElement("div");
+    colInv.className = "col invisible";
+    colInv.innerHTML = `<div class="thumb-wrapper"></div>`;
+    row.appendChild(colInv);
+  }
+
+  div.appendChild(row);
+  contenedor.appendChild(div);
+}  
+  
+function abrirCarrusel(btn) {
+  filaActual = btn.closest('.fila-producto');
+  const modal = new bootstrap.Modal(document.getElementById('modalCarrusel'));
+
+  console.log("🟢 [Step3] abrirCarrusel → filaActual:", filaActual);
+
+  // Si el carrusel está vacío, inicializarlo
+  if (!document.querySelector("#carouselGlobal .carousel-item")) {
+    console.warn("⚠️ [Step3] Carrusel vacío, inicializando...");
+    inicializarCarrusel();
+  }
+
+  // Limpiar selección previa
+  document.querySelectorAll('#carouselGlobal .thumb-wrapper')
+    .forEach(w => w.classList.remove('seleccionada'));
+
+  // ✅ Recuperar imágenes usadas globalmente
+  let usadasGlobal = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(usadasGlobal)) usadasGlobal = [];
+
+  // Deshabilitar imágenes ya usadas en todo el catálogo
+  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+    const nombre = img.dataset.nombre;
+    if (usadasGlobal.includes(nombre)) {
+      img.classList.add("usada");
+      img.style.opacity = "0.25";
+      img.style.filter = "grayscale(100%) brightness(0.6)";
+      img.style.pointerEvents = "none";
+      console.log("🚫 [Step3] Imagen marcada como usada:", nombre);
+    } else {
+      img.classList.remove("usada");
+      img.style.opacity = "1";
+      img.style.filter = "none";
+      img.style.pointerEvents = "auto";
+    }
+  });
+
+  // Si la fila ya tenía imagen elegida, remarcarla
+  const hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
+  if (hiddenBase && hiddenBase.value) {
+    const nombreActual = hiddenBase.value;
+    console.log("📌 [Step3] Fila ya tenía imagen:", nombreActual);
+    const imgActual = document.querySelector(`#carouselGlobal img[data-nombre="${nombreActual}"]`);
+    if (imgActual) {
+      seleccionarImagen(imgActual);
+      console.log("🎯 [Step3] Imagen marcada como seleccionada:", nombreActual);
+    } else {
+      console.warn("⚠️ [Step3] No se encontró imgActual para:", nombreActual);
+    }
+  } else {
+    // Seleccionar la primera disponible si no había nada
+    const firstImg = document.querySelector("#carouselGlobal .carousel-item.active img:not(.usada)");
+    if (firstImg) {
+      console.log("✅ [Step3] Seleccionando primera disponible:", firstImg.dataset.nombre);
+      seleccionarImagen(firstImg);
+    } else {
+      console.warn("⚠️ [Step3] No hay imagen disponible para seleccionar");
+    }
+  }
+
+  console.log("📂 [Step3] Abriendo carrusel para fila:", filaActual);
+  modal.show();
+}
+
+function inicializarCarrusel() {
+  const contenedor = document.querySelector("#carouselGlobal .carousel-inner");
+  contenedor.innerHTML = ""; // limpiar carrusel
+
+  cargarImagenesDesdeIndexedDB((count) => {
+    if (count > 0) {
+      console.log("📦 Carrusel restaurado desde IndexedDB con", count, "imágenes");
+    } else {
+      // Fallback: usar rutas finales guardadas en localStorage
+      const imagenesFinales = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+      if (Array.isArray(imagenesFinales) && imagenesFinales.length) {
+        let first = true, buffer = [];
+
+        imagenesFinales.forEach(ruta => {
+          if (!ruta) return;
+
+          let url = ruta;
+          let basename = ruta.split("/").pop();
+
+          // 🔎 Normalizar: si es blob, intentar mapear a ruta real
+          if (ruta.startsWith("blob:")) {
+            const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+            const nombreGenerado = mapping[basename];
+            const repoDestino = localStorage.getItem("repoDestino");
+            const baseUrl = repoDestino
+              ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+              : "";
+
+            if (nombreGenerado) {
+              url = `${baseUrl}/static/img/${nombreGenerado}`;
+              basename = nombreGenerado;
+              console.log("🔄 [Step3] Blob reemplazado:", ruta, "→", url);
+            } else {
+              url = "/static/img/fallback.webp";
+              basename = "fallback.webp";
+              console.warn("⚠️ [Step3] Blob sin mapping, usando fallback");
+            }
+          }
+
+          // 🔎 Si no es URL absoluta, asumir que es nombre de archivo
+          else if (!ruta.startsWith("http")) {
+            const repoDestino = localStorage.getItem("repoDestino");
+            const baseUrl = repoDestino
+              ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+              : "";
+            url = `${baseUrl}/static/img/${basename}`;
+          }
+
+          buffer.push({ nombre: basename, url });
+
+          if (buffer.length === 8) {
+            agregarSlide(buffer, first);
+            first = false;
+            buffer = [];
+          }
+        });
+
+        if (buffer.length) agregarSlide(buffer, first);
+        console.log("📦 Carrusel inicializado con imágenes finales:", imagenesFinales.length);
+      } else {
+        console.warn("⚠️ [Step3] No hay imágenes en localStorage.imagenes_step0");
+      }
+    }
+
+    // Selección inicial
+    const firstImg = document.querySelector('#carouselGlobal .carousel-item.active img:not(.usada)');
+    if (firstImg) {
+      seleccionarImagen(firstImg);
+      console.log("✅ Selección inicial:", window.imagenSeleccionada, window.imagenSeleccionadaUrl);
+    }
+  });
+}
+
+function leerArchivoProductos() {
+  const input = document.getElementById("archivoProductos");
+  if (!input.files.length) {
+    alert("⚠️ Seleccioná un archivo primero");
+    return;
+  }
+
+  const file = input.files[0];
+  const ext = file.name.toLowerCase().split('.').pop();
+  let filasAgregadas = 0;
+
+  // 👉 CSV / TXT
+  if (ext === "csv" || ext === "txt") {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const contenido = e.target.result;
+      const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
+      const sep = lineas.some(l => l.includes(";")) ? ";" : ",";
+
+      console.log("📄 Total líneas CSV/TXT:", lineas.length);
+      console.log("📄 Primeras líneas:", lineas.slice(0, 5));
+
+      lineas.forEach((linea, idx) => {
+        const partes = linea.split(sep).map(p => p.trim());
+        console.log(`➡️ Línea #${idx}:`, partes);
+
+        if (partes.length < 2) {
+          console.warn("⚠️ Línea descartada por tener menos de 2 columnas:", partes);
+          return;
+        }
+
+        const nombre      = partes[0] || "";
+        const descripcion = partes[1] || "";
+        const precio      = partes[2] || "";
+        const grupo       = partes[3] || "";
+        const subgrupo    = partes[4] || "";
+        const talles      = partes[5] || "";
+
+        console.log("🧩 Valores parseados:", { nombre, descripcion, precio, grupo, subgrupo, talles });
+
+        if (!(grupo && subgrupo)) {
+          console.warn("⚠️ Línea descartada por falta de grupo/subgrupo:", partes);
+          return;
+        }
+
+        agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
+        filasAgregadas++;
+      });
+
+      alert(filasAgregadas > 0
+        ? `✅ Productos importados: ${filasAgregadas}`
+        : "❌ No se importaron filas desde CSV/TXT");
+    };
+    reader.readAsText(file);
+  }
+
+  // 👉 Excel XLS / XLSX
+  else if (ext === "xls" || ext === "xlsx") {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws); // usa encabezados
+
+    console.log("📊 Total filas Excel:", rows.length);
+    console.log("📊 Primeras filas:", rows.slice(0, 5));
+
+    rows.forEach((obj, idx) => {
+      console.log(`➡️ Fila #${idx}:`, obj);
+
+      // 👉 acepta tanto "Grupo" como "Categoria"
+      const grupo       = obj.Grupo       || obj.Categoria    || "";
+      // 👉 acepta tanto "Subgrupo" como "Subcategoria"
+      const subgrupo    = obj.Subgrupo    || obj.Subcategoria || "";
+      // 👉 acepta tanto "Nombre" como "Producto"
+      const nombre      = obj.Nombre      || obj.Producto     || "";
+      const descripcion = obj.Descripcion || "";
+      const precio      = obj.Precio      || "";
+      const talles      = obj.Talles      || "";
+
+      console.log("🧩 Valores parseados:", { nombre, descripcion, precio, grupo, subgrupo, talles });
+
+      if (!(grupo && subgrupo)) {
+        console.warn("⚠️ Fila descartada por falta de grupo/subgrupo:", obj);
+        return;
+      }
+
+      agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
+      filasAgregadas++;
+    });
+
+    alert(filasAgregadas > 0
+      ? `✅ Productos importados desde Excel: ${filasAgregadas}`
+      : "❌ No se importaron filas desde Excel");
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+  else {
+    alert("⚠️ Formato no soportado. Subí CSV, TXT o Excel (.xls/.xlsx)");
+  }
+}
+
+function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
+  let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+    c => c.querySelector("h4")?.textContent.trim() === grupo
+  );
+  if (!grupoCard) {
+    const inputGrupo = document.getElementById("nombreGrupo");
+    if (inputGrupo) {
+      inputGrupo.value = grupo;
+      crearGrupo();
+      grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+        c => c.querySelector("h4")?.textContent.trim() === grupo
+      );
+    }
+  }
+
+  // Buscar o crear subgrupo
+  let subgrupoCard = grupoCard && [...grupoCard.querySelectorAll(".subgrupo")].find(
+    s => s.querySelector("strong")?.textContent.trim() === subgrupo
+  );
+  if (!subgrupoCard && grupoCard) {
+    const grupoIdx = grupoCard.id.split("_")[1];
+    const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
+    const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
+    if (inputSub && btnCrearSub) {
+      inputSub.value = subgrupo;
+      crearSubgrupo(btnCrearSub);
+      subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+        s => s.querySelector("strong")?.textContent.trim() === subgrupo
+      );
+    }
+  }
+
+  if (!subgrupoCard) {
+    console.warn("⚠️ No se pudo crear/ubicar subgrupo:", subgrupo);
+    return;
+  }
+
+  // Crear fila y rellenar datos
+  const fila = crearFila(subgrupo, grupo);
+  fila.querySelector("input[name='nombre']").value = nombre;
+  fila.querySelector("textarea[name='descripcion']").value = descripcion;
+  fila.querySelector("input[name='precio']").value = precio;
+  fila.querySelector("input[name='talles']").value = talles;
+
+  subgrupoCard.querySelector(".productos").appendChild(fila);
+  actualizarContador(subgrupoCard);
+  saveStateDebounced();
+}
+
+  function ensureDB(callback) {
+      const request = indexedDB.open("imagenesDB", 3);
+      request.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("imagenes")) {
+          db.createObjectStore("imagenes");
+          console.log("📦 Store 'imagenes' creado (upgrade)");
+        }
+      };
+      request.onsuccess = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("imagenes")) {
+          console.warn("⚠️ DB sin store. Borrando y recreando…");
+          db.close();
+          const del = indexedDB.deleteDatabase("imagenesDB");
+          del.onsuccess = () => {
+            const re = indexedDB.open("imagenesDB", 2);
+            re.onupgradeneeded = ev => ev.target.result.createObjectStore("imagenes");
+            re.onsuccess = ev => callback(ev.target.result);
+          };
+          del.onerror = () => { console.error("❌ No se pudo borrar la DB"); callback(db); };
+        } else {
+          callback(db);
+        }
+      };
+      request.onerror = e => console.error("❌ Error abriendo IndexedDB:", e.target.error);
+    }
+    
+function cargarImagenesDesdeIndexedDB(done) {
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readonly");
+    const store = tx.objectStore("imagenes");
+    const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+    let first = true, buffer = [];
+    let count = 0;
+
+    lista.forEach(nombre => {
+      const getReq = store.get(nombre);
+      getReq.onsuccess = e => {
+        const blob = e.target.result;
+        if (blob) {
+          // 🔑 Normalizar: usar mapping para obtener nombre final
+          const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+          const nombreGenerado = mapping[nombre];
+          let url;
+
+          if (nombreGenerado) {
+            const repoDestino = localStorage.getItem("repoDestino");
+            const baseUrl = repoDestino
+              ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+              : "";
+            url = `${baseUrl}/static/img/${nombreGenerado}`;
+          } else {
+            // fallback si no hay mapping
+            url = "/static/img/fallback.webp";
+          }
+
+          buffer.push({ nombre, url });
+          count++;
+          if (buffer.length === 8) {
+            agregarSlide(buffer, first);
+            first = false;
+            buffer = [];
+          }
+        }
+      };
+      getReq.onerror = err => console.error("❌ Error leyendo imagen:", nombre, err.target.error);
+    });
+
+    tx.oncomplete = () => {
+      if (buffer.length) agregarSlide(buffer, first);
+      done(count); // cantidad cargada desde IndexedDB
+    };
+  });
+}
+
+function crearSubgrupo(btn) {
+  const grupo = btn.closest('.card');
+  const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+  const subgruposContenedor = grupo.querySelector('.subgrupos');
+  const input = grupo.querySelector('input[id^="inputSubgrupo"]');
+  const nombreSubgrupo = input.value.trim();
+  if (!nombreSubgrupo) return alert("Ingresá un nombre para el subgrupo");
+
+  const subgrupo = document.createElement('div');
+  subgrupo.className = 'card p-2 mb-3 subgrupo';
+  subgrupo.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <strong class="nombre-subgrupo">${nombreSubgrupo}</strong>
+      <div>
+        <button class="btn btn-sm btn-outline-light me-2" onclick="editarNombreSubgrupo(this)">🖉 Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="eliminarSubgrupo(this)">✕ Borrar subgrupo</button>
+      </div>
+    </div>
+    <div class="productos"></div>
+    <div class="text-end text-white">Productos cargados: <span class="contador">0</span></div>
+    <div class="text-center mt-2">
+      <button type="button" class="btn-gradient btn-sm" onclick="agregarFila(this)">+ Agregar fila</button>
+    </div>
+  `;
+  subgruposContenedor.appendChild(subgrupo);
+  input.value = '';
+
+  const contenedor = subgrupo.querySelector('.productos');
+  const fila = crearFila(nombreSubgrupo, nombreGrupo);
+  contenedor.appendChild(fila);
+
+  actualizarContador(subgrupo);
+
+  // ✅ Guardar estado después de crear el subgrupo y su primera fila
+  saveStateDebounced();
+}
+
+function editarNombreSubgrupo(btn) {
+  const card = btn.closest('.subgrupo');
+  const strong = card.querySelector('.nombre-subgrupo');
+  const valorActual = strong.textContent.trim();
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = valorActual;
+  input.className = 'form-control form-control-sm d-inline-block w-50';
+
+  input.onblur = () => guardarNombreSubgrupo(card, input.value);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+  });
+
+  strong.replaceWith(input);
+  input.focus();
+  saveStateDebounced();
+}
+
+function guardarNombreSubgrupo(card, nuevoNombre) {
+  const strong = document.createElement('strong');
+  strong.className = 'nombre-subgrupo';
+  strong.textContent = nuevoNombre || 'Sin subgrupo';
+
+  const input = card.querySelector('input[type="text"]');
+  if (input) input.replaceWith(strong);
+
+  // ✅ Actualizar hidden inputs de todas las filas dentro del subgrupo
+  card.querySelectorAll('input[name="subgrupo"]').forEach(h => h.value = nuevoNombre);
+  saveStateDebounced();
+}
+
+function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
+  const fila = document.createElement('div');
+  fila.className = 'row g-2 align-items-center mb-2 fila-producto';
+
+  fila.innerHTML = `
+    <div class="col-3">
+      <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre">
+    </div>
+    <div class="col-3">
+      <textarea name="descripcion" class="form-control form-control-sm" rows="1" placeholder="Descripción (Opcional)"></textarea>
+    </div>
+    <div class="col-2">
+      <input type="text" name="precio" class="form-control form-control-sm" style="width: 80px;" placeholder="$">
+    </div>
+    <div class="col-2">
+      <input type="text" name="talles" class="form-control form-control-sm" style="width: 160px;" placeholder="(Opcional) S,M,L,XL">
+    </div>
+    <div class="col-2">
+      <div class="d-flex align-items-center justify-content-end gap-2">
+        <div class="preview-imagen" style="width:80px;height:60px;"></div>
+        <button type="button" class="btn btn-sm btn-gradient px-2 py-1" onclick="abrirCarrusel(this)">Elegir imagen</button>
+        <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
+      </div>
+      <input type="hidden" name="grupo" value="${nombreGrupo}">
+      <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
+      <input type="hidden" name="orden" value="${contadorOrden++}">
+      <input type="hidden" name="imagen_elegida" value="">
+    </div>
+  `;
+
+  return fila;
+}
+
+function agregarFila(btn) {
+  const subgrupo = btn.closest('.subgrupo');
+  const grupo = btn.closest('.card:not(.subgrupo)');
+  let contenedor, nombreSubgrupo, nombreGrupo;
+
+  if (subgrupo) {
+    contenedor = subgrupo.querySelector('.productos');
+    nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
+    nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+  } else {
+    contenedor = grupo.querySelector('.productos');
+    nombreSubgrupo = 'General';
+    nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
+  }
+
+  const fila = crearFila(nombreSubgrupo, nombreGrupo);
+  contenedor.appendChild(fila);
+
+  actualizarContador(contenedor);
+  saveStateDebounced();
+}
+
+function eliminarSubgrupo(btn) {
+  const subgrupo = btn.closest('.subgrupo');
+
+  // liberar imágenes del subgrupo
+  let usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(usadas)) usadas = [];
+
+  subgrupo.querySelectorAll('.fila-producto').forEach(fila => {
+    const hiddenBase = fila.querySelector('input[name="imagen_basename"]');
+    const basename = hiddenBase?.value || "";
+    if (!basename) return;
+
+    // quitar del array global
+    usadas = usadas.filter(n => n !== basename);
+
+    // liberar en carrusel
+    const img = document.querySelector(`#carouselGlobal img[data-nombre="${basename}"]`);
+    if (img) {
+      img.classList.remove('usada');
+      img.style.opacity = "1";
+      img.style.filter = "none";
+      img.style.pointerEvents = "auto";
+    }
+  });
+
+  localStorage.setItem("imagenesUsadas", JSON.stringify(usadas));
+  marcarImagenesUsadas();
+
+  subgrupo.remove();
+  saveStateDebounced();
+}
+
+function eliminarFila(btn) {
+  const fila = btn.closest('.fila-producto');
+  const contenedor = btn.closest('.card').querySelector('.productos');
+
+  const hiddenBase = fila.querySelector('input[name="imagen_basename"]');
+  const basename = hiddenBase ? hiddenBase.value : "";
+
+  if (basename) {
+    // Liberar imagen en carrusel
+    document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+      if (img.dataset.nombre === basename) {
+        img.classList.remove('usada');
+        img.style.opacity = "1";
+        img.style.filter = "none";
+        img.style.pointerEvents = "auto";
+        console.log(`🔓 [Step3] Imagen liberada: ${basename}`);
+      }
+    });
+
+    // Quitar de la lista global y actualizar localStorage
+    imagenesUsadas = imagenesUsadas.filter(n => n !== basename);
+    localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
+
+    // Refrescar carrusel
+    marcarImagenesUsadas();
+  }
+
+  // Eliminar fila si hay más de una
+  if (contenedor.querySelectorAll('.fila-producto').length > 1) {
+    fila.remove();
+    actualizarContador(contenedor); // usa la versión unificada
+    console.log("✅ [Step3] Fila eliminada");
+  } else {
+    alert("No se puede eliminar la última fila");
+    console.warn("⚠️ [Step3] Intento de eliminar la última fila bloqueado");
+  }
+
+  saveStateDebounced();
+}
+
+function eliminarGrupo(btn) {
+  const grupo = btn.closest('.card');
+
+  // 🔎 Buscar todas las filas dentro del grupo
+  grupo.querySelectorAll('.fila-producto').forEach(fila => {
+    const hiddenBase = fila.querySelector('input[name="imagen_basename"]');
+    const basename = hiddenBase ? hiddenBase.value : "";
+
+    if (basename) {
+      // Liberar imagen en carrusel
+      document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+        if (img.dataset.nombre === basename) {
+          img.classList.remove('usada');
+          img.style.opacity = "1";
+          img.style.filter = "none";
+          img.style.pointerEvents = "auto";
+          console.log(`🔓 [Step3] Imagen liberada al eliminar grupo: ${basename}`);
+        }
+      });
+
+      // Quitar de la lista global
+      imagenesUsadas = imagenesUsadas.filter(n => n !== basename);
+    }
+  });
+
+  // 📝 Actualizar localStorage y refrescar carrusel
+  localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
+  marcarImagenesUsadas();
+
+  // 🗑️ Eliminar el grupo
+  grupo.remove();
+  console.log("✅ [Step3] Grupo eliminado");
+
+  saveStateDebounced();
+}
+  
+function seleccionarImagen(img) {
+  // Quitar selección previa
+  document.querySelectorAll('#carouselGlobal .thumb-wrapper').forEach(w => w.classList.remove('seleccionada'));
+
+  // Marcar nuevo wrapper
+  const wrapper = img.closest('.thumb-wrapper');
+  if (wrapper) wrapper.classList.add('seleccionada');
+
+  // Guardar selección en variables globales
+  window.imagenSeleccionada = img.dataset.nombre;
+  window.imagenSeleccionadaUrl = img.dataset.url;
+
+  console.log("🖱️ Imagen clickeada:", img.src);
+  console.log("✅ Imagen seleccionada:", window.imagenSeleccionada);
+  console.log("🔗 URL seleccionada:", window.imagenSeleccionadaUrl);
+
+  // Feedback visual
+  document.querySelectorAll('#carouselGlobal .imagen-carrusel').forEach(el => {
+    el.style.outline = "";
+  });
+  img.style.outline = "3px solid #00c853"; // verde para destacar
+}
+  
+function confirmarImagen() {
+  console.log("🟢 [Step3] confirmarImagen → seleccionada:", window.imagenSeleccionada, 
+              "url:", window.imagenSeleccionadaUrl, 
+              "filaActual:", filaActual);
+
+  if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) {
+    console.warn("⚠️ confirmarImagen: faltan datos", {
+      seleccionada: window.imagenSeleccionada,
+      url: window.imagenSeleccionadaUrl,
+      fila: filaActual
+    });
+    return;
+  }
+
+  let imagenFinal = window.imagenSeleccionadaUrl;
+  const basename = window.imagenSeleccionada;
+
+  // 🔎 Normalizar: si la URL es blob, reemplazar por ruta real usando mapping
+  if (imagenFinal.startsWith("blob:")) {
+    const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+    const nombreGenerado = mapping[basename];
+
+    console.log("🔎 [Step3] Buscando basename en mapping:", basename, "→", nombreGenerado);
+
+    if (nombreGenerado) {
+      const repoDestino = localStorage.getItem("repoDestino");
+      const baseUrl = repoDestino
+        ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+        : "";
+      imagenFinal = baseUrl
+        ? `${baseUrl}/static/img/${nombreGenerado}`
+        : `/static/img/${nombreGenerado}`;
+      console.log("🔄 [Step3] Blob reemplazado usando mapping:", basename, "→", imagenFinal);
+    } else {
+      console.error("❌ [Step3] No se encontró mapping para basename", basename);
+      imagenFinal = "/static/img/fallback.webp"; // fallback seguro
+    }
+  }
+
+  console.log("✅ [Step3] Imagen final confirmada:", imagenFinal);
+
+  // 💾 Guardar en hidden inputs
+  const hiddenUrl = filaActual.querySelector("input[name='imagen_elegida']");
+  if (hiddenUrl) {
+    hiddenUrl.value = imagenFinal;
+    console.log("💾 [Step3] Guardado en hidden imagen_elegida:", imagenFinal);
+  }
+
+  let hiddenBase = filaActual.querySelector("input[name='imagen_basename']");
+  if (!hiddenBase) {
+    hiddenBase = document.createElement("input");
+    hiddenBase.type = "hidden";
+    hiddenBase.name = "imagen_basename";
+    filaActual.appendChild(hiddenBase);
+    console.log("➕ [Step3] Creado hidden imagen_basename");
+  }
+  hiddenBase.value = basename;
+  console.log("💾 [Step3] Guardado en hidden imagen_basename:", basename);
+
+  // 🖼️ Preview
+  filaActual.querySelector(".preview-imagen").innerHTML =
+    `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
+  console.log("🖼️ [Step3] Preview actualizada con:", imagenFinal);
+
+  // 📌 Marcar como usada y persistir GLOBAL (siempre basename)
+  imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(imagenesUsadas)) imagenesUsadas = [];
+
+  if (!imagenesUsadas.includes(basename)) {
+    imagenesUsadas.push(basename);
+    localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
+    console.log("📌 [Step3] imagenesUsadas actualizado:", imagenesUsadas);
+  }
+
+  marcarImagenesUsadas();
+
+  // 📂 Cerrar modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalCarrusel'));
+  if (modal) {
+    modal.hide();
+    console.log("📂 [Step3] Modal cerrado");
+  }
+
+  saveStateDebounced();
+  console.log("💾 [Step3] Estado guardado (debounced)");
+}
+  
+function loadState() {
+  const raw = localStorage.getItem(LS_KEY);
+  if (!raw) {
+    console.log("🧹 [Step3] No hay estado previo en localStorage");
+    return;
+  }
+
+  try {
+    const state = JSON.parse(raw);
+    console.log("♻️ [Step3] Estado cargado desde localStorage:", state);
+
+    // Limpiar UI actual
+    document.getElementById("grupos").innerHTML = "";
+
+    // 🔎 Normalizar imágenes usadas: siempre basenames, sin blobs ni URLs completas
+    imagenesUsadas = (state.imagenesUsadas || [])
+      .map(n => n ? n.split("/").pop() : "")
+      .filter(n => n && !n.startsWith("blob:"));
+
+    // Reconstruir grupos
+    (state.grupos || []).forEach(g => {
+      console.log(`📂 [Step3] Reconstruyendo grupo: ${g.nombre}`);
+
+      // Crear grupo
+      document.getElementById("nombreGrupo").value = g.nombre;
+      crearGrupo();
+      const grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].at(-1);
+
+      // Productos del grupo (ordenados)
+      const contGrupo = grupoCard.querySelector(".productos");
+      (g.productos || [])
+        .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+        .forEach(p => {
+          const fila = crearFila("General", g.nombre);
+          hydrateFila(fila, p);
+          contGrupo.appendChild(fila);
+        });
+      actualizarContador(contGrupo);
+
+      // Subgrupos
+      (g.subgrupos || []).forEach(sg => {
+        console.log(`   ↳ Subgrupo: ${sg.nombre}`);
+        const grupoIdx = grupoCard.id.split("_")[1];
+        const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
+        inputSub.value = sg.nombre;
+        crearSubgrupo(grupoCard.querySelector("button[onclick^='crearSubgrupo']"));
+
+        const subCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+          s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === sg.nombre
+        );
+        const contSub = subCard.querySelector(".productos");
+        (sg.productos || [])
+          .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+          .forEach(p => {
+            const fila = crearFila(sg.nombre, g.nombre);
+            hydrateFila(fila, p);
+            contSub.appendChild(fila);
+          });
+        actualizarContador(subCard);
+      });
+    });
+
+    // ✅ Marcar imágenes usadas en carrusel (comparando siempre basenames)
+    document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+      const nombre = img.dataset.nombre;
+      if (imagenesUsadas.includes(nombre)) {
+        img.classList.add('usada');
+        img.style.opacity = "0.25";
+        img.style.filter = "grayscale(100%) brightness(0.6)";
+        img.style.pointerEvents = "none";
+        console.log(`🖼️ [Step3] Imagen marcada como usada: ${nombre}`);
+      } else {
+        img.classList.remove('usada');
+        img.style.opacity = "1";
+        img.style.filter = "none";
+        img.style.pointerEvents = "auto";
+      }
+    });
+
+  } catch (e) {
+    console.error("❌ [Step3] Error al cargar estado:", e);
+  }
+}
+  
+function iniciarStep3() {
+  // 🧹 Siempre limpiar el estado viejo de Step3
+  localStorage.removeItem("step3_state");
+  imagenesUsadas = [];
+
+  // 📦 Ver si existe estructura nueva desde Step2-5
+  const listasStep2_5 = JSON.parse(localStorage.getItem("listas_step2-5") || "null");
+
+  if (listasStep2_5) {
+    console.log("♻️ [Step3] Usando listas_step2-5 para generar filas:", listasStep2_5);
+    generarFilasDesdeListas(listasStep2_5);
+
+    // Una vez usadas, las borramos para no repetir
+    localStorage.removeItem("listas_step2-5");
+  } else {
+    console.log("🧹 [Step3] No hay listas_step2-5, empezando vacío");
+    document.getElementById("grupos").innerHTML = "";
+  }
+}
+
+function marcarImagenesUsadas() {
+  let usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  if (!Array.isArray(usadas)) usadas = [];
+
+  document.querySelectorAll('#carouselGlobal .carousel-item img').forEach(img => {
+    const estaUsada = usadas.includes(img.dataset.nombre);
+    img.classList.toggle('usada', estaUsada);
+    img.style.opacity = estaUsada ? "0.25" : "1";
+    img.style.filter = estaUsada ? "grayscale(100%) brightness(0.6)" : "none";
+    img.style.pointerEvents = estaUsada ? "none" : "auto";
+  });
+}
+
+
+function validarYEnviar() {
+  const grupos = document.querySelectorAll('.card');
+  if (grupos.length === 0) {
+    alert('Agregá al menos un grupo antes de continuar');
+    return;
+  }
+
+  let hayContenidoValido = false;
+  let imagenesInvalidas = false;
+
+  grupos.forEach(grupo => {
+    const filas = grupo.querySelectorAll('.fila-producto');
+    filas.forEach(fila => {
+      const nombre = fila.querySelector('input[name="nombre"]');
+      const precio = fila.querySelector('input[name="precio"]');
+      const inputImagen = fila.querySelector('input[name="imagen_elegida"]');
+
+      const nombreValido = nombre && nombre.value.trim();
+      const precioValido = precio && precio.value.trim();
+      const imagenValida = inputImagen && inputImagen.value.trim() !== "";
+
+      if (nombreValido && precioValido && imagenValida) {
+        hayContenidoValido = true;
+      }
+      if ((nombreValido || precioValido) && !imagenValida) {
+        imagenesInvalidas = true;
+      }
+    });
+  });
+
+  if (!hayContenidoValido) {
+    alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
+    return;
+  }
+
+  if (imagenesInvalidas) {
+    alert('⚠️ Hay filas con nombre/precio pero sin imagen seleccionada. Revisalas antes de continuar.');
+    return;
+  }
+
+  // Mostrar spinner y limpiar estado antes de enviar
+  document.getElementById('spinner').style.display = 'flex';
+  localStorage.removeItem("step3_state"); // ✅ limpiar cache del paso
+  document.getElementById('formulario').submit();
+}
+
+window.addEventListener("load", () => {
+  console.log("🚀 [Step3] Inicializando...");
+
+  // 🧹 Inicializar Step3 (limpia estado viejo y usa listas_step2-5 si existen)
+  iniciarStep3();
+
+  // 🔢 Contador de orden
+  contadorOrden = 1;
+
+  // 📥 Cargar imágenes desde IndexedDB
+  cargarImagenesDesdeIndexedDB(count => {
+    console.log("📥 [Step3] Imágenes cargadas desde IndexedDB:", count);
+
+    if (count === 0) {
+      console.warn("⚠️ [Step3] IndexedDB vacío, inicializando carrusel con fallback a sesión");
+      inicializarCarrusel();
+    }
+
+    // 🔑 Inicializar lista de imágenes usadas desde localStorage
+    imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+    console.log("🟢 [Step3] imagenesUsadas al cargar:", imagenesUsadas);
+
+    // También conviene loguear las rutas reales guardadas en Step0
+    const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+    console.log("🟢 [Step3] imagenes_step0 al cargar:", rutasStep0);
+
+    // Intentar restaurar estado guardado (si no venís de Step2-5)
+    loadState();
+    console.log("💾 [Step3] Estado restaurado desde localStorage");
+
+    // ✅ volver a marcar imágenes usadas
+    marcarImagenesUsadas();
+  });
+});
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</body>
+</html>
