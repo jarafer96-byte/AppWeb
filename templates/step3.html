@@ -269,7 +269,7 @@
     ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
     : "";
   
-  const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
+  const imagenesDisponibles = {{ imagenes_step0 | default([]) | tojson | safe }};
   console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
 
   function eliminarProducto(boton) {
