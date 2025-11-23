@@ -1192,14 +1192,18 @@ function mostrarSubgrupo(subgrupo, event) {
   if (event?.target) event.target.classList.add('active');
 
   // Actualizar estado canónico
-  window.currentGrupo = String(grupoActivo).trim().toLowerCase();
-  window.currentSub = String(subgrupo || "").trim().toLowerCase();
+  const grupoCanon = String(grupoActivo).trim();
+  const subCanon = String(subgrupo || "").trim();
+
+  window.currentGrupo = grupoCanon.toLowerCase();
+  window.currentSub = subCanon.toLowerCase();
 
   // Filtrar y renderizar productos del grupo + subgrupo
-  filtrarSubcategoria(grupoActivo, subgrupo);
+  filtrarSubcategoria(grupoCanon, subCanon);
 }
 
 window.mostrarSubgrupo = mostrarSubgrupo;
+
 
 
 function vaciarCarrito() {
