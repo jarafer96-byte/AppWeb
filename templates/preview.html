@@ -1268,6 +1268,35 @@ function ajustarPosicionesPaneles() {
     panelSub.style.top = '';
   }
 }
+    
+function ordenarGrupo(grupo, asc = true) {
+  const cont = document.getElementById("productos");
+  cont.innerHTML = "";
+
+  const subgrupos = [...new Set(window.todosLosProductos
+    .filter(p => p.grupo?.toLowerCase() === grupo.toLowerCase())
+    .map(p => p.subgrupo)
+    .filter(Boolean))];
+
+  subgrupos.forEach(sub => {
+    const productos = window.todosLosProductos.filter(p =>
+      p.grupo?.toLowerCase() === grupo.toLowerCase() &&
+      p.subgrupo?.toLowerCase() === sub.toLowerCase()
+    );
+
+    productos.sort((a, b) => {
+      const pa = Number(a.precio) || 0;
+      const pb = Number(b.precio) || 0;
+      return asc ? pa - pb : pb - pa;
+    });
+
+    productos.forEach(p => {
+      const card = renderProducto(p);
+      cont.appendChild(card);
+      requestAnimationFrame(() => card.classList.add("show"));
+    });
+  });
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   // Login admin
@@ -1337,7 +1366,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 👉 Ordenar por precio sin mezclar subgrupos (cambio mínimo)
+  // 👉 Ordenar por precio sin mezclar subgrupos
   const ordenSelect = document.getElementById("ordenPrecio");
   if (ordenSelect) {
     ordenSelect.addEventListener("change", (e) => {
@@ -1359,8 +1388,8 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
 
-      // Caso 1: hay subgrupo activo → ordenar solo ese subgrupo
-      if (subActivo) {
+      if (grupoActivo && subActivo) {
+        // Caso 1: hay subgrupo activo → ordenar solo ese subgrupo
         productosFiltrados = productosFiltrados.filter(
           p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
         );
@@ -1371,31 +1400,39 @@ document.addEventListener("DOMContentLoaded", () => {
           return asc ? pa - pb : pb - pa;
         });
 
-      } else {
-        // Caso 2: NO hay subgrupo activo → agrupar por subgrupo y ordenar dentro
-        // Orden estable: primero por subgrupo (mantiene bloques), luego por precio
-        productosFiltrados.sort((a, b) => {
-          const sa = (a.subgrupo || "").toLowerCase();
-          const sb = (b.subgrupo || "").toLowerCase();
-          if (sa !== sb) return sa.localeCompare(sb);
+        const cont = document.getElementById("productos");
+        cont.innerHTML = "";
+        productosFiltrados.forEach(p => {
+          const card = renderProducto(p);
+          cont.appendChild(card);
+          setTimeout(() => card.classList.remove("fade-reorder"), 50);
+        });
 
-          const pa = Number(a.precio) || 0;
-          const pb = Number(b.precio) || 0;
-          return asc ? pa - pb : pb - pa;
+      } else if (grupoActivo) {
+        // Caso 2: NO hay subgrupo activo → ordenar todos los subgrupos manteniendo separación
+        const cont = document.getElementById("productos");
+        cont.innerHTML = "";
+
+        const subgrupos = [...new Set(productosFiltrados.map(p => p.subgrupo).filter(Boolean))];
+
+        subgrupos.forEach(sg => {
+          const productosSub = productosFiltrados.filter(
+            p => p.subgrupo?.toLowerCase() === sg.toLowerCase()
+          );
+
+          productosSub.sort((a, b) => {
+            const pa = Number(a.precio) || 0;
+            const pb = Number(b.precio) || 0;
+            return asc ? pa - pb : pb - pa;
+          });
+
+          productosSub.forEach(p => {
+            const card = renderProducto(p);
+            cont.appendChild(card);
+            setTimeout(() => card.classList.remove("fade-reorder"), 50);
+          });
         });
       }
-
-      // Renderizar resultado en el mismo contenedor
-      const cont = document.getElementById("productos");
-      if (!cont) return;
-      cont.innerHTML = "";
-
-      productosFiltrados.forEach(p => {
-        const card = renderProducto(p);
-        cont.appendChild(card);
-        // Mantener tu transición actual
-        setTimeout(() => card.classList.remove("fade-reorder"), 50);
-      });
     });
   }
 }); // 👈 cierre de DOMContentLoaded
