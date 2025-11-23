@@ -1337,11 +1337,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 👉 Ordenar por precio
+  // 👉 Ordenar por precio sin mezclar subgrupos (cambio mínimo)
   const ordenSelect = document.getElementById("ordenPrecio");
   if (ordenSelect) {
     ordenSelect.addEventListener("change", (e) => {
-      const valor = e.target.value; // "asc" o "desc"
+      const asc = e.target.value === "asc";
 
       const grupoActivoBtn = document.querySelector(".btn-grupo.active");
       const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
@@ -1349,31 +1349,51 @@ document.addEventListener("DOMContentLoaded", () => {
       const subActivoBtn = document.querySelector(".btn-subgrupo.active");
       const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-      let productosFiltrados = window.todosLosProductos;
+      // Tomamos la fuente original
+      let productosFiltrados = window.todosLosProductos || [];
+
+      // Filtramos por grupo activo si existe
       if (grupoActivo) {
         productosFiltrados = productosFiltrados.filter(
           p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
         );
       }
+
+      // Caso 1: hay subgrupo activo → ordenar solo ese subgrupo
       if (subActivo) {
         productosFiltrados = productosFiltrados.filter(
           p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
         );
+
+        productosFiltrados.sort((a, b) => {
+          const pa = Number(a.precio) || 0;
+          const pb = Number(b.precio) || 0;
+          return asc ? pa - pb : pb - pa;
+        });
+
+      } else {
+        // Caso 2: NO hay subgrupo activo → agrupar por subgrupo y ordenar dentro
+        // Orden estable: primero por subgrupo (mantiene bloques), luego por precio
+        productosFiltrados.sort((a, b) => {
+          const sa = (a.subgrupo || "").toLowerCase();
+          const sb = (b.subgrupo || "").toLowerCase();
+          if (sa !== sb) return sa.localeCompare(sb);
+
+          const pa = Number(a.precio) || 0;
+          const pb = Number(b.precio) || 0;
+          return asc ? pa - pb : pb - pa;
+        });
       }
 
-      productosFiltrados.sort((a, b) => {
-        const pa = parseFloat(a.precio) || 0;
-        const pb = parseFloat(b.precio) || 0;
-        return valor === "asc" ? pa - pb : pb - pa;
-      });
-
+      // Renderizar resultado en el mismo contenedor
       const cont = document.getElementById("productos");
+      if (!cont) return;
       cont.innerHTML = "";
 
-      // 🔑 Usar tu función original de renderizado
       productosFiltrados.forEach(p => {
-        const card = renderProducto(p); // 👈 esta función debe devolver la card completa
+        const card = renderProducto(p);
         cont.appendChild(card);
+        // Mantener tu transición actual
         setTimeout(() => card.classList.remove("fade-reorder"), 50);
       });
     });
@@ -1393,8 +1413,7 @@ if (btnProductos) {
     // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
 }
-
-   
+  
 </script>
 <script type="module">
 const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
