@@ -1280,29 +1280,15 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("load", ajustarPosicionesPaneles);
   window.addEventListener("resize", ajustarPosicionesPaneles);
 
-  // Botón Productos (abrir/cerrar paneles según contexto)
+  // Botón Productos
   const btnProductos = document.getElementById("btnProductos");
   if (btnProductos) {
-    btnProductos.addEventListener("click", (e) => {
-      e.stopPropagation(); // Evita conflictos con otros clicks
-
+    btnProductos.addEventListener("click", () => {
       const panelGrupos = document.getElementById("panelGrupos");
-      const panelSub = document.getElementById("panelSubcategorias");
+      if (panelGrupos) panelGrupos.classList.remove("oculta");
 
-      if (panelGrupos && panelSub) {
-        // Si ambos están visibles → cerrarlos
-        const gruposVisibles = !panelGrupos.classList.contains("oculta");
-        const subVisibles = !panelSub.classList.contains("oculta");
-
-        if (gruposVisibles || subVisibles) {
-          panelGrupos.classList.add("oculta");
-          panelSub.classList.add("oculta");
-        } else {
-          // Si están ocultos → abrir panel de grupos
-          panelGrupos.classList.remove("oculta");
-          setTimeout(ajustarPosicionesPaneles, 0);
-        }
-      }
+      // Ajustar posiciones después de mostrar
+      setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
 
@@ -1384,14 +1370,29 @@ document.addEventListener("DOMContentLoaded", () => {
       const cont = document.getElementById("productos");
       cont.innerHTML = "";
 
+      // 🔑 Usar tu función original de renderizado
       productosFiltrados.forEach(p => {
-        const card = renderProducto(p);
+        const card = renderProducto(p); // 👈 esta función debe devolver la card completa
         cont.appendChild(card);
         setTimeout(() => card.classList.remove("fade-reorder"), 50);
       });
     });
   }
 }); // 👈 cierre de DOMContentLoaded
+
+// Botón Productos (SOLO cierra los paneles)
+const btnProductos = document.getElementById('btnProductos');
+if (btnProductos) {
+  btnProductos.addEventListener('click', (e) => {
+    e.stopPropagation(); // Evita conflictos con otros clicks
+
+    // Solo ocultamos los paneles
+    document.getElementById('panelGrupos').classList.add('oculta');
+    document.getElementById('panelSubcategorias').classList.add('oculta');
+    
+    // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
+  });
+}
 
    
 </script>
