@@ -1340,6 +1340,60 @@ function ordenarDentroDeBloques(asc = true) {
   });
 }
 
+// ---------- funciones auxiliares ----------
+function renderProductosPorSubgrupos(productos = []) {
+  const cont = document.getElementById('productos');
+  if (!cont) return;
+  cont.innerHTML = '';
+
+  const subgrupos = [...new Set(productos.map(p => (p.subgrupo || '').toString()).filter(Boolean))];
+
+  subgrupos.forEach(sg => {
+    const bloque = document.createElement('div');
+    bloque.className = 'bloque-subgrupo';
+    bloque.dataset.subgrupo = sg;
+
+    const productosSub = productos.filter(p => (p.subgrupo || '').toLowerCase() === sg.toLowerCase());
+    productosSub.forEach(p => {
+      const card = renderProducto(p);
+      if (!card.dataset.subgrupo) card.dataset.subgrupo = sg;
+      bloque.appendChild(card);
+      setTimeout(() => card.classList.remove('fade-reorder'), 50);
+    });
+
+    cont.appendChild(bloque);
+  });
+
+  // productos sin subgrupo
+  const sinSub = productos.filter(p => !p.subgrupo);
+  if (sinSub.length) {
+    const bloque = document.createElement('div');
+    bloque.className = 'bloque-subgrupo';
+    bloque.dataset.subgrupo = '(sin)';
+    sinSub.forEach(p => {
+      const card = renderProducto(p);
+      if (!card.dataset.subgrupo) card.dataset.subgrupo = '(sin)';
+      bloque.appendChild(card);
+      setTimeout(() => card.classList.remove('fade-reorder'), 50);
+    });
+    cont.appendChild(bloque);
+  }
+}
+
+function ordenarDentroDeBloques(asc = true) {
+  const bloques = document.querySelectorAll(".bloque-subgrupo");
+  bloques.forEach(bloque => {
+    const cards = Array.from(bloque.querySelectorAll(".card-producto"));
+    cards.sort((a, b) => {
+      const pa = Number(a.dataset.precio) || 0;
+      const pb = Number(b.dataset.precio) || 0;
+      return asc ? pa - pb : pb - pa;
+    });
+    cards.forEach(card => bloque.appendChild(card));
+  });
+}
+
+// ---------- DOMContentLoaded: listeners y flujo principal ----------
 document.addEventListener("DOMContentLoaded", () => {
   // Login admin
   const form = document.getElementById("form-login-admin");
@@ -1351,37 +1405,33 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("load", ajustarPosicionesPaneles);
   window.addEventListener("resize", ajustarPosicionesPaneles);
 
-  // Botón Productos
+  // Botón Productos (muestra panelGrupos)
   const btnProductos = document.getElementById("btnProductos");
   if (btnProductos) {
     btnProductos.addEventListener("click", () => {
       const panelGrupos = document.getElementById("panelGrupos");
       if (panelGrupos) panelGrupos.classList.remove("oculta");
-
-      // Ajustar posiciones después de mostrar
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
 
-  // Botón Subcategorías
+  // Botón Subcategorías (muestra panelSubcategorias)
   const btnSubcategorias = document.getElementById("btnSubcategorias");
   if (btnSubcategorias) {
     btnSubcategorias.addEventListener("click", () => {
       const panelSub = document.getElementById("panelSubcategorias");
       if (panelSub) panelSub.classList.remove("oculta");
-
-      // Ajustar posiciones después de mostrar
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
 
-  // Delegación de eventos para botones de grupo dinámicos
+  // Delegación de eventos para botones de grupo dinámicos + cierre de paneles/carrito al clic fuera
   document.addEventListener("click", (e) => {
     if (e.target.classList.contains("btn-grupo")) {
       setTimeout(ajustarPosicionesPaneles, 0);
     }
 
-    // ✅ Cerrar carrito al hacer clic fuera
+    // Cerrar carrito al hacer clic fuera
     const carritoDiv = document.getElementById("carrito");
     const toggleBtn = document.getElementById("toggleCarrito");
     if (carritoDiv && toggleBtn) {
@@ -1392,7 +1442,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // ✅ Ocultar paneles al hacer clic fuera
+    // Ocultar paneles al hacer clic fuera
     const panelGrupos = document.getElementById("panelGrupos");
     const panelSub = document.getElementById("panelSubcategorias");
     if (panelGrupos && panelSub) {
@@ -1413,82 +1463,87 @@ document.addEventListener("DOMContentLoaded", () => {
     renderProductosPorSubgrupos(window.todosLosProductos);
   }
 
-  // Reemplazar la sección original que maneja ordenSelect change
-const ordenSelect = document.getElementById("ordenPrecio");
-if (ordenSelect) {
-  ordenSelect.addEventListener("change", (e) => {
-    const asc = e.target.value === "asc";
+  // Listener robusto para ordenar por precio sin mezclar subgrupos
+  const ordenSelect = document.getElementById("ordenPrecio");
+  if (ordenSelect) {
+    ordenSelect.addEventListener("change", (e) => {
+      const asc = e.target.value === "asc";
 
-    const grupoActivoBtn = document.querySelector(".btn-grupo.active");
-    const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
+      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
 
-    const subActivoBtn = document.querySelector(".btn-subgrupo.active");
-    const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
+      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-    console.log('ORDER HANDLER', {asc, grupoActivo, subActivo, bloques: document.querySelectorAll('.bloque-subgrupo').length, cards: document.querySelectorAll('.card-producto').length});
+      console.log('ORDER HANDLER', {
+        asc,
+        grupoActivo,
+        subActivo,
+        bloques: document.querySelectorAll('.bloque-subgrupo').length,
+        cards: document.querySelectorAll('.card-producto').length
+      });
 
-    if (!grupoActivo) {
-      console.log('No hay grupo activo — no se realiza orden.');
-      return;
-    }
-
-    // Caso: hay subgrupo activo → re-render sólo ese bloque en orden
-    if (grupoActivo && subActivo) {
-      const bloque = document.querySelector(`.bloque-subgrupo[data-subgrupo="${subActivo}"]`);
-      if (bloque) {
-        const productosSub = (window.todosLosProductos || [])
-          .filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase() && p.subgrupo?.toLowerCase() === subActivo.toLowerCase())
-          .sort((a, b) => {
-            const pa = Number(a.precio) || 0;
-            const pb = Number(b.precio) || 0;
-            return asc ? pa - pb : pb - pa;
-          });
-
-        // Reemplaza sólo el bloque activo
-        bloque.innerHTML = "";
-        productosSub.forEach(p => {
-          const card = renderProducto(p);
-          bloque.appendChild(card);
-          setTimeout(() => card.classList.remove("fade-reorder"), 50);
-        });
-        console.log('Subgrupo renderizado y ordenado:', subActivo);
+      if (!grupoActivo) {
+        console.log('No hay grupo activo — no se realiza orden.');
         return;
-      } else {
-        console.warn('Bloque para subgrupo activo no encontrado. Regenerando la vista por subgrupos del grupo activo.');
-        renderProductosPorSubgrupos((window.todosLosProductos || []).filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()));
+      }
+
+      // Caso: hay subgrupo activo → re-render sólo ese bloque en orden
+      if (grupoActivo && subActivo) {
+        const bloque = document.querySelector(`.bloque-subgrupo[data-subgrupo="${subActivo}"]`);
+        if (bloque) {
+          const productosSub = (window.todosLosProductos || [])
+            .filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase() && p.subgrupo?.toLowerCase() === subActivo.toLowerCase())
+            .sort((a, b) => {
+              const pa = Number(a.precio) || 0;
+              const pb = Number(b.precio) || 0;
+              return asc ? pa - pb : pb - pa;
+            });
+
+          bloque.innerHTML = "";
+          productosSub.forEach(p => {
+            const card = renderProducto(p);
+            bloque.appendChild(card);
+            setTimeout(() => card.classList.remove("fade-reorder"), 50);
+          });
+          console.log('Subgrupo renderizado y ordenado:', subActivo);
+          return;
+        } else {
+          console.warn('Bloque para subgrupo activo no encontrado. Regenerando la vista por subgrupos del grupo activo.');
+          renderProductosPorSubgrupos((window.todosLosProductos || []).filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()));
+          ordenarDentroDeBloques(asc);
+          return;
+        }
+      }
+
+      // Caso: grupo activo y NO hay subgrupo → preferir reordenar dentro de bloques
+      if (document.querySelectorAll('.bloque-subgrupo').length > 0) {
+        console.log('Reordenando dentro de bloques existentes (preserva estado de inputs).');
         ordenarDentroDeBloques(asc);
         return;
       }
-    }
 
-    // Caso: grupo activo y NO hay subgrupo → preferir reordenar dentro de bloques
-    if (document.querySelectorAll('.bloque-subgrupo').length > 0) {
-      console.log('Reordenando dentro de bloques existentes (preserva estado de inputs).');
+      // Fallback: si NO hay bloques en DOM, regenerar desde la fuente del grupo y ordenar
+      console.log('No se detectan bloques en DOM — regenerando bloques desde la fuente y ordenando.');
+      const productosFiltrados = (window.todosLosProductos || []).filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase());
+      renderProductosPorSubgrupos(productosFiltrados);
       ordenarDentroDeBloques(asc);
-      return;
-    }
+    });
+  }
+}); // cierre DOMContentLoaded
 
-    // Fallback: si NO hay bloques en DOM, regenerar desde la fuente del grupo y ordenar
-    console.log('No se detectan bloques en DOM — regenerando bloques desde la fuente y ordenando.');
-    const productosFiltrados = (window.todosLosProductos || []).filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase());
-    renderProductosPorSubgrupos(productosFiltrados);
-    ordenarDentroDeBloques(asc);
-  });
-}
-
-// Botón Productos (SOLO cierra los paneles)
+// Botón Productos (SOLO cierra los paneles) - fuera de DOMContentLoaded para no re-declarar listener
 const btnProductos = document.getElementById('btnProductos');
 if (btnProductos) {
   btnProductos.addEventListener('click', (e) => {
     e.stopPropagation(); // Evita conflictos con otros clicks
-
-    // Solo ocultamos los paneles
-    document.getElementById('panelGrupos').classList.add('oculta');
-    document.getElementById('panelSubcategorias').classList.add('oculta');
-    
+    const panelGrupos = document.getElementById('panelGrupos');
+    const panelSub = document.getElementById('panelSubcategorias');
+    if (panelGrupos) panelGrupos.classList.add('oculta');
+    if (panelSub) panelSub.classList.add('oculta');
     // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
-}  
+}
 </script>
 <script type="module">
 const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
