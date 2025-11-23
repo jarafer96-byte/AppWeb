@@ -1442,8 +1442,11 @@ function renderProducto(p) {
     </div>
   `;
 
+  // 🔁 Aplicar transición directamente al crear la card
+  requestAnimationFrame(() => card.classList.add("show"));
+  setTimeout(() => card.classList.remove("fade-reorder"), 50);
+
   console.log("✅ renderProducto devuelve card:", card);
-  console.log("🧩 HTML de la card:", card.innerHTML);
   return card;
 }
 
