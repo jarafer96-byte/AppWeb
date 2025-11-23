@@ -1424,7 +1424,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const cont = document.getElementById("productos");
         cont.innerHTML = "";
 
-        const subgrupos = [...new Set(productosFiltrados.map(p => p.subgrupo).filter(Boolean))];
+        let subgrupos = [...new Set(productosFiltrados.map(p => p.subgrupo).filter(Boolean))];
+        // 🔑 Ordenar también los subgrupos para que el bloque completo respete asc/desc
+        subgrupos.sort((a, b) => asc ? a.localeCompare(b) : b.localeCompare(a));
 
         subgrupos.forEach(sg => {
           const productosSub = productosFiltrados.filter(
