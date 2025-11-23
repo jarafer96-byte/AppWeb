@@ -717,6 +717,8 @@ fetch("/api/productos")
 
     
 function mostrarGrupo(nombre, event, auto = false) {
+  console.log("🟦 mostrarGrupo llamado con:", { nombre, auto });
+
   const cont = document.getElementById("productos");
   if (!cont) {
     console.warn("⚠️ No existe #productos en el DOM");
@@ -725,23 +727,32 @@ function mostrarGrupo(nombre, event, auto = false) {
 
   // Resetear botones de grupo
   document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
-  if (event?.target) event.target.classList.add('active');
+  if (event?.target) {
+    event.target.classList.add('active');
+    console.log("👉 Botón de grupo marcado:", event.target.textContent);
+  }
 
   const panel = document.getElementById('panelSubcategorias');
-  if (!panel) return;
+  if (!panel) {
+    console.warn("⚠️ No existe #panelSubcategorias en el DOM");
+    return;
+  }
   panel.innerHTML = "";
 
   // Normalizar y guardar grupo activo
   const grupoCanon = String(nombre || "").trim();
   window.currentGrupo = grupoCanon.toLowerCase();
+  console.log("🎯 Grupo activo (canon):", grupoCanon);
 
   const productosGrupo = (window.todosLosProductos || []).filter(
     p => String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase()
   );
+  console.log("📦 Productos encontrados para grupo:", productosGrupo.length, productosGrupo);
 
   const subcategorias = [...new Set(
     productosGrupo.map(p => p.subgrupo).filter(s => s && String(s).toLowerCase() !== 'general')
   )];
+  console.log("📂 Subcategorías detectadas:", subcategorias);
 
   // Crear botones de subgrupo
   subcategorias.forEach(sub => {
@@ -750,6 +761,7 @@ function mostrarGrupo(nombre, event, auto = false) {
     btn.className = 'btn-subgrupo';
     btn.addEventListener("click", (e) => mostrarSubgrupo(sub, e));
     panel.appendChild(btn);
+    console.log("➕ Botón subgrupo creado:", sub);
   });
 
   cont.innerHTML = "";
@@ -758,16 +770,21 @@ function mostrarGrupo(nombre, event, auto = false) {
   const grupoDiv = document.createElement("div");
   grupoDiv.className = "grupo-section";
   grupoDiv.innerHTML = `<h3>${grupoCanon}</h3>`;
+  console.log("📌 Creando bloque de grupo:", grupoCanon);
 
   if (subcategorias.length > 0) {
     if (!auto) {
       panel.classList.remove('oculta');
+      console.log("📂 Panel subcategorias visible");
     } else {
       panel.classList.add('oculta');
+      console.log("📂 Panel subcategorias oculto (auto)");
     }
 
     // Crear un bloque por cada subcategoría
     subcategorias.forEach(sub => {
+      console.log("➡️ Renderizando subgrupo:", sub);
+
       const subDiv = document.createElement("div");
       subDiv.className = "subgrupo-bloque";
       subDiv.innerHTML = `<h4>${sub}</h4>`;
@@ -775,6 +792,7 @@ function mostrarGrupo(nombre, event, auto = false) {
       const productosSub = productosGrupo.filter(p =>
         String(p.subgrupo || "").toLowerCase() === String(sub).toLowerCase()
       );
+      console.log("   📦 Productos en subgrupo:", sub, productosSub.length, productosSub);
 
       productosSub.forEach(p => {
         const card = renderProducto(p);
@@ -787,6 +805,7 @@ function mostrarGrupo(nombre, event, auto = false) {
   } else {
     // Caso sin subcategorías → mostrar todo el grupo en un bloque único
     panel.classList.add('oculta');
+    console.log("📂 Grupo sin subcategorías, mostrando bloque General");
 
     const subDiv = document.createElement("div");
     subDiv.className = "subgrupo-bloque";
@@ -802,13 +821,17 @@ function mostrarGrupo(nombre, event, auto = false) {
   }
 
   cont.appendChild(grupoDiv);
+  console.log("✅ Bloque de grupo renderizado y agregado al contenedor");
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 window.mostrarGrupo = mostrarGrupo;
 
+
 function filtrarSubcategoria(grupo, subgrupo) {
+  console.log("🟨 filtrarSubcategoria llamada con:", { grupo, subgrupo });
+
   const cont = document.getElementById("productos");
   if (!cont) {
     console.warn("⚠️ No existe #productos en el DOM");
@@ -818,6 +841,7 @@ function filtrarSubcategoria(grupo, subgrupo) {
 
   const grupoCanon = String(grupo || "").trim();
   const subCanon = String(subgrupo || "").trim();
+  console.log("🎯 Grupo canon:", grupoCanon, " | Subgrupo canon:", subCanon || `General_${grupoCanon}`);
 
   // Crear bloque de grupo
   const grupoDiv = document.createElement("div");
@@ -844,8 +868,11 @@ function filtrarSubcategoria(grupo, subgrupo) {
     );
   }
 
+  console.log("📦 Productos filtrados:", productosFiltrados.length, productosFiltrados);
+
   // Renderizar cards dentro del subgrupo
   productosFiltrados.forEach(p => {
+    console.log("   ➕ Renderizando producto:", p);
     const card = renderProducto(p);
     subDiv.appendChild(card);
     requestAnimationFrame(() => card.classList.add("show"));
@@ -853,15 +880,16 @@ function filtrarSubcategoria(grupo, subgrupo) {
 
   // Insertar subgrupo dentro del grupo
   grupoDiv.appendChild(subDiv);
+  console.log("📂 Subgrupo agregado al grupo:", subCanon || `General_${grupoCanon}`);
 
   // Insertar grupo dentro del contenedor principal
   cont.appendChild(grupoDiv);
+  console.log("✅ Grupo renderizado en contenedor principal:", grupoCanon);
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 window.filtrarSubcategoria = filtrarSubcategoria;
-
 
 
 window.onload = function() {
@@ -1178,9 +1206,12 @@ function eliminarProducto(id_base, talle, event) {
 }
     
 function mostrarSubgrupo(subgrupo, event) {
+  console.log("🟩 mostrarSubgrupo llamada con:", subgrupo);
+
   // Buscar el grupo actualmente activo (botón marcado)
   const grupoActivoBtn = document.querySelector('.btn-grupo.active');
   const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+  console.log("🎯 Grupo activo detectado:", grupoActivo);
 
   if (!grupoActivo) {
     console.warn("⚠️ No hay grupo activo para mostrar subgrupo:", subgrupo);
@@ -1189,7 +1220,10 @@ function mostrarSubgrupo(subgrupo, event) {
 
   // Resetear botones de subgrupo
   document.querySelectorAll('.btn-subgrupo').forEach(btn => btn.classList.remove('active'));
-  if (event?.target) event.target.classList.add('active');
+  if (event?.target) {
+    event.target.classList.add('active');
+    console.log("👉 Botón subgrupo marcado:", event.target.textContent);
+  }
 
   // Actualizar estado canónico
   const grupoCanon = String(grupoActivo).trim();
@@ -1197,13 +1231,14 @@ function mostrarSubgrupo(subgrupo, event) {
 
   window.currentGrupo = grupoCanon.toLowerCase();
   window.currentSub = subCanon.toLowerCase();
+  console.log("📌 Estado canónico actualizado:", { currentGrupo: window.currentGrupo, currentSub: window.currentSub });
 
   // Filtrar y renderizar productos del grupo + subgrupo
+  console.log("➡️ Llamando a filtrarSubcategoria con:", { grupoCanon, subCanon });
   filtrarSubcategoria(grupoCanon, subCanon);
 }
 
 window.mostrarSubgrupo = mostrarSubgrupo;
-
 
 
 function vaciarCarrito() {
