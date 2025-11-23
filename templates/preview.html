@@ -1280,11 +1280,11 @@ function ordenarGrupo(grupo, asc = true) {
     .filter(Boolean))];
 
   subgrupos.forEach(sub => {
-    // 👉 Separador visual opcional (puede ser un título o un div vacío)
-    const separador = document.createElement("div");
-    separador.className = "subgrupo-separador";
-    separador.textContent = sub;
-    cont.appendChild(separador);
+    // 👉 recrear el bloque del subgrupo
+    const bloqueSub = document.createElement("div");
+    bloqueSub.className = "bloque-subgrupo";
+    bloqueSub.dataset.subgrupo = sub;
+    cont.appendChild(bloqueSub);
 
     // Filtrar productos del subgrupo
     const productosSub = window.todosLosProductos.filter(p =>
@@ -1299,15 +1299,14 @@ function ordenarGrupo(grupo, asc = true) {
       return asc ? pa - pb : pb - pa;
     });
 
-    // Renderizar productos del subgrupo
+    // Renderizar productos dentro del bloque del subgrupo
     productosSub.forEach(p => {
       const card = renderProducto(p);
-      cont.appendChild(card);
+      bloqueSub.appendChild(card);
       requestAnimationFrame(() => card.classList.add("show"));
     });
   });
 }
-
 
 document.addEventListener("DOMContentLoaded", () => {
   // Login admin
@@ -1420,15 +1419,20 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
       } else if (grupoActivo) {
-        // Caso 2: NO hay subgrupo activo → ordenar todos los subgrupos manteniendo separación
+        // Caso 2: NO hay subgrupo activo → recrear bloques por subgrupo y ordenar dentro
         const cont = document.getElementById("productos");
         cont.innerHTML = "";
 
         let subgrupos = [...new Set(productosFiltrados.map(p => p.subgrupo).filter(Boolean))];
-        // 🔑 Ordenar también los subgrupos para que el bloque completo respete asc/desc
         subgrupos.sort((a, b) => asc ? a.localeCompare(b) : b.localeCompare(a));
 
         subgrupos.forEach(sg => {
+          // 👉 crear bloque contenedor por subgrupo
+          const bloqueSub = document.createElement("div");
+          bloqueSub.className = "bloque-subgrupo";
+          bloqueSub.dataset.subgrupo = sg;
+          cont.appendChild(bloqueSub);
+
           const productosSub = productosFiltrados.filter(
             p => p.subgrupo?.toLowerCase() === sg.toLowerCase()
           );
@@ -1441,7 +1445,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           productosSub.forEach(p => {
             const card = renderProducto(p);
-            cont.appendChild(card);
+            bloqueSub.appendChild(card);
             setTimeout(() => card.classList.remove("fade-reorder"), 50);
           });
         });
