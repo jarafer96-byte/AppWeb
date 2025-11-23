@@ -736,9 +736,11 @@ function filtrarSubcategoria(grupo, subgrupo) {
       p.subgrupo?.toLowerCase() === subgrupo.toLowerCase()
     );
   } else {
-    // Caso solo grupo
+    // Caso "General" → normalizar igual que en Firestore
+    const subgrupoGeneral = `General_${grupo}`;
     productosFiltrados = window.todosLosProductos.filter(p =>
-      p.grupo?.toLowerCase() === grupo.toLowerCase()
+      p.grupo?.toLowerCase() === grupo.toLowerCase() &&
+      p.subgrupo?.toLowerCase() === subgrupoGeneral.toLowerCase()
     );
   }
 
@@ -754,6 +756,7 @@ function filtrarSubcategoria(grupo, subgrupo) {
 
 // Si usás type="module", exponerla al global:
 window.filtrarSubcategoria = filtrarSubcategoria;
+
 
 window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
@@ -1397,7 +1400,6 @@ const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
 const email = "{{ session.get('email') or '' }}";
 const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
 
-// ✅ Inicializar primer grupo/subgrupo dinámicamente
 setTimeout(() => {
   if (!window.todosLosProductos || window.todosLosProductos.length === 0) return;
 
@@ -1412,12 +1414,17 @@ setTimeout(() => {
     .filter(p => p.grupo === primerGrupo)
     .map(p => p.subgrupo))];
 
-  const primerSubgrupoNombre = subgrupos[0]?.trim().toLowerCase();
+  // Normalizar: si no hay subgrupo, usar General_{grupo}
+  let primerSubgrupoNombre = subgrupos[0]?.trim();
+  if (!primerSubgrupoNombre) {
+    primerSubgrupoNombre = `General_${primerGrupo}`;
+  }
 
   if (primerGrupoId && primerSubgrupoNombre) {
-    filtrarSubcategoria(primerGrupo, subgrupos[0]);
+    filtrarSubcategoria(primerGrupo, primerSubgrupoNombre);
   }
 }, 100);
+
    
 </script>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
