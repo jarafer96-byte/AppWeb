@@ -322,6 +322,55 @@ function filaToObj(fila) {
   };
 }
   
+function generarFilasDesdeListas(listas) {
+  listas.forEach(item => {
+    const { grupo, subgrupo, cantidad, talles } = item;
+    const nombreGrupo = grupo || "General";
+
+    // Crear grupo si no existe
+    let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+      c => c.querySelector("h4")?.textContent.trim() === nombreGrupo
+    );
+    if (!grupoCard) {
+      const inputGrupo = document.getElementById("nombreGrupo");
+      if (inputGrupo) {
+        inputGrupo.value = nombreGrupo;
+        crearGrupo();
+        grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+          c => c.querySelector("h4")?.textContent.trim() === nombreGrupo
+        );
+      }
+    }
+
+    // Crear subgrupo si corresponde
+    let subgrupoCard = grupoCard;
+    if (subgrupo) {
+      const grupoIdx = grupoCard.id.split("_")[1];
+      const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
+      const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
+      if (inputSub && btnCrearSub) {
+        inputSub.value = subgrupo;
+        crearSubgrupo(btnCrearSub);
+        subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+          s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === subgrupo
+        );
+      }
+    }
+
+    // Crear filas según cantidad
+    const contenedor = subgrupoCard.querySelector(".productos");
+    const cant = parseInt(cantidad, 10) || 1;
+    for (let i = 0; i < cant; i++) {
+      const fila = crearFila(subgrupo || "General", nombreGrupo);
+      fila.querySelector("input[name='talles']").value = talles || "";
+      contenedor.appendChild(fila);
+    }
+    actualizarContador(contenedor);
+  });
+
+  saveStateDebounced();
+}
+  
 function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
   if (!nombre) return alert("Ingresá un nombre para el grupo");
