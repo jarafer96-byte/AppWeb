@@ -1368,28 +1368,27 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 👉 Ordenar por precio
-  const ordenSelect = document.getElementById("ordenPrecio");
-  if (ordenSelect) {
-    ordenSelect.addEventListener("change", (e) => {
-      const valor = e.target.value; // "asc" o "desc"
+const ordenSelect = document.getElementById("ordenPrecio");
+if (ordenSelect) {
+  ordenSelect.addEventListener("change", (e) => {
+    const asc = e.target.value === "asc";
 
-      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
-      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+    const grupoActivoBtn = document.querySelector(".btn-grupo.active");
+    const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
 
-      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
-      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+    const subActivoBtn = document.querySelector(".btn-subgrupo.active");
+    const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-      let productosFiltrados = window.todosLosProductos;
-      if (grupoActivo) {
-        productosFiltrados = productosFiltrados.filter(
-          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
-        );
-      }
-      if (subActivo) {
-        productosFiltrados = productosFiltrados.filter(
-          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
-        );
-      }
+    if (grupoActivo && subActivo) {
+      // 👉 Ordenar solo dentro del subgrupo activo
+      ordenarPorPrecio(grupoActivo, subActivo, asc);
+    } else if (grupoActivo) {
+      // 👉 Ordenar todos los subgrupos del grupo activo (manteniendo separación)
+      ordenarGrupo(grupoActivo, asc);
+    }
+  });
+}
+
 
       productosFiltrados.sort((a, b) => {
         const pa = parseFloat(a.precio) || 0;
