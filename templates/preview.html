@@ -1284,11 +1284,12 @@ function ajustarPosicionesPaneles() {
     panelSub.style.top = '';
   }
 }
-
+  
 // 👉 Helpers de diagnóstico (solo logs)
 function logTitulo(msg) {
   console.log(`\n===== ${msg} =====`);
 }
+    
 function logCardsOrden(bloque, etiqueta) {
   const items = Array.from(bloque.querySelectorAll(".card-producto")).map(card => ({
     id: card.dataset.id || "(sin-id)",
@@ -1297,6 +1298,21 @@ function logCardsOrden(bloque, etiqueta) {
   }));
   console.table(items, ["id", "subgrupo", "precio"]);
   console.log(`Total ${etiqueta}:`, items.length);
+}
+
+// Reordenar dentro de bloques ya existentes
+function ordenarDentroDeBloques(asc = true) {
+  const bloques = document.querySelectorAll(".bloque-subgrupo");
+  bloques.forEach(bloque => {
+    const cards = Array.from(bloque.querySelectorAll(".card-producto"));
+    cards.sort((a, b) => {
+      const pa = Number(a.dataset.precio) || 0;
+      const pb = Number(b.dataset.precio) || 0;
+      return asc ? pa - pb : pb - pa;
+    });
+    // Reinsertar en orden sin vaciar el bloque (preserva nodos y dataset)
+    cards.forEach(card => bloque.appendChild(card));
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1367,12 +1383,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 👉 Ordenar por precio sin mezclar subgrupos (solo logs añadidos)
+  // 👉 Ordenar por precio sin mezclar subgrupos (usa ordenarDentroDeBloques)
   const ordenSelect = document.getElementById("ordenPrecio");
   if (ordenSelect) {
     ordenSelect.addEventListener("change", (e) => {
       const asc = e.target.value === "asc";
-      logTitulo(`OrdenPrecio change → asc=${asc}`);
 
       const grupoActivoBtn = document.querySelector(".btn-grupo.active");
       const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
@@ -1380,117 +1395,44 @@ document.addEventListener("DOMContentLoaded", () => {
       const subActivoBtn = document.querySelector(".btn-subgrupo.active");
       const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-      console.log("Grupo activo:", grupoActivo);
-      console.log("Subgrupo activo:", subActivo);
-
       // Tomamos la fuente original
       let productosFiltrados = window.todosLosProductos || [];
-      console.log("Total productos fuente:", productosFiltrados.length);
 
       // Filtramos por grupo activo si existe
       if (grupoActivo) {
         productosFiltrados = productosFiltrados.filter(
           p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
         );
-        console.log(`Filtrados por grupo "${grupoActivo}":`, productosFiltrados.length);
       }
 
       if (grupoActivo && subActivo) {
-        // Caso 1: hay subgrupo activo → ordenar solo ese subgrupo
-        productosFiltrados = productosFiltrados.filter(
-          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
-        );
-        console.log(`Filtrados por subgrupo "${subActivo}":`, productosFiltrados.length);
-
-        productosFiltrados.sort((a, b) => {
-          const pa = Number(a.precio) || 0;
-          const pb = Number(b.precio) || 0;
-          return asc ? pa - pb : pb - pa;
-        });
-        console.table(productosFiltrados.map(p => ({
-          id: p.id || "(sin-id)",
-          subgrupo: p.subgrupo || "(sin)",
-          precio: Number(p.precio) || 0
-        })));
-
-        const cont = document.getElementById("productos");
-        if (!cont) {
-          console.warn("#productos no encontrado");
-          return;
-        }
-        cont.innerHTML = "";
-        productosFiltrados.forEach(p => {
-          const card = renderProducto(p);
-          cont.appendChild(card);
-          setTimeout(() => card.classList.remove("fade-reorder"), 50);
-        });
-        console.log("Renderizado subgrupo activo completado");
-
-      } else if (grupoActivo) {
-        // Caso 2: NO hay subgrupo activo → recrear bloques por subgrupo y ordenar dentro
-        const cont = document.getElementById("productos");
-        if (!cont) {
-          console.warn("#productos no encontrado");
-          return;
-        }
-        cont.innerHTML = "";
-
-        let subgrupos = [...new Set(productosFiltrados.map(p => p.subgrupo).filter(Boolean))];
-        console.log("Subgrupos detectados:", subgrupos);
-        subgrupos.sort((a, b) => asc ? a.localeCompare(b) : b.localeCompare(a));
-        console.log("Orden de recorrido de subgrupos:", subgrupos);
-
-        subgrupos.forEach(sg => {
-          console.log(`→ Procesando subgrupo: "${sg}"`);
-          // 👉 crear bloque contenedor por subgrupo
-          const bloqueSub = document.createElement("div");
-          bloqueSub.className = "bloque-subgrupo";
-          bloqueSub.dataset.subgrupo = sg;
-          cont.appendChild(bloqueSub);
-
+        // Caso 1: hay subgrupo activo → ordenar solo ese subgrupo (reemplaza contenido del bloque activo)
+        const bloque = document.querySelector(`.bloque-subgrupo[data-subgrupo="${subActivo}"]`);
+        if (bloque) {
+          // Filtrar productos para ese subgrupo y ordenarlos
           const productosSub = productosFiltrados.filter(
-            p => p.subgrupo?.toLowerCase() === sg.toLowerCase()
-          );
-          console.log(`Productos en "${sg}" antes de ordenar:`, productosSub.length);
-
-          productosSub.sort((a, b) => {
+            p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
+          ).sort((a, b) => {
             const pa = Number(a.precio) || 0;
             const pb = Number(b.precio) || 0;
             return asc ? pa - pb : pb - pa;
           });
 
-          console.table(productosSub.map(p => ({
-            id: p.id || "(sin-id)",
-            precio: Number(p.precio) || 0
-          })));
-
+          // Reemplazar contenido del bloque con las cards en orden
+          bloque.innerHTML = "";
           productosSub.forEach(p => {
             const card = renderProducto(p);
-            // Diagnóstico: asegurar dataset para lectura posterior
-            if (!card.classList.contains("card-producto")) {
-              console.warn("Card sin clase .card-producto. Agregarla en renderProducto para ordenar dentro de bloque.");
-            }
-            if (!card.dataset) card.dataset = {};
-            if (card.dataset && card.dataset.precio == null) {
-              card.dataset.precio = Number(p.precio) || 0;
-            }
-            if (card.dataset && card.dataset.id == null && p.id != null) {
-              card.dataset.id = p.id;
-            }
-
-            bloqueSub.appendChild(card);
+            bloque.appendChild(card);
+            setTimeout(() => card.classList.remove("fade-reorder"), 50);
           });
-
-          // Log post-render del bloque
-          logCardsOrden(bloqueSub, `bloque "${sg}"`);
-        });
-
-        // Vista general post-render
-        const todosBloques = document.querySelectorAll(".bloque-subgrupo");
-        console.log("Bloques total:", todosBloques.length);
-        todosBloques.forEach(b => logCardsOrden(b, b.dataset.subgrupo || "(sin)"));
+        }
+      } else if (grupoActivo) {
+        // Caso 2: NO hay subgrupo activo → reordenar dentro de cada bloque ya existente
+        // Si los bloques ya están en DOM, esto solo reordena sus cards; no recrea bloques
+        ordenarDentroDeBloques(asc);
       } else {
-        console.warn("Sin grupo activo: no se ejecuta orden.");
+        // Si no hay grupo activo, podés decidir no ordenar o aplicar orden global.
+        // Aquí no hacemos nada para respetar la UX actual.
       }
     });
   }
