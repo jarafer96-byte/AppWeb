@@ -1413,60 +1413,68 @@ document.addEventListener("DOMContentLoaded", () => {
     renderProductosPorSubgrupos(window.todosLosProductos);
   }
 
-  // 👉 Ordenar por precio sin mezclar subgrupos (usa ordenarDentroDeBloques)
-  const ordenSelect = document.getElementById("ordenPrecio");
-  if (ordenSelect) {
-    ordenSelect.addEventListener("change", (e) => {
-      const asc = e.target.value === "asc";
+  // Reemplazar la sección original que maneja ordenSelect change
+const ordenSelect = document.getElementById("ordenPrecio");
+if (ordenSelect) {
+  ordenSelect.addEventListener("change", (e) => {
+    const asc = e.target.value === "asc";
 
-      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
-      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+    const grupoActivoBtn = document.querySelector(".btn-grupo.active");
+    const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
 
-      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
-      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+    const subActivoBtn = document.querySelector(".btn-subgrupo.active");
+    const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-      // Tomamos la fuente original
-      let productosFiltrados = window.todosLosProductos || [];
+    console.log('ORDER HANDLER', {asc, grupoActivo, subActivo, bloques: document.querySelectorAll('.bloque-subgrupo').length, cards: document.querySelectorAll('.card-producto').length});
 
-      // Filtramos por grupo activo si existe
-      if (grupoActivo) {
-        productosFiltrados = productosFiltrados.filter(
-          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
-        );
-      }
+    if (!grupoActivo) {
+      console.log('No hay grupo activo — no se realiza orden.');
+      return;
+    }
 
-      if (grupoActivo && subActivo) {
-        // Caso 1: hay subgrupo activo → ordenar solo ese subgrupo (reemplaza contenido del bloque activo)
-        const bloque = document.querySelector(`.bloque-subgrupo[data-subgrupo="${subActivo}"]`);
-        if (bloque) {
-          // Filtrar productos para ese subgrupo y ordenarlos
-          const productosSub = productosFiltrados.filter(
-            p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
-          ).sort((a, b) => {
+    // Caso: hay subgrupo activo → re-render sólo ese bloque en orden
+    if (grupoActivo && subActivo) {
+      const bloque = document.querySelector(`.bloque-subgrupo[data-subgrupo="${subActivo}"]`);
+      if (bloque) {
+        const productosSub = (window.todosLosProductos || [])
+          .filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase() && p.subgrupo?.toLowerCase() === subActivo.toLowerCase())
+          .sort((a, b) => {
             const pa = Number(a.precio) || 0;
             const pb = Number(b.precio) || 0;
             return asc ? pa - pb : pb - pa;
           });
 
-          // Reemplazar contenido del bloque con las cards en orden
-          bloque.innerHTML = "";
-          productosSub.forEach(p => {
-            const card = renderProducto(p);
-            bloque.appendChild(card);
-            setTimeout(() => card.classList.remove("fade-reorder"), 50);
-          });
-        }
-      } else if (grupoActivo) {
-        // Caso 2: NO hay subgrupo activo → reordenar dentro de cada bloque ya existente
-        // Si los bloques ya están en DOM, esto solo reordena sus cards; no recrea bloques
-        ordenarDentroDeBloques(asc);
+        // Reemplaza sólo el bloque activo
+        bloque.innerHTML = "";
+        productosSub.forEach(p => {
+          const card = renderProducto(p);
+          bloque.appendChild(card);
+          setTimeout(() => card.classList.remove("fade-reorder"), 50);
+        });
+        console.log('Subgrupo renderizado y ordenado:', subActivo);
+        return;
       } else {
-        // Si no hay grupo activo, podés decidir no ordenar o aplicar orden global.
-        // Aquí no hacemos nada para respetar la UX actual.
+        console.warn('Bloque para subgrupo activo no encontrado. Regenerando la vista por subgrupos del grupo activo.');
+        renderProductosPorSubgrupos((window.todosLosProductos || []).filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()));
+        ordenarDentroDeBloques(asc);
+        return;
       }
-    });
-  }
-}); // 👈 cierre de DOMContentLoaded
+    }
+
+    // Caso: grupo activo y NO hay subgrupo → preferir reordenar dentro de bloques
+    if (document.querySelectorAll('.bloque-subgrupo').length > 0) {
+      console.log('Reordenando dentro de bloques existentes (preserva estado de inputs).');
+      ordenarDentroDeBloques(asc);
+      return;
+    }
+
+    // Fallback: si NO hay bloques en DOM, regenerar desde la fuente del grupo y ordenar
+    console.log('No se detectan bloques en DOM — regenerando bloques desde la fuente y ordenando.');
+    const productosFiltrados = (window.todosLosProductos || []).filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase());
+    renderProductosPorSubgrupos(productosFiltrados);
+    ordenarDentroDeBloques(asc);
+  });
+}
 
 // Botón Productos (SOLO cierra los paneles)
 const btnProductos = document.getElementById('btnProductos');
