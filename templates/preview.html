@@ -73,16 +73,12 @@ html {
   scroll-behavior: auto;
 }
 .card {
-  opacity: 0; /* arranca invisible */
-  transform: translateY(20px);
-  animation: fadeInUp 0.6s ease forwards; /* animación que la hace visible */
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border-radius: 12px;
   overflow: hidden;
   will-change: transform, box-shadow;
   padding: 12px;
 }
-
 .card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 20px rgba(0,0,0,0.3);
