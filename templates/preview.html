@@ -1269,6 +1269,20 @@ function ajustarPosicionesPaneles() {
   }
 }
 
+// 👉 Helpers de diagnóstico (solo logs)
+function logTitulo(msg) {
+  console.log(`\n===== ${msg} =====`);
+}
+function logCardsOrden(bloque, etiqueta) {
+  const items = Array.from(bloque.querySelectorAll(".card-producto")).map(card => ({
+    id: card.dataset.id || "(sin-id)",
+    subgrupo: card.closest(".bloque-subgrupo")?.dataset?.subgrupo || "(sin-bloque)",
+    precio: Number(card.dataset.precio) || 0
+  }));
+  console.table(items, ["id", "subgrupo", "precio"]);
+  console.log(`Total ${etiqueta}:`, items.length);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Login admin
   const form = document.getElementById("form-login-admin");
@@ -1337,11 +1351,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 👉 Ordenar por precio
+  // 👉 Ordenar por precio sin mezclar subgrupos (solo logs añadidos)
   const ordenSelect = document.getElementById("ordenPrecio");
   if (ordenSelect) {
     ordenSelect.addEventListener("change", (e) => {
-      const valor = e.target.value; // "asc" o "desc"
+      const asc = e.target.value === "asc";
+      logTitulo(`OrdenPrecio change → asc=${asc}`);
 
       const grupoActivoBtn = document.querySelector(".btn-grupo.active");
       const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
@@ -1349,33 +1364,118 @@ document.addEventListener("DOMContentLoaded", () => {
       const subActivoBtn = document.querySelector(".btn-subgrupo.active");
       const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-      let productosFiltrados = window.todosLosProductos;
+      console.log("Grupo activo:", grupoActivo);
+      console.log("Subgrupo activo:", subActivo);
+
+      // Tomamos la fuente original
+      let productosFiltrados = window.todosLosProductos || [];
+      console.log("Total productos fuente:", productosFiltrados.length);
+
+      // Filtramos por grupo activo si existe
       if (grupoActivo) {
         productosFiltrados = productosFiltrados.filter(
           p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
         );
+        console.log(`Filtrados por grupo "${grupoActivo}":`, productosFiltrados.length);
       }
-      if (subActivo) {
+
+      if (grupoActivo && subActivo) {
+        // Caso 1: hay subgrupo activo → ordenar solo ese subgrupo
         productosFiltrados = productosFiltrados.filter(
           p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
         );
+        console.log(`Filtrados por subgrupo "${subActivo}":`, productosFiltrados.length);
+
+        productosFiltrados.sort((a, b) => {
+          const pa = Number(a.precio) || 0;
+          const pb = Number(b.precio) || 0;
+          return asc ? pa - pb : pb - pa;
+        });
+        console.table(productosFiltrados.map(p => ({
+          id: p.id || "(sin-id)",
+          subgrupo: p.subgrupo || "(sin)",
+          precio: Number(p.precio) || 0
+        })));
+
+        const cont = document.getElementById("productos");
+        if (!cont) {
+          console.warn("#productos no encontrado");
+          return;
+        }
+        cont.innerHTML = "";
+        productosFiltrados.forEach(p => {
+          const card = renderProducto(p);
+          cont.appendChild(card);
+          setTimeout(() => card.classList.remove("fade-reorder"), 50);
+        });
+        console.log("Renderizado subgrupo activo completado");
+
+      } else if (grupoActivo) {
+        // Caso 2: NO hay subgrupo activo → recrear bloques por subgrupo y ordenar dentro
+        const cont = document.getElementById("productos");
+        if (!cont) {
+          console.warn("#productos no encontrado");
+          return;
+        }
+        cont.innerHTML = "";
+
+        let subgrupos = [...new Set(productosFiltrados.map(p => p.subgrupo).filter(Boolean))];
+        console.log("Subgrupos detectados:", subgrupos);
+        subgrupos.sort((a, b) => asc ? a.localeCompare(b) : b.localeCompare(a));
+        console.log("Orden de recorrido de subgrupos:", subgrupos);
+
+        subgrupos.forEach(sg => {
+          console.log(`→ Procesando subgrupo: "${sg}"`);
+          // 👉 crear bloque contenedor por subgrupo
+          const bloqueSub = document.createElement("div");
+          bloqueSub.className = "bloque-subgrupo";
+          bloqueSub.dataset.subgrupo = sg;
+          cont.appendChild(bloqueSub);
+
+          const productosSub = productosFiltrados.filter(
+            p => p.subgrupo?.toLowerCase() === sg.toLowerCase()
+          );
+          console.log(`Productos en "${sg}" antes de ordenar:`, productosSub.length);
+
+          productosSub.sort((a, b) => {
+            const pa = Number(a.precio) || 0;
+            const pb = Number(b.precio) || 0;
+            return asc ? pa - pb : pb - pa;
+          });
+
+          console.table(productosSub.map(p => ({
+            id: p.id || "(sin-id)",
+            precio: Number(p.precio) || 0
+          })));
+
+          productosSub.forEach(p => {
+            const card = renderProducto(p);
+            // Diagnóstico: asegurar dataset para lectura posterior
+            if (!card.classList.contains("card-producto")) {
+              console.warn("Card sin clase .card-producto. Agregarla en renderProducto para ordenar dentro de bloque.");
+            }
+            if (!card.dataset) card.dataset = {};
+            if (card.dataset && card.dataset.precio == null) {
+              card.dataset.precio = Number(p.precio) || 0;
+            }
+            if (card.dataset && card.dataset.id == null && p.id != null) {
+              card.dataset.id = p.id;
+            }
+
+            bloqueSub.appendChild(card);
+          });
+
+          // Log post-render del bloque
+          logCardsOrden(bloqueSub, `bloque "${sg}"`);
+        });
+
+        // Vista general post-render
+        const todosBloques = document.querySelectorAll(".bloque-subgrupo");
+        console.log("Bloques total:", todosBloques.length);
+        todosBloques.forEach(b => logCardsOrden(b, b.dataset.subgrupo || "(sin)"));
+      } else {
+        console.warn("Sin grupo activo: no se ejecuta orden.");
       }
-
-      productosFiltrados.sort((a, b) => {
-        const pa = parseFloat(a.precio) || 0;
-        const pb = parseFloat(b.precio) || 0;
-        return valor === "asc" ? pa - pb : pb - pa;
-      });
-
-      const cont = document.getElementById("productos");
-      cont.innerHTML = "";
-
-      // 🔑 Usar tu función original de renderizado
-      productosFiltrados.forEach(p => {
-        const card = renderProducto(p); // 👈 esta función debe devolver la card completa
-        cont.appendChild(card);
-        setTimeout(() => card.classList.remove("fade-reorder"), 50);
-      });
     });
   }
 }); // 👈 cierre de DOMContentLoaded
@@ -1393,7 +1493,6 @@ if (btnProductos) {
     // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
 }
-
    
 </script>
 <script type="module">
