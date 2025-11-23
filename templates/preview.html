@@ -1138,6 +1138,57 @@ function loginAdmin(event) {
       }
     });
 }
+    
+function ordenarGrupo(valor) {
+  console.log("🔄 Evento change en ordenPrecio, valor seleccionado:", valor);
+
+  const cont = document.getElementById("productos");
+  if (!cont) return;
+
+  const grupoCanon = window.currentGrupo;
+  const subCanon = window.currentSub;
+
+  // Filtrar productos del grupo/subgrupo activo
+  let productosFiltrados = window.todosLosProductos.filter(p =>
+    String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase() &&
+    String(p.subgrupo || "").toLowerCase() === subCanon.toLowerCase()
+  );
+
+  // Ordenar por precio
+  productosFiltrados.sort((a, b) => {
+    const pa = Number(a.precio) || 0;
+    const pb = Number(b.precio) || 0;
+    return valor === "asc" ? pa - pb : pb - pa;
+  });
+  console.log("📊 Productos ordenados por precio:", valor, productosFiltrados);
+
+  // Limpiar contenedor
+  cont.innerHTML = "";
+
+  // Recrear bloque de grupo y subgrupo
+  const grupoDiv = document.createElement("div");
+  grupoDiv.className = "grupo-section";
+  grupoDiv.innerHTML = `<h3>${grupoCanon}</h3>`;
+
+  const subDiv = document.createElement("div");
+  subDiv.className = "subgrupo-bloque";
+  subDiv.innerHTML = `<h4>${subCanon}</h4>`;
+
+  // Insertar cards ordenadas
+  productosFiltrados.forEach(p => {
+    const card = renderProducto(p);
+    subDiv.appendChild(card);
+
+    requestAnimationFrame(() => card.classList.add("show"));
+    setTimeout(() => card.classList.remove("fade-reorder"), 50);
+
+    console.log("🛒 Card insertada en subgrupo:", p.nombre);
+  });
+
+  grupoDiv.appendChild(subDiv);
+  cont.appendChild(grupoDiv);
+  console.log("✅ Renderizado completo en ordenPrecio, hijos finales en #productos:", cont.children.length);
+}
 
 function editarTalles(id) {
   const select = document.getElementById("talle_" + id);
@@ -1655,6 +1706,56 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+// 👉 Nueva función ordenarGrupo
+function ordenarGrupo(valor) {
+  console.log("🔄 ordenarGrupo llamada con:", valor);
+
+  const cont = document.getElementById("productos");
+  if (!cont) return;
+
+  const grupoCanon = window.currentGrupo;
+  const subCanon = window.currentSub;
+
+  let productosFiltrados = window.todosLosProductos.filter(p =>
+    String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase() &&
+    String(p.subgrupo || "").toLowerCase() === subCanon.toLowerCase()
+  );
+
+  productosFiltrados.sort((a, b) => {
+    const pa = Number(a.precio) || 0;
+    const pb = Number(b.precio) || 0;
+    return valor === "asc" ? pa - pb : pb - pa;
+  });
+  console.log("📊 Productos ordenados:", valor, productosFiltrados);
+
+  cont.innerHTML = "";
+
+  const grupoDiv = document.createElement("div");
+  grupoDiv.className = "grupo-section";
+  grupoDiv.innerHTML = `<h3>${grupoCanon}</h3>`;
+
+  const subDiv = document.createElement("div");
+  subDiv.className = "subgrupo-bloque";
+  subDiv.innerHTML = `<h4>${subCanon}</h4>`;
+
+  productosFiltrados.forEach(p => {
+    const card = renderProducto(p);
+    subDiv.appendChild(card);
+
+    requestAnimationFrame(() => card.classList.add("show"));
+    setTimeout(() => card.classList.remove("fade-reorder"), 50);
+
+    console.log("🛒 Card insertada en subgrupo:", p.nombre);
+  });
+
+  grupoDiv.appendChild(subDiv);
+  cont.appendChild(grupoDiv);
+  console.log("✅ Bloque renderizado en ordenarGrupo, hijos finales:", cont.children.length);
+}
+
+window.ordenarGrupo = ordenarGrupo;
+
 
 
 
