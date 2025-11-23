@@ -316,6 +316,48 @@ html {
 .grupo-section.active {
   display: block !important;
 }
+/* Bloque de grupo */
+.grupo-section {
+  margin: 20px 0;
+  padding: 15px;
+  border: 2px solid #333;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+/* Título de grupo */
+.grupo-section > h3 {
+  margin: 0 0 10px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+}
+
+/* Bloque de subgrupo dentro del grupo */
+.subgrupo-bloque {
+  margin: 15px 0;
+  padding: 10px;
+  border: 1px dashed #666;
+  border-radius: 4px;
+  background: #fff;
+}
+
+/* Título de subgrupo */
+.subgrupo-bloque > h4 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #444;
+  border-bottom: 1px dotted #aaa;
+  padding-bottom: 4px;
+}
+
+/* Productos dentro de subgrupo */
+.subgrupo-bloque .card-producto {
+  margin-bottom: 12px;
+}
+  
 .social-icons {
   margin-top: 40px;
   text-align: center;
@@ -449,6 +491,9 @@ html {
   padding: 1px 6px;
   border-radius: 8px;
 }
+.productos-container {
+  margin-top: 30px;
+}  
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -475,7 +520,9 @@ html {
 
   <!-- Panel de subcategorías: también se llena con JS -->
   <div id="panelSubcategorias" class="panel-subcategorias oculta"></div>
-  
+  <!-- Contenedor principal de productos -->
+  <div id="productos" class="productos-container"></div>
+
   <button id="volverArriba" class="btn btn-volver-arriba" 
           style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
     ↑
@@ -680,45 +727,79 @@ function mostrarGrupo(nombre, event, auto = false) {
   if (!panel) return;
   panel.innerHTML = "";
 
-  const productosGrupo = window.todosLosProductos.filter(
-    p => p.grupo?.toLowerCase() === nombre.toLowerCase()
+  const grupoCanon = String(nombre || "").trim();
+  const productosGrupo = (window.todosLosProductos || []).filter(
+    p => String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase()
   );
 
   const subcategorias = [...new Set(
-    productosGrupo.map(p => p.subgrupo).filter(s => s && s.toLowerCase() !== 'general')
+    productosGrupo.map(p => p.subgrupo).filter(s => s && String(s).toLowerCase() !== 'general')
   )];
 
   subcategorias.forEach(sub => {
     const btn = document.createElement('button');
     btn.textContent = sub;
     btn.className = 'btn-subgrupo';
-    btn.onclick = () => filtrarSubcategoria(nombre, sub);
+    btn.onclick = () => filtrarSubcategoria(grupoCanon, sub);
     panel.appendChild(btn);
   });
+
+  cont.innerHTML = "";
+
+  // Crear bloque de grupo
+  const grupoDiv = document.createElement("div");
+  grupoDiv.className = "grupo-section";
+  grupoDiv.innerHTML = `<h3>${grupoCanon}</h3>`;
 
   if (subcategorias.length > 0) {
     if (!auto) {
       panel.classList.remove('oculta');
-      filtrarSubcategoria(nombre, subcategorias[0]);
     } else {
       panel.classList.add('oculta');
     }
+
+    // Crear un bloque por cada subcategoría
+    subcategorias.forEach(sub => {
+      const subDiv = document.createElement("div");
+      subDiv.className = "subgrupo-bloque";
+      subDiv.innerHTML = `<h4>${sub}</h4>`;
+
+      const productosSub = productosGrupo.filter(p =>
+        String(p.subgrupo || "").toLowerCase() === String(sub).toLowerCase()
+      );
+
+      productosSub.forEach(p => {
+        const card = renderProducto(p);
+        subDiv.appendChild(card);
+        requestAnimationFrame(() => card.classList.add("show"));
+      });
+
+      grupoDiv.appendChild(subDiv);
+    });
   } else {
-    // Caso sin subcategorías → mostrar todo el grupo
+    // Caso sin subcategorías → mostrar todo el grupo en un bloque único
     panel.classList.add('oculta');
-    cont.innerHTML = "";
+
+    const subDiv = document.createElement("div");
+    subDiv.className = "subgrupo-bloque";
+    subDiv.innerHTML = `<h4>General</h4>`;
+
     productosGrupo.forEach(p => {
       const card = renderProducto(p);
-      cont.appendChild(card);
-      // 👇 activar transición al siguiente frame
+      subDiv.appendChild(card);
       requestAnimationFrame(() => card.classList.add("show"));
     });
+
+    grupoDiv.appendChild(subDiv);
   }
+
+  cont.appendChild(grupoDiv);
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 window.mostrarGrupo = mostrarGrupo;
+
 
 function filtrarSubcategoria(grupo, subgrupo) {
   const cont = document.getElementById("productos");
@@ -728,34 +809,52 @@ function filtrarSubcategoria(grupo, subgrupo) {
   }
   cont.innerHTML = "";
 
+  const grupoCanon = String(grupo || "").trim();
+  const subCanon = String(subgrupo || "").trim();
+
+  // Crear bloque de grupo
+  const grupoDiv = document.createElement("div");
+  grupoDiv.className = "grupo-section";
+  grupoDiv.innerHTML = `<h3>${grupoCanon}</h3>`;
+
+  // Crear bloque de subgrupo
+  const subDiv = document.createElement("div");
+  subDiv.className = "subgrupo-bloque";
+  subDiv.innerHTML = `<h4>${subCanon || `General_${grupoCanon}`}</h4>`;
+
+  // Filtrar productos
   let productosFiltrados;
-  if (subgrupo && subgrupo.trim() !== "") {
-    // Caso grupo + subgrupo
+  if (subCanon) {
     productosFiltrados = window.todosLosProductos.filter(p =>
-      p.grupo?.toLowerCase() === grupo.toLowerCase() &&
-      p.subgrupo?.toLowerCase() === subgrupo.toLowerCase()
+      String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase() &&
+      String(p.subgrupo || "").toLowerCase() === subCanon.toLowerCase()
     );
   } else {
-    // Caso "General" → normalizar igual que en Firestore
-    const subgrupoGeneral = `General_${grupo}`;
+    const subgrupoGeneral = `General_${grupoCanon}`;
     productosFiltrados = window.todosLosProductos.filter(p =>
-      p.grupo?.toLowerCase() === grupo.toLowerCase() &&
-      p.subgrupo?.toLowerCase() === subgrupoGeneral.toLowerCase()
+      String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase() &&
+      String(p.subgrupo || "").toLowerCase() === subgrupoGeneral.toLowerCase()
     );
   }
 
+  // Renderizar cards dentro del subgrupo
   productosFiltrados.forEach(p => {
-    const card = renderProducto(p); // 👈 devuelve el div con fade-reorder
-    cont.appendChild(card);
-    // 👇 activar transición al siguiente frame
+    const card = renderProducto(p);
+    subDiv.appendChild(card);
     requestAnimationFrame(() => card.classList.add("show"));
   });
+
+  // Insertar subgrupo dentro del grupo
+  grupoDiv.appendChild(subDiv);
+
+  // Insertar grupo dentro del contenedor principal
+  cont.appendChild(grupoDiv);
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
-// Si usás type="module", exponerla al global:
 window.filtrarSubcategoria = filtrarSubcategoria;
+
 
 
 window.onload = function() {
@@ -763,21 +862,6 @@ window.onload = function() {
   const panelGrupos = document.getElementById('panelGrupos');
   panelSubcategorias.classList.add('oculta');
   panelGrupos.classList.add('oculta');
-
-  // Usar los datos de la API para inicializar
-  fetch("/api/productos")
-    .then(r => r.json())
-    .then(lista => {
-      window.todosLosProductos = lista;
-
-      const primerGrupo = [...new Set(lista.map(p => p.grupo))][0];
-      const primerSub = lista.find(p => p.grupo === primerGrupo && p.subgrupo?.toLowerCase() !== "general")?.subgrupo;
-
-      if (primerGrupo && primerSub) {
-        mostrarGrupo(primerGrupo, null, true);
-        filtrarSubcategoria(primerGrupo, primerSub);
-      }
-    });
 
   document.getElementById('toggleCarrito').onclick = function() {
     const carritoDiv = document.getElementById('carrito');
@@ -1100,12 +1184,16 @@ function mostrarSubgrupo(subgrupo, event) {
   document.querySelectorAll('.btn-subgrupo').forEach(btn => btn.classList.remove('active'));
   if (event?.target) event.target.classList.add('active');
 
+  // Actualizar estado canónico
+  window.currentGrupo = String(grupoActivo).trim().toLowerCase();
+  window.currentSub = String(subgrupo || "").trim().toLowerCase();
+
   // Filtrar y renderizar productos del grupo + subgrupo
   filtrarSubcategoria(grupoActivo, subgrupo);
 }
 
-// Si usás type="module", exponerla al global:
 window.mostrarSubgrupo = mostrarSubgrupo;
+
 
 function vaciarCarrito() {
   carrito = [];
