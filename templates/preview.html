@@ -720,6 +720,109 @@ function mostrarGrupo(nombre, event, auto = false) {
 
 window.mostrarGrupo = mostrarGrupo;
 
+    
+// Helper: obtiene lista ordenada y única de grupos y subgrupos
+function obtenerGruposYSubgrupos(productos = []) {
+  const grupos = [...new Set(productos.map(p => (p.grupo || '').toString()).filter(Boolean))];
+  const mapaSub = new Map();
+  grupos.forEach(g => {
+    const subs = [...new Set(productos.filter(p => (p.grupo||'').toString() === g).map(p => (p.subgrupo || '').toString()).filter(Boolean))];
+    mapaSub.set(g, subs);
+  });
+  return { grupos, mapaSub };
+}
+
+// Generar botones y enganchar comportamiento canónico
+function poblarPanelesGrupos(productos = []) {
+  const panelGrupos = document.getElementById('panelGrupos');
+  const panelSub = document.getElementById('panelSubcategorias');
+  if (!panelGrupos || !panelSub) return;
+
+  panelGrupos.innerHTML = '';
+  panelSub.innerHTML = '';
+
+  const { grupos, mapaSub } = obtenerGruposYSubgrupos(productos);
+
+  // Generar botones de grupo
+  grupos.forEach(g => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-link btn-grupo';
+    btn.dataset.grupo = g;                       // <-- data-grupo garantizado
+    btn.textContent = g;                         // label visible
+    panelGrupos.appendChild(btn);
+  });
+
+  // Listener único: delegación para botones de grupo
+  panelGrupos.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.btn-grupo');
+    if (!btn) return;
+    // Marcar active visualmente
+    panelGrupos.querySelectorAll('.btn-grupo.active').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Fuente canónica: dataset
+    const grupo = String(btn.dataset.grupo || btn.getAttribute('data-grupo') || btn.textContent).toLowerCase();
+    window.currentGrupo = grupo;
+
+    // Poblar panelSub con subgrupos del grupo seleccionado (usando mapa)
+    panelSub.innerHTML = '';
+    const subs = mapaSub.get(btn.dataset.grupo) || [];
+    subs.forEach(sg => {
+      const btns = document.createElement('button');
+      btns.type = 'button';
+      btns.className = 'btn btn-sm btn-subgrupo';
+      btns.dataset.subgrupo = sg;                 // <-- data-subgrupo garantizado
+      btns.textContent = sg;
+      panelSub.appendChild(btns);
+    });
+
+    // Renderizar productos del grupo por subgrupos (crea .bloque-subgrupo)
+    const productosFiltrados = (window.todosLosProductos || []).filter(p => (p.grupo||'').toLowerCase() === grupo);
+    renderProductosPorSubgrupos(productosFiltrados);
+
+    // Si hay un select de orden, habilitarlo y aplicar su valor al render actual
+    const ordenSelect = document.getElementById('ordenPrecio');
+    if (ordenSelect) {
+      ordenSelect.disabled = false;
+      const asc = ordenSelect.value === 'asc';
+      if (document.querySelectorAll('.bloque-subgrupo').length > 0) {
+        ordenarDentroDeBloques(asc);
+      }
+    }
+
+    // Ajustes visuales
+    setTimeout(ajustarPosicionesPaneles, 0);
+  });
+
+  // Delegación para subgrupo: cuando se clicka uno, marcar y renderizar solo ese bloque
+  panelSub.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.btn-subgrupo');
+    if (!btn) return;
+    panelSub.querySelectorAll('.btn-subgrupo.active').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const sub = String(btn.dataset.subgrupo || btn.textContent).toLowerCase();
+    window.currentSub = sub;
+
+    // render solo ese subgrupo
+    const productosSub = (window.todosLosProductos || []).filter(
+      p => (p.grupo || '').toLowerCase() === (window.currentGrupo || '').toLowerCase()
+        && (p.subgrupo || '').toLowerCase() === sub
+    );
+    renderProductosPorSubgrupos(productosSub); // o reemplaza solo el bloque si querés más específico
+
+    // Aplicar orden actual si existe
+    const ordenSelect = document.getElementById('ordenPrecio');
+    if (ordenSelect) {
+      const asc = ordenSelect.value === 'asc';
+      ordenarDentroDeBloques(asc);
+    }
+
+    setTimeout(ajustarPosicionesPaneles, 0);
+  });
+}
+
 function filtrarSubcategoria(grupo, subgrupo) {
   const cont = document.getElementById("productos");
   if (!cont) {
@@ -1395,6 +1498,10 @@ function ordenarDentroDeBloques(asc = true) {
 
 // ---------- DOMContentLoaded: listeners y flujo principal ----------
 document.addEventListener("DOMContentLoaded", () => {
+  // Deshabilitar select de orden por defecto
+  const ordenSelectInit = document.getElementById('ordenPrecio');
+  if (ordenSelectInit) ordenSelectInit.disabled = true;
+
   // Login admin
   const form = document.getElementById("form-login-admin");
   if (form) {
@@ -1425,7 +1532,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Delegación de eventos para botones de grupo dinámicos + cierre de paneles/carrito al clic fuera
+  // Delegación global: clics, cierre de paneles/carrito
   document.addEventListener("click", (e) => {
     if (e.target.classList.contains("btn-grupo")) {
       setTimeout(ajustarPosicionesPaneles, 0);
@@ -1437,9 +1544,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (carritoDiv && toggleBtn) {
       const visible = carritoDiv.style.display === "block";
       const clicFueraCarrito = !carritoDiv.contains(e.target) && !toggleBtn.contains(e.target);
-      if (visible && clicFueraCarrito) {
-        carritoDiv.style.display = "none";
-      }
+      if (visible && clicFueraCarrito) carritoDiv.style.display = "none";
     }
 
     // Ocultar paneles al hacer clic fuera
@@ -1450,7 +1555,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const esClickDentroSub = panelSub.contains(e.target);
       const esBotonGrupo = e.target.classList.contains("btn-grupo");
       const esBotonNavegacion = !!e.target.closest(".barra-navegacion");
-
       if (!esClickDentroGrupos && !esClickDentroSub && !esBotonGrupo && !esBotonNavegacion) {
         panelGrupos.classList.add("oculta");
         panelSub.classList.add("oculta");
@@ -1458,8 +1562,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Si hay productos ya cargados en window.todosLosProductos, render inicial por subgrupos
+  // Si hay productos ya cargados en window.todosLosProductos, poblar paneles y render inicial
   if (window.todosLosProductos && window.todosLosProductos.length) {
+    poblarPanelesGrupos(window.todosLosProductos);
     renderProductosPorSubgrupos(window.todosLosProductos);
   }
 
@@ -1469,11 +1574,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ordenSelect.addEventListener("change", (e) => {
       const asc = e.target.value === "asc";
 
-      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
-      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
-
-      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
-      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+      // Preferir fuente canonical almacenada en window.currentGrupo
+      const grupoActivo = (window.currentGrupo || document.querySelector(".btn-grupo.active")?.dataset.grupo || document.querySelector(".btn-grupo.active")?.textContent?.trim()) || null;
+      const subActivo = window.currentSub || document.querySelector(".btn-subgrupo.active")?.dataset.subgrupo || document.querySelector(".btn-subgrupo.active")?.textContent?.trim() || null;
 
       console.log('ORDER HANDLER', {
         asc,
@@ -1489,11 +1592,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // Caso: hay subgrupo activo → re-render sólo ese bloque en orden
-      if (grupoActivo && subActivo) {
+      if (subActivo) {
         const bloque = document.querySelector(`.bloque-subgrupo[data-subgrupo="${subActivo}"]`);
         if (bloque) {
           const productosSub = (window.todosLosProductos || [])
-            .filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase() && p.subgrupo?.toLowerCase() === subActivo.toLowerCase())
+            .filter(p => (p.grupo||'').toLowerCase() === String(grupoActivo).toLowerCase() && (p.subgrupo||'').toLowerCase() === String(subActivo).toLowerCase())
             .sort((a, b) => {
               const pa = Number(a.precio) || 0;
               const pb = Number(b.precio) || 0;
@@ -1518,13 +1621,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Caso: grupo activo y NO hay subgrupo → preferir reordenar dentro de bloques
       if (document.querySelectorAll('.bloque-subgrupo').length > 0) {
-        console.log('Reordenando dentro de bloques existentes (preserva estado de inputs).');
         ordenarDentroDeBloques(asc);
         return;
       }
 
-      // Fallback: si NO hay bloques en DOM, regenerar desde la fuente del grupo y ordenar
-      console.log('No se detectan bloques en DOM — regenerando bloques desde la fuente y ordenando.');
+      // Fallback: regenerar desde la fuente del grupo y ordenar
       const productosFiltrados = (window.todosLosProductos || []).filter(p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase());
       renderProductosPorSubgrupos(productosFiltrados);
       ordenarDentroDeBloques(asc);
@@ -1536,14 +1637,13 @@ document.addEventListener("DOMContentLoaded", () => {
 const btnProductos = document.getElementById('btnProductos');
 if (btnProductos) {
   btnProductos.addEventListener('click', (e) => {
-    e.stopPropagation(); // Evita conflictos con otros clicks
+    e.stopPropagation();
     const panelGrupos = document.getElementById('panelGrupos');
     const panelSub = document.getElementById('panelSubcategorias');
     if (panelGrupos) panelGrupos.classList.add('oculta');
     if (panelSub) panelSub.classList.add('oculta');
-    // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
-}
+}  
 </script>
 <script type="module">
 const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
