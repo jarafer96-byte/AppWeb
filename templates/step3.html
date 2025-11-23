@@ -257,27 +257,42 @@
 </div>
 
 <script>
-  let grupoId = 0;
-  let contadorOrden = 1;
-  let imagenSeleccionada = null;   // guarda el nombre del archivo seleccionado
-  let filaActual = null;           // referencia a la fila activa
-  let imagenesUsadas = [];         // lista global de imágenes ya asignadas
+let grupoId = 0;
+let contadorOrden = 1;
+let imagenSeleccionada = null;   // guarda el nombre del archivo seleccionado
+let filaActual = null;           // referencia a la fila activa
+let imagenesUsadas = [];         // lista global de imágenes ya asignadas
 
-  // 🔑 Definir base dinámica para imágenes
-  const repoDestino = localStorage.getItem("repoDestino");
-  const STATIC_BASE_URL = repoDestino
-    ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
-    : "";
+// 🔑 Definir base dinámica para imágenes
+const repoDestino = localStorage.getItem("repoDestino");
+const STATIC_BASE_URL = repoDestino
+  ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+  : "";
   
-  const imagenesDisponibles = {{ imagenes_step0 | default([]) | tojson | safe }};
-  console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
+// 🔑 Definir base dinámica para imágenes
+const repoDestino = localStorage.getItem("repoDestino");
+const STATIC_BASE_URL = repoDestino
+  ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
+  : "";
 
-  function eliminarProducto(boton) {
-    const fila = boton.closest('.fila-producto');
-    const grupo = boton.closest('.card');
-    fila.remove();
-    actualizarContador(grupo);
-  }
+// ✅ Inicializar lista de imágenes disponibles de forma dinámica
+// Primero intentamos recuperar desde localStorage (Step0)
+let imagenesDisponibles = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+
+// Si está vacío, podemos inicializar como arreglo vacío
+if (!Array.isArray(imagenesDisponibles)) {
+  imagenesDisponibles = [];
+}
+
+console.log("🧠 imagenesDisponibles (dinámico):", imagenesDisponibles);
+
+
+function eliminarProducto(boton) {
+  const fila = boton.closest('.fila-producto');
+  const grupo = boton.closest('.card');
+  fila.remove();
+  actualizarContador(grupo);
+}
     
 const LS_KEY = "step3_state";
 // Función que arma el JSON y lo guarda en localStorage
