@@ -1256,6 +1256,31 @@ function renderProducto(p) {
   return card;
 }
     
+function renderProductosPorSubgrupos(productos) {
+  const cont = document.getElementById('productos');
+  if (!cont) return;
+  cont.innerHTML = '';
+
+  // obtener subgrupos en el orden que prefieras
+  const subgrupos = [...new Set(productos.map(p => p.subgrupo).filter(Boolean))];
+
+  subgrupos.forEach(sg => {
+    const bloque = document.createElement('div');
+    bloque.className = 'bloque-subgrupo';
+    bloque.dataset.subgrupo = sg;
+
+    const productosSub = productos.filter(p => (p.subgrupo || '').toLowerCase() === sg.toLowerCase());
+    productosSub.forEach(p => {
+      const card = renderProducto(p);
+      // asegurar que la card tenga dataset.subgrupo si lo necesitás
+      if (!card.dataset.subgrupo) card.dataset.subgrupo = sg;
+      bloque.appendChild(card);
+    });
+
+    cont.appendChild(bloque);
+  });
+}
+    
 function ajustarPosicionesPaneles() {
   const panelGrupos = document.getElementById('panelGrupos');
   const panelSub = document.getElementById('panelSubcategorias');
@@ -1383,6 +1408,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Si hay productos ya cargados en window.todosLosProductos, render inicial por subgrupos
+  if (window.todosLosProductos && window.todosLosProductos.length) {
+    renderProductosPorSubgrupos(window.todosLosProductos);
+  }
+
   // 👉 Ordenar por precio sin mezclar subgrupos (usa ordenarDentroDeBloques)
   const ordenSelect = document.getElementById("ordenPrecio");
   if (ordenSelect) {
@@ -1450,8 +1480,7 @@ if (btnProductos) {
     
     // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
-}
-   
+}  
 </script>
 <script type="module">
 const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
