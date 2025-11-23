@@ -1205,7 +1205,13 @@ window.irAContacto = irAContacto; // si usás módulos
     
 function renderProducto(p) {
   const card = document.createElement("div");
-  card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder";
+  // conservá tus clases de layout y animación, y añadí 'card-producto'
+  card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder card-producto";
+
+  // setear atributos de dataset necesarios para ordenarDentroDeBloques
+  card.dataset.precio = String(Number(p.precio) || 0);
+  if (p.id_base != null) card.dataset.id = String(p.id_base);
+
   card.innerHTML = `
     <div class="card p-3 h-100">
       <img src="${p.imagen_github || '/static/img/fallback.webp'}"
@@ -1236,9 +1242,19 @@ function renderProducto(p) {
       </div>
     </div>
   `;
+
+  // Log de diagnóstico: confirmar clase y dataset para ordenar
+  console.log('renderProducto ->', {
+    clase: card.className,
+    dataset_precio: card.dataset.precio,
+    dataset_id: card.dataset.id || "(sin-id)",
+    nombre: p.nombre,
+    grupo: p.grupo || "(sin-grupo)",
+    subgrupo: p.subgrupo || "(sin-subgrupo)"
+  });
+
   return card;
 }
-
     
 function ajustarPosicionesPaneles() {
   const panelGrupos = document.getElementById('panelGrupos');
