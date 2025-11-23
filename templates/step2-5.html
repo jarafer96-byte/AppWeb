@@ -142,6 +142,27 @@ function agregarFila() {
   `;
   container.appendChild(div);
 }
+function prepararStep3() {
+  // 🧹 limpiar estado viejo
+  localStorage.removeItem("step3_state");
+
+  // 📦 guardar estructura de listas para Step3
+  const filas = [];
+  const container = document.getElementById('listas-container');
+  container.querySelectorAll('div').forEach((fila, idx) => {
+    const grupo = fila.querySelector(`[name="grupo_${idx+1}"]`)?.value || "";
+    const subgrupo = fila.querySelector(`[name="subgrupo_${idx+1}"]`)?.value || "";
+    const cantidad = fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1";
+    const talles = fila.querySelector(`[name="talles_${idx+1}"]`)?.value || "";
+
+    if (grupo || subgrupo) {
+      filas.push({ grupo, subgrupo, cantidad, talles });
+    }
+  });
+
+  localStorage.setItem("listas_step2-5", JSON.stringify(filas));
+  console.log("💾 [Step2-5] Guardada estructura en listas_step2-5:", filas);
+}
 </script>
 </body>
 </html>
