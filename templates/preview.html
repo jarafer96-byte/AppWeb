@@ -757,22 +757,6 @@ function filtrarSubcategoria(grupo, subgrupo) {
 // Si usás type="module", exponerla al global:
 window.filtrarSubcategoria = filtrarSubcategoria;
 
-function ordenarPorPrecio(grupo, subgrupo, asc = true) {
-  let productosFiltrados = window.todosLosProductos.filter(p =>
-    p.grupo?.toLowerCase() === grupo.toLowerCase() &&
-    p.subgrupo?.toLowerCase() === subgrupo.toLowerCase()
-  );
-
-  productosFiltrados.sort((a, b) => asc ? a.precio - b.precio : b.precio - a.precio);
-
-  const cont = document.getElementById("productos");
-  cont.innerHTML = "";
-  productosFiltrados.forEach(p => {
-    const card = renderProducto(p);
-    cont.appendChild(card);
-    requestAnimationFrame(() => card.classList.add("show"));
-  });
-}
 
 window.onload = function() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
@@ -1368,27 +1352,28 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 👉 Ordenar por precio
-const ordenSelect = document.getElementById("ordenPrecio");
-if (ordenSelect) {
-  ordenSelect.addEventListener("change", (e) => {
-    const asc = e.target.value === "asc";
+  const ordenSelect = document.getElementById("ordenPrecio");
+  if (ordenSelect) {
+    ordenSelect.addEventListener("change", (e) => {
+      const valor = e.target.value; // "asc" o "desc"
 
-    const grupoActivoBtn = document.querySelector(".btn-grupo.active");
-    const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
+      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
 
-    const subActivoBtn = document.querySelector(".btn-subgrupo.active");
-    const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
+      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
 
-    if (grupoActivo && subActivo) {
-      // 👉 Ordenar solo dentro del subgrupo activo
-      ordenarPorPrecio(grupoActivo, subActivo, asc);
-    } else if (grupoActivo) {
-      // 👉 Ordenar todos los subgrupos del grupo activo (manteniendo separación)
-      ordenarGrupo(grupoActivo, asc);
-    }
-  });
-}
-
+      let productosFiltrados = window.todosLosProductos;
+      if (grupoActivo) {
+        productosFiltrados = productosFiltrados.filter(
+          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
+        );
+      }
+      if (subActivo) {
+        productosFiltrados = productosFiltrados.filter(
+          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
+        );
+      }
 
       productosFiltrados.sort((a, b) => {
         const pa = parseFloat(a.precio) || 0;
@@ -1407,6 +1392,7 @@ if (ordenSelect) {
     });
   }
 }); // 👈 cierre de DOMContentLoaded
+
    
 </script>
 <script type="module">
