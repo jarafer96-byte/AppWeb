@@ -1551,72 +1551,74 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 👉 Ordenar por precio
-const ordenSelect = document.getElementById("ordenPrecio");
-if (ordenSelect) {
-  ordenSelect.addEventListener("change", (e) => {
-    const valor = e.target.value; // "asc" o "desc"
-    console.log("🔄 Evento change en ordenPrecio, valor seleccionado:", valor);
+  const ordenSelect = document.getElementById("ordenPrecio");
+  if (ordenSelect) {
+    ordenSelect.addEventListener("change", (e) => {
+      const valor = e.target.value; // "asc" o "desc"
+      console.log("🔄 Evento change en ordenPrecio, valor seleccionado:", valor);
 
-    const grupoActivoBtn = document.querySelector(".btn-grupo.active");
-    const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
-    console.log("🎯 Grupo activo detectado:", grupoActivo);
+      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
+      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+      console.log("🎯 Grupo activo detectado:", grupoActivo);
 
-    const subActivoBtn = document.querySelector(".btn-subgrupo.active");
-    const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
-    console.log("🎯 Subgrupo activo detectado:", subActivo);
+      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
+      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+      console.log("🎯 Subgrupo activo detectado:", subActivo);
 
-    let productosFiltrados = window.todosLosProductos;
-    console.log("📦 Total productos en memoria:", productosFiltrados.length);
+      let productosFiltrados = window.todosLosProductos;
+      console.log("📦 Total productos en memoria:", productosFiltrados.length);
 
-    if (grupoActivo) {
-      productosFiltrados = productosFiltrados.filter(
-        p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
-      );
-      console.log("📦 Productos filtrados por grupo:", productosFiltrados.length, productosFiltrados);
-    }
-    if (subActivo) {
-      productosFiltrados = productosFiltrados.filter(
-        p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
-      );
-      console.log("📦 Productos filtrados por subgrupo:", productosFiltrados.length, productosFiltrados);
-    }
+      if (grupoActivo) {
+        productosFiltrados = productosFiltrados.filter(
+          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
+        );
+        console.log("📦 Productos filtrados por grupo:", productosFiltrados.length, productosFiltrados);
+      }
+      if (subActivo) {
+        productosFiltrados = productosFiltrados.filter(
+          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
+        );
+        console.log("📦 Productos filtrados por subgrupo:", productosFiltrados.length, productosFiltrados);
+      }
 
-    productosFiltrados.sort((a, b) => {
-      const pa = parseFloat(a.precio) || 0;
-      const pb = parseFloat(b.precio) || 0;
-      return valor === "asc" ? pa - pb : pb - pa;
+      productosFiltrados.sort((a, b) => {
+        const pa = parseFloat(a.precio) || 0;
+        const pb = parseFloat(b.precio) || 0;
+        return valor === "asc" ? pa - pb : pb - pa;
+      });
+      console.log("📊 Productos ordenados por precio:", valor, productosFiltrados);
+
+      const cont = document.getElementById("productos");
+      if (!cont) {
+        console.warn("⚠️ No existe #productos en el DOM");
+        return;
+      }
+
+      cont.innerHTML = "";
+      console.log("🧹 Contenedor #productos limpiado");
+
+      // 🔑 Usar tu función original de renderizado
+      productosFiltrados.forEach((p, idx) => {
+        console.log(`➡️ Renderizando producto #${idx + 1}:`, p);
+        const card = renderProducto(p); // 👈 esta función debe devolver la card completa
+        cont.appendChild(card);
+        console.log("🛒 Card insertada en #productos:", p.nombre);
+        console.log("📥 Hijos actuales en #productos:", cont.children.length);
+        console.log("🧩 HTML parcial de la card:", card.innerHTML.slice(0, 200) + "...");
+        setTimeout(() => {
+          card.classList.remove("fade-reorder");
+          console.log("✨ Animación aplicada a card:", p.nombre);
+        }, 50);
+      });
+
+      console.log("✅ Renderizado completo en ordenPrecio, hijos finales en #productos:", cont.children.length);
+
+      const style = window.getComputedStyle(cont);
+      console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
     });
-    console.log("📊 Productos ordenados por precio:", valor, productosFiltrados);
+  }
+});
 
-    const cont = document.getElementById("productos");
-    if (!cont) {
-      console.warn("⚠️ No existe #productos en el DOM");
-      return;
-    }
-
-    cont.innerHTML = "";
-    console.log("🧹 Contenedor #productos limpiado");
-
-    // 🔑 Usar tu función original de renderizado
-    productosFiltrados.forEach((p, idx) => {
-      console.log(`➡️ Renderizando producto #${idx + 1}:`, p);
-      const card = renderProducto(p); // 👈 esta función debe devolver la card completa
-      cont.appendChild(card);
-      console.log("🛒 Card insertada en #productos:", p.nombre);
-      console.log("📥 Hijos actuales en #productos:", cont.children.length);
-      console.log("🧩 HTML parcial de la card:", card.innerHTML.slice(0, 200) + "...");
-      setTimeout(() => {
-        card.classList.remove("fade-reorder");
-        console.log("✨ Animación aplicada a card:", p.nombre);
-      }, 50);
-    });
-
-    console.log("✅ Renderizado completo en ordenPrecio, hijos finales en #productos:", cont.children.length);
-
-    const style = window.getComputedStyle(cont);
-    console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
-  });
-}
 
 
 // Botón Productos (SOLO cierra los paneles)
