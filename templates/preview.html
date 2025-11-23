@@ -1338,8 +1338,11 @@ function irAContacto() {
 window.irAContacto = irAContacto; // si usás módulos
     
 function renderProducto(p) {
+  console.log("🛒 renderProducto llamado con:", p);
+
   const card = document.createElement("div");
   card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder";
+
   card.innerHTML = `
     <div class="card p-3 h-100">
       <img src="${p.imagen_github || '/static/img/fallback.webp'}"
@@ -1370,6 +1373,8 @@ function renderProducto(p) {
       </div>
     </div>
   `;
+
+  console.log("✅ renderProducto devuelve card:", card);
   return card;
 }
 
