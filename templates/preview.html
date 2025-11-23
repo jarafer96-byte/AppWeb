@@ -1279,24 +1279,25 @@ function ordenarGrupo(grupo, asc = true) {
     .filter(Boolean))];
 
   subgrupos.forEach(sub => {
-    const productos = window.todosLosProductos.filter(p =>
+    const productosSub = window.todosLosProductos.filter(p =>
       p.grupo?.toLowerCase() === grupo.toLowerCase() &&
       p.subgrupo?.toLowerCase() === sub.toLowerCase()
     );
 
-    productos.sort((a, b) => {
+    productosSub.sort((a, b) => {
       const pa = Number(a.precio) || 0;
       const pb = Number(b.precio) || 0;
       return asc ? pa - pb : pb - pa;
     });
 
-    productos.forEach(p => {
+    productosSub.forEach(p => {
       const card = renderProducto(p);
       cont.appendChild(card);
       requestAnimationFrame(() => card.classList.add("show"));
     });
   });
 }
+
 
 document.addEventListener("DOMContentLoaded", () => {
   // Login admin
