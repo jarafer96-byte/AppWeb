@@ -670,6 +670,7 @@ fetch("/api/productos")
   .then(r => r.json())
   .then(lista => {
     window.todosLosProductos = Array.isArray(lista) ? lista : [];
+    console.log("🌐 Productos recibidos de la API:", window.todosLosProductos.length, window.todosLosProductos);
 
     const cont = document.getElementById("productos");
     const contGrupos = document.getElementById("panelGrupos");
@@ -684,14 +685,20 @@ fetch("/api/productos")
     }
 
     const grupos = [...new Set(window.todosLosProductos.map(p => p.grupo).filter(Boolean))];
+    console.log("📂 Grupos detectados:", grupos);
+
     if (contGrupos) {
       contGrupos.innerHTML = ""; // limpiar antes de insertar
       grupos.forEach(g => {
         const btn = document.createElement("button");
         btn.className = "btn-grupo";
         btn.textContent = g;
-        btn.addEventListener("click", (e) => mostrarGrupo(g, e));
+        btn.addEventListener("click", (e) => {
+          console.log("🟢 Click en botón grupo:", g);
+          mostrarGrupo(g, e);
+        });
         contGrupos.appendChild(btn);
+        console.log("➕ Botón grupo creado:", g);
       });
     }
 
@@ -701,18 +708,25 @@ fetch("/api/productos")
       .filter(p => p.grupo === primerGrupo)
       .map(p => p.subgrupo).filter(Boolean))];
 
+    console.log("🎯 Primer grupo:", primerGrupo);
+    console.log("📂 Subgrupos del primer grupo:", subgruposPrimer);
+
     if (primerGrupo) {
       mostrarGrupo(primerGrupo, null, true);
       if (subgruposPrimer.length > 0) {
+        console.log("➡️ Render inicial con subgrupo:", subgruposPrimer[0]);
         filtrarSubcategoria(primerGrupo, subgruposPrimer[0]);
       }
     }
+
+    console.log("✅ Render inicial completado");
   })
   .catch(err => {
     console.error("Error cargando productos:", err);
     const cont = document.getElementById("productos");
     if (cont) cont.innerHTML = "<p>Error al cargar productos.</p>";
   });
+
 
     
 function mostrarGrupo(nombre, event, auto = false) {
@@ -797,9 +811,11 @@ function mostrarGrupo(nombre, event, auto = false) {
         const card = renderProducto(p);
         subDiv.appendChild(card);
         requestAnimationFrame(() => card.classList.add("show"));
+        console.log("🛒 Card insertada en subgrupo:", p.nombre);
       });
 
       grupoDiv.appendChild(subDiv);
+      console.log("📥 Subgrupo agregado al grupo:", sub);
     });
   } else {
     // Caso sin subcategorías → mostrar todo el grupo en un bloque único
@@ -814,6 +830,7 @@ function mostrarGrupo(nombre, event, auto = false) {
       const card = renderProducto(p);
       subDiv.appendChild(card);
       requestAnimationFrame(() => card.classList.add("show"));
+      console.log("🛒 Card insertada en bloque General:", p.nombre);
     });
 
     grupoDiv.appendChild(subDiv);
@@ -821,11 +838,27 @@ function mostrarGrupo(nombre, event, auto = false) {
 
   cont.appendChild(grupoDiv);
   console.log("✅ Bloque de grupo renderizado y agregado al contenedor");
+  console.log("📥 Hijos actuales en #productos:", cont.children.length);
+  console.log("🧩 HTML del grupoDiv:", grupoDiv.innerHTML);
+
+  const style = window.getComputedStyle(cont);
+  console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 window.mostrarGrupo = mostrarGrupo;
+
+// Extra: log de clicks en botones
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("btn-grupo")) {
+    console.log("🟢 Click en botón grupo:", e.target.textContent);
+  }
+  if (e.target.classList.contains("btn-subgrupo")) {
+    console.log("🟢 Click en botón subgrupo:", e.target.textContent);
+  }
+});
+
 
 
 function filtrarSubcategoria(grupo, subgrupo) {
@@ -875,6 +908,7 @@ function filtrarSubcategoria(grupo, subgrupo) {
     const card = renderProducto(p);
     subDiv.appendChild(card);
     requestAnimationFrame(() => card.classList.add("show"));
+    console.log("🛒 Card insertada en subgrupo:", p.nombre);
   });
 
   // Insertar subgrupo dentro del grupo
@@ -884,11 +918,17 @@ function filtrarSubcategoria(grupo, subgrupo) {
   // Insertar grupo dentro del contenedor principal
   cont.appendChild(grupoDiv);
   console.log("✅ Grupo renderizado en contenedor principal:", grupoCanon);
+  console.log("📥 Hijos actuales en #productos:", cont.children.length);
+  console.log("🧩 HTML del grupoDiv:", grupoDiv.innerHTML);
+
+  const style = window.getComputedStyle(cont);
+  console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 window.filtrarSubcategoria = filtrarSubcategoria;
+
 
 
 window.onload = function() {
@@ -1235,9 +1275,25 @@ function mostrarSubgrupo(subgrupo, event) {
   // Filtrar y renderizar productos del grupo + subgrupo
   console.log("➡️ Llamando a filtrarSubcategoria con:", { grupoCanon, subCanon });
   filtrarSubcategoria(grupoCanon, subCanon);
+
+  // Logs extra para verificar DOM y estilos
+  const cont = document.getElementById("productos");
+  if (cont) {
+    console.log("📥 Hijos actuales en #productos después de mostrarSubgrupo:", cont.children.length);
+    console.log("🧩 HTML actual de #productos:", cont.innerHTML.slice(0, 300) + "...");
+    const style = window.getComputedStyle(cont);
+    console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
+  }
 }
 
 window.mostrarSubgrupo = mostrarSubgrupo;
+
+// Extra: log de clicks en botones de subgrupo
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("btn-subgrupo")) {
+    console.log("🟢 Click detectado en botón subgrupo:", e.target.textContent);
+  }
+});
 
 
 function vaciarCarrito() {
@@ -1374,8 +1430,10 @@ function renderProducto(p) {
   `;
 
   console.log("✅ renderProducto devuelve card:", card);
+  console.log("🧩 HTML de la card:", card.innerHTML);
   return card;
 }
+
 
     
 function ajustarPosicionesPaneles() {
@@ -1383,7 +1441,12 @@ function ajustarPosicionesPaneles() {
   const panelSub = document.getElementById('panelSubcategorias');
   const barraNav = document.querySelector('.barra-navegacion');
 
-  if (!panelGrupos || !panelSub) return;
+  if (!panelGrupos || !panelSub) {
+    console.warn("⚠️ No existen paneles en el DOM");
+    return;
+  }
+
+  console.log("🔧 ajustando posiciones de paneles...");
 
   if (!panelGrupos.classList.contains('oculta')) {
     const alturaBarra = barraNav ? barraNav.offsetHeight : 0;
@@ -1391,6 +1454,7 @@ function ajustarPosicionesPaneles() {
     panelGrupos.style.position = 'fixed';
     panelGrupos.style.left = '0';
     panelGrupos.style.right = '0';
+    console.log("📐 Panel grupos → top:", panelGrupos.style.top, "alturaBarra:", alturaBarra);
   }
 
   if (!panelSub.classList.contains('oculta')) {
@@ -1398,14 +1462,25 @@ function ajustarPosicionesPaneles() {
     const alturaGrupos = panelGrupos ? panelGrupos.offsetHeight : 0;
     const margenAdicional = 19;
     const desplazamientoArriba = -20;
-    panelSub.style.top = (alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba) + 'px';
+    const topCalc = alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba;
+    panelSub.style.top = topCalc + 'px';
     panelSub.style.position = 'fixed';
     panelSub.style.left = '0';
     panelSub.style.right = '0';
+    console.log("📐 Panel subcategorias → top:", panelSub.style.top, 
+                "alturaBarra:", alturaBarra, "alturaGrupos:", alturaGrupos);
   } else {
     panelSub.style.top = '';
+    console.log("📂 Panel subcategorias oculto");
   }
+
+  // Extra: log de estilos calculados
+  const styleGrupos = window.getComputedStyle(panelGrupos);
+  const styleSub = window.getComputedStyle(panelSub);
+  console.log("👁️ Estilo panelGrupos:", { display: styleGrupos.display, top: styleGrupos.top });
+  console.log("👁️ Estilo panelSub:", { display: styleSub.display, top: styleSub.top });
 }
+
 
 document.addEventListener("DOMContentLoaded", () => {
   // Login admin
@@ -1476,47 +1551,73 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 👉 Ordenar por precio
-  const ordenSelect = document.getElementById("ordenPrecio");
-  if (ordenSelect) {
-    ordenSelect.addEventListener("change", (e) => {
-      const valor = e.target.value; // "asc" o "desc"
+const ordenSelect = document.getElementById("ordenPrecio");
+if (ordenSelect) {
+  ordenSelect.addEventListener("change", (e) => {
+    const valor = e.target.value; // "asc" o "desc"
+    console.log("🔄 Evento change en ordenPrecio, valor seleccionado:", valor);
 
-      const grupoActivoBtn = document.querySelector(".btn-grupo.active");
-      const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+    const grupoActivoBtn = document.querySelector(".btn-grupo.active");
+    const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
+    console.log("🎯 Grupo activo detectado:", grupoActivo);
 
-      const subActivoBtn = document.querySelector(".btn-subgrupo.active");
-      const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+    const subActivoBtn = document.querySelector(".btn-subgrupo.active");
+    const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
+    console.log("🎯 Subgrupo activo detectado:", subActivo);
 
-      let productosFiltrados = window.todosLosProductos;
-      if (grupoActivo) {
-        productosFiltrados = productosFiltrados.filter(
-          p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
-        );
-      }
-      if (subActivo) {
-        productosFiltrados = productosFiltrados.filter(
-          p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
-        );
-      }
+    let productosFiltrados = window.todosLosProductos;
+    console.log("📦 Total productos en memoria:", productosFiltrados.length);
 
-      productosFiltrados.sort((a, b) => {
-        const pa = parseFloat(a.precio) || 0;
-        const pb = parseFloat(b.precio) || 0;
-        return valor === "asc" ? pa - pb : pb - pa;
-      });
+    if (grupoActivo) {
+      productosFiltrados = productosFiltrados.filter(
+        p => p.grupo?.toLowerCase() === grupoActivo.toLowerCase()
+      );
+      console.log("📦 Productos filtrados por grupo:", productosFiltrados.length, productosFiltrados);
+    }
+    if (subActivo) {
+      productosFiltrados = productosFiltrados.filter(
+        p => p.subgrupo?.toLowerCase() === subActivo.toLowerCase()
+      );
+      console.log("📦 Productos filtrados por subgrupo:", productosFiltrados.length, productosFiltrados);
+    }
 
-      const cont = document.getElementById("productos");
-      cont.innerHTML = "";
-
-      // 🔑 Usar tu función original de renderizado
-      productosFiltrados.forEach(p => {
-        const card = renderProducto(p); // 👈 esta función debe devolver la card completa
-        cont.appendChild(card);
-        setTimeout(() => card.classList.remove("fade-reorder"), 50);
-      });
+    productosFiltrados.sort((a, b) => {
+      const pa = parseFloat(a.precio) || 0;
+      const pb = parseFloat(b.precio) || 0;
+      return valor === "asc" ? pa - pb : pb - pa;
     });
-  }
-}); // 👈 cierre de DOMContentLoaded
+    console.log("📊 Productos ordenados por precio:", valor, productosFiltrados);
+
+    const cont = document.getElementById("productos");
+    if (!cont) {
+      console.warn("⚠️ No existe #productos en el DOM");
+      return;
+    }
+
+    cont.innerHTML = "";
+    console.log("🧹 Contenedor #productos limpiado");
+
+    // 🔑 Usar tu función original de renderizado
+    productosFiltrados.forEach((p, idx) => {
+      console.log(`➡️ Renderizando producto #${idx + 1}:`, p);
+      const card = renderProducto(p); // 👈 esta función debe devolver la card completa
+      cont.appendChild(card);
+      console.log("🛒 Card insertada en #productos:", p.nombre);
+      console.log("📥 Hijos actuales en #productos:", cont.children.length);
+      console.log("🧩 HTML parcial de la card:", card.innerHTML.slice(0, 200) + "...");
+      setTimeout(() => {
+        card.classList.remove("fade-reorder");
+        console.log("✨ Animación aplicada a card:", p.nombre);
+      }, 50);
+    });
+
+    console.log("✅ Renderizado completo en ordenPrecio, hijos finales en #productos:", cont.children.length);
+
+    const style = window.getComputedStyle(cont);
+    console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
+  });
+}
+
 
 // Botón Productos (SOLO cierra los paneles)
 const btnProductos = document.getElementById('btnProductos');
