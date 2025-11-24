@@ -22,6 +22,7 @@ import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask_cors import CORS, cross_origin
+from urllib.parse import urlencode, urlparse
 
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -257,8 +258,9 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
 @limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def api_productos():
     email = session.get("email")
-    if not email:
-        return jsonify({"error": "No estás logueado"}), 403
+    # Validación de sesión
+    if not email or "@" not in email:
+        return jsonify({"error": "Sesión inválida o no estás logueado"}), 403
 
     try:
         # Colección de productos del usuario
@@ -268,16 +270,21 @@ def api_productos():
         productos = []
         for doc in docs:
             data = doc.to_dict() or {}
+
+            # Validaciones de tipos y valores
+            precio = float(data.get("precio") or 0)
+            orden = int(data.get("orden") or 0)
+
             productos.append({
                 "id": doc.id,
                 "id_base": data.get("id_base"),
-                "nombre": data.get("nombre"),
-                "precio": data.get("precio"),
+                "nombre": data.get("nombre") or "Sin nombre",
+                "precio": precio if precio >= 0 else 0,
                 "grupo": data.get("grupo"),
                 "subgrupo": data.get("subgrupo"),
                 "descripcion": data.get("descripcion"),
                 "imagen_github": data.get("imagen_github"),
-                "orden": data.get("orden"),
+                "orden": orden,
                 "talles": data.get("talles", []),
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
             })
@@ -285,7 +292,19 @@ def api_productos():
         # Ordenar por 'orden'
         productos = sorted(productos, key=lambda p: p.get("orden") or 0)
 
-        return jsonify(productos)
+        # ✅ Paginación opcional
+        page = int(request.args.get("page", 1))
+        limit = int(request.args.get("limit", 50))
+        start = (page - 1) * limit
+        end = start + limit
+        productos_paginados = productos[start:end]
+
+        return jsonify({
+            "total": len(productos),
+            "page": page,
+            "limit": limit,
+            "productos": productos_paginados
+        })
 
     except Exception as e:
         print(f"[API_PRODUCTOS] Error al leer productos: {e}")
@@ -303,9 +322,13 @@ def upload_image():
         print(f"📦 [UPLOAD] Repo destino: {repo_name}")
         print(f"📦 [UPLOAD] Cantidad recibida: {len(imagenes)}")
 
+        # Validaciones iniciales
         if not imagenes:
-            print("⚠️ [UPLOAD] No se recibieron imágenes en la request")
             return jsonify({"ok": False, "error": "No se recibieron imágenes"}), 400
+        if len(imagenes) > 20:
+            return jsonify({"ok": False, "error": "Máximo 20 imágenes por request"}), 400
+
+        allowed_types = {"image/jpeg", "image/png", "image/webp"}
 
         if 'imagenes_step0' not in session:
             session['imagenes_step0'] = []
@@ -314,7 +337,17 @@ def upload_image():
         for idx, img in enumerate(imagenes, start=1):
             if img and img.filename:
                 try:
+                    # Validar tipo MIME
+                    if img.mimetype not in allowed_types:
+                        print(f"⚠️ [UPLOAD] Tipo no permitido: {img.mimetype}")
+                        continue
+
                     contenido_bytes = img.read()
+                    # Validar tamaño máximo (5 MB)
+                    if len(contenido_bytes) > 5 * 1024 * 1024:
+                        print(f"⚠️ [UPLOAD] Imagen demasiado grande: {img.filename}")
+                        continue
+
                     ext = os.path.splitext(img.filename)[1].lower() or ".webp"
                     filename = f"{uuid.uuid4().hex}{ext}"
 
@@ -353,7 +386,6 @@ def upload_image():
     except Exception as e:
         print(f"💥 [UPLOAD] Error general en /upload-image: {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
-
 
 def subir_iconos_png(repo):
     carpeta = os.path.join("static", "img")
@@ -477,19 +509,22 @@ def pago_pending():
     return "⏳ El pago está pendiente de aprobación."
 
 @app.route("/webhook_mp", methods=["POST"])
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
+@limiter.limit("5 per minute")
 def webhook_mp():
     event = request.json or {}
-    # ✅ Registrar el evento crudo para auditoría (opcional)
     log_event("mp_webhook", event)
 
-    # Podés inspeccionar si querés ver qué llega
-    topic = event.get("type") or event.get("action")
-    payment_id = event.get("data", {}).get("id")
+    if not isinstance(event, dict) or "type" not in event or "data" not in event:
+        return "Evento inválido", 400
 
-    if topic == "payment" and payment_id:
+    topic = event.get("type") or event.get("action")
+    try:
+        payment_id = int(event.get("data", {}).get("id"))
+    except (TypeError, ValueError):
+        return "ID inválido", 400
+
+    if topic == "payment":
         try:
-            # Consultar detalle del pago solo para auditar (opcional)
             detail = requests.get(
                 f"https://api.mercadopago.com/v1/payments/{payment_id}",
                 headers={"Authorization": f"Bearer {get_platform_token()}"}
@@ -498,7 +533,6 @@ def webhook_mp():
         except Exception as e:
             log_event("mp_webhook_error", str(e))
 
-    # ✅ No se guarda nada en Firestore, solo respondemos OK
     return "OK", 200
 
 @app.route('/crear-admin', methods=['POST'])
@@ -513,32 +547,41 @@ def crear_admin():
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
     if not EMAIL_REGEX.match(usuario):
         return jsonify({'status': 'error', 'message': 'Debe ser un email válido'}), 400
+    if len(clave) < 8:
+        return jsonify({'status': 'error', 'message': 'La clave debe tener al menos 8 caracteres'}), 400
 
     try:
+        doc_ref = db.collection("usuarios").document(usuario)
+        if doc_ref.get().exists:
+            return jsonify({'status': 'error', 'message': 'Usuario ya registrado'}), 409
+
         session.clear()
         session['email'] = usuario
         session['modo_admin'] = True
 
-        doc_ref = db.collection("usuarios").document(usuario)
         doc_ref.set({
-            "clave_admin": clave  # 🔒 Podés cambiar a hash si querés más seguridad
+            "clave_admin": generate_password_hash(clave)  # 🔒 ahora con hash seguro
         })
         return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+
 @app.route('/debug/mp')
 @limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def debug_mp():
     email = session.get('email')
-    if not email:
-        return jsonify({'error': 'sin sesión'}), 400
+    if not email or not EMAIL_REGEX.match(email):
+        return jsonify({'error': 'sesión inválida'}), 403
+
+    # Solo admins pueden acceder
+    if not session.get('modo_admin'):
+        return jsonify({'error': 'no autorizado'}), 403
 
     try:
         doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
         if doc.exists:
             data = doc.to_dict() or {}
-            # 🔎 Filtrar campos sensibles si no querés exponerlos en frontend
             safe_data = {
                 "public_key": data.get("public_key"),
                 "access_token": bool(data.get("access_token")),  # solo indicar si existe
@@ -565,11 +608,13 @@ def login_admin():
     usuario = data.get('usuario')
     clave_ingresada = data.get('clave')
 
+    # Validaciones básicas
     if not usuario or not clave_ingresada:
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
-
     if not re.match(r"[^@]+@[^@]+\.[^@]+", usuario):
         return jsonify({'status': 'error', 'message': 'El usuario debe tener formato de email'}), 400
+    if len(clave_ingresada) < 8:
+        return jsonify({'status': 'error', 'message': 'La clave debe tener al menos 8 caracteres'}), 400
 
     try:
         doc_ref = db.collection("usuarios").document(usuario)
@@ -580,7 +625,8 @@ def login_admin():
 
         clave_guardada = doc.to_dict().get("clave_admin")
 
-        if clave_guardada == clave_ingresada:
+        # Comparación directa (texto plano)
+        if clave_guardada and clave_guardada == clave_ingresada:
             session.permanent = True
             session['modo_admin'] = True
             session['email'] = usuario
@@ -589,6 +635,7 @@ def login_admin():
             return jsonify({'status': 'error', 'message': 'Clave incorrecta'}), 403
 
     except Exception as e:
+        print(f"[LOGIN-ADMIN] Error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
@@ -599,7 +646,7 @@ def logout_admin():
     return redirect('/preview')
 
 @app.route('/guardar-producto', methods=['POST'])
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
+@limiter.limit("5 per minute")
 def guardar_producto():
     usuario = session.get('email')
     if not usuario:
@@ -608,30 +655,74 @@ def guardar_producto():
     data = request.get_json(silent=True) or {}
     producto = data.get('producto')
 
-    if not producto:
+    if not producto or not isinstance(producto, dict):
         return jsonify({'status': 'error', 'message': 'Producto inválido'}), 400
+
+    # Validaciones mínimas
+    nombre = producto.get("nombre")
+    precio = producto.get("precio")
+
+    if not nombre or not isinstance(nombre, str):
+        return jsonify({'status': 'error', 'message': 'Nombre inválido'}), 400
+    try:
+        precio = float(precio)
+        if precio < 0:
+            return jsonify({'status': 'error', 'message': 'Precio inválido'}), 400
+    except (TypeError, ValueError):
+        return jsonify({'status': 'error', 'message': 'Precio inválido'}), 400
 
     try:
         ruta = f"usuarios/{usuario}/productos"
         db.collection(ruta).add(producto)
         return jsonify({'status': 'ok'})
     except Exception as e:
+        print(f"[GUARDAR-PRODUCTO] Error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/ver-productos')
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
+@limiter.limit("5 per minute")
 def ver_productos():
     usuario = session.get('email')
-    if not usuario:
-        return jsonify([])
+    if not usuario or not EMAIL_REGEX.match(usuario):
+        return jsonify({'error': 'Sesión inválida'}), 403
 
     try:
         ruta = f"usuarios/{usuario}/productos"
         docs = db.collection(ruta).get()
-        productos = [doc.to_dict() for doc in docs]
-        return jsonify(productos)
-    except Exception:
-        return jsonify([])
+
+        productos = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            productos.append({
+                "id": doc.id,
+                "nombre": data.get("nombre") or "Sin nombre",
+                "precio": float(data.get("precio") or 0),
+                "grupo": data.get("grupo"),
+                "subgrupo": data.get("subgrupo"),
+                "descripcion": data.get("descripcion"),
+                "imagen_github": data.get("imagen_github"),
+                "orden": int(data.get("orden") or 0),
+                "talles": data.get("talles", []),
+                "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
+            })
+
+        # ✅ Paginación opcional
+        page = int(request.args.get("page", 1))
+        limit = int(request.args.get("limit", 50))
+        start = (page - 1) * limit
+        end = start + limit
+        productos_paginados = productos[start:end]
+
+        return jsonify({
+            "total": len(productos),
+            "page": page,
+            "limit": limit,
+            "productos": productos_paginados
+        })
+
+    except Exception as e:
+        print(f"[VER-PRODUCTOS] Error: {e}")
+        return jsonify({'error': 'Error interno', 'message': str(e)}), 500
 
 # --- Agregar en app.py (temporal, para debug) ---
 @app.route('/debug/session')
@@ -659,38 +750,57 @@ def debug_session():
 # --- Fin debug ---
 
 @app.route("/crear-repo", methods=["POST"])
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
+@limiter.limit("5 per minute")
 def crear_repo():
     token = os.getenv("GITHUB_TOKEN")
     if not token:
         return jsonify({"error": "Token no disponible"}), 500
 
-    email = request.json.get("email", f"repo-{uuid.uuid4().hex[:6]}")
+    data = request.get_json(silent=True) or {}
+    email = data.get("email")
+
+    # Validar email o usar fallback
+    if email and not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        return jsonify({"error": "Email inválido"}), 400
+    if not email:
+        email = f"repo-{uuid.uuid4().hex[:6]}"
+
     session.clear()
     session['email'] = email
+
     nombre_repo = generar_nombre_repo(email)
     session['repo_nombre'] = nombre_repo
 
-    resultado = crear_repo_github(nombre_repo, token)
-    if "url" in resultado:
-        session['repo_creado'] = resultado["url"]
-
-    return jsonify(resultado), 200 if "url" in resultado else 400
+    try:
+        resultado = crear_repo_github(nombre_repo, token)
+        if "url" in resultado:
+            session['repo_creado'] = resultado["url"]
+            return jsonify(resultado), 200
+        else:
+            return jsonify({"error": "No se pudo crear el repositorio", "detalle": resultado}), 400
+    except Exception as e:
+        print(f"[CREAR-REPO] Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/actualizar-precio', methods=['POST'])
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
+@limiter.limit("5 per minute")
 def actualizar_precio():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     id_base = data.get("id")
-    nuevo_precio_raw = data.get("nuevoPrecio", 0)
+    nuevo_precio_raw = data.get("nuevoPrecio")
     email = session.get("email")
 
-    if not email or not id_base:
+    # Validaciones iniciales
+    if not email or not id_base or nuevo_precio_raw is None:
         return jsonify({"error": "Datos incompletos"}), 400
+    if not EMAIL_REGEX.match(email):
+        return jsonify({"error": "Sesión inválida"}), 403
 
     try:
-        nuevo_precio = int(nuevo_precio_raw)
-    except ValueError:
+        nuevo_precio = float(nuevo_precio_raw)
+        if nuevo_precio < 0:
+            return jsonify({"error": "El precio debe ser mayor o igual a 0"}), 400
+    except (TypeError, ValueError):
         return jsonify({"error": "Precio inválido"}), 400
 
     try:
@@ -704,19 +814,27 @@ def actualizar_precio():
         doc.reference.update({"precio": nuevo_precio})
         return jsonify({"status": "ok"})
     except Exception as e:
+        print(f"[ACTUALIZAR-PRECIO] Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-
 @app.route('/actualizar-talles', methods=['POST'])
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
+@limiter.limit("5 per minute")
 def actualizar_talles():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     id_base = data.get("id")
     nuevos_talles = data.get("talles", [])
     email = session.get("email")
 
+    # Validaciones iniciales
     if not email or not id_base:
         return jsonify({"error": "Datos incompletos"}), 400
+    if not EMAIL_REGEX.match(email):
+        return jsonify({"error": "Sesión inválida"}), 403
+    if not isinstance(nuevos_talles, list):
+        return jsonify({"error": "Formato de talles inválido"}), 400
+    for t in nuevos_talles:
+        if not isinstance(t, str) or not t.strip():
+            return jsonify({"error": f"Talle inválido: {t}"}), 400
 
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
@@ -733,9 +851,8 @@ def actualizar_talles():
         print(f"[ACTUALIZAR-TALLES] ❌ Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-
 @app.route('/actualizar-firestore', methods=['POST'])
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
+@limiter.limit("5 per minute")
 def actualizar_firestore():
     data = request.get_json(silent=True) or {}
     id_base = data.get('id')
@@ -744,6 +861,34 @@ def actualizar_firestore():
 
     if not email or not id_base or not campos:
         return jsonify({'status': 'error', 'message': 'Datos incompletos'}), 400
+    if not EMAIL_REGEX.match(email):
+        return jsonify({'status': 'error', 'message': 'Sesión inválida'}), 403
+    if not isinstance(campos, dict):
+        return jsonify({'status': 'error', 'message': 'Formato de campos inválido'}), 400
+
+    # Filtrar campos permitidos
+    allowed_fields = {"nombre", "precio", "descripcion", "imagen_github", "orden", "talles"}
+    campos = {k: v for k, v in campos.items() if k in allowed_fields}
+    if not campos:
+        return jsonify({'status': 'error', 'message': 'No hay campos válidos para actualizar'}), 400
+
+    # Validaciones específicas
+    if "precio" in campos:
+        try:
+            campos["precio"] = float(campos["precio"])
+            if campos["precio"] < 0:
+                return jsonify({'status': 'error', 'message': 'Precio inválido'}), 400
+        except (TypeError, ValueError):
+            return jsonify({'status': 'error', 'message': 'Precio inválido'}), 400
+
+    if "orden" in campos:
+        try:
+            campos["orden"] = int(campos["orden"])
+        except (TypeError, ValueError):
+            return jsonify({'status': 'error', 'message': 'Orden inválido'}), 400
+
+    if "talles" in campos and not isinstance(campos["talles"], list):
+        return jsonify({'status': 'error', 'message': 'Talles debe ser una lista'}), 400
 
     try:
         print(f"[ACTUALIZAR] Usuario={email}, id_base={id_base}, campos={campos}")
@@ -762,30 +907,49 @@ def actualizar_firestore():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
+@limiter.limit("5 per minute")
 def step1():
     limpiar_imagenes_usuario()
 
     if request.method == 'POST':
         session['tipo_web'] = 'catálogo'
-        session['facebook'] = request.form.get('facebook')
-        session['whatsapp'] = request.form.get('whatsapp')
-        session['instagram'] = request.form.get('instagram')
-        session['sobre_mi'] = request.form.get('sobre_mi')
-        session['ubicacion'] = request.form.get('ubicacion')
-        session['link_mapa'] = request.form.get('link_mapa')
+
+        # Validar campos básicos
+        facebook = request.form.get('facebook')
+        if facebook and len(facebook) > 200:
+            return jsonify({'error': 'Facebook inválido'}), 400
+        session['facebook'] = facebook
+
+        whatsapp = request.form.get('whatsapp')
+        if whatsapp and not re.match(r"^\+?\d{7,15}$", whatsapp):
+            return jsonify({'error': 'WhatsApp inválido'}), 400
+        session['whatsapp'] = whatsapp
+
+        instagram = request.form.get('instagram')
+        if instagram and len(instagram) > 200:
+            return jsonify({'error': 'Instagram inválido'}), 400
+        session['instagram'] = instagram
+
+        session['sobre_mi'] = request.form.get('sobre_mi', '')[:500]
+        session['ubicacion'] = request.form.get('ubicacion', '')[:200]
+        session['link_mapa'] = request.form.get('link_mapa', '')[:300]
         session['fuente'] = request.form.get('fuente')
 
+        # Validar credencial Mercado Pago
         mercado_pago = request.form.get('mercado_pago')
-        if mercado_pago and mercado_pago.startswith("APP_USR-"):
+        if mercado_pago and mercado_pago.startswith("APP_USR-") and len(mercado_pago) > 20:
             session['mercado_pago'] = mercado_pago.strip()
         else:
             session.pop('mercado_pago', None)
 
+        # Validar logo
         logo = request.files.get('logo')
         if logo:
             filename = secure_filename(logo.filename)
             if filename:
+                ext = filename.rsplit('.', 1)[1].lower()
+                if ext not in {"png", "jpg", "jpeg"}:
+                    return jsonify({'error': 'Formato de logo inválido'}), 400
                 logo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 session['logo'] = filename
         else:
@@ -857,8 +1021,8 @@ def step3():
     imagenes_disponibles = session.get('imagenes_step0') or []
     print(f"🔑 [Step3] tipo_web={tipo}, email={email}, imagenes_disponibles={len(imagenes_disponibles)}")
 
-    if not email:
-        print("❌ [Step3] Sesión no iniciada")
+    if not email or not EMAIL_REGEX.match(email):
+        print("❌ [Step3] Sesión no iniciada o inválida")
         return "Error: sesión no iniciada", 403
 
     if request.method == 'POST':
@@ -880,61 +1044,75 @@ def step3():
 
         for i in range(len(nombres)):
             nombre = nombres[i].strip()
-            precio = precios[i].strip()
+            precio_raw = precios[i].strip()
             grupo = grupos[i].strip() or 'Sin grupo'
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
-            orden = ordenes[i].strip() or str(i + 1)
+            orden_raw = ordenes[i].strip() or str(i + 1)
 
-            print(f"➡️ [Step3] Procesando producto {i+1}: nombre={nombre}, precio={precio}, grupo={grupo}, subgrupo={subgrupo}, orden={orden}")
+            print(f"➡️ [Step3] Procesando producto {i+1}: nombre={nombre}, precio={precio_raw}, grupo={grupo}, subgrupo={subgrupo}, orden={orden_raw}")
 
-            if not nombre or not precio or not grupo or not subgrupo:
-                print("⚠️ [Step3] Producto ignorado por datos incompletos")
+            # --- Validaciones ---
+            if not nombre or len(nombre) > 100:
+                print(f"⚠️ [Step3] Nombre inválido en producto {i+1}")
                 continue
 
+            try:
+                precio = float(precio_raw)
+                if precio < 0:
+                    print(f"⚠️ [Step3] Precio inválido en producto {i+1}")
+                    continue
+            except ValueError:
+                print(f"⚠️ [Step3] Precio inválido en producto {i+1}")
+                continue
+
+            try:
+                orden = int(orden_raw)
+                if orden <= 0:
+                    orden = i + 1
+            except ValueError:
+                orden = i + 1
+
+            descripcion = descripciones[i][:500] if i < len(descripciones) else ""
+
             talle_raw = talles[i].strip() if i < len(talles) else ''
-            talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
+            talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip() and len(t.strip()) <= 10]
             print(f"👕 [Step3] Talles={talle_lista}")
 
-           # --- Reemplazar la validación antigua de imagen_url dentro de step3 por este bloque ---
+            # --- Validación de imagen ---
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
-            # Aceptar rutas locales (/static/img/...), URLs absolutas (http(s)://...) o basenames guardados en session
             imagen_para_guardar = None
 
             if not imagen_url:
                 print(f"⚠️ [Step3] Imagen vacía para producto {nombre}")
                 continue
 
-            # Caso 1: ruta local ya absoluta en servidor (/static/img/...)
             if imagen_url.startswith('/static/img/') or imagen_url.startswith('static/img/'):
                 imagen_para_guardar = imagen_url if imagen_url.startswith('/') else '/' + imagen_url
-
-            # Caso 2: URL absoluta (raw.githubusercontent u otro host)
             elif imagen_url.startswith('http://') or imagen_url.startswith('https://'):
-                imagen_para_guardar = imagen_url
-
-            # Caso 3: solo basename (p.ej. 'a9e73a9...webp') -> buscar en session['imagenes_step0']
+                if any(imagen_url.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+                    imagen_para_guardar = imagen_url
+                else:
+                    print(f"⚠️ [Step3] URL de imagen inválida (extensión no permitida): {imagen_url}")
+                    continue
             else:
                 basename = os.path.basename(imagen_url)
                 session_imgs = session.get('imagenes_step0') or []
-                # buscar coincidencia por basename en la lista guardada en session
                 matched = next((u for u in session_imgs if u.endswith(basename)), None)
                 if matched:
                     imagen_para_guardar = matched
                 else:
-                    # fallback: si existe localmente en UPLOAD_FOLDER, usar ruta estática
                     local_candidate = os.path.join(app.config['UPLOAD_FOLDER'], basename)
                     if os.path.exists(local_candidate):
                         imagen_para_guardar = f"/static/img/{basename}"
                     else:
-                        print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url} (basename: {basename})")
+                        print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url}")
                         continue
 
-            # Debug: mostrar la URL que vamos a guardar y enviar a Firestore
             print(f"🔍 [Step3] imagen_para_guardar para '{nombre}': {imagen_para_guardar}")
 
             bloques.append({
                 'nombre': nombre,
-                'descripcion': descripciones[i],
+                'descripcion': descripcion,
                 'precio': precio,
                 'imagen_github': imagen_para_guardar,
                 'grupo': grupo,
@@ -943,7 +1121,6 @@ def step3():
                 'talles': talle_lista
             })
             print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_para_guardar}")
-# --- fin del reemplazo ---
 
         session['bloques'] = bloques
         print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
@@ -952,7 +1129,6 @@ def step3():
         def subir_con_resultado(producto):
             try:
                 resultado = subir_a_firestore(producto, email)
-                # Imprimir resultado detallado para debugging
                 print(f"🔥 [Step3] Resultado subir_a_firestore para '{producto.get('nombre')}' -> {resultado}")
                 return resultado.get("ok") if isinstance(resultado, dict) else bool(resultado)
             except Exception as e:
@@ -969,7 +1145,6 @@ def step3():
             exitos += sum(1 for r in resultados if r)
         print(f"📊 [Step3] Total exitos en Firestore: {exitos}")
 
-        # Agrupar para preview
         grupos_dict = {}
         for producto in bloques:
             grupo = (producto.get('grupo') or 'General').strip().title()
@@ -977,7 +1152,6 @@ def step3():
             grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
         print(f"📂 [Step3] Grupos generados: {list(grupos_dict.keys())}")
 
-        # Subir index.html, iconos, logo y fondo a GitHub
         if repo_name:
             try:
                 print("⬆️ [Step3] Renderizando preview.html para subir a GitHub")
@@ -1024,10 +1198,7 @@ def step3():
             return redirect('/preview')
         else:
             print("⚠️ [Step3] Ningún producto subido, renderizando step3.html")
-            return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
-
-    print("ℹ️ [Step3] GET request, renderizando step3.html")
-    return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+            return render_template('step3.html', tipo_web
 
 
 def get_mp_public_key(email: str):
@@ -1119,9 +1290,9 @@ def get_mp_public_key(email: str):
     return None
 
 @app.route('/conectar_mp')
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
+@limiter.limit("5 per minute")
 def conectar_mp():
-    if not session.get('modo_admin'):
+    if not session.get('modo_admin') or not EMAIL_REGEX.match(session.get('email', '')):
         return redirect(url_for('preview'))
 
     client_id = os.getenv("MP_CLIENT_ID")
@@ -1130,25 +1301,33 @@ def conectar_mp():
     if not client_id:
         flash("❌ Falta configurar MP_CLIENT_ID en entorno")
         return redirect(url_for('preview', admin='true'))
+    if not redirect_uri.startswith("http"):
+        flash("❌ Redirect URI inválido")
+        return redirect(url_for('preview', admin='true'))
 
-    # URL oficial de autorización con todos los scopes necesarios
-    auth_url = (
-        "https://auth.mercadopago.com/authorization?"
-        f"client_id={client_id}"
-        f"&response_type=code"
-        f"&redirect_uri={redirect_uri}"
-        f"&scope=read%20write%20offline_access"
-    )
+    scopes = ["read", "write", "offline_access"]
+    scope_str = "%20".join(scopes)
+
+    params = {
+        "client_id": client_id,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "scope": scope_str
+    }
+    auth_url = "https://auth.mercadopago.com/authorization?" + urlencode(params)
+
     print(f"[MP-CONNECT] Redirigiendo a: {auth_url}")
     return redirect(auth_url)
-
 
 @app.route('/callback_mp')
 @limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def callback_mp():
-    if not session.get('modo_admin'):
+    # --- Validar sesión admin ---
+    if not session.get('modo_admin') or not EMAIL_REGEX.match(session.get('email', '')):
+        print("[MP-CALLBACK] ❌ Sesión inválida o no admin")
         return redirect(url_for('preview'))
 
+    # --- Validar parámetros y entorno ---
     code = request.args.get('code')
     client_id = os.getenv("MP_CLIENT_ID")
     client_secret = os.getenv("MP_CLIENT_SECRET")
@@ -1156,6 +1335,12 @@ def callback_mp():
 
     if not code:
         flash("❌ No se recibió código de autorización")
+        return redirect(url_for('preview', admin='true'))
+    if not client_id or not client_secret:
+        flash("❌ Falta configurar credenciales de Mercado Pago")
+        return redirect(url_for('preview', admin='true'))
+    if not redirect_uri.startswith("http"):
+        flash("❌ Redirect URI inválido")
         return redirect(url_for('preview', admin='true'))
 
     token_url = "https://api.mercadopago.com/oauth/token"
@@ -1172,18 +1357,18 @@ def callback_mp():
         response = requests.post(token_url, data=payload, timeout=10)
         print(f"[MP-CALLBACK] Status token_url={response.status_code}")
         response.raise_for_status()
-        data = response.json()
+        data = response.json() or {}
         print(f"[MP-CALLBACK] Respuesta token: {data}")
 
+        # --- Validar tokens ---
         access_token = data.get("access_token")
         refresh_token = data.get("refresh_token")
-
-        if not access_token:
-            print("[MP-CALLBACK] ❌ No se recibió access_token")
+        if not access_token or not isinstance(access_token, str):
+            print("[MP-CALLBACK] ❌ No se recibió access_token válido")
             flash("❌ Error al obtener token de Mercado Pago")
             return redirect(url_for('preview', admin='true'))
 
-        # ✅ Obtener la public_key
+        # --- Obtener public_key ---
         public_key = data.get("public_key")
         if public_key and isinstance(public_key, str):
             public_key = public_key.strip()
@@ -1195,10 +1380,8 @@ def callback_mp():
                     headers={"Authorization": f"Bearer {access_token}"},
                     timeout=10
                 )
-                print(f"[MP-CALLBACK] Status credentials={cred_resp.status_code}")
                 if cred_resp.status_code == 200:
                     cred_data = cred_resp.json() or {}
-                    print(f"[MP-CALLBACK] Datos credentials: {cred_data}")
                     public_key = cred_data.get("public_key") or cred_data.get("web", {}).get("public_key")
 
                 if not public_key:
@@ -1208,31 +1391,28 @@ def callback_mp():
                         headers={"Authorization": f"Bearer {access_token}"},
                         timeout=10
                     )
-                    print(f"[MP-CALLBACK] Status users/me={user_resp.status_code}")
                     if user_resp.status_code == 200:
                         user_data = user_resp.json() or {}
-                        print(f"[MP-CALLBACK] Datos users/me: {user_data}")
                         public_key = user_data.get("public_key")
 
                 if public_key and isinstance(public_key, str):
                     public_key = public_key.strip()
             except Exception as e:
-                print("Error al obtener public_key:", e)
+                print("[MP-CALLBACK] Error al obtener public_key:", e)
                 public_key = None
 
-        # ✅ Guardar credenciales en Firestore sin pisar public_key con null
+        # --- Guardar credenciales en Firestore ---
         email = session.get('email')
-        if email:
+        if email and EMAIL_REGEX.match(email):
             doc_data = {
                 "access_token": access_token,
                 "refresh_token": refresh_token,
                 "created_at": datetime.now().isoformat(),
-                # datos útiles para auditoría
                 "live_mode": data.get("live_mode"),
                 "scope": data.get("scope"),
                 "user_id": data.get("user_id"),
             }
-            if public_key:  # solo si existe
+            if public_key:
                 doc_data["public_key"] = public_key
 
             db.collection("usuarios").document(email).collection("config").document("mercado_pago").set(
@@ -1245,21 +1425,23 @@ def callback_mp():
                 f"public_key={'SET' if public_key else 'UNCHANGED'}"
             )
         else:
-            print("[MP-CALLBACK] ⚠️ No hay email en sesión, no se guardó en Firestore")
+            print("[MP-CALLBACK] ⚠️ No hay email válido en sesión, no se guardó en Firestore")
 
         flash("✅ Mercado Pago conectado correctamente")
         return redirect(url_for('preview', admin='true'))
 
-    except Exception as e:
-        print("Error en callback_mp:", e)
-        flash("Error al conectar con Mercado Pago")
+    except requests.exceptions.Timeout:
+        print("[MP-CALLBACK] ❌ Timeout al conectar con Mercado Pago")
+        flash("❌ Timeout al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
-
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-
-# Inicializar limiter (si no lo hiciste antes)
-limiter = Limiter(app, key_func=get_remote_address)
+    except requests.exceptions.RequestException as e:
+        print("[MP-CALLBACK] ❌ Error HTTP:", e)
+        flash("❌ Error HTTP al conectar con Mercado Pago")
+        return redirect(url_for('preview', admin='true'))
+    except Exception as e:
+        print("[MP-CALLBACK] ❌ Error inesperado:", e)
+        flash("Error inesperado al conectar con Mercado Pago")
+        return redirect(url_for('preview', admin='true'))
 
 @app.route('/pagar', methods=['POST'])
 @limiter.limit("10 per minute")  # máximo 10 intentos por minuto por IP
@@ -1273,8 +1455,8 @@ def pagar():
         carrito = data.get('carrito', [])
         email_vendedor = data.get('email_vendedor')  # <-- Viene del frontend
 
-        if not email_vendedor:
-            return jsonify({'error': 'Falta identificar al vendedor'}), 400
+        if not email_vendedor or not EMAIL_REGEX.match(email_vendedor):
+            return jsonify({'error': 'Email de vendedor inválido'}), 400
 
         # 2. Obtener Token de Mercado Pago
         access_token = get_mp_token(email_vendedor)
@@ -1283,6 +1465,7 @@ def pagar():
 
         sdk = mercadopago.SDK(access_token.strip())
 
+        # 3. Validar carrito
         if not carrito or not isinstance(carrito, list):
             return jsonify({'error': 'Carrito vacío o inválido'}), 400
 
@@ -1308,7 +1491,12 @@ def pagar():
 
             if prod_doc.exists:
                 prod_real = prod_doc.to_dict()
-                precio_real = float(prod_real.get('precio', 0))
+                try:
+                    precio_real = float(prod_real.get('precio', 0))
+                except (TypeError, ValueError):
+                    print(f"⚠️ Producto {id_base} con precio inválido. Saltando.")
+                    continue
+
                 if precio_real <= 0:
                     print(f"⚠️ Producto {id_base} con precio no válido ({precio_real}). Saltando.")
                     continue
@@ -1328,8 +1516,13 @@ def pagar():
         if not items_mp:
             return jsonify({'error': 'No se pudieron validar productos en el carrito. Todos los ítems son inválidos.'}), 400
 
+        # 4. Validar URL de retorno
+        url_retorno = data.get('url_retorno', 'https://google.com').split("?")[0]
+        parsed = urlparse(url_retorno)
+        if not parsed.scheme.startswith("http") or not parsed.netloc:
+            return jsonify({'error': 'URL de retorno inválida'}), 400
+
         external_ref = "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
-        url_retorno = data.get('url_retorno', 'https://google.com').split("?")[0] 
 
         preference_data = {
             "items": items_mp,
@@ -1361,7 +1554,7 @@ def pagar():
         print(f"[PAGAR] Error interno: {e}")
         traceback.print_exc() 
         return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
-        
+
 @app.route('/preview', methods=["GET", "POST"])
 @limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def preview():
@@ -1376,22 +1569,42 @@ def preview():
 
     print(f"🔑 [Preview] modo_admin={modo_admin} modo_admin_intentado={modo_admin_intentado}")
 
-    if not email:
-        print("❌ [Preview] Sesión no iniciada")
+    # --- Validación de sesión ---
+    if not email or not EMAIL_REGEX.match(email):
+        print("❌ [Preview] Sesión no iniciada o email inválido")
         return "Error: sesión no iniciada", 403
 
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
     print(f"🎨 [Preview] email={email} estilo_visual={estilo_visual}")
 
-    # Obtener productos desde Firestore
+    # --- Obtener productos desde Firestore con validación ---
     productos = []
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         for doc in productos_ref.stream():
-            data = doc.to_dict()
-            print(f"📄 [Preview] Doc ID={doc.id} Data={data}")
-            productos.append(data)
-        print(f"📊 [Preview] Productos obtenidos: {len(productos)}")
+            data = doc.to_dict() or {}
+            nombre = str(data.get("nombre", "")).strip()[:100]
+            try:
+                precio = float(data.get("precio", 0))
+                if precio < 0: precio = 0
+            except (TypeError, ValueError):
+                precio = 0
+            orden = int(data.get("orden", 0)) if str(data.get("orden", "")).isdigit() else 0
+            grupo = str(data.get("grupo", "General")).strip()[:50].title()
+            subgrupo = str(data.get("subgrupo", "Sin Subgrupo")).strip()[:50].title()
+
+            producto_validado = {
+                "nombre": nombre or "Sin nombre",
+                "precio": precio,
+                "orden": orden,
+                "grupo": grupo,
+                "subgrupo": subgrupo,
+                "imagen_github": data.get("imagen_github"),
+                "descripcion": str(data.get("descripcion", ""))[:500],
+                "talles": data.get("talles", [])
+            }
+            productos.append(producto_validado)
+        print(f"📊 [Preview] Productos obtenidos y validados: {len(productos)}")
     except Exception as e:
         print("💥 [Preview] Error al leer productos:", e)
         productos = []
@@ -1414,17 +1627,17 @@ def preview():
     public_key = get_mp_public_key(email) or ""
     print(f"💳 [Preview] email={email} mercado_pago_token={bool(mercado_pago_token)} public_key={public_key}")
 
-    # Configuración visual
+    # --- Configuración visual con validación de longitud ---
     config = {
-        'titulo': session.get('titulo'),
-        'descripcion': session.get('descripcion'),
+        'titulo': str(session.get('titulo', ''))[:200],
+        'descripcion': str(session.get('descripcion', ''))[:500],
         'imagen_destacada': session.get('imagen_destacada'),
         'url': session.get('url'),
-        'nombre_emprendimiento': session.get('nombre_emprendimiento'),
+        'nombre_emprendimiento': str(session.get('nombre_emprendimiento', ''))[:100],
         'anio': session.get('anio'),
         'tipo_web': session.get('tipo_web'),
-        'ubicacion': session.get('ubicacion'),
-        'link_mapa': session.get('link_mapa'),
+        'ubicacion': str(session.get('ubicacion', ''))[:200],
+        'link_mapa': str(session.get('link_mapa', ''))[:300],
         'color': session.get('color'),
         'fuente': session.get('fuente'),
         'estilo': session.get('estilo'),
@@ -1436,7 +1649,7 @@ def preview():
         'facebook': session.get('facebook'),
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
-        'sobre_mi': session.get('sobre_mi'),
+        'sobre_mi': str(session.get('sobre_mi', ''))[:500],
         'mercado_pago': bool(mercado_pago_token),
         'public_key': public_key,
         'productos': productos,
@@ -1448,15 +1661,18 @@ def preview():
     # Crear repo si corresponde
     if session.get("crear_repo") and not session.get("repo_creado"):
         nombre_repo = generar_nombre_repo(email)
-        token = os.getenv("GITHUB_TOKEN")
-        try:
-            resultado = crear_repo_github(nombre_repo, token)
-            print(f"📦 [Preview] Creando repo: {nombre_repo}, resultado={resultado}")
-            if "url" in resultado:
-                session['repo_creado'] = resultado["url"]
-                session['repo_nombre'] = nombre_repo
-        except Exception as e:
-            print("💥 [Preview] Error al crear repo:", e)
+        if not re.match(r"^[a-zA-Z0-9_\-]+$", nombre_repo):
+            print("❌ [Preview] Nombre de repo inválido")
+        else:
+            token = os.getenv("GITHUB_TOKEN")
+            try:
+                resultado = crear_repo_github(nombre_repo, token)
+                print(f"📦 [Preview] Creando repo: {nombre_repo}, resultado={resultado}")
+                if "url" in resultado:
+                    session['repo_creado'] = resultado["url"]
+                    session['repo_nombre'] = nombre_repo
+            except Exception as e:
+                print("💥 [Preview] Error al crear repo:", e)
 
     # Subir archivos si el repo existe
     if session.get('repo_creado') and session.get('repo_nombre'):
@@ -1468,15 +1684,17 @@ def preview():
                 for producto in productos:
                     imagen = producto.get("imagen_github")
                     if imagen and imagen.startswith("/static/img/"):
-                        ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen))
-                        if os.path.exists(ruta_local):
-                            with open(ruta_local, "rb") as f:
-                                subir_archivo(nombre_repo, f.read(), f"static/img/{os.path.basename(imagen)}")
-                            print(f"✅ [Preview] Imagen subida: {imagen}")
+                        basename = os.path.basename(imagen)
+                        if basename.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                            ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], basename)
+                            if os.path.exists(ruta_local):
+                                with open(ruta_local, "rb") as f:
+                                    subir_archivo(nombre_repo, f.read(), f"static/img/{basename}")
+                                print(f"✅ [Preview] Imagen subida: {imagen}")
 
                 # Subir logo
                 logo = config.get("logo")
-                if logo:
+                if logo and logo.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
                     logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
                     if os.path.exists(logo_path):
                         with open(logo_path, "rb") as f:
