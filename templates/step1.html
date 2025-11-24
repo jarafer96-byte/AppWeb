@@ -19,70 +19,27 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Fira+Code&family=Raleway&family=Quicksand&family=Pacifico&family=Source+Serif+4&display=swap" rel="stylesheet">
 
-  <style>
-    body {
-      background-color: #000;
-      font-family: sans-serif;
-      color: white;
-    }
+<style>
+body { background-color: #000; font-family: sans-serif; color: white; }
 
-    h2 {
-      color: white;
-    }
+h2 { color: white; }
 
-    .icono {
-      height: 20px;
-      width: auto;
-      object-fit: contain;
-      margin-right: 6px;
-      vertical-align: middle;
-    }
+.icono { height: 20px; width: auto; object-fit: contain; margin-right: 6px; vertical-align: middle; }
 
-    .card {
-      background-color: rgba(255, 255, 255, 0.05);
-      color: white;
-      border: none;
-      border-radius: 12px;
-    }
+.card { background-color: rgba(255, 255, 255, 0.05); color: white; border: none; border-radius: 12px; }
 
-    .form-control {
-      background-color: rgba(255, 255, 255, 0.05);
-      color: white;
-      border: none;
-      border-radius: 8px;
-    }
+.form-control { background-color: rgba(255, 255, 255, 0.05); color: white; border: none; border-radius: 8px; }
 
-    .form-control::placeholder {
-      color: #aaa;
-    }
+.form-control::placeholder { color: #aaa; }
 
-    .btn-gradient {
-      background: linear-gradient(135deg, #8e2de2, #ff6f61);
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 50px;
-      font-weight: bold;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
+.btn-gradient { background: linear-gradient(135deg, #8e2de2, #ff6f61); color: white; border: none; padding: 10px 24px; border-radius: 50px; font-weight: bold; box-shadow: 0 0 10px rgba(255,255,255,0.3); transition: transform 0.2s ease, box-shadow 0.2s ease; }
 
-    .btn-gradient:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(255,255,255,0.5);
-    }
+.btn-gradient:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,255,255,0.5); }
 
-    .fuente-opcion {
-      display: inline-block;
-      margin-right: 20px;
-      margin-bottom: 10px;
-      cursor: pointer;
-    }
+.fuente-opcion { display: inline-block; margin-right: 20px; margin-bottom: 10px; cursor: pointer; }
 
-    .fuente-opcion input[type="radio"] {
-      margin-right: 6px;
-      vertical-align: middle;
-    }
+.fuente-opcion input[type="radio"] { margin-right: 6px; vertical-align: middle; }
+
   </style>
 </head>
 <body>
@@ -106,11 +63,12 @@
   <label for="email" style="font-weight:bold;">Paso 2:</label>
   <input type="email" id="email" required placeholder="Ingresá tu email" style="width:180px;">
   
-  <button onclick="crearRepositorio()" class="btn-gradient">Crear repositorio</button>
+  <button id="btn-repo" onclick="crearRepositorio()" class="btn-gradient" disabled>
+    Crear repositorio
+  </button>
   <!-- ✅ Mensaje inline -->
   <span id="msg-repo" style="margin-left:10px; font-weight:bold; color:#0f0;"></span>
 </div>
-
 
 
     <form method="POST" enctype="multipart/form-data">
@@ -256,7 +214,8 @@ function toggleInfoMapa() {
 async function crearRepositorio() {
   const email = document.getElementById("email").value.trim();
   const msgRepo = document.getElementById("msg-repo");
-  msgRepo.textContent = ""; // limpiar antes
+  const btnRepo = document.getElementById("btn-repo"); // tu botón Paso 2
+  msgRepo.textContent = "";
 
   if (!email) {
     msgRepo.textContent = "⚠️ Ingresá un email válido.";
@@ -265,6 +224,8 @@ async function crearRepositorio() {
   }
 
   try {
+    if (btnRepo) btnRepo.disabled = true; // ⏳ bloquear mientras se procesa
+
     const res = await fetch("/crear-repo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -273,7 +234,7 @@ async function crearRepositorio() {
 
     const data = await res.json();
     if (data.url) {
-      msgRepo.textContent = "Creado correctamente";
+      msgRepo.textContent = "✅ Creado correctamente";
       msgRepo.style.color = "#0f0";
     } else {
       msgRepo.textContent = "❌ Error: " + (data.error || "No se pudo crear el repositorio.");
@@ -283,14 +244,18 @@ async function crearRepositorio() {
     console.error("❌ Error en fetch:", err);
     msgRepo.textContent = "❌ Error al crear repositorio.";
     msgRepo.style.color = "#f00";
+  } finally {
+    if (btnRepo) btnRepo.disabled = false; // 🔓 volver a habilitar
   }
 }
+
 
 function crearAdmin(event) {
   event.preventDefault();
   const usuario = document.getElementById("usuario_admin").value.trim();
   const clave = document.getElementById("clave_admin").value.trim();
   const msgAdmin = document.getElementById("msg-admin");
+  const btnAdmin = event.target.querySelector('button[type="submit"]'); // botón del form
   msgAdmin.textContent = ""; // limpiar antes
 
   if (!usuario || !clave) {
@@ -298,6 +263,9 @@ function crearAdmin(event) {
     msgAdmin.style.color = "#f00";
     return;
   }
+
+  // ⏳ bloquear botón mientras se procesa
+  if (btnAdmin) btnAdmin.disabled = true;
 
   fetch("/crear-admin", {
     method: "POST",
@@ -307,8 +275,14 @@ function crearAdmin(event) {
     .then(res => res.json())
     .then(data => {
       if (data.status === "ok") {
-        msgAdmin.textContent = "Creado correctamente";
+        msgAdmin.textContent = "✅ Creado correctamente";
         msgAdmin.style.color = "#0f0";
+
+        // 👉 habilitar botón de Paso 2
+        const btnRepo = document.getElementById("btn-repo");
+        if (btnRepo) {
+          btnRepo.disabled = false;
+        }
       } else {
         msgAdmin.textContent = "❌ Error: " + (data.message || "No se pudo crear el admin.");
         msgAdmin.style.color = "#f00";
@@ -318,6 +292,10 @@ function crearAdmin(event) {
       console.error("❌ Error en fetch:", err);
       msgAdmin.textContent = "❌ Error al crear admin.";
       msgAdmin.style.color = "#f00";
+    })
+    .finally(() => {
+      // 🔓 volver a habilitar botón Paso 1
+      if (btnAdmin) btnAdmin.disabled = false;
     });
 }
 </script>
