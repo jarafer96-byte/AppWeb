@@ -1371,17 +1371,32 @@ function construirBloquesDesdeFormulario() {
     const filas = grupo.querySelectorAll('.fila-producto');
     filas.forEach(fila => {
       const nombre = fila.querySelector('input[name="nombre"]')?.value.trim();
+      const descripcion = fila.querySelector('textarea[name="descripcion"]')?.value.trim();
       const precio = fila.querySelector('input[name="precio"]')?.value.trim();
-      const imagen = fila.querySelector('input[name="imagen_elegida"]')?.value.trim();
+      const imagen_github = fila.querySelector('input[name="imagen_elegida"]')?.value.trim();
+      const grupoVal = grupo.getAttribute("data-grupo") || "";
+      const subgrupoVal = fila.getAttribute("data-subgrupo") || "";
+      const orden = fila.getAttribute("data-orden") || "";
+      const talles = fila.querySelector('input[name="talles"]')?.value.split(",").map(t => t.trim()) || [];
 
-      if (nombre && precio && imagen) {
-        bloques.push({ nombre, precio, imagen });
+      if (nombre && precio && imagen_github) {
+        bloques.push({
+          nombre,
+          descripcion,
+          precio,
+          imagen_github,
+          grupo: grupoVal,
+          subgrupo: subgrupoVal,
+          orden,
+          talles
+        });
       }
     });
   });
 
   return bloques;
 }
+
 
   
 window.addEventListener("load", () => {
