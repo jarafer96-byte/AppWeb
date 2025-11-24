@@ -117,6 +117,11 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
   <div class="loader"></div>
   <p style="margin-top:20px; font-family:sans-serif; font-size:18px; color:#fff;">Procesando imágenes…</p>
 </div>
+  
+<div id="uploadProgress" style="margin:10px 0;">
+  <progress id="progressBar" value="0" max="100" style="width:100%"></progress>
+  <span id="progressText">0/0</span>
+</div>
 
 <!-- Modal carrusel -->
 <div class="modal fade" id="modalCarrusel" tabindex="-1">
@@ -129,31 +134,8 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
       <div class="modal-body">
         <div style="padding: 0 40px;">
           <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-inner">
-              {% for img in imagenes_step0 %}
-                {% if loop.index0 % 8 == 0 %}
-                  <div class="carousel-item {% if loop.first %}active{% endif %}">
-                    <div class="row row-cols-4 gx-2 gy-2">
-                {% endif %}
-
-                      <div class="col">
-                        <img src="https://f005.backblazeb2.com/file/imagenes-appweb/{{ img }}"
-                             class="img-fluid rounded imagen-carrusel"
-                             alt="Imagen {{ loop.index }}"
-                             loading="lazy"
-                             onclick="seleccionarImagen(this)"
-                             onerror="this.src='/static/img/fallback.webp';">
-                      </div>
-
-                {% if loop.index0 % 8 == 7 or loop.last %}
-                    {% set faltantes = 8 - (loop.index0 % 8 + 1) %}
-                    {% for i in range(faltantes) %}
-                      <div class="col invisible"></div>
-                    {% endfor %}
-                    </div>
-                  </div>
-                {% endif %}
-              {% endfor %}
+            <div class="carousel-inner" id="carouselInner">
+              <!-- thumbnails se insertan dinámicamente -->
             </div>
             <button class="carousel-control-prev" type="button" data-bs-target="#carouselGlobal" data-bs-slide="prev">
               <span class="carousel-control-prev-icon"></span>
@@ -170,7 +152,6 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
     </div>
   </div>
 </div>
-
 
 <script>
   let grupoId = 0;
@@ -408,12 +389,22 @@ function agregarSlide(items, makeActive) {
   items.forEach(({ nombre, url }) => {
     const col = document.createElement("div");
     col.className = "col";
-    col.innerHTML = `
-      <div class="thumb-wrapper">
-        <img src="${url}" class="imagen-carrusel" alt="${nombre}"
-             data-nombre="${nombre}" data-url="${url}"
-             onclick="seleccionarImagen(this)">
-      </div>`;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "thumb-wrapper";
+
+    const img = document.createElement("img");
+    img.className = "imagen-carrusel lazy";
+    img.dataset.src = url;                  // 🔑 URL real diferida
+    img.src = "/static/img/placeholder.webp"; // placeholder inicial
+    img.alt = nombre;
+    img.setAttribute("data-nombre", nombre);
+    img.setAttribute("data-url", url);
+    img.onclick = () => seleccionarImagen(img);
+    img.onerror = () => { img.src = "/static/img/fallback.webp"; };
+
+    wrapper.appendChild(img);
+    col.appendChild(wrapper);
     row.appendChild(col);
   });
 
@@ -428,7 +419,22 @@ function agregarSlide(items, makeActive) {
 
   div.appendChild(row);
   contenedor.appendChild(div);
-}  
+}
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const img = entry.target;
+      img.src = img.dataset.src; // reemplaza placeholder por la URL real
+      observer.unobserve(img);
+    }
+  });
+});
+
+// Inicializar después de agregar slides
+function inicializarLazy() {
+  document.querySelectorAll("img.lazy").forEach(img => observer.observe(img));
+}
+  
   
 function abrirCarrusel(btn) {
   filaActual = btn.closest('.fila-producto');
@@ -748,7 +754,17 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
       request.onerror = e => console.error("❌ Error abriendo IndexedDB:", e.target.error);
     }
     
+function mostrarSpinner() {
+  document.getElementById("spinner").style.display = "flex";
+}
+
+function ocultarSpinner() {
+  document.getElementById("spinner").style.display = "none";
+}
+
 function cargarImagenesDesdeIndexedDB(done) {
+  mostrarSpinner(); // 🔑 mostrar spinner al iniciar
+
   ensureDB(db => {
     const tx = db.transaction("imagenes", "readonly");
     const store = tx.objectStore("imagenes");
@@ -761,7 +777,6 @@ function cargarImagenesDesdeIndexedDB(done) {
       getReq.onsuccess = e => {
         const blob = e.target.result;
         if (blob) {
-          // 🔑 Normalizar: usar mapping para obtener nombre final
           const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
           const nombreGenerado = mapping[nombre];
           let url;
@@ -773,7 +788,6 @@ function cargarImagenesDesdeIndexedDB(done) {
               : "";
             url = `${baseUrl}/static/img/${nombreGenerado}`;
           } else {
-            // fallback si no hay mapping
             url = "/static/img/fallback.webp";
           }
 
@@ -791,7 +805,9 @@ function cargarImagenesDesdeIndexedDB(done) {
 
     tx.oncomplete = () => {
       if (buffer.length) agregarSlide(buffer, first);
-      done(count); // cantidad cargada desde IndexedDB
+      inicializarLazy();   // activa lazy loading
+      ocultarSpinner();    // 🔑 ocultar spinner al terminar
+      done(count);
     };
   });
 }
@@ -1256,12 +1272,18 @@ function marcarImagenesUsadas() {
   });
 }
 
-
+let currentPage = 1;
+function renderPage(page) {
+  renderOriginales(page);
+  renderOptimizadas(page);
+  currentPage = page;
+}
+  
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
   if (grupos.length === 0) {
     alert('Agregá al menos un grupo antes de continuar');
-    return;
+    return false; // evita submit clásico
   }
 
   let hayContenidoValido = false;
@@ -1289,20 +1311,79 @@ function validarYEnviar() {
 
   if (!hayContenidoValido) {
     alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
-    return;
+    return false;
   }
 
   if (imagenesInvalidas) {
     alert('⚠️ Hay filas con nombre/precio pero sin imagen seleccionada. Revisalas antes de continuar.');
-    return;
+    return false;
   }
+
+  if (!confirmarContinuar()) return false;
 
   // Mostrar spinner y limpiar estado antes de enviar
   document.getElementById('spinner').style.display = 'flex';
-  localStorage.removeItem("step3_state"); // ✅ limpiar cache del paso
-  document.getElementById('formulario').submit();
+  localStorage.removeItem("step3_state");
+
+  // Construir bloques y subir con progreso
+  const bloques = construirBloquesDesdeFormulario();
+  subirProductos(bloques);
+
+  return false; // evita submit clásico
 }
 
+async function subirProductos(bloques) {
+  const total = bloques.length;
+  let current = 0;
+
+  for (const producto of bloques) {
+    try {
+      await fetch("/contenido", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(producto)
+      });
+      current++;
+      updateProgress(current, total); // 🔎 actualiza barra
+    } catch (err) {
+      console.error("❌ Error subiendo producto", err);
+    }
+  }
+
+  document.getElementById('spinner').style.display = 'none'; // ocultar spinner al terminar
+}
+
+function updateProgress(current, total) {
+  const bar = document.getElementById("progressBar");
+  bar.value = (current / total) * 100;
+  document.getElementById("progressText").innerText = `${current}/${total}`;
+}
+
+function confirmarContinuar() {
+  return confirm("Se enviarán los datos, ¿deseás continuar?");
+}
+
+function construirBloquesDesdeFormulario() {
+  const bloques = [];
+  const grupos = document.querySelectorAll('.card');
+
+  grupos.forEach(grupo => {
+    const filas = grupo.querySelectorAll('.fila-producto');
+    filas.forEach(fila => {
+      const nombre = fila.querySelector('input[name="nombre"]')?.value.trim();
+      const precio = fila.querySelector('input[name="precio"]')?.value.trim();
+      const imagen = fila.querySelector('input[name="imagen_elegida"]')?.value.trim();
+
+      if (nombre && precio && imagen) {
+        bloques.push({ nombre, precio, imagen });
+      }
+    });
+  });
+
+  return bloques;
+}
+
+  
 window.addEventListener("load", () => {
   console.log("🚀 [Step3] Inicializando...");
 
