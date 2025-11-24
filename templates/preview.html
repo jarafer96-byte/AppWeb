@@ -578,6 +578,8 @@ html {
   {% endif %}
 
 <div id="contenedor-grupos"></div>
+  
+<div id="paginacion" class="text-center mt-3"></div>
 
 <div class="text-center mt-5">
   <a href="/descargar" class="btn btn-primary px-5">
@@ -662,6 +664,35 @@ const URL_BACKEND = "https://appweb-n4cl.onrender.com"; // Tu URL central
   document.getElementById('volverArriba').onclick = () => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
+    
+// Configuración de paginación
+const itemsPorPagina = 12;
+let totalPaginas = 0;
+
+function renderPagina(pagina, productosFiltrados) {
+  totalPaginas = Math.ceil(productosFiltrados.length / itemsPorPagina);
+
+  const inicio = (pagina - 1) * itemsPorPagina;
+  const fin = inicio + itemsPorPagina;
+  const productosPagina = productosFiltrados.slice(inicio, fin);
+
+  cont.innerHTML = "";
+  productosPagina.forEach(p => cont.appendChild(renderProducto(p)));
+}
+
+function renderPaginacion(productosFiltrados) {
+  const pagDiv = document.getElementById("paginacion");
+  pagDiv.innerHTML = "";
+  totalPaginas = Math.ceil(productosFiltrados.length / itemsPorPagina);
+
+  for (let i = 1; i <= totalPaginas; i++) {
+    const btn = document.createElement("button");
+    btn.textContent = i;
+    btn.className = "btn btn-light mx-1";
+    btn.onclick = () => renderPagina(i, productosFiltrados);
+    pagDiv.appendChild(btn);
+  }
+}
 
 fetch("/api/productos")
   .then(r => r.json())
@@ -772,18 +803,9 @@ function mostrarGrupo(nombre, event, auto = false) {
     console.log("➕ Botón subgrupo creado:", sub);
   });
 
-  cont.innerHTML = "";
-
-  // Mostrar productos directamente (sin envoltorios)
-  productosGrupo.forEach(p => {
-    const card = renderProducto(p);
-    cont.appendChild(card);
-
-    requestAnimationFrame(() => card.classList.add("show"));
-    setTimeout(() => card.classList.remove("fade-reorder"), 50);
-
-    console.log("🛒 Card insertada:", p.nombre);
-  });
+  // 🔁 Usar paginación en lugar de volcar todo
+  renderPagina(1, productosGrupo);
+  renderPaginacion(productosGrupo);
 
   if (subcategorias.length > 0) {
     if (!auto) {
@@ -798,11 +820,10 @@ function mostrarGrupo(nombre, event, auto = false) {
     console.log("📂 Grupo sin subcategorías");
   }
 
-  console.log("✅ Productos renderizados directamente en #productos");
+  console.log("✅ Productos renderizados con paginación en #productos");
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 window.mostrarGrupo = mostrarGrupo;
-
 
 // Extra: log de clicks en botones
 document.addEventListener("click", (e) => {
@@ -845,18 +866,11 @@ function filtrarSubcategoria(grupo, subgrupo) {
 
   console.log("📦 Productos filtrados:", productosFiltrados.length);
 
-  // Renderizar cards directamente en el contenedor
-  productosFiltrados.forEach(p => {
-    const card = renderProducto(p);
-    cont.appendChild(card);
+  // 🔁 Usar paginación en lugar de volcar todo
+  renderPagina(1, productosFiltrados);
+  renderPaginacion(productosFiltrados);
 
-    requestAnimationFrame(() => card.classList.add("show"));
-    setTimeout(() => card.classList.remove("fade-reorder"), 50);
-
-    console.log("🛒 Card insertada:", p.nombre);
-  });
-
-  console.log("✅ Productos renderizados directamente en #productos");
+  console.log("✅ Productos renderizados con paginación en #productos");
   console.log("📥 Hijos actuales en #productos:", cont.children.length);
 
   window.scrollTo({ top: 0, behavior: 'auto' });
