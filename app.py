@@ -254,6 +254,7 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         return {"ok": False, "error": str(e)}
 
 @app.route("/api/productos")
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def api_productos():
     email = session.get("email")
     if not email:
@@ -292,6 +293,7 @@ def api_productos():
 
         
 @app.route('/upload-image', methods=['POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def upload_image():
     try:
         repo_name = session.get("repo_nombre") or "AppWeb"
@@ -406,6 +408,7 @@ def limpiar_imagenes_usuario():
             pass
 
 @app.route('/step0', methods=['GET'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def step0():
     """
     Step0 ahora solo muestra el formulario para seleccionar y optimizar imágenes.
@@ -474,6 +477,7 @@ def pago_pending():
     return "⏳ El pago está pendiente de aprobación."
 
 @app.route("/webhook_mp", methods=["POST"])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def webhook_mp():
     event = request.json or {}
     # ✅ Registrar el evento crudo para auditoría (opcional)
@@ -524,6 +528,7 @@ def crear_admin():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/debug/mp')
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def debug_mp():
     email = session.get('email')
     if not email:
@@ -552,6 +557,7 @@ def debug_mp():
         return jsonify({'error': 'Error interno', 'message': str(e)}), 500
 
 @app.route('/login-admin', methods=['POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def login_admin():
     session.clear()
 
@@ -587,11 +593,13 @@ def login_admin():
 
 
 @app.route('/logout-admin')
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def logout_admin():
     session.pop('modo_admin', None)
     return redirect('/preview')
 
 @app.route('/guardar-producto', methods=['POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def guardar_producto():
     usuario = session.get('email')
     if not usuario:
@@ -611,6 +619,7 @@ def guardar_producto():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/ver-productos')
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def ver_productos():
     usuario = session.get('email')
     if not usuario:
@@ -626,6 +635,7 @@ def ver_productos():
 
 # --- Agregar en app.py (temporal, para debug) ---
 @app.route('/debug/session')
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def debug_session():
     try:
         sess = dict(session)
@@ -668,6 +678,7 @@ def crear_repo():
     return jsonify(resultado), 200 if "url" in resultado else 400
 
 @app.route('/actualizar-precio', methods=['POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def actualizar_precio():
     data = request.get_json()
     id_base = data.get("id")
@@ -697,6 +708,7 @@ def actualizar_precio():
 
 
 @app.route('/actualizar-talles', methods=['POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def actualizar_talles():
     data = request.get_json()
     id_base = data.get("id")
@@ -723,6 +735,7 @@ def actualizar_talles():
 
 
 @app.route('/actualizar-firestore', methods=['POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def actualizar_firestore():
     data = request.get_json(silent=True) or {}
     id_base = data.get('id')
@@ -749,6 +762,7 @@ def actualizar_firestore():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def step1():
     limpiar_imagenes_usuario()
 
@@ -782,6 +796,7 @@ def step1():
     return render_template('step1.html')
 
 @app.route('/estilo', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def step2():
     if request.method == 'POST':
         session['color'] = request.form.get('color')
@@ -797,6 +812,7 @@ def step2():
     return render_template('step2.html', config=session, imagenes=imagenes)
     
 @app.route('/step2-5', methods=['GET','POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def step2_5():
     if request.method == 'POST':
         filas = []
@@ -833,6 +849,7 @@ def step2_5():
     return render_template('step2-5.html')
 
 @app.route('/contenido', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def step3():
     print("🚀 [Step3] Entrando a /contenido")
     tipo = session.get('tipo_web')
@@ -1102,6 +1119,7 @@ def get_mp_public_key(email: str):
     return None
 
 @app.route('/conectar_mp')
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def conectar_mp():
     if not session.get('modo_admin'):
         return redirect(url_for('preview'))
@@ -1126,6 +1144,7 @@ def conectar_mp():
 
 
 @app.route('/callback_mp')
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def callback_mp():
     if not session.get('modo_admin'):
         return redirect(url_for('preview'))
@@ -1344,6 +1363,7 @@ def pagar():
         return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
         
 @app.route('/preview', methods=["GET", "POST"])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def preview():
     print("🚀 [Preview] Entrando a /preview")
 
@@ -1488,6 +1508,7 @@ def preview():
         return "Internal Server Error al renderizar preview", 500
 
 @app.route('/descargar')
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def descargar():
     email = session.get('email')
     if not email:
