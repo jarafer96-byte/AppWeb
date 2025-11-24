@@ -14,6 +14,8 @@ from io import BytesIO
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import shortuuid
 import mercadopago
 import base64
@@ -67,6 +69,11 @@ else:
 # GitHub y Flask config
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
+
+# Inicializar rate limiter (limita por IP)
+limiter = Limiter(app, key_func=get_remote_address)
+# Regex simple para validar formato de email
+EMAIL_REGEX = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
 
 app = Flask(__name__)
 CORS(app)
@@ -491,13 +498,17 @@ def webhook_mp():
     return "OK", 200
 
 @app.route('/crear-admin', methods=['POST'])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def crear_admin():
     data = request.get_json(silent=True) or {}
     usuario = data.get('usuario')
     clave = data.get('clave')
 
+    # Validar datos
     if not usuario or not clave:
         return jsonify({'status': 'error', 'message': 'Faltan datos'}), 400
+    if not EMAIL_REGEX.match(usuario):
+        return jsonify({'status': 'error', 'message': 'Debe ser un email válido'}), 400
 
     try:
         session.clear()
@@ -506,7 +517,7 @@ def crear_admin():
 
         doc_ref = db.collection("usuarios").document(usuario)
         doc_ref.set({
-            "clave_admin": clave
+            "clave_admin": clave  # 🔒 Podés cambiar a hash si querés más seguridad
         })
         return jsonify({'status': 'ok'})
     except Exception as e:
