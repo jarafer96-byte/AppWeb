@@ -649,12 +649,14 @@ def debug_session():
 # --- Fin debug ---
 
 @app.route("/crear-repo", methods=["POST"])
+@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def crear_repo():
     token = os.getenv("GITHUB_TOKEN")
     if not token:
         return jsonify({"error": "Token no disponible"}), 500
 
     email = request.json.get("email", f"repo-{uuid.uuid4().hex[:6]}")
+    session.clear()
     session['email'] = email
     nombre_repo = generar_nombre_repo(email)
     session['repo_nombre'] = nombre_repo
@@ -1234,7 +1236,14 @@ def callback_mp():
         flash("Error al conectar con Mercado Pago")
         return redirect(url_for('preview', admin='true'))
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Inicializar limiter (si no lo hiciste antes)
+limiter = Limiter(app, key_func=get_remote_address)
+
 @app.route('/pagar', methods=['POST'])
+@limiter.limit("10 per minute")  # máximo 10 intentos por minuto por IP
 def pagar():
     if not db:
         return jsonify({'error': 'El servicio de base de datos no está disponible (Firestore)'}), 503
@@ -1262,16 +1271,13 @@ def pagar():
         productos_ref = db.collection("usuarios").document(email_vendedor).collection("productos")
 
         for item_frontend in carrito:
-            # Necesitamos solo el ID y la cantidad/talle. El precio del frontend es ignorado.
             id_base = item_frontend.get('id_base') 
-            
-            # Sanitización y validación de cantidad
             try:
                 cantidad = int(item_frontend.get('cantidad', 1))
                 if cantidad <= 0:
                     raise ValueError("Cantidad inválida")
             except:
-                cantidad = 1 # Fallback seguro
+                cantidad = 1
             
             talle = item_frontend.get('talle', '')
             
@@ -1279,27 +1285,22 @@ def pagar():
                 print(f"⚠️ Item inválido o sin id_base. Saltando.")
                 continue 
 
-            # A) Buscamos el producto REAL en Firestore
             prod_doc = productos_ref.document(id_base).get()
 
             if prod_doc.exists:
                 prod_real = prod_doc.to_dict()
                 precio_real = float(prod_real.get('precio', 0))
-                
-                # Previene precios cero o negativos
                 if precio_real <= 0:
                     print(f"⚠️ Producto {id_base} con precio no válido ({precio_real}). Saltando.")
                     continue
 
                 nombre_real = prod_real.get('nombre', 'Producto Desconocido')
-                
-                # B) Construimos el ítem de MP usando SÓLO los datos de la BD
                 items_mp.append({
                     "id": id_base,
                     "title": f"{nombre_real}{f' ({talle})' if talle else ''}", 
                     "description": nombre_real,
                     "quantity": cantidad,
-                    "unit_price": precio_real, # <--- ✅ EL PRECIO PROVIENE DE FIRESTORE
+                    "unit_price": precio_real,
                     "currency_id": "ARS"
                 })
             else:
@@ -1308,7 +1309,6 @@ def pagar():
         if not items_mp:
             return jsonify({'error': 'No se pudieron validar productos en el carrito. Todos los ítems son inválidos.'}), 400
 
-        # 4. Preparar Preferencia de Pago
         external_ref = "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
         url_retorno = data.get('url_retorno', 'https://google.com').split("?")[0] 
 
@@ -1325,7 +1325,6 @@ def pagar():
             "notification_url": url_for('webhook_mp', _external=True)
         }
 
-        # 5. Crear Preferencia
         preference_response = sdk.preference().create(preference_data)
         preference = preference_response.get("response", {}) or {}
 
@@ -1333,7 +1332,6 @@ def pagar():
             print(f"[PAGAR] Error al generar preferencia: {preference_response.get('message')}")
             return jsonify({'error': 'No se pudo generar la preferencia de pago en MP'}), 500
 
-        # 6. Devolver resultado al frontend
         return jsonify({
             "preference_id": preference.get("id"),
             "init_point": preference.get("init_point"),
