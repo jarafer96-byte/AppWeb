@@ -1140,7 +1140,7 @@ def step3():
         for inicio in range(0, len(bloques), bloques_por_lote):
             lote = bloques[inicio:inicio + bloques_por_lote]
             print(f"📦 [Step3] Subiendo lote {inicio//bloques_por_lote+1} con {len(lote)} productos")
-            with ThreadPoolExecutor(max_workers=3) as executor:
+            with ThreadPoolExecutor(max_workers=5) as executor:
                 resultados = list(executor.map(subir_con_resultado, lote))
             exitos += sum(1 for r in resultados if r)
         print(f"📊 [Step3] Total exitos en Firestore: {exitos}")
