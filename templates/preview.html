@@ -758,7 +758,7 @@ function mostrarGrupo(nombre, event, auto = false) {
   const productosGrupo = (window.todosLosProductos || []).filter(
     p => String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase()
   );
-  console.log("📦 Productos encontrados para grupo:", productosGrupo.length, productosGrupo);
+  console.log("📦 Productos encontrados para grupo:", productosGrupo.length);
 
   const subcategorias = [...new Set(
     productosGrupo.map(p => p.subgrupo).filter(s => s && String(s).toLowerCase() !== 'general')
@@ -777,6 +777,17 @@ function mostrarGrupo(nombre, event, auto = false) {
 
   cont.innerHTML = "";
 
+  // Mostrar productos directamente (sin envoltorios)
+  productosGrupo.forEach(p => {
+    const card = renderProducto(p);
+    cont.appendChild(card);
+
+    requestAnimationFrame(() => card.classList.add("show"));
+    setTimeout(() => card.classList.remove("fade-reorder"), 50);
+
+    console.log("🛒 Card insertada:", p.nombre);
+  });
+
   if (subcategorias.length > 0) {
     if (!auto) {
       panel.classList.remove('oculta');
@@ -785,65 +796,16 @@ function mostrarGrupo(nombre, event, auto = false) {
       panel.classList.add('oculta');
       console.log("📂 Panel subcategorias oculto (auto)");
     }
-
-    // Crear un bloque por cada subcategoría
-    subcategorias.forEach(sub => {
-      console.log("➡️ Renderizando subgrupo:", sub);
-
-      const subDiv = document.createElement("div");
-      subDiv.className = "subgrupo-bloque";
-      subDiv.innerHTML = `<h4>${sub}</h4>`;
-
-      const productosSub = productosGrupo.filter(p =>
-        String(p.subgrupo || "").toLowerCase() === String(sub).toLowerCase()
-      );
-      console.log("   📦 Productos en subgrupo:", sub, productosSub.length, productosSub);
-
-      productosSub.forEach(p => {
-        const card = renderProducto(p);
-        subDiv.appendChild(card);
-
-        requestAnimationFrame(() => card.classList.add("show"));
-        setTimeout(() => card.classList.remove("fade-reorder"), 50);
-
-        console.log("🛒 Card insertada en subgrupo:", p.nombre);
-      });
-
-      cont.appendChild(subDiv);
-      console.log("📥 Subgrupo agregado al contenedor:", sub);
-    });
   } else {
-    // Caso sin subcategorías → mostrar todo el grupo en un bloque único
     panel.classList.add('oculta');
-    console.log("📂 Grupo sin subcategorías, mostrando bloque General");
-
-    const subDiv = document.createElement("div");
-    subDiv.className = "subgrupo-bloque";
-    subDiv.innerHTML = `<h4>General</h4>`;
-
-    productosGrupo.forEach(p => {
-      const card = renderProducto(p);
-      subDiv.appendChild(card);
-
-      requestAnimationFrame(() => card.classList.add("show"));
-      setTimeout(() => card.classList.remove("fade-reorder"), 50);
-
-      console.log("🛒 Card insertada en bloque General:", p.nombre);
-    });
-
-    cont.appendChild(subDiv);
+    console.log("📂 Grupo sin subcategorías");
   }
 
-  console.log("✅ Bloques renderizados y agregados al contenedor");
-  console.log("📥 Hijos actuales en #productos:", cont.children.length);
-
-  const style = window.getComputedStyle(cont);
-  console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
-
+  console.log("✅ Productos renderizados directamente en #productos");
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
-
 window.mostrarGrupo = mostrarGrupo;
+
 
 
 // Extra: log de clicks en botones
@@ -871,11 +833,6 @@ function filtrarSubcategoria(grupo, subgrupo) {
   const subCanon = String(subgrupo || "").trim();
   console.log("🎯 Grupo canon:", grupoCanon, " | Subgrupo canon:", subCanon || `General_${grupoCanon}`);
 
-  // Crear bloque de subgrupo directamente
-  const subDiv = document.createElement("div");
-  subDiv.className = "subgrupo-bloque";
-  subDiv.innerHTML = `<h4>${subCanon || `General_${grupoCanon}`}</h4>`;
-
   // Filtrar productos
   let productosFiltrados;
   if (subCanon) {
@@ -891,38 +848,26 @@ function filtrarSubcategoria(grupo, subgrupo) {
     );
   }
 
-  console.log("📦 Productos filtrados:", productosFiltrados.length, productosFiltrados);
+  console.log("📦 Productos filtrados:", productosFiltrados.length);
 
-  // Renderizar cards dentro del subgrupo
+  // Renderizar cards directamente en el contenedor
   productosFiltrados.forEach(p => {
-    console.log("   ➕ Renderizando producto:", p);
     const card = renderProducto(p);
-    subDiv.appendChild(card);
+    cont.appendChild(card);
 
-    requestAnimationFrame(() => {
-      card.classList.add("show");
-      console.log("🔎 Clases tras add(show):", card.className);
-    });
-    setTimeout(() => {
-      card.classList.remove("fade-reorder");
-      console.log("🔎 Clases tras remove(fade-reorder):", card.className);
-    }, 50);
+    requestAnimationFrame(() => card.classList.add("show"));
+    setTimeout(() => card.classList.remove("fade-reorder"), 50);
 
-    console.log("🛒 Card insertada en subgrupo:", p.nombre);
+    console.log("🛒 Card insertada:", p.nombre);
   });
 
-  // Insertar subgrupo directamente en el contenedor principal
-  cont.appendChild(subDiv);
-  console.log("✅ Subgrupo renderizado en contenedor principal:", subCanon || `General_${grupoCanon}`);
+  console.log("✅ Productos renderizados directamente en #productos");
   console.log("📥 Hijos actuales en #productos:", cont.children.length);
-  console.log("🧩 HTML del subDiv:", subDiv.innerHTML);
-
-  const style = window.getComputedStyle(cont);
-  console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 window.filtrarSubcategoria = filtrarSubcategoria;
+
 
 
 window.onload = function() {
