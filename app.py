@@ -24,6 +24,7 @@ from firebase_admin import credentials, firestore
 from flask_cors import CORS, cross_origin
 from urllib.parse import urlencode, urlparse
 from werkzeug.security import generate_password_hash, check_password_hash
+import redis
 
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -80,9 +81,14 @@ CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
+redis_url = os.environ.get(
+    "REDIS_URL",
+    "redis://default:<PASSWORD>@redis-10944.c99.us-east-1-4.ec2.cloud.redislabs.com:10944"
+)
 # Inicializar rate limiter (limita por IP)
 limiter = Limiter(
     key_func=get_remote_address,
+    storage_uri=redis_url,   # 🔑 ahora usa Redis Cloud
     app=app
 )
 # Mantener las sesiones persistentes por defecto y duración
