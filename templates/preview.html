@@ -350,19 +350,17 @@ html {
   border-bottom: 1px dotted #aaa;
   padding-bottom: 4px;
 }
-
-/* Productos dentro de subgrupo */
 .subgrupo-bloque .card-producto {
   margin-bottom: 12px;
-}
-  
+} 
 .social-icons {
   margin-top: 40px;
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  gap: 20px; /* espacio uniforme entre íconos */
 }
 .social-icons img {
   width: 40px;
-  margin: 0 10px;
   transition: transform 0.3s ease;
   filter: drop-shadow(0 0 3px white);
 }
@@ -725,8 +723,6 @@ fetch("/api/productos")
     const cont = document.getElementById("productos");
     if (cont) cont.innerHTML = "<p>Error al cargar productos.</p>";
   });
-
-
     
 function mostrarGrupo(nombre, event, auto = false) {
   console.log("🟦 mostrarGrupo llamado con:", { nombre, auto });
@@ -808,7 +804,6 @@ function mostrarGrupo(nombre, event, auto = false) {
 window.mostrarGrupo = mostrarGrupo;
 
 
-
 // Extra: log de clicks en botones
 document.addEventListener("click", (e) => {
   if (e.target.classList.contains("btn-grupo")) {
@@ -818,7 +813,6 @@ document.addEventListener("click", (e) => {
     console.log("🟢 Click en botón subgrupo:", e.target.textContent);
   }
 });
-
 
 function filtrarSubcategoria(grupo, subgrupo) {
   console.log("🟨 filtrarSubcategoria llamada con:", { grupo, subgrupo });
@@ -868,7 +862,6 @@ function filtrarSubcategoria(grupo, subgrupo) {
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
 window.filtrarSubcategoria = filtrarSubcategoria;
-
 
 
 window.onload = function() {
