@@ -23,6 +23,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from flask_cors import CORS, cross_origin
 from urllib.parse import urlencode, urlparse
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -561,13 +562,13 @@ def crear_admin():
         session['email'] = usuario
         session['modo_admin'] = True
 
+        # 🔒 Guardar la clave hasheada en Firestore
         doc_ref.set({
-            "clave_admin": generate_password_hash(clave)  # 🔒 ahora con hash seguro
+            "clave_admin": generate_password_hash(clave)
         })
         return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
 
 @app.route('/debug/mp')
 @limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
