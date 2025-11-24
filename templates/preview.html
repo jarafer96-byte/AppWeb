@@ -354,6 +354,7 @@ const itemsPorPagina = 12;
 let totalPaginas = 0;
 
 function renderPagina(pagina, productosFiltrados) {
+  const cont = document.getElementById("productos"); // 👈 agregar esto
   totalPaginas = Math.ceil(productosFiltrados.length / itemsPorPagina);
 
   const inicio = (pagina - 1) * itemsPorPagina;
@@ -363,6 +364,7 @@ function renderPagina(pagina, productosFiltrados) {
   cont.innerHTML = "";
   productosPagina.forEach(p => cont.appendChild(renderProducto(p)));
 }
+
 
 function renderPaginacion(productosFiltrados) {
   const pagDiv = document.getElementById("paginacion");
