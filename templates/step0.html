@@ -97,7 +97,16 @@
        onclick="seleccionarMiniatura(this)">
 </div>
 
+<div id="optimizeProgress" style="margin:10px 0;">
+  <progress id="optimizeBar" value="0" max="100" style="width:100%"></progress>
+  <span id="optimizeText">0/0</span>
+</div>
 
+<div id="uploadProgress" style="margin:10px 0;">
+  <progress id="uploadBar" value="0" max="100" style="width:100%"></progress>
+  <span id="uploadText">0/0</span>
+</div>
+  
 <!-- Paginador y selector -->
 <div id="pager" style="display:flex; justify-content:center; gap:8px; margin-top:12px;"></div>
 <div style="text-align:center; margin-top:8px;">
@@ -661,6 +670,18 @@ function fetchOriginalesPage(pagina) {
   });
 }
   
+function updateOptimizeProgress(current, total) {
+  const bar = document.getElementById("optimizeBar");
+  bar.value = (current / total) * 100;
+  document.getElementById("optimizeText").innerText = `${current}/${total}`;
+}
+
+function updateUploadProgress(current, total) {
+  const bar = document.getElementById("uploadBar");
+  bar.value = (current / total) * 100;
+  document.getElementById("uploadText").innerText = `${current}/${total}`;
+}
+  
 // Render optimizadas con paginación + lazy loading + feedback
 function renderOptimizadas() {
   previewEl.innerHTML = '';
@@ -747,7 +768,7 @@ downloadAllBtn.addEventListener('click', async () => {
     downloadAllBtn.textContent = "Descargar optimizadas";
   }
 });
-// Optimizar en tandas de 50 imágenes
+// Optimizar en tandas de 50 imágenes con progreso
 async function optimizeInBatches(batchSize = 50) {
   resetFeedback();
   if (!originales.length) {
@@ -778,6 +799,9 @@ async function optimizeInBatches(batchSize = 50) {
       } catch {
         failCount++;
       }
+
+      // 🔑 Actualizar progreso en cada archivo procesado
+      updateOptimizeProgress(okCount + failCount, originales.length);
     }
 
     // Render parcial para feedback
@@ -793,7 +817,7 @@ async function optimizeInBatches(batchSize = 50) {
   optimizeBtn.disabled = false;
   optimizeBtn.textContent = 'Optimizar';
 
-  // Feedback visual
+  // Feedback visual final
   if (failCount > 0) {
     showError(`⚠️ ${failCount} imagen(es) no pudieron optimizarse.`);
   }
@@ -801,11 +825,11 @@ async function optimizeInBatches(batchSize = 50) {
     showInfo(`✅ ${okCount} imagen(es) optimizadas correctamente.`);
   }
 }
-
 // Listener del botón Optimizar
 optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
 
-// Subida en tandas y guardado de rutas reales + mapping + repoDestino
+
+// Subida en tandas y guardado de rutas reales + mapping + repoDestino con progreso
 async function enviarOptimizado(batchSize = 5) {
   console.log("🚀 [FRONT] Iniciando envío de optimizadas...");
 
@@ -832,44 +856,45 @@ async function enviarOptimizado(batchSize = 5) {
       if (!resp.ok) {
         failCount += batch.length;
         console.warn("⚠️ [FRONT] Fallo en respuesta HTTP para batch:", batch.map(b => b.name));
-        continue;
-      }
-
-      const data = await resp.json();
-      if (data.ok && Array.isArray(data.imagenes)) {
-        okCount += data.imagenes.length;
-
-        // 🔑 Guardar rutas reales en localStorage
-        rutasFinales = rutasFinales.concat(data.imagenes);
-        console.log("✅ Subidas:", data.imagenes);
-
-        // 🔑 Guardar mapping original → generado
-        const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
-        if (typeof mapping !== "object" || mapping === null) {
-          console.warn("⚠️ [FRONT] Mapping corrupto, se reinicia.");
-        }
-        data.imagenes.forEach((rutaFinal, idx) => {
-          const originalName = batch[idx].name; // ej: "shopping (21).webp"
-          const nombreGenerado = rutaFinal.split("/").pop(); // ej: "56fd002c4b62...webp"
-          mapping[originalName] = nombreGenerado;
-          console.log("🔗 Mapping agregado:", originalName, "→", nombreGenerado);
-        });
-        localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
-
-        // 🔑 Guardar repoDestino si backend lo devuelve
-        if (data.repoDestino) {
-          localStorage.setItem("repoDestino", data.repoDestino);
-          console.log("📦 Repo destino guardado:", data.repoDestino);
-        }
-
       } else {
-        failCount += batch.length;
-        console.warn("⚠️ [FRONT] Backend no devolvió imágenes válidas para batch:", batch.map(b => b.name));
+        const data = await resp.json();
+        if (data.ok && Array.isArray(data.imagenes)) {
+          okCount += data.imagenes.length;
+
+          // 🔑 Guardar rutas reales en localStorage
+          rutasFinales = rutasFinales.concat(data.imagenes);
+          console.log("✅ Subidas:", data.imagenes);
+
+          // 🔑 Guardar mapping original → generado
+          const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+          if (typeof mapping !== "object" || mapping === null) {
+            console.warn("⚠️ [FRONT] Mapping corrupto, se reinicia.");
+          }
+          data.imagenes.forEach((rutaFinal, idx) => {
+            const originalName = batch[idx].name;
+            const nombreGenerado = rutaFinal.split("/").pop();
+            mapping[originalName] = nombreGenerado;
+            console.log("🔗 Mapping agregado:", originalName, "→", nombreGenerado);
+          });
+          localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
+
+          // 🔑 Guardar repoDestino si backend lo devuelve
+          if (data.repoDestino) {
+            localStorage.setItem("repoDestino", data.repoDestino);
+            console.log("📦 Repo destino guardado:", data.repoDestino);
+          }
+        } else {
+          failCount += batch.length;
+          console.warn("⚠️ [FRONT] Backend no devolvió imágenes válidas para batch:", batch.map(b => b.name));
+        }
       }
     } catch (err) {
       failCount += batch.length;
       console.error("💥 [FRONT] Error en fetch:", err);
     }
+
+    // 🔑 Actualizar progreso después de cada batch
+    updateUploadProgress(okCount + failCount, optimizadas.length);
   }
 
   // Persistir rutas reales para Step3
