@@ -777,12 +777,6 @@ function mostrarGrupo(nombre, event, auto = false) {
 
   cont.innerHTML = "";
 
-  // Crear bloque de grupo
-  const grupoDiv = document.createElement("div");
-  grupoDiv.className = "grupo-section";
-  grupoDiv.innerHTML = `<h3>${grupoCanon}</h3>`;
-  console.log("📌 Creando bloque de grupo:", grupoCanon);
-
   if (subcategorias.length > 0) {
     if (!auto) {
       panel.classList.remove('oculta');
@@ -809,21 +803,14 @@ function mostrarGrupo(nombre, event, auto = false) {
         const card = renderProducto(p);
         subDiv.appendChild(card);
 
-        // 🔁 Aplicar transición y remover fade-reorder
-        requestAnimationFrame(() => {
-          card.classList.add("show");
-          console.log("🔎 Clases tras add(show):", card.className);
-        });
-        setTimeout(() => {
-          card.classList.remove("fade-reorder");
-          console.log("🔎 Clases tras remove(fade-reorder):", card.className);
-        }, 50);
+        requestAnimationFrame(() => card.classList.add("show"));
+        setTimeout(() => card.classList.remove("fade-reorder"), 50);
 
         console.log("🛒 Card insertada en subgrupo:", p.nombre);
       });
 
-      grupoDiv.appendChild(subDiv);
-      console.log("📥 Subgrupo agregado al grupo:", sub);
+      cont.appendChild(subDiv);
+      console.log("📥 Subgrupo agregado al contenedor:", sub);
     });
   } else {
     // Caso sin subcategorías → mostrar todo el grupo en un bloque único
@@ -838,26 +825,17 @@ function mostrarGrupo(nombre, event, auto = false) {
       const card = renderProducto(p);
       subDiv.appendChild(card);
 
-      // 🔁 Aplicar transición y remover fade-reorder
-      requestAnimationFrame(() => {
-        card.classList.add("show");
-        console.log("🔎 Clases tras add(show):", card.className);
-      });
-      setTimeout(() => {
-        card.classList.remove("fade-reorder");
-        console.log("🔎 Clases tras remove(fade-reorder):", card.className);
-      }, 50);
+      requestAnimationFrame(() => card.classList.add("show"));
+      setTimeout(() => card.classList.remove("fade-reorder"), 50);
 
       console.log("🛒 Card insertada en bloque General:", p.nombre);
     });
 
-    grupoDiv.appendChild(subDiv);
+    cont.appendChild(subDiv);
   }
 
-  cont.appendChild(grupoDiv);
-  console.log("✅ Bloque de grupo renderizado y agregado al contenedor");
+  console.log("✅ Bloques renderizados y agregados al contenedor");
   console.log("📥 Hijos actuales en #productos:", cont.children.length);
-  console.log("🧩 HTML del grupoDiv:", grupoDiv.innerHTML);
 
   const style = window.getComputedStyle(cont);
   console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
@@ -879,7 +857,6 @@ document.addEventListener("click", (e) => {
 });
 
 
-
 function filtrarSubcategoria(grupo, subgrupo) {
   console.log("🟨 filtrarSubcategoria llamada con:", { grupo, subgrupo });
 
@@ -894,12 +871,7 @@ function filtrarSubcategoria(grupo, subgrupo) {
   const subCanon = String(subgrupo || "").trim();
   console.log("🎯 Grupo canon:", grupoCanon, " | Subgrupo canon:", subCanon || `General_${grupoCanon}`);
 
-  // Crear bloque de grupo
-  const grupoDiv = document.createElement("div");
-  grupoDiv.className = "grupo-section";
-  grupoDiv.innerHTML = `<h3>${grupoCanon}</h3>`;
-
-  // Crear bloque de subgrupo
+  // Crear bloque de subgrupo directamente
   const subDiv = document.createElement("div");
   subDiv.className = "subgrupo-bloque";
   subDiv.innerHTML = `<h4>${subCanon || `General_${grupoCanon}`}</h4>`;
@@ -927,7 +899,6 @@ function filtrarSubcategoria(grupo, subgrupo) {
     const card = renderProducto(p);
     subDiv.appendChild(card);
 
-    // 🔁 Aplicar transición y remover fade-reorder
     requestAnimationFrame(() => {
       card.classList.add("show");
       console.log("🔎 Clases tras add(show):", card.className);
@@ -940,26 +911,18 @@ function filtrarSubcategoria(grupo, subgrupo) {
     console.log("🛒 Card insertada en subgrupo:", p.nombre);
   });
 
-  // Insertar subgrupo dentro del grupo
-  grupoDiv.appendChild(subDiv);
-  console.log("📂 Subgrupo agregado al grupo:", subCanon || `General_${grupoCanon}`);
-
-  // Insertar grupo dentro del contenedor principal
-  cont.appendChild(grupoDiv);
-  console.log("✅ Grupo renderizado en contenedor principal:", grupoCanon);
+  // Insertar subgrupo directamente en el contenedor principal
+  cont.appendChild(subDiv);
+  console.log("✅ Subgrupo renderizado en contenedor principal:", subCanon || `General_${grupoCanon}`);
   console.log("📥 Hijos actuales en #productos:", cont.children.length);
-  console.log("🧩 HTML del grupoDiv:", grupoDiv.innerHTML);
+  console.log("🧩 HTML del subDiv:", subDiv.innerHTML);
 
   const style = window.getComputedStyle(cont);
   console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
 
   window.scrollTo({ top: 0, behavior: 'auto' });
 }
-
 window.filtrarSubcategoria = filtrarSubcategoria;
-
-
-
 
 
 window.onload = function() {
@@ -1367,7 +1330,6 @@ function mostrarSubgrupo(subgrupo, event) {
     console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
   }
 }
-
 window.mostrarSubgrupo = mostrarSubgrupo;
 
 // Extra: log de clicks en botones de subgrupo
