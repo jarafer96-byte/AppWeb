@@ -203,14 +203,15 @@
     <button type="button" class="btn-gradient btn-sm" onclick="crearGrupo()">Crear grupo</button>
   </div>
 
-<form id="formulario" method="POST" action="/contenido" enctype="multipart/form-data">
+<form id="formulario" method="POST" action="/contenido" enctype="multipart/form-data"
+      onsubmit="return confirmarContinuar()">
   <div id="grupos"></div>
 
   <div class="text-center mt-4">
     <button type="submit" class="btn-gradient px-5 py-2">Continuar</button>
   </div>
 </form>
-
+  
   <!-- Mensaje final -->
   <div class="mensaje-final text-center mt-3">
     ¿Tenés mucho contenido? 
@@ -310,6 +311,10 @@ const saveStateDebounced = (() => {
   }
 })();
 
+function confirmarContinuar() {
+  return confirm("¿Seguro que querés continuar?");
+}
+  
 // Utilidad para convertir fila en objeto
 function filaToObj(fila) {
   return {
