@@ -163,7 +163,7 @@ html { scroll-behavior: auto; }
 
 .panel-subcategorias button:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); }
 
-@media (min-width: 1024px) { .logo { width: 103px; height: 103px; max-height: none; } }
+@media (min-width: 1024px) { .logo { width: 150px; height: 150px; max-height: none; } }
 
 .barra-navegacion { padding: 8px 10px; gap: 8px; }
 
@@ -178,7 +178,10 @@ html { scroll-behavior: auto; }
 .panel-subcategorias button { font-size: 13px; padding: 1px 6px; border-radius: 8px; }
 
 .productos-container { margin-top: 30px; }
-
+.logo-wrapper {
+  margin-top: 20px;   /* espacio fijo arriba */
+  margin-bottom: 20px;/* espacio fijo abajo */
+}
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
 @keyframes moverFondo { 0% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } 100% { background-position: 0% 0%; } }
@@ -186,11 +189,12 @@ html { scroll-behavior: auto; }
 </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
+  
 {% if config.logo %}
-  <div class="text-center mt-4">
+  <div class="text-center my-5 logo-wrapper">
     <img src="{{ url_for('static', filename='img/' + config.logo) }}"
-          alt="Logo"
-          class="img-fluid logo mx-auto d-block">
+         alt="Logo"
+         class="img-fluid logo mx-auto d-block">
   </div>
 {% endif %}
 
