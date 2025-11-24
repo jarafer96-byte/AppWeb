@@ -71,8 +71,6 @@ else:
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 
-# Inicializar rate limiter (limita por IP)
-limiter = Limiter(app, key_func=get_remote_address)
 # Regex simple para validar formato de email
 EMAIL_REGEX = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
 
@@ -81,6 +79,8 @@ CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
+# Inicializar rate limiter (limita por IP)
+limiter = Limiter(app, key_func=get_remote_address)
 
 # Mantener las sesiones persistentes por defecto y duración
 app.config['SESSION_PERMANENT'] = True
