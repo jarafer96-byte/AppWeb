@@ -1205,7 +1205,9 @@ def step3():
         else:
             print("⚠️ [Step3] Ningún producto subido, renderizando step3.html")
             return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
-
+            
+    print("ℹ️ [Step3] GET request, renderizando step3.html")
+    return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
 
 def get_mp_public_key(email: str):
     """
