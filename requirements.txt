@@ -8,5 +8,5 @@ firebase-admin
 pandas
 openpyxl
 flask-cors
-flask-limiter
-redis
+
+
