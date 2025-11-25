@@ -155,21 +155,16 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
   let filaActual = null;           // referencia a la fila activa
   let imagenesUsadas = [];         // lista global de imágenes ya asignadas
 
-  // 🔑 Definir base dinámica para imágenes
-  const repoDestino = localStorage.getItem("repoDestino");
-  const STATIC_BASE_URL = repoDestino
-    ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
-    : "";
-  
-  const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
-  console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
+ // 🔑 Ahora las imágenes ya vienen con URL completa desde GCS
+const imagenesDisponibles = {{ imagenes_step0 | tojson | safe }};
+console.log("🧠 imagenesDisponibles:", imagenesDisponibles);
 
-  function eliminarProducto(boton) {
-    const fila = boton.closest('.fila-producto');
-    const grupo = boton.closest('.card');
-    fila.remove();
-    actualizarContador(grupo);
-  }
+function eliminarProducto(boton) {
+  const fila = boton.closest('.fila-producto');
+  const grupo = boton.closest('.card');
+  fila.remove();
+  actualizarContador(grupo);
+}
     
 const LS_KEY = "step3_state";
 // Función que arma el JSON y lo guarda en localStorage
@@ -479,7 +474,7 @@ function inicializarCarrusel() {
     if (count > 0) {
       console.log("📦 Carrusel restaurado desde IndexedDB con", count, "imágenes");
     } else {
-      // Fallback: usar rutas finales guardadas en localStorage
+      // Fallback: usar rutas finales guardadas en localStorage (ya son URLs completas de GCS)
       const imagenesFinales = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
       if (Array.isArray(imagenesFinales) && imagenesFinales.length) {
         let first = true, buffer = [];
@@ -487,37 +482,8 @@ function inicializarCarrusel() {
         imagenesFinales.forEach(ruta => {
           if (!ruta) return;
 
-          let url = ruta;
-          let basename = ruta.split("/").pop();
-
-          // 🔎 Normalizar: si es blob, intentar mapear a ruta real
-          if (ruta.startsWith("blob:")) {
-            const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
-            const nombreGenerado = mapping[basename];
-            const repoDestino = localStorage.getItem("repoDestino");
-            const baseUrl = repoDestino
-              ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
-              : "";
-
-            if (nombreGenerado) {
-              url = `${baseUrl}/static/img/${nombreGenerado}`;
-              basename = nombreGenerado;
-              console.log("🔄 [Step3] Blob reemplazado:", ruta, "→", url);
-            } else {
-              url = "/static/img/fallback.webp";
-              basename = "fallback.webp";
-              console.warn("⚠️ [Step3] Blob sin mapping, usando fallback");
-            }
-          }
-
-          // 🔎 Si no es URL absoluta, asumir que es nombre de archivo
-          else if (!ruta.startsWith("http")) {
-            const repoDestino = localStorage.getItem("repoDestino");
-            const baseUrl = repoDestino
-              ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
-              : "";
-            url = `${baseUrl}/static/img/${basename}`;
-          }
+          const basename = ruta.split("/").pop(); // nombre del archivo
+          const url = ruta; // ya es URL absoluta de GCS
 
           buffer.push({ nombre: basename, url });
 
@@ -543,6 +509,7 @@ function inicializarCarrusel() {
     }
   });
 }
+
 
 function leerArchivoProductos() {
   const input = document.getElementById("archivoProductos");
@@ -738,17 +705,16 @@ function cargarImagenesDesdeIndexedDB(done) {
       getReq.onsuccess = e => {
         const blob = e.target.result;
         if (blob) {
-          // 🔑 Normalizar: usar mapping para obtener nombre final
+          // 🔑 Usar mapping para obtener nombre final
           const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
           const nombreGenerado = mapping[nombre];
           let url;
 
           if (nombreGenerado) {
-            const repoDestino = localStorage.getItem("repoDestino");
-            const baseUrl = repoDestino
-              ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
-              : "";
-            url = `${baseUrl}/static/img/${nombreGenerado}`;
+            // ✅ Construir URL pública de GCS
+            const bucket = "mpagina"; // tu bucket
+            const email = localStorage.getItem("email") || "anonimo";
+            url = `https://storage.googleapis.com/${bucket}/${email}/${nombreGenerado}`;
           } else {
             // fallback si no hay mapping
             url = "/static/img/fallback.webp";
@@ -772,6 +738,7 @@ function cargarImagenesDesdeIndexedDB(done) {
     };
   });
 }
+
 
 function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
@@ -1054,13 +1021,10 @@ function confirmarImagen() {
     console.log("🔎 [Step3] Buscando basename en mapping:", basename, "→", nombreGenerado);
 
     if (nombreGenerado) {
-      const repoDestino = localStorage.getItem("repoDestino");
-      const baseUrl = repoDestino
-        ? `https://raw.githubusercontent.com/jarafer96-byte/${repoDestino}/main`
-        : "";
-      imagenFinal = baseUrl
-        ? `${baseUrl}/static/img/${nombreGenerado}`
-        : `/static/img/${nombreGenerado}`;
+      // ✅ Construir URL pública de GCS
+      const bucket = "mpagina"; // tu bucket
+      const email = localStorage.getItem("email") || "anonimo";
+      imagenFinal = `https://storage.googleapis.com/${bucket}/${email}/${nombreGenerado}`;
       console.log("🔄 [Step3] Blob reemplazado usando mapping:", basename, "→", imagenFinal);
     } else {
       console.error("❌ [Step3] No se encontró mapping para basename", basename);
@@ -1094,7 +1058,7 @@ function confirmarImagen() {
   console.log("🖼️ [Step3] Preview actualizada con:", imagenFinal);
 
   // 📌 Marcar como usada y persistir GLOBAL (siempre basename)
-  imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  let imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
   if (!Array.isArray(imagenesUsadas)) imagenesUsadas = [];
 
   if (!imagenesUsadas.includes(basename)) {
@@ -1115,6 +1079,7 @@ function confirmarImagen() {
   saveStateDebounced();
   console.log("💾 [Step3] Estado guardado (debounced)");
 }
+
   
 function loadState() {
   const raw = localStorage.getItem(LS_KEY);
