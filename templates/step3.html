@@ -1108,6 +1108,9 @@ function confirmarImagen() {
   console.log("💾 [Step3] Estado guardado (debounced). localStorage.email:", localStorage.getItem("email"));
 }
   
+console.log("📌 [Template] sessionEmail recibido desde Flask:", "{{ email }}");
+window.sessionEmail = "{{ email }}"; 
+  
 function loadState() {
   const raw = localStorage.getItem(LS_KEY);
   if (!raw) {
@@ -1331,8 +1334,5 @@ window.addEventListener("load", () => {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script>
-  window.sessionEmail = "{{ email }}";
-</script>  
 </body>
 </html>
