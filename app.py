@@ -290,7 +290,7 @@ def api_productos():
                 "grupo": data.get("grupo"),
                 "subgrupo": data.get("subgrupo"),
                 "descripcion": data.get("descripcion"),
-                "imagen_github": data.get("imagen_github"),
+                "imagen_url": data.get("imagen_url"), 
                 "orden": data.get("orden"),
                 "talles": data.get("talles", []),
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
