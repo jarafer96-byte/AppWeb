@@ -8,5 +8,5 @@ firebase-admin
 pandas
 openpyxl
 flask-cors
-
+google-cloud-storage
 
