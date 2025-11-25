@@ -20,6 +20,8 @@ import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask_cors import CORS, cross_origin
+from google.cloud import storage
+from google.oauth2 import service_account
 
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -86,6 +88,23 @@ firebase_config = {
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
+
+# 🔑 Inicialización de Google Cloud Storage
+key_json = os.environ.get("GOOGLE_CLOUD_KEY")
+if not key_json:
+    raise RuntimeError("Falta la variable GOOGLE_CLOUD_KEY en Render")
+
+# Convertir el JSON pegado en dict
+creds_dict = json.loads(key_json)
+
+# Crear credenciales desde el dict
+credentials = service_account.Credentials.from_service_account_info(creds_dict)
+
+# Inicializar cliente con tu Project ID
+client = storage.Client(credentials=credentials, project="arcane-sentinel-479319-g0")
+
+# Bucket donde se guardan las imágenes
+bucket = client.bucket("mpagina")
 
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -287,11 +306,11 @@ def api_productos():
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
-        repo_name = session.get("repo_nombre") or "AppWeb"
+        email = session.get("email", "anonimo")
         imagenes = request.files.getlist('imagenes')
 
-        print("📥 [UPLOAD] Iniciando subida de imágenes...")
-        print(f"📦 [UPLOAD] Repo destino: {repo_name}")
+        print("📥 [UPLOAD] Iniciando subida de imágenes de usuario...")
+        print(f"👤 [UPLOAD] Usuario: {email}")
         print(f"📦 [UPLOAD] Cantidad recibida: {len(imagenes)}")
 
         if not imagenes:
@@ -313,24 +332,15 @@ def upload_image():
                     print(f"📝 [UPLOAD] Nombre generado: {filename}, Extensión: {ext}")
                     print(f"📏 [UPLOAD] Tamaño en bytes: {len(contenido_bytes)}")
 
-                    # Guardar local
-                    local_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    with open(local_path, "wb") as f:
-                        f.write(contenido_bytes)
-                    print(f"💾 [UPLOAD] Guardado local en {local_path}")
+                    # Subir a Google Cloud Storage
+                    blob = bucket.blob(f"{email}/{filename}")
+                    blob.upload_from_string(contenido_bytes, content_type="image/webp")
+                    blob.make_public()
+                    ruta_publica = blob.public_url
 
-                    # Subir a GitHub
-                    ruta_repo = f"static/img/{filename}"
-                    resultado = subir_archivo(repo_name, contenido_bytes, ruta_repo)
-                    print(f"🔗 [UPLOAD] Intentando subir a GitHub: {ruta_repo}")
-
-                    if resultado.get("ok"):
-                        ruta_publica = resultado.get("raw_url") or f"/static/img/{filename}"
-                        urls.append(ruta_publica)
-                        session['imagenes_step0'].append(ruta_publica)
-                        print(f"✅ [UPLOAD] Subida exitosa: {ruta_publica}")
-                    else:
-                        print(f"❌ [UPLOAD] Falló subida a GitHub: {resultado}")
+                    urls.append(ruta_publica)
+                    session['imagenes_step0'].append(ruta_publica)
+                    print(f"✅ [UPLOAD] Subida exitosa a GCS: {ruta_publica}")
 
                 except Exception as e:
                     print(f"💥 [UPLOAD] Error procesando {img.filename}: {e}")
