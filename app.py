@@ -172,6 +172,12 @@ def subir_a_firestore(producto, email):
 
         producto["id_base"] = custom_id
 
+        # ✅ Generar nombre de imagen automáticamente a partir de custom_id
+        imagen_nombre = f"{custom_id}.webp"
+        imagen_url = f"https://storage.googleapis.com/mpagina/{email}/{imagen_nombre}"
+        print(f"[FIRESTORE] Nombre de imagen generado: {imagen_nombre}")
+        print(f"[FIRESTORE] URL pública GCS: {imagen_url}")
+
         doc = {
             "nombre": nombre_original,
             "id_base": custom_id,
@@ -179,7 +185,7 @@ def subir_a_firestore(producto, email):
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
-            "imagen_github": producto.get("imagen_github"),
+            "imagen_url": imagen_url,   # ✅ ahora se guarda la URL pública de GCS
             "orden": orden,
             "talles": talles,
             "timestamp": firestore.SERVER_TIMESTAMP
@@ -198,7 +204,6 @@ def subir_a_firestore(producto, email):
         tb = traceback.format_exc()
         print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
         return {"ok": False, "error": str(e), "trace": tb}
-
 
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
     """
