@@ -344,8 +344,8 @@ def upload_image():
                     blob.upload_from_string(contenido_bytes, content_type="image/webp")
                     print(f"📤 [UPLOAD] Upload_from_string completado")
 
-                    blob.make_public()
-                    ruta_publica = blob.public_url
+                    # ✅ Construir URL pública sin usar ACL (UBLA activo)
+                    ruta_publica = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
                     print(f"🌍 [UPLOAD] URL pública generada: {ruta_publica}")
 
                     urls.append(ruta_publica)
@@ -366,8 +366,6 @@ def upload_image():
         print(f"💥 [UPLOAD] Error general en /upload-image: {e}", flush=True)
         import traceback; traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
-
-
 
 def subir_iconos_png(repo):
     carpeta = os.path.join("static", "img")
