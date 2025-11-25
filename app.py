@@ -1564,7 +1564,6 @@ def pagar():
         return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
 
 @app.route('/preview', methods=["GET", "POST"])
-@limiter.limit("5 per minute")  # máximo 5 intentos por minuto por IP
 def preview():
     print("🚀 [Preview] Entrando a /preview")
 
@@ -1577,37 +1576,22 @@ def preview():
 
     print(f"🔑 [Preview] modo_admin={modo_admin} modo_admin_intentado={modo_admin_intentado}")
 
-    # --- Validación de sesión ---
-    if not email or not EMAIL_REGEX.match(email):
-        print("❌ [Preview] Sesión no iniciada o email inválido")
+    if not email:
+        print("❌ [Preview] Sesión no iniciada")
         return "Error: sesión no iniciada", 403
 
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
     print(f"🎨 [Preview] email={email} estilo_visual={estilo_visual}")
 
-    # --- Obtener productos desde Firestore con validación ---
+    # Obtener productos desde Firestore
     productos = []
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         for doc in productos_ref.stream():
-            data = doc.to_dict() or {}
-
-            # Validaciones básicas pero manteniendo las claves originales
-            producto_validado = {
-                "id_base": data.get("id_base", doc.id),
-                "nombre": str(data.get("nombre", "Sin nombre")).strip()[:100],
-                "precio": float(data.get("precio") or 0),
-                "orden": int(data.get("orden") or 0),
-                "grupo": str(data.get("grupo", "General")).strip()[:50],
-                "subgrupo": str(data.get("subgrupo", "Sin Subgrupo")).strip()[:50],
-                "imagen_github": data.get("imagen_github") or "/static/img/fallback.webp",
-                "descripcion": str(data.get("descripcion", ""))[:500],
-                "talles": data.get("talles", []),
-                "timestamp": data.get("timestamp")
-            }
-            productos.append(producto_validado)
-
-        print(f"📊 [Preview] Productos obtenidos y validados: {len(productos)}")
+            data = doc.to_dict()
+            print(f"📄 [Preview] Doc ID={doc.id} Data={data}")
+            productos.append(data)
+        print(f"📊 [Preview] Productos obtenidos: {len(productos)}")
     except Exception as e:
         print("💥 [Preview] Error al leer productos:", e)
         productos = []
@@ -1630,17 +1614,17 @@ def preview():
     public_key = get_mp_public_key(email) or ""
     print(f"💳 [Preview] email={email} mercado_pago_token={bool(mercado_pago_token)} public_key={public_key}")
 
-    # --- Configuración visual con validación de longitud ---
+    # Configuración visual
     config = {
-        'titulo': str(session.get('titulo', ''))[:200],
-        'descripcion': str(session.get('descripcion', ''))[:500],
+        'titulo': session.get('titulo'),
+        'descripcion': session.get('descripcion'),
         'imagen_destacada': session.get('imagen_destacada'),
         'url': session.get('url'),
-        'nombre_emprendimiento': str(session.get('nombre_emprendimiento', ''))[:100],
+        'nombre_emprendimiento': session.get('nombre_emprendimiento'),
         'anio': session.get('anio'),
         'tipo_web': session.get('tipo_web'),
-        'ubicacion': str(session.get('ubicacion', ''))[:200],
-        'link_mapa': str(session.get('link_mapa', ''))[:300],
+        'ubicacion': session.get('ubicacion'),
+        'link_mapa': session.get('link_mapa'),
         'color': session.get('color'),
         'fuente': session.get('fuente'),
         'estilo': session.get('estilo'),
@@ -1652,7 +1636,7 @@ def preview():
         'facebook': session.get('facebook'),
         'whatsapp': session.get('whatsapp'),
         'instagram': session.get('instagram'),
-        'sobre_mi': str(session.get('sobre_mi', ''))[:500],
+        'sobre_mi': session.get('sobre_mi'),
         'mercado_pago': bool(mercado_pago_token),
         'public_key': public_key,
         'productos': productos,
@@ -1661,23 +1645,20 @@ def preview():
         'usarFirestore': True
     }
 
-    # --- Crear repo si corresponde ---
+    # Crear repo si corresponde
     if session.get("crear_repo") and not session.get("repo_creado"):
         nombre_repo = generar_nombre_repo(email)
-        if not re.match(r"^[a-zA-Z0-9_\-]+$", nombre_repo):
-            print("❌ [Preview] Nombre de repo inválido")
-        else:
-            token = os.getenv("GITHUB_TOKEN")
-            try:
-                resultado = crear_repo_github(nombre_repo, token)
-                print(f"📦 [Preview] Creando repo: {nombre_repo}, resultado={resultado}")
-                if "url" in resultado:
-                    session['repo_creado'] = resultado["url"]
-                    session['repo_nombre'] = nombre_repo
-            except Exception as e:
-                print("💥 [Preview] Error al crear repo:", e)
+        token = os.getenv("GITHUB_TOKEN")
+        try:
+            resultado = crear_repo_github(nombre_repo, token)
+            print(f"📦 [Preview] Creando repo: {nombre_repo}, resultado={resultado}")
+            if "url" in resultado:
+                session['repo_creado'] = resultado["url"]
+                session['repo_nombre'] = nombre_repo
+        except Exception as e:
+            print("💥 [Preview] Error al crear repo:", e)
 
-    # --- Subir archivos si el repo existe ---
+    # Subir archivos si el repo existe
     if session.get('repo_creado') and session.get('repo_nombre'):
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
@@ -1687,17 +1668,15 @@ def preview():
                 for producto in productos:
                     imagen = producto.get("imagen_github")
                     if imagen and imagen.startswith("/static/img/"):
-                        basename = os.path.basename(imagen)
-                        if basename.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
-                            ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], basename)
-                            if os.path.exists(ruta_local):
-                                with open(ruta_local, "rb") as f:
-                                    subir_archivo(nombre_repo, f.read(), f"static/img/{basename}")
-                                print(f"✅ [Preview] Imagen subida: {imagen}")
+                        ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen))
+                        if os.path.exists(ruta_local):
+                            with open(ruta_local, "rb") as f:
+                                subir_archivo(nombre_repo, f.read(), f"static/img/{os.path.basename(imagen)}")
+                            print(f"✅ [Preview] Imagen subida: {imagen}")
 
                 # Subir logo
                 logo = config.get("logo")
-                if logo and logo.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                if logo:
                     logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
                     if os.path.exists(logo_path):
                         with open(logo_path, "rb") as f:
