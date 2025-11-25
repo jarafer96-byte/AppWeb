@@ -388,6 +388,7 @@ function agregarSlide(items, makeActive) {
       <div class="thumb-wrapper">
         <img src="${url}" class="imagen-carrusel" alt="${nombre}"
              data-nombre="${nombre}" data-url="${url}"
+             loading="lazy"
              onclick="seleccionarImagen(this)">
       </div>`;
     row.appendChild(col);
@@ -404,7 +405,7 @@ function agregarSlide(items, makeActive) {
 
   div.appendChild(row);
   contenedor.appendChild(div);
-}  
+}
   
 function abrirCarrusel(btn) {
   filaActual = btn.closest('.fila-producto');
