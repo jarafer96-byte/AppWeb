@@ -1093,13 +1093,22 @@ function renderProducto(p) {
       <div class="card-body">
         <h5 class="card-title">${p.nombre}</h5>
         <p class="card-text">${p.descripcion || ""}</p>
-        <p><strong>Precio:</strong> $<span id="precio_${p.id_base}">${p.precio}</span></p>
+        <p>
+          <strong>Precio:</strong> 
+          $<span id="precio_${p.id_base}">${p.precio}</span>
+          ${modoAdmin ? `
+            <button type="button" class="btn btn-sm btn-outline-primary ms-2"
+              onclick="editarPrecio('${p.id_base}')">✎ Editar</button>` : ""}
+        </p>
         ${Array.isArray(p.talles) && p.talles.length ? `
           <div class="mb-2">
             <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
             <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block">
               ${p.talles.map(t => `<option value="${t}">${t}</option>`).join("")}
             </select>
+            ${modoAdmin ? `
+              <button type="button" class="btn btn-sm btn-outline-primary ms-2"
+                onclick="editarTalles('${p.id_base}')">✎ Editar</button>` : ""}
           </div>` : ""}
         ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
         <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
@@ -1116,15 +1125,13 @@ function renderProducto(p) {
     </div>
   `;
 
-  // 🔁 Aplicar transición directamente al crear la card
+  // 🔁 Animación
   requestAnimationFrame(() => card.classList.add("show"));
   setTimeout(() => card.classList.remove("fade-reorder"), 50);
 
   console.log("✅ renderProducto devuelve card:", card);
   return card;
 }
-
-
     
 function ajustarPosicionesPaneles() {
   const panelGrupos = document.getElementById('panelGrupos');
@@ -1425,5 +1432,8 @@ setTimeout(() => {
 
   console.log("PUBLIC_KEY:", PUBLIC_KEY);
 </script>
+<script>
+  window.modoAdmin = {{ modoAdmin|tojson }};
+</script>  
 </body>
 </html>
