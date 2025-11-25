@@ -40,7 +40,8 @@
 <body>
 <h2>Optimiza y sube tus imágenes</h2>
 <p class="hint">
-  Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80, max: 3 MB por foto)
+  Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80)<br>
+  Max: 1.8 MB por foto o hasta llegar a 1 GB en total
 </p>
 
 <div class="file-block">
@@ -353,10 +354,10 @@ input.addEventListener('change', () => {
     return;
   }
 
-  // Validación tamaño
+  // Validación tamaño (ahora hasta 1 GB)
   for (const f of nuevos) {
-    if (f.size > 3 * 1024 * 1024) {
-      showError(`⚠️ La imagen "${f.name}" supera 3 MB.`);
+    if (f.size > 1024 * 1024 * 1024) {
+      showError(`⚠️ La imagen "${f.name}" supera 1 GB.`);
       input.value = '';
       return;
     }
@@ -401,7 +402,6 @@ input.addEventListener('change', () => {
   renderOriginales();
   actualizarMeta();
 });
-
 
 // Quitar todas
 clearBtn.addEventListener('click', () => {
