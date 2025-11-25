@@ -927,7 +927,7 @@ def step3():
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'imagen_github': imagen_para_guardar,
+                'imagen_url': imagen_para_guardar,
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
