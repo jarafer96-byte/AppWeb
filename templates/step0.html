@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Step 0 - Optimizar imágenes</title>
+  <style>
+    body { background:#000; color:#fff; font-family:'Raleway',sans-serif; padding:40px; }
+    h2 { text-align:center; margin-bottom:6px; }
+    .hint { text-align:center; color:#ccc; margin-bottom:20px; }
+
+    form { text-align:center; margin-bottom:20px; }
+    .file-block { text-align:center; }
+    input[type="file"] { margin-bottom:10px; color:white; }
+    .file-count { color:#ccc; font-size:0.9em; margin-top:6px; min-height:20px; }
+
+    button { background:linear-gradient(135deg,#ff0080,#7928ca); border:none; color:white;
+             padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:bold; }
+    button:hover { opacity:0.9; }
+
+    .error { color:#ff4d4d; margin-top:10px; text-align:center; min-height:22px; }
+    .meta { text-align:center; color:#ccc; font-size:0.9em; margin-top:8px; min-height:20px; }
+
+    .botonera { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; margin-top:20px; }
+    .botonera .col { text-align:center; min-width:200px; }
+    .botonera p { color:white; font-weight:bold; margin-bottom:6px; }
+
+    .preview { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:20px; }
+    .preview-item { position:relative; width:180px; }
+    .preview img { width:100%; height:auto; border:1px solid #333; border-radius:6px; object-fit:contain; background:#111; }
+
+    .badge { position:absolute; bottom:6px; left:6px; background:rgba(0,0,0,0.6); color:#fff; font-size:11px;
+             padding:3px 6px; border-radius:4px; max-width:90%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .remove-btn { position:absolute; top:4px; right:4px; background:rgba(255,0,0,0.8); color:white; border:none;
+                  border-radius:50%; width:22px; height:22px; cursor:pointer; font-size:14px; line-height:2px; text-align:center; padding-left:10px; }
+
+    .btn-disabled { opacity:0.5; cursor:not-allowed; }
+  </style>
+</head>
+<body>
+<h2>Optimiza y sube tus imágenes</h2>
+<p class="hint">
+  Máx. 500 imágenes, convertidas automáticamente a WebP (300×180 px, calidad 80, max: 3 MB por foto)
+</p>
+
+<div class="file-block">
+  <input type="file" name="imagenes" id="imagenes" multiple accept="image/*">
+  <div id="fileCount" class="file-count"></div>
+</div>
+
+<div class="botonera">
+  <div class="col">
+    <p>Paso 1</p>
+    <button type="button" id="optimizeBtn">Optimizar</button>
+  </div>
+  <div class="col">
+    <p>Opcional</p>
+    <button type="button" id="clearBtn">Quitar todas</button>
+  </div>
+  <div class="col">
+    <p>Opcional</p>
+    <button type="button" id="downloadAllBtn" class="btn-disabled" disabled>Descargar optimizadas</button>
+  </div>
+  <div class="col">
+    <p>Paso 2</p>
+    <button type="button" id="uploadBtn" class="btn-disabled" disabled>Subir optimizadas</button>
+  </div>
+  <div class="col">
+    <p>Finalizar</p>
+    <button type="button" id="continueBtn" class="btn-disabled" disabled>Continuar</button>
+  </div>
+</div>
+
+<!-- Mensajes y feedback -->
+<div class="error" id="error"></div>
+<div class="meta" id="meta"></div>
+<div id="feedback" class="meta"></div>
+
+<!-- Vista previa -->
+<div class="preview" id="preview"></div>
+
+<!-- Paginador y selector -->
+<div id="pager" style="display:flex; justify-content:center; gap:8px; margin-top:12px;"></div>
+<div style="text-align:center; margin-top:8px;">
+  <label style="color:#ccc; font-size:0.9em;">Miniaturas por página:</label>
+  <select id="pageSizeSelect">
+    <option value="20" selected>20</option>
+    <option value="30">30</option>
+    <option value="50">50</option>
+  </select>
+</div>
+
+<script>
+const input = document.getElementById('imagenes');
+const errorEl = document.getElementById('error');
+const metaEl = document.getElementById('meta');
+const previewEl = document.getElementById('preview');
+const fileCountEl = document.getElementById('fileCount');
+
+const clearBtn = document.getElementById('clearBtn');
+const optimizeBtn = document.getElementById('optimizeBtn');
+const downloadAllBtn = document.getElementById('downloadAllBtn');
+const uploadBtn = document.getElementById('uploadBtn');
+const continueBtn = document.getElementById('continueBtn');
+
+const DB_NAME = "imagenesDB";
+const DB_VERSION = 3;
+
+let originales = [];
+let optimizadas = [];
+let pageSize = parseInt(localStorage.getItem("pageSize") || "20", 10);
+let pageOrig = 1;
+let pageOpt = 1;
+
+// Selector de tamaño de página
+const pageSizeSelect = document.getElementById('pageSizeSelect');
+if (pageSizeSelect) {
+  pageSizeSelect.value = String(pageSize);
+  pageSizeSelect.addEventListener('change', () => {
+    pageSize = parseInt(pageSizeSelect.value, 10);
+    localStorage.setItem("pageSize", String(pageSize));
+    pageOrig = 1;
+    pageOpt = 1;
+    renderOriginales();
+    renderOptimizadas();
+  });
+}
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.style.color = '#ff4d4d'; // rojo
+}
+
+function showInfo(msg) {
+  metaEl.textContent = msg;
+  metaEl.style.color = '#0f0'; // verde
+}
+
+function resetFeedback() {
+  errorEl.textContent = '';
+  metaEl.textContent = '';
+}
+
+function renderPager(totalItems, currentPage, onGoToPage) {
+  const pagerEl = document.getElementById('pager');
+  pagerEl.innerHTML = '';
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  const prev = document.createElement('button');
+  prev.textContent = '«';
+  prev.disabled = currentPage <= 1;
+  prev.onclick = () => onGoToPage(currentPage - 1);
+  pagerEl.appendChild(prev);
+
+  const maxButtons = 10;
+  let start = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+  let end = Math.min(totalPages, start + maxButtons - 1);
+  if (end - start + 1 < maxButtons) start = Math.max(1, end - maxButtons + 1);
+
+  for (let p = start; p <= end; p++) {
+    const btn = document.createElement('button');
+    btn.textContent = String(p);
+    btn.style.minWidth = '32px';
+    if (p === currentPage) {
+      btn.disabled = true;
+      btn.classList.add('btn-disabled');
+    } else {
+      btn.onclick = () => onGoToPage(p);
+    }
+    pagerEl.appendChild(btn);
+  }
+
+  const next = document.createElement('button');
+  next.textContent = '»';
+  next.disabled = currentPage >= totalPages;
+  next.onclick = () => onGoToPage(currentPage + 1);
+  pagerEl.appendChild(next);
+}
+  
+// IndexedDB helper: asegura stores y se auto-repara si falta
+function ensureDB(callback) {
+  const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+  request.onupgradeneeded = e => {
+    const db = e.target.result;
+
+    // Store de originales
+    if (!db.objectStoreNames.contains("imagenes")) {
+      const store = db.createObjectStore("imagenes", { keyPath: "basename" });
+      store.createIndex("createdAt", "createdAt", { unique: false });
+      console.log(`📦 [IndexedDB] Store 'imagenes' creado en '${DB_NAME}'.`);
+    }
+
+    // Store de optimizadas
+    if (!db.objectStoreNames.contains("optimizadas")) {
+      const storeOpt = db.createObjectStore("optimizadas", { keyPath: "basename" });
+      storeOpt.createIndex("createdAt", "createdAt", { unique: false });
+      console.log(`📦 [IndexedDB] Store 'optimizadas' creado en '${DB_NAME}'.`);
+    }
+  };
+
+  request.onsuccess = e => {
+    const db = e.target.result;
+
+    // Verificación defensiva: si falta algún store, recrear DB
+    const requiredStores = ["imagenes", "optimizadas"];
+    const missing = requiredStores.filter(s => !db.objectStoreNames.contains(s));
+
+    if (missing.length > 0) {
+      console.warn(`⚠️ [IndexedDB] '${DB_NAME}' sin stores ${missing.join(", ")}. Se borra y recrea.`);
+      db.close();
+
+      const del = indexedDB.deleteDatabase(DB_NAME);
+      del.onsuccess = () => {
+        const re = indexedDB.open(DB_NAME, DB_VERSION);
+        re.onupgradeneeded = ev => {
+          const db2 = ev.target.result;
+          const storeImg = db2.createObjectStore("imagenes", { keyPath: "basename" });
+          storeImg.createIndex("createdAt", "createdAt", { unique: false });
+
+          const storeOpt = db2.createObjectStore("optimizadas", { keyPath: "basename" });
+          storeOpt.createIndex("createdAt", "createdAt", { unique: false });
+
+          console.log(`📦 [IndexedDB] Stores 'imagenes' y 'optimizadas' recreados en '${DB_NAME}'.`);
+        };
+        re.onsuccess = ev => callback(ev.target.result);
+        re.onerror = err => console.error("❌ [IndexedDB] Error recreando DB:", err.target.error);
+      };
+
+      del.onerror = () => {
+        console.error(`❌ [IndexedDB] No se pudo borrar '${DB_NAME}'.`);
+        callback(db);
+      };
+    } else {
+      callback(db);
+    }
+  };
+
+  request.onerror = e => {
+    console.error(`❌ [IndexedDB] Error abriendo '${DB_NAME}':`, e.target.error);
+  };
+}
+
+  
+// Guardar imagen en IndexedDB
+function guardarImagenEnIndexedDB(file) {
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readwrite");
+    const store = tx.objectStore("imagenes");
+
+    const record = {
+      basename: file.name,
+      blob: file,
+      type: file.type,
+      size: file.size,
+      createdAt: Date.now()
+    };
+
+    store.put(record);
+
+    tx.oncomplete = () => {
+      console.log("✅ [IndexedDB] Original guardado:", file.name);
+      let lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+      if (!lista.includes(file.name)) {
+        lista.push(file.name);
+        localStorage.setItem("imagenesLista", JSON.stringify(lista));
+      }
+    };
+
+    tx.onerror = e => console.error("❌ [IndexedDB] Error guardando original:", e.target.error);
+  });
+}
+
+
+// Restaurar al cargar desde IndexedDB usando la lista de nombres
+window.addEventListener("DOMContentLoaded", () => {
+  const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+  if (!lista.length) {
+    console.log("ℹ️ [IndexedDB] No hay imágenes en la lista local.");
+    return;
+  }
+
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readonly");
+    const store = tx.objectStore("imagenes");
+    const recs = [];
+    let pending = lista.length;
+
+    const finalizar = () => {
+      originales = recs;
+      syncInputWithOriginales();
+      renderOriginales();
+      actualizarMeta();
+      console.log(`📊 [IndexedDB] Restauradas ${recs.length} imágenes desde IndexedDB.`);
+    };
+
+    lista.forEach(name => {
+      const req = store.get(name);
+
+      req.onsuccess = e => {
+        const fileOrBlob = e.target.result;
+        if (fileOrBlob) {
+          const f = fileOrBlob instanceof File
+            ? fileOrBlob
+            : new File([fileOrBlob], name, { type: fileOrBlob.type || "image/*" });
+          recs.push(f);
+          console.log("✅ [IndexedDB] Imagen restaurada:", name);
+        } else {
+          console.warn("⚠️ [IndexedDB] Imagen no encontrada:", name);
+        }
+        if (--pending === 0) finalizar();
+      };
+
+      req.onerror = () => {
+        console.error("❌ [IndexedDB] Error leyendo:", name);
+        if (--pending === 0) finalizar();
+      };
+    });
+  });
+});
+function bytesToKB(b) { return (b / 1024).toFixed(1); }
+function bytesToMB(b) { return (b / (1024 * 1024)).toFixed(2); }
+
+// Sincroniza input.files con originales usando DataTransfer para que el selector muestre “N archivos”
+function syncInputWithOriginales() {
+  const dt = new DataTransfer();
+  originales.forEach(file => dt.items.add(file));
+  input.files = dt.files;
+  actualizarFileCount();
+}
+
+function actualizarFileCount() {
+  if (originales.length) {
+    const totalBytes = originales.reduce((s, f) => s + f.size, 0);
+    fileCountEl.textContent = `${originales.length} archivo(s) — ${bytesToMB(totalBytes)} MB`;
+  } else {
+    fileCountEl.textContent = '';
+  }
+}
+
+// Input change: validaciones + guardado + feedback
+input.addEventListener('change', () => {
+  resetFeedback(); // ← reemplaza resetErrores()
+  const nuevos = Array.from(input.files);
+  let duplicados = 0;
+
+  console.log("📥 [FRONT] Archivos seleccionados:", nuevos.map(f => f.name));
+
+  // Validación cantidad
+  if (originales.length + nuevos.length > 500) {
+    showError('⚠️ Máximo 500 imágenes permitidas.');
+    input.value = '';
+    return;
+  }
+
+  // Validación tamaño
+  for (const f of nuevos) {
+    if (f.size > 3 * 1024 * 1024) {
+      showError(`⚠️ La imagen "${f.name}" supera 3 MB.`);
+      input.value = '';
+      return;
+    }
+  }
+
+  // Evitar duplicados
+  nuevos.forEach(f => {
+    const existe = originales.some(a =>
+      a.name === f.name && a.size === f.size && a.lastModified === f.lastModified
+    );
+    if (!existe) {
+      originales.push(f);
+      guardarImagenEnIndexedDB(f);
+      console.log("✅ [FRONT] Imagen agregada:", f.name);
+
+      // 🔑 Guardar mapping preliminar (basename → nombre provisional)
+      const basenameOriginal = f.name;
+      const nombreGenerado = f.name; // si luego renombrás con hash, usá ese valor
+      const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+      mapping[basenameOriginal] = nombreGenerado;
+      localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
+
+      // ⚠️ Importante: NO generar rutas finales aquí.
+      // Las rutas reales (GitHub raw o /static) se guardan recién en enviarOptimizado()
+      // cuando el backend devuelve los nombres definitivos.
+      console.log("ℹ️ [FRONT] Ruta final se establecerá después del upload para:", nombreGenerado);
+
+    } else {
+      duplicados++;
+      console.warn("⚠️ [FRONT] Imagen duplicada ignorada:", f.name);
+    }
+  });
+
+  // Feedback visual
+  if (duplicados > 0) {
+    showError(`⚠️ ${duplicados} imagen(es) duplicada(s) fueron ignoradas.`);
+  } else if (nuevos.length > 0) {
+    showInfo(`✅ ${nuevos.length} imagen(es) agregadas correctamente.`);
+  }
+
+  syncInputWithOriginales();
+  renderOriginales();
+  actualizarMeta();
+});
+
+
+// Quitar todas
+clearBtn.addEventListener('click', () => {
+  console.log("🗑️ [FRONT] Limpiando todas las imágenes...");
+
+  optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
+  optimizadas = [];
+  originales = [];
+  previewEl.innerHTML = '';
+  actualizarMeta();
+
+  downloadAllBtn.disabled = true;
+  downloadAllBtn.classList.add('btn-disabled');
+  uploadBtn.disabled = true;
+  uploadBtn.classList.add('btn-disabled');
+
+  syncInputWithOriginales();
+  input.value = '';
+  actualizarFileCount();
+
+  localStorage.removeItem("imagenesLista");
+  localStorage.removeItem("imagenesOriginales");
+  localStorage.removeItem("imagenes_step0");
+  localStorage.removeItem("imagenesUsadas");
+  localStorage.removeItem("imagenes_mapping");
+  localStorage.removeItem("repoDestino");
+
+  const del = indexedDB.deleteDatabase(DB_NAME);
+  del.onsuccess = () => console.log(`🗑️ [IndexedDB] '${DB_NAME}' borrada al limpiar todas`);
+});
+
+function actualizarMeta() {
+  const totalOrig = originales.reduce((sum, f) => sum + f.size, 0);
+  const totalOpt  = optimizadas.reduce((sum, f) => sum + f.size, 0);
+  const partes = [];
+
+  if (originales.length) {
+    partes.push(`${originales.length} original(es) — ${bytesToMB(totalOrig)} MB`);
+  } else {
+    showError("⚠️ No hay imágenes originales cargadas.");
+  }
+
+  if (optimizadas.length) {
+    partes.push(`${optimizadas.length} optimizada(s) — ${bytesToMB(totalOpt)} MB`);
+  } else if (originales.length) {
+    showInfo("ℹ️ Aún no optimizaste las imágenes cargadas.");
+  }
+
+  metaEl.textContent = partes.join(' | ');
+
+  const hasOpt = optimizadas.length > 0;
+  downloadAllBtn.disabled = !hasOpt;
+  uploadBtn.disabled = !hasOpt;
+  downloadAllBtn.classList.toggle('btn-disabled', !hasOpt);
+  uploadBtn.classList.toggle('btn-disabled', !hasOpt);
+
+  if (originales.length && optimizadas.length) {
+    showInfo(`✅ Listo: ${originales.length} originales y ${optimizadas.length} optimizadas preparadas.`);
+  }
+}
+
+// Render originales con paginación + lazy loading + feedback
+function renderOriginales() {
+  previewEl.innerHTML = '';
+
+  const total = originales.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  pageOrig = Math.min(pageOrig, totalPages);
+
+  const start = (pageOrig - 1) * pageSize;
+  const end = Math.min(start + pageSize, total);
+  const pageItems = originales.slice(start, end);
+
+  pageItems.forEach((file, idxPage) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const item = document.createElement('div');
+      item.className = 'preview-item';
+
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.alt = file.name;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.textContent = '✖';
+      removeBtn.setAttribute('aria-label', 'Eliminar imagen');
+      removeBtn.onclick = () => {
+        const absoluteIndex = start + idxPage;
+        console.log("🗑️ [FRONT] Eliminando imagen:", file.name, "en índice", absoluteIndex);
+        originales.splice(absoluteIndex, 1);
+        syncInputWithOriginales();
+        renderOriginales();
+        actualizarMeta();
+        showInfo(`ℹ️ Imagen "${file.name}" eliminada de originales.`);
+      };
+
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = `${file.name} — ${bytesToKB(file.size)} KB`;
+
+      item.appendChild(img);
+      item.appendChild(removeBtn);
+      item.appendChild(badge);
+      previewEl.appendChild(item);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  renderPager(total, pageOrig, (p) => {
+    pageOrig = p;
+    renderOriginales();
+  });
+
+  // Feedback de página actual
+  if (total > 0) {
+    showInfo(`📄 Página ${pageOrig} de ${totalPages} — mostrando ${pageItems.length} de ${total} originales.`);
+  } else {
+    showError("⚠️ No hay imágenes originales para mostrar.");
+  }
+}
+  
+// Resize a WebP 300x180 q=0.8
+async function resizeToWebP(file) {
+  const imgUrl = URL.createObjectURL(file);
+  const img = await new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = imgUrl;
+  });
+
+  const targetW = 300, targetH = 180;
+  const canvas = document.createElement('canvas');
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, targetW, targetH);
+
+  const ratio = Math.min(targetW / img.width, targetH / img.height);
+  const newW = Math.round(img.width * ratio);
+  const newH = Math.round(img.height * ratio);
+  const offsetX = Math.floor((targetW - newW) / 2);
+  const offsetY = Math.floor((targetH - newH) / 2);
+
+  ctx.drawImage(img, offsetX, offsetY, newW, newH);
+  URL.revokeObjectURL(imgUrl);
+
+  const blob = await new Promise((resolve, reject) =>
+    canvas.toBlob(b => b ? resolve(b) : reject(new Error("❌ No se pudo generar WebP")), 'image/webp', 0.8)
+  );
+  return blob;
+}
+
+function guardarOptimizadaEnIndexedDB(name, blob) {
+  ensureDB(db => {
+    // Asegurate de haber creado este store en onupgradeneeded
+    const tx = db.transaction("optimizadas", "readwrite");
+    const store = tx.objectStore("optimizadas");
+
+    const rec = {
+      basename: name,
+      blob,
+      type: blob.type,
+      size: blob.size,
+      createdAt: Date.now()
+    };
+
+    store.put(rec);
+    tx.oncomplete = () => console.log("✅ [IndexedDB] Optimizada guardada:", name);
+    tx.onerror = e => console.error("❌ [IndexedDB] Error guardando optimizada:", e.target.error);
+  });
+}
+
+function fetchOriginalesPage(pagina) {
+  const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
+  if (!Array.isArray(lista) || lista.length === 0) {
+    previewEl.innerHTML = '';
+    showError("⚠️ No hay imágenes originales para mostrar.");
+    return;
+  }
+
+  const start = (pagina - 1) * pageSize;
+  const end = Math.min(start + pageSize, lista.length);
+  const items = lista.slice(start, end);
+
+  ensureDB(db => {
+    const tx = db.transaction("imagenes", "readonly");
+    const store = tx.objectStore("imagenes");
+    previewEl.innerHTML = '';
+
+    let pending = items.length;
+    items.forEach(name => {
+      const req = store.get(name);
+      req.onsuccess = e => {
+        const rec = e.target.result;
+        if (rec?.blob) {
+          const reader = new FileReader();
+          reader.onload = ev => {
+            const div = document.createElement("div");
+            div.className = "preview-item";
+            const img = document.createElement("img");
+            img.src = ev.target.result;
+            img.loading = "lazy";
+            img.decoding = "async";
+            img.alt = name;
+
+            const badge = document.createElement("div");
+            badge.className = "badge";
+            badge.textContent = `${name} — ${bytesToKB(rec.size)} KB`;
+
+            div.appendChild(img);
+            div.appendChild(badge);
+            previewEl.appendChild(div);
+          };
+          reader.readAsDataURL(rec.blob);
+        }
+        if (--pending === 0) {
+          renderPager(lista.length, pagina, (p) => {
+            pageOrig = p;
+            fetchOriginalesPage(p);
+          });
+          showInfo(`📄 Página ${pagina} de ${Math.max(1, Math.ceil(lista.length / pageSize))} — mostrando ${items.length} de ${lista.length} originales.`);
+        }
+      };
+      req.onerror = () => {
+        console.warn("⚠️ [IndexedDB] Fallo leyendo:", name);
+        if (--pending === 0) {
+          renderPager(lista.length, pagina, (p) => {
+            pageOrig = p;
+            fetchOriginalesPage(p);
+          });
+        }
+      };
+    });
+  });
+}
+  
+// Render optimizadas con paginación + lazy loading + feedback
+function renderOptimizadas() {
+  previewEl.innerHTML = '';
+
+  const total = optimizadas.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  pageOpt = Math.min(pageOpt, totalPages);
+
+  if (total === 0) {
+    showError("⚠️ No hay imágenes optimizadas para mostrar.");
+    actualizarMeta();
+    return;
+  }
+
+  const start = (pageOpt - 1) * pageSize;
+  const end = Math.min(start + pageSize, total);
+  const pageItems = optimizadas.slice(start, end);
+
+  pageItems.forEach((item, idxPage) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'preview-item';
+
+    const img = document.createElement('img');
+    img.src = item.url;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = item.name;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.textContent = '✖';
+    removeBtn.setAttribute('aria-label', 'Eliminar imagen');
+    removeBtn.onclick = () => {
+      console.log("🗑️ [FRONT] Eliminando optimizada:", item.name);
+      URL.revokeObjectURL(item.url);
+      optimizadas.splice(start + idxPage, 1);
+      renderOptimizadas();
+      actualizarMeta();
+      showInfo(`ℹ️ Imagen "${item.name}" eliminada de optimizadas.`);
+    };
+
+    const badge = document.createElement('div');
+    badge.className = 'badge';
+    badge.textContent = `${item.name} — ${bytesToKB(item.size)} KB`;
+
+    wrap.appendChild(img);
+    wrap.appendChild(removeBtn);
+    wrap.appendChild(badge);
+    previewEl.appendChild(wrap);
+  });
+
+  renderPager(total, pageOpt, (p) => {
+    pageOpt = p;
+    renderOptimizadas();
+  });
+
+  showInfo(`📄 Página ${pageOpt} de ${totalPages} — mostrando ${pageItems.length} de ${total} optimizadas.`);
+}
+
+// Descargar todas optimizadas (ZIP) con feedback
+downloadAllBtn.addEventListener('click', async () => {
+  if (!optimizadas.length) {
+    showError("⚠️ No hay imágenes optimizadas para descargar.");
+    return;
+  }
+
+  downloadAllBtn.disabled = true;
+  downloadAllBtn.textContent = "Generando ZIP...";
+
+  try {
+    const zip = new JSZip();
+    for (const item of optimizadas) {
+      const arrayBuffer = await item.blob.arrayBuffer();
+      zip.file(item.name, arrayBuffer);
+    }
+    const content = await zip.generateAsync({ type: "blob" });
+    saveAs(content, "imagenes_optimizadas.zip");
+    showInfo(`✅ ${optimizadas.length} imagen(es) descargadas en ZIP.`);
+  } catch (err) {
+    showError("❌ Error al generar el ZIP de imágenes.");
+    console.error("💥 [FRONT] Error generando ZIP:", err);
+  } finally {
+    downloadAllBtn.disabled = false;
+    downloadAllBtn.textContent = "Descargar optimizadas";
+  }
+});
+// Optimizar en tandas de 50 imágenes
+async function optimizeInBatches(batchSize = 50) {
+  resetFeedback();
+  if (!originales.length) {
+    showError('⚠️ Subí imágenes primero.');
+    return;
+  }
+
+  // Spinner visual
+  optimizeBtn.disabled = true;
+  optimizeBtn.textContent = 'Optimizando...';
+
+  // liberar URLs previas
+  optimizadas.forEach(i => i.url && URL.revokeObjectURL(i.url));
+  optimizadas = [];
+
+  let okCount = 0, failCount = 0;
+
+  for (let i = 0; i < originales.length; i += batchSize) {
+    const batch = originales.slice(i, i + batchSize);
+
+    for (const file of batch) {
+      try {
+        const blob = await resizeToWebP(file);
+        const nameBase = file.name.replace(/\.(png|jpg|jpeg|gif|tiff|bmp|webp)$/i, '');
+        const finalName = `${nameBase}.webp`;
+        optimizadas.push({ name: finalName, blob, size: blob.size, url: URL.createObjectURL(blob) });
+        okCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    // Render parcial para feedback
+    pageOpt = 1;
+    renderOptimizadas();
+    actualizarMeta();
+
+    // Pausa breve para liberar el hilo y refrescar la UI
+    await new Promise(r => setTimeout(r, 100));
+  }
+
+  // Restaurar botón
+  optimizeBtn.disabled = false;
+  optimizeBtn.textContent = 'Optimizar';
+
+  // Feedback visual
+  if (failCount > 0) {
+    showError(`⚠️ ${failCount} imagen(es) no pudieron optimizarse.`);
+  }
+  if (okCount > 0) {
+    showInfo(`✅ ${okCount} imagen(es) optimizadas correctamente.`);
+  }
+}
+
+// Listener del botón Optimizar
+optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
+
+// Subida en tandas y guardado de rutas reales + mapping + repoDestino
+async function enviarOptimizado(batchSize = 5) {
+  console.log("🚀 [FRONT] Iniciando envío de optimizadas...");
+
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = "Subiendo...";
+
+  // ✅ limpiar estado previo de usadas para no arrastrar sesiones anteriores
+  localStorage.removeItem("imagenesUsadas");
+
+  let okCount = 0;
+  let failCount = 0;
+
+  // Asegurar array válido en localStorage
+  let rutasFinales = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+  if (!Array.isArray(rutasFinales)) rutasFinales = [];
+
+  for (let i = 0; i < optimizadas.length; i += batchSize) {
+    const batch = optimizadas.slice(i, i + batchSize);
+    const formData = new FormData();
+    batch.forEach(img => formData.append("imagenes", img.blob, img.name));
+
+    try {
+      const resp = await fetch("/upload-image", { method: "POST", body: formData });
+      if (!resp.ok) {
+        failCount += batch.length;
+        console.warn("⚠️ [FRONT] Fallo en respuesta HTTP para batch:", batch.map(b => b.name));
+        continue;
+      }
+
+      const data = await resp.json();
+      if (data.ok && Array.isArray(data.imagenes)) {
+        okCount += data.imagenes.length;
+
+        // 🔑 Guardar rutas reales en localStorage
+        rutasFinales = rutasFinales.concat(data.imagenes);
+        console.log("✅ Subidas:", data.imagenes);
+
+        // 🔑 Guardar mapping original → generado
+        const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+        if (typeof mapping !== "object" || mapping === null) {
+          console.warn("⚠️ [FRONT] Mapping corrupto, se reinicia.");
+        }
+        data.imagenes.forEach((rutaFinal, idx) => {
+          const originalName = batch[idx].name; // ej: "shopping (21).webp"
+          const nombreGenerado = rutaFinal.split("/").pop(); // ej: "56fd002c4b62...webp"
+          mapping[originalName] = nombreGenerado;
+          console.log("🔗 Mapping agregado:", originalName, "→", nombreGenerado);
+        });
+        localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
+
+        // 🔑 Guardar repoDestino si backend lo devuelve
+        if (data.repoDestino) {
+          localStorage.setItem("repoDestino", data.repoDestino);
+          console.log("📦 Repo destino guardado:", data.repoDestino);
+        }
+
+      } else {
+        failCount += batch.length;
+        console.warn("⚠️ [FRONT] Backend no devolvió imágenes válidas para batch:", batch.map(b => b.name));
+      }
+    } catch (err) {
+      failCount += batch.length;
+      console.error("💥 [FRONT] Error en fetch:", err);
+    }
+  }
+
+  // Persistir rutas reales para Step3
+  localStorage.setItem("imagenes_step0", JSON.stringify(rutasFinales));
+
+  // Restaurar botón
+  uploadBtn.disabled = false;
+  uploadBtn.textContent = "Subir optimizadas";
+
+  // Feedback visual
+  const feedback = document.getElementById("feedback");
+  feedback.textContent = `✅ ${okCount} imágenes subidas, ⚠️ ${failCount} fallidas`;
+
+  if (okCount > 0) {
+    continueBtn.disabled = false;
+    continueBtn.classList.remove("btn-disabled");
+  }
+
+  return okCount > 0;
+}
+
+
+// Listener único para subir optimizadas
+uploadBtn.addEventListener("click", async () => {
+  const ok = await enviarOptimizado(50);
+  if (ok) {
+    continueBtn.disabled = false;
+    continueBtn.classList.remove("btn-disabled");
+  }
+});
+
+// Listener para continuar
+continueBtn.addEventListener("click", () => {
+  window.location.href = "/estilo"; // o "/preview" según tu flujo
+});
+</script>
+<!-- Librerías para ZIP y descarga -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</body>
+</html>
