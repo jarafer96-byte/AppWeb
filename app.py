@@ -1431,7 +1431,7 @@ def preview():
         'sobre_mi': session.get('sobre_mi'),
         'mercado_pago': bool(mercado_pago_token),
         'public_key': public_key,
-        'productos': productos,
+        'productos': productos,   # ✅ ahora cada producto tiene 'imagen_url' con la ruta de GCS
         'bloques': [],
         'descargado': session.get('descargado', False),
         'usarFirestore': True
@@ -1450,22 +1450,12 @@ def preview():
         except Exception as e:
             print("💥 [Preview] Error al crear repo:", e)
 
-    # Subir archivos si el repo existe
+    # Subir archivos si el repo existe (solo logo y fondo, productos ya están en GCS)
     if session.get('repo_creado') and session.get('repo_nombre'):
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
         if token:
             try:
-                # Subir imágenes de productos
-                for producto in productos:
-                    imagen = producto.get("imagen_github")
-                    if imagen and imagen.startswith("/static/img/"):
-                        ruta_local = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen))
-                        if os.path.exists(ruta_local):
-                            with open(ruta_local, "rb") as f:
-                                subir_archivo(nombre_repo, f.read(), f"static/img/{os.path.basename(imagen)}")
-                            print(f"✅ [Preview] Imagen subida: {imagen}")
-
                 # Subir logo
                 logo = config.get("logo")
                 if logo:
