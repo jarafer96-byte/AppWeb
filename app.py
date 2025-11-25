@@ -1591,27 +1591,22 @@ def preview():
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         for doc in productos_ref.stream():
             data = doc.to_dict() or {}
-            nombre = str(data.get("nombre", "")).strip()[:100]
-            try:
-                precio = float(data.get("precio", 0))
-                if precio < 0: precio = 0
-            except (TypeError, ValueError):
-                precio = 0
-            orden = int(data.get("orden", 0)) if str(data.get("orden", "")).isdigit() else 0
-            grupo = str(data.get("grupo", "General")).strip()[:50].title()
-            subgrupo = str(data.get("subgrupo", "Sin Subgrupo")).strip()[:50].title()
 
+            # Validaciones básicas pero manteniendo las claves originales
             producto_validado = {
-                "nombre": nombre or "Sin nombre",
-                "precio": precio,
-                "orden": orden,
-                "grupo": grupo,
-                "subgrupo": subgrupo,
-                "imagen_github": data.get("imagen_github"),
+                "id_base": data.get("id_base", doc.id),
+                "nombre": str(data.get("nombre", "Sin nombre")).strip()[:100],
+                "precio": float(data.get("precio") or 0),
+                "orden": int(data.get("orden") or 0),
+                "grupo": str(data.get("grupo", "General")).strip()[:50],
+                "subgrupo": str(data.get("subgrupo", "Sin Subgrupo")).strip()[:50],
+                "imagen_github": data.get("imagen_github") or "/static/img/fallback.webp",
                 "descripcion": str(data.get("descripcion", ""))[:500],
-                "talles": data.get("talles", [])
+                "talles": data.get("talles", []),
+                "timestamp": data.get("timestamp")
             }
             productos.append(producto_validado)
+
         print(f"📊 [Preview] Productos obtenidos y validados: {len(productos)}")
     except Exception as e:
         print("💥 [Preview] Error al leer productos:", e)
@@ -1666,7 +1661,7 @@ def preview():
         'usarFirestore': True
     }
 
-    # Crear repo si corresponde
+    # --- Crear repo si corresponde ---
     if session.get("crear_repo") and not session.get("repo_creado"):
         nombre_repo = generar_nombre_repo(email)
         if not re.match(r"^[a-zA-Z0-9_\-]+$", nombre_repo):
@@ -1682,7 +1677,7 @@ def preview():
             except Exception as e:
                 print("💥 [Preview] Error al crear repo:", e)
 
-    # Subir archivos si el repo existe
+    # --- Subir archivos si el repo existe ---
     if session.get('repo_creado') and session.get('repo_nombre'):
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
