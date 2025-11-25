@@ -565,9 +565,9 @@ def crear_admin():
         session['email'] = usuario
         session['modo_admin'] = True
 
-        # 🔒 Guardar la clave hasheada en Firestore
+        # Guardar directamente la clave en Firestore (texto plano)
         doc_ref.set({
-            "clave_admin": generate_password_hash(clave)
+            "clave_admin": clave
         })
         return jsonify({'status': 'ok'})
     except Exception as e:
