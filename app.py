@@ -111,10 +111,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def subir_a_firestore(producto, email):
-    """
-    Versión con logs detallados para depuración.
-    Retorna dict: {"ok": True, "id": custom_id} o {"ok": False, "error": "...", "trace": "..."}
-    """
     try:
         print(f"[FIRESTORE] 🚀 Iniciando subida de producto para email={email}")
         print(f"[FIRESTORE] Datos recibidos: {producto}")
@@ -128,9 +124,7 @@ def subir_a_firestore(producto, email):
             return {"ok": False, "error": "Faltan campos obligatorios: nombre/grupo/precio"}
 
         grupo_original = producto["grupo"].strip()
-        subgrupo_original = producto.get("subgrupo", "").strip()
-        if not subgrupo_original:
-            subgrupo_original = f"General_{grupo_original}"
+        subgrupo_original = (producto.get("subgrupo", "") or "").strip() or f"General_{grupo_original}"
         nombre_original = producto["nombre"].strip()
         print(f"[FIRESTORE] Campos normalizados: nombre={nombre_original}, grupo={grupo_original}, subgrupo={subgrupo_original}")
 
@@ -172,11 +166,16 @@ def subir_a_firestore(producto, email):
 
         producto["id_base"] = custom_id
 
-        # ✅ Generar nombre de imagen automáticamente a partir de custom_id
-        imagen_nombre = f"{custom_id}.webp"
-        imagen_url = f"https://storage.googleapis.com/mpagina/{email}/{imagen_nombre}"
-        print(f"[FIRESTORE] Nombre de imagen generado: {imagen_nombre}")
-        print(f"[FIRESTORE] URL pública GCS: {imagen_url}")
+        # Imagen: usar la URL real si ya viene del upload, si no, fallback a custom_id.webp
+        imagen_url = producto.get("imagen_url")
+        if imagen_url:
+            print(f"[FIRESTORE] Usando imagen_url provista: {imagen_url}")
+        else:
+            imagen_nombre = f"{custom_id}.webp"
+            # Importante: encode del email en la URL pública (%40 para '@')
+            email_encoded = email.replace("@", "%40")
+            imagen_url = f"https://storage.googleapis.com/mpagina/{email_encoded}/{imagen_nombre}"
+            print(f"[FIRESTORE] Generada imagen_url por fallback: {imagen_url}")
 
         doc = {
             "nombre": nombre_original,
@@ -185,14 +184,13 @@ def subir_a_firestore(producto, email):
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
-            "imagen_url": imagen_url,   # ✅ ahora se guarda la URL pública de GCS
+            "imagen_url": imagen_url,
             "orden": orden,
             "talles": talles,
             "timestamp": firestore.SERVER_TIMESTAMP
         }
         print(f"[FIRESTORE] Documento a guardar: {doc}")
 
-        # Guardar en Firestore
         ruta = f"usuarios/{email}/productos/{custom_id}"
         print(f"[FIRESTORE] Guardando en ruta: {ruta}")
         db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
