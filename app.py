@@ -886,33 +886,24 @@ def step3():
             talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
             print(f"👕 [Step3] Talles={talle_lista}")
 
-           # --- Reemplazar la validación antigua de imagen_url dentro de step3 por este bloque ---
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
-            # Aceptar rutas locales (/static/img/...), URLs absolutas (http(s)://...) o basenames guardados en session
             imagen_para_guardar = None
 
             if not imagen_url:
                 print(f"⚠️ [Step3] Imagen vacía para producto {nombre}")
                 continue
 
-            # Caso 1: ruta local ya absoluta en servidor (/static/img/...)
             if imagen_url.startswith('/static/img/') or imagen_url.startswith('static/img/'):
                 imagen_para_guardar = imagen_url if imagen_url.startswith('/') else '/' + imagen_url
-
-            # Caso 2: URL absoluta (raw.githubusercontent u otro host)
             elif imagen_url.startswith('http://') or imagen_url.startswith('https://'):
                 imagen_para_guardar = imagen_url
-
-            # Caso 3: solo basename (p.ej. 'a9e73a9...webp') -> buscar en session['imagenes_step0']
             else:
                 basename = os.path.basename(imagen_url)
                 session_imgs = session.get('imagenes_step0') or []
-                # buscar coincidencia por basename en la lista guardada en session
                 matched = next((u for u in session_imgs if u.endswith(basename)), None)
                 if matched:
                     imagen_para_guardar = matched
                 else:
-                    # fallback: si existe localmente en UPLOAD_FOLDER, usar ruta estática
                     local_candidate = os.path.join(app.config['UPLOAD_FOLDER'], basename)
                     if os.path.exists(local_candidate):
                         imagen_para_guardar = f"/static/img/{basename}"
@@ -920,7 +911,6 @@ def step3():
                         print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url} (basename: {basename})")
                         continue
 
-            # Debug: mostrar la URL que vamos a guardar y enviar a Firestore
             print(f"🔍 [Step3] imagen_para_guardar para '{nombre}': {imagen_para_guardar}")
 
             bloques.append({
@@ -934,7 +924,6 @@ def step3():
                 'talles': talle_lista
             })
             print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_para_guardar}")
-# --- fin del reemplazo ---
 
         session['bloques'] = bloques
         print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
@@ -943,7 +932,6 @@ def step3():
         def subir_con_resultado(producto):
             try:
                 resultado = subir_a_firestore(producto, email)
-                # Imprimir resultado detallado para debugging
                 print(f"🔥 [Step3] Resultado subir_a_firestore para '{producto.get('nombre')}' -> {resultado}")
                 return resultado.get("ok") if isinstance(resultado, dict) else bool(resultado)
             except Exception as e:
@@ -960,7 +948,6 @@ def step3():
             exitos += sum(1 for r in resultados if r)
         print(f"📊 [Step3] Total exitos en Firestore: {exitos}")
 
-        # Agrupar para preview
         grupos_dict = {}
         for producto in bloques:
             grupo = (producto.get('grupo') or 'General').strip().title()
@@ -968,7 +955,6 @@ def step3():
             grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
         print(f"📂 [Step3] Grupos generados: {list(grupos_dict.keys())}")
 
-        # Subir index.html, iconos, logo y fondo a GitHub
         if repo_name:
             try:
                 print("⬆️ [Step3] Renderizando preview.html para subir a GitHub")
@@ -1015,11 +1001,20 @@ def step3():
             return redirect('/preview')
         else:
             print("⚠️ [Step3] Ningún producto subido, renderizando step3.html")
-            return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
+            return render_template(
+                'step3.html',
+                tipo_web=tipo,
+                imagenes_step0=imagenes_disponibles,
+                email=email   # 👈 agregado
+            )
 
     print("ℹ️ [Step3] GET request, renderizando step3.html")
-    return render_template('step3.html', tipo_web=tipo, imagenes_step0=imagenes_disponibles)
-
+    return render_template(
+        'step3.html',
+        tipo_web=tipo,
+        imagenes_step0=imagenes_disponibles,
+        email=email   # 👈 agregado
+    )
 
 def get_mp_public_key(email: str):
     """
