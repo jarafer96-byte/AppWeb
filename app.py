@@ -332,18 +332,29 @@ def upload_image():
                     print(f"📝 [UPLOAD] Nombre generado: {filename}, Extensión: {ext}")
                     print(f"📏 [UPLOAD] Tamaño en bytes: {len(contenido_bytes)}")
 
+                    # 🔎 Log de credenciales y bucket
+                    print(f"🔑 [UPLOAD] Bucket activo: {bucket.name}")
+                    print(f"🔑 [UPLOAD] Email service account: {credentials.service_account_email}")
+
                     # Subir a Google Cloud Storage
-                    blob = bucket.blob(f"{email}/{filename}")
+                    blob_path = f"{email}/{filename}"
+                    print(f"🚀 [UPLOAD] Intentando subir a GCS en ruta: {blob_path}")
+                    blob = bucket.blob(blob_path)
+
                     blob.upload_from_string(contenido_bytes, content_type="image/webp")
+                    print(f"📤 [UPLOAD] Upload_from_string completado")
+
                     blob.make_public()
                     ruta_publica = blob.public_url
+                    print(f"🌍 [UPLOAD] URL pública generada: {ruta_publica}")
 
                     urls.append(ruta_publica)
                     session['imagenes_step0'].append(ruta_publica)
                     print(f"✅ [UPLOAD] Subida exitosa a GCS: {ruta_publica}")
 
                 except Exception as e:
-                    print(f"💥 [UPLOAD] Error procesando {img.filename}: {e}")
+                    print(f"💥 [UPLOAD] Error procesando {img.filename}: {e}", flush=True)
+                    import traceback; traceback.print_exc()
                     return jsonify({"ok": False, "error": str(e)}), 500
 
         print(f"📊 [UPLOAD] Total subidas correctas: {len(urls)}")
@@ -352,8 +363,10 @@ def upload_image():
         return jsonify({"ok": True, "imagenes": urls})
 
     except Exception as e:
-        print(f"💥 [UPLOAD] Error general en /upload-image: {e}")
+        print(f"💥 [UPLOAD] Error general en /upload-image: {e}", flush=True)
+        import traceback; traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 
 def subir_iconos_png(repo):
