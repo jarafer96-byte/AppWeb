@@ -927,8 +927,8 @@ def step1():
         session['facebook'] = facebook
 
         whatsapp = request.form.get('whatsapp')
-        if whatsapp and not re.match(r"^\+?\d{7,15}$", whatsapp):
-            return jsonify({'error': 'WhatsApp inválido'}), 400
+        if whatsapp and not re.match(r"^(https://wa\.me/\d{7,15}|\+?\d{7,15})$", whatsapp):
+             return jsonify({'error': 'WhatsApp inválido'}), 400
         session['whatsapp'] = whatsapp
 
         instagram = request.form.get('instagram')
