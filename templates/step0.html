@@ -791,7 +791,7 @@ function getBatchConfig() {
   return config;
 }
 
-// Optimizar en tandas dinámicas
+// Optimizar en tandas dinámicas con desestructuración correcta y logs
 async function optimizeInBatches() {
   resetFeedback();
   if (!originales.length) {
@@ -819,13 +819,20 @@ async function optimizeInBatches() {
     for (const file of batch) {
       const task = (async () => {
         try {
-          const blob = await resizeToWebP(file);
+          const { blob, finalName } = await resizeToWebP(file);
           if (!blob || blob.size === 0) throw new Error("Blob vacío");
-          const nameBase = file.name.replace(/\.(png|jpg|jpeg|gif|tiff|bmp|webp)$/i, '');
-          const finalName = `${nameBase}.webp`;
-          optimizadas.push({ name: finalName, blob, size: blob.size, url: URL.createObjectURL(blob) });
+
+          optimizadas.push({
+            name: finalName,
+            blob,
+            size: blob.size,
+            url: URL.createObjectURL(blob)
+          });
+
+          console.log(`📦 [optimizeInBatches] Optimizada guardada: ${finalName} (${blob.size} bytes)`);
           okCount++;
-        } catch {
+        } catch (err) {
+          console.error(`❌ [optimizeInBatches] Falló optimización de ${file.name}`, err);
           failCount++;
         }
       })();
@@ -865,6 +872,7 @@ async function optimizeInBatches() {
 
 // Listener del botón Optimizar
 optimizeBtn.addEventListener('click', () => optimizeInBatches());
+
 
 
 // Subida en tandas y guardado de rutas reales + mapping + repoDestino
