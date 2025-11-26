@@ -526,10 +526,21 @@ function renderOriginales() {
   }
 }
   
-// Resize a WebP 300x180 q=0.8 con logs y nombre sanitizado
+// Resize a WebP 300x180 q=0.8 con logs, bypass y nombre sanitizado
 async function resizeToWebP(file) {
   console.log(`📂 Iniciando conversión: ${file.name} (${file.size} bytes)`);
 
+  // 🔎 Si ya es WebP, lo aceptamos directo
+  if (/\.webp$/i.test(file.name)) {
+    const nameBase = file.name
+      .replace(/\.(webp)$/i, '') // quita extensión
+      .replace(/[^\w\-]/g, '_'); // sanitiza
+    const finalName = `${nameBase}.webp`;
+    console.log(`ℹ️ ${file.name} ya es WebP, se acepta sin reprocesar → ${finalName}`);
+    return { blob: file, finalName };
+  }
+
+  // 📥 Cargar imagen
   const imgUrl = URL.createObjectURL(file);
   const img = await new Promise((resolve, reject) => {
     const image = new Image();
@@ -544,6 +555,7 @@ async function resizeToWebP(file) {
     image.src = imgUrl;
   });
 
+  // 🎯 Canvas objetivo
   const targetW = 300, targetH = 180;
   console.log(`🎯 Canvas objetivo: ${targetW}x${targetH}px`);
 
@@ -553,6 +565,7 @@ async function resizeToWebP(file) {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, targetW, targetH);
 
+  // 📐 Escalado proporcional
   const ratio = Math.min(targetW / img.width, targetH / img.height);
   const newW = Math.round(img.width * ratio);
   const newH = Math.round(img.height * ratio);
@@ -564,13 +577,13 @@ async function resizeToWebP(file) {
   ctx.drawImage(img, offsetX, offsetY, newW, newH);
   URL.revokeObjectURL(imgUrl);
 
-  const blob = await new Promise((resolve, reject) =>
+  // 📝 Generar WebP
+  const result = await new Promise((resolve, reject) =>
     canvas.toBlob(b => {
       if (b && b.size > 0) {
-        // Sanitizar nombre para evitar espacios/paréntesis
         const nameBase = file.name
-          .replace(/\.(png|jpg|jpeg|gif|tiff|bmp|webp)$/i, '') // quita extensión
-          .replace(/[^\w\-]/g, '_'); // reemplaza espacios y símbolos por "_"
+          .replace(/\.(png|jpg|jpeg|gif|tiff|bmp)$/i, '') // quita extensión
+          .replace(/[^\w\-]/g, '_'); // sanitiza
         const finalName = `${nameBase}.webp`;
 
         console.log(`✅ Conversión exitosa: ${file.name} → ${finalName} (${b.size} bytes, ${targetW}x${targetH})`);
@@ -582,9 +595,8 @@ async function resizeToWebP(file) {
     }, 'image/webp', 0.8)
   );
 
-  return blob;
+  return result;
 }
-
 
 function guardarOptimizadaEnIndexedDB(name, blob) {
   ensureDB(db => {
