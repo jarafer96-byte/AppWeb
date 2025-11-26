@@ -1295,6 +1295,32 @@ function validarYEnviar() {
   localStorage.removeItem("step3_state"); // ✅ limpiar cache del paso
   document.getElementById('formulario').submit();
 }
+  
+function guardarProductoLocal(producto) {
+  let productos = JSON.parse(localStorage.getItem("productos")) || [];
+  productos.push(producto);
+  localStorage.setItem("productos", JSON.stringify(productos));
+  console.log("✅ Producto guardado en localStorage:", producto);
+}
+
+// ⬇️ Justo debajo va el listener
+document.getElementById("btnContinuar").addEventListener("click", () => {
+  const producto = {
+    id_base: customId,
+    nombre: document.getElementById("nombre").value,
+    precio: document.getElementById("precio").value,
+    grupo: document.getElementById("grupo").value,
+    subgrupo: document.getElementById("subgrupo").value,
+    descripcion: document.getElementById("descripcion").value,
+    imagen_url: imagenUrlSubida, // la URL pública de GCS
+    talles: obtenerTallesSeleccionados()
+  };
+
+  guardarProductoLocal(producto);
+
+  // Redirigir a preview
+  window.location.href = "/preview";
+});
 
 window.addEventListener("load", () => {
   console.log("🚀 [Step3] Inicializando...");
