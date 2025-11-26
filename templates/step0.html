@@ -526,7 +526,7 @@ function renderOriginales() {
   }
 }
   
-// Resize a WebP 300x180 q=0.8 con logs
+// Resize a WebP 300x180 q=0.8 con logs y nombre sanitizado
 async function resizeToWebP(file) {
   console.log(`📂 Iniciando conversión: ${file.name} (${file.size} bytes)`);
 
@@ -567,8 +567,14 @@ async function resizeToWebP(file) {
   const blob = await new Promise((resolve, reject) =>
     canvas.toBlob(b => {
       if (b && b.size > 0) {
-        console.log(`✅ Conversión exitosa: ${file.name} → WebP (${b.size} bytes, ${targetW}x${targetH})`);
-        resolve(b);
+        // Sanitizar nombre para evitar espacios/paréntesis
+        const nameBase = file.name
+          .replace(/\.(png|jpg|jpeg|gif|tiff|bmp|webp)$/i, '') // quita extensión
+          .replace(/[^\w\-]/g, '_'); // reemplaza espacios y símbolos por "_"
+        const finalName = `${nameBase}.webp`;
+
+        console.log(`✅ Conversión exitosa: ${file.name} → ${finalName} (${b.size} bytes, ${targetW}x${targetH})`);
+        resolve({ blob: b, finalName });
       } else {
         console.error(`❌ Falló la conversión de ${file.name}, blob vacío`);
         reject(new Error("❌ No se pudo generar WebP"));
@@ -578,6 +584,7 @@ async function resizeToWebP(file) {
 
   return blob;
 }
+
 
 function guardarOptimizadaEnIndexedDB(name, blob) {
   ensureDB(db => {
