@@ -482,10 +482,11 @@ function inicializarCarrusel() {
         imagenesFinales.forEach(ruta => {
           if (!ruta) return;
 
-          const basename = ruta.split("/").pop(); // nombre del archivo
-          const url = ruta; // ya es URL absoluta de GCS
+          const basename = ruta.split("/").pop(); // UUID.webp
+          const imagen_url = ruta; // ya es URL absoluta de GCS
 
-          buffer.push({ nombre: basename, url });
+          // ✅ Usar clave imagen_url para que agregarSlide funcione
+          buffer.push({ nombre: basename, imagen_url });
 
           if (buffer.length === 8) {
             agregarSlide(buffer, first);
@@ -509,7 +510,6 @@ function inicializarCarrusel() {
     }
   });
 }
-
 
 function leerArchivoProductos() {
   const input = document.getElementById("archivoProductos");
@@ -704,35 +704,38 @@ function cargarImagenesDesdeIndexedDB(done) {
     let first = true, buffer = [];
     let count = 0;
 
-    lista.forEach(nombre => {
-      console.log("➡️ [IndexedDB] Procesando nombre:", nombre);
-      const getReq = store.get(nombre);
+    lista.forEach(nombreOriginal => {
+      console.log("➡️ [IndexedDB] Procesando nombre:", nombreOriginal);
+      const getReq = store.get(nombreOriginal);
 
       getReq.onsuccess = e => {
         const blob = e.target.result;
         if (blob) {
-          console.log("✅ [IndexedDB] Blob encontrado para:", nombre);
+          console.log("✅ [IndexedDB] Blob encontrado para:", nombreOriginal);
 
-          // 🔑 Usar mapping para obtener nombre final
+          // 🔑 Usar mapping para obtener nombre final (UUID.webp)
           const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
-          const nombreGenerado = mapping[nombre];
-          console.log("📌 [IndexedDB] Mapping lookup:", nombre, "→", nombreGenerado);
+          const nombreGenerado = mapping[nombreOriginal];
+          console.log("📌 [IndexedDB] Mapping lookup:", nombreOriginal, "→", nombreGenerado);
 
-          let url;
+          let imagen_url;
           if (nombreGenerado) {
-            // ✅ Construir URL pública de GCS
-            const bucket = "mpagina"; // tu bucket
+            // ✅ Construir URL pública de GCS con email codificado
+            const bucket = "mpagina";
             const email = localStorage.getItem("email") || "anonimo";
-            console.log("📌 [IndexedDB] Email usado para URL:", email);
-            url = `https://storage.googleapis.com/${bucket}/${email}/${nombreGenerado}`;
-            console.log("🔗 [IndexedDB] URL construida:", url);
+            const email_encoded = email.replace("@", "%40");
+            console.log("📌 [IndexedDB] Email usado para URL:", email_encoded);
+            imagen_url = `https://storage.googleapis.com/${bucket}/${email_encoded}/${nombreGenerado}`;
+            console.log("🔗 [IndexedDB] URL construida:", imagen_url);
+
+            // ✅ Usar UUID como nombre (dataset.nombre)
+            buffer.push({ nombre: nombreGenerado, imagen_url });
           } else {
-            // fallback si no hay mapping
-            url = "/static/img/fallback.webp";
-            console.warn("⚠️ [IndexedDB] No se encontró mapping para", nombre, "→ usando fallback");
+            imagen_url = "/static/img/fallback.webp";
+            console.warn("⚠️ [IndexedDB] No se encontró mapping para", nombreOriginal, "→ usando fallback");
+            buffer.push({ nombre: nombreOriginal, imagen_url });
           }
 
-          buffer.push({ nombre, url });
           count++;
           console.log("📦 [IndexedDB] Buffer actualizado:", buffer);
 
@@ -743,11 +746,11 @@ function cargarImagenesDesdeIndexedDB(done) {
             buffer = [];
           }
         } else {
-          console.warn("⚠️ [IndexedDB] No se encontró blob para:", nombre);
+          console.warn("⚠️ [IndexedDB] No se encontró blob para:", nombreOriginal);
         }
       };
 
-      getReq.onerror = err => console.error("❌ [IndexedDB] Error leyendo imagen:", nombre, err.target.error);
+      getReq.onerror = err => console.error("❌ [IndexedDB] Error leyendo imagen:", nombreOriginal, err.target.error);
     });
 
     tx.oncomplete = () => {
