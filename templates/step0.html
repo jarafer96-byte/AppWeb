@@ -526,16 +526,22 @@ function renderOriginales() {
   }
 }
   
-// Resize a WebP 300x180 q=0.8 — robusta y compatible
+// Resize a WebP 300x180 q=0.8 — robusta y compatible con nombre sanitizado
 async function resizeToWebP(file) {
-  // Si ya es WebP, no reprocesar: devolver el blob original
+  console.log(`📂 Iniciando conversión: ${file.name} (${file.size} bytes)`);
+
+  // Si ya es WebP, no reprocesar: devolver blob + nombre sanitizado
   if (/\.webp$/i.test(file.name)) {
-    return file;
+    const nameBase = file.name
+      .replace(/\.(webp)$/i, '')
+      .replace(/[^\w\-]/g, '_');
+    const finalName = `${nameBase}.webp`;
+    console.log(`ℹ️ ${file.name} ya es WebP, se acepta sin reprocesar → ${finalName}`);
+    return { blob: file, finalName };
   }
 
   const imgUrl = URL.createObjectURL(file);
   try {
-    // Cargar imagen de forma robusta
     const img = await new Promise((resolve, reject) => {
       const image = new Image();
       image.onload = () => (image.width && image.height) ? resolve(image) : reject(new Error("Imagen sin dimensiones"));
@@ -549,12 +555,10 @@ async function resizeToWebP(file) {
     canvas.height = targetH;
     const ctx = canvas.getContext('2d', { alpha: true });
 
-    // Suavizado para mejor calidad
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.clearRect(0, 0, targetW, targetH);
 
-    // Escalado proporcional y centrado
     const ratio = Math.min(targetW / img.width, targetH / img.height);
     const newW = Math.max(1, Math.round(img.width * ratio));
     const newH = Math.max(1, Math.round(img.height * ratio));
@@ -563,7 +567,6 @@ async function resizeToWebP(file) {
 
     ctx.drawImage(img, offsetX, offsetY, newW, newH);
 
-    // Intentar toBlob; si falla, usar fallback a dataURL
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(b => {
         if (b && b.size > 0) {
@@ -586,7 +589,14 @@ async function resizeToWebP(file) {
       }, 'image/webp', 0.8);
     });
 
-    return blob;
+    // Sanitizar nombre para evitar espacios/paréntesis
+    const nameBase = file.name
+      .replace(/\.(png|jpg|jpeg|gif|tiff|bmp)$/i, '')
+      .replace(/[^\w\-]/g, '_');
+    const finalName = `${nameBase}.webp`;
+
+    console.log(`✅ Conversión exitosa: ${file.name} → ${finalName} (${blob.size} bytes, ${targetW}x${targetH})`);
+    return { blob, finalName };
   } finally {
     URL.revokeObjectURL(imgUrl);
   }
