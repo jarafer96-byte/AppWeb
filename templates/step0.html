@@ -728,13 +728,28 @@ downloadAllBtn.addEventListener('click', async () => {
     downloadAllBtn.textContent = "Descargar optimizadas";
   }
 });
-// Optimizar en tandas de 50 imágenes
-async function optimizeInBatches(batchSize = 50) {
+// Detectar entorno (PC vs móvil)
+function getBatchConfig() {
+  const ua = navigator.userAgent.toLowerCase();
+  // Default PC
+  let config = { batchSize: 50, maxWorkers: 3 };
+
+  if (/android|iphone|ipad|mobile/.test(ua)) {
+    config = { batchSize: 15, maxWorkers: 2 }; // móviles
+  }
+
+  return config;
+}
+
+// Optimizar en tandas dinámicas
+async function optimizeInBatches() {
   resetFeedback();
   if (!originales.length) {
     showError('⚠️ Subí imágenes primero.');
     return;
   }
+
+  const { batchSize, maxWorkers } = getBatchConfig();
 
   // Spinner visual
   optimizeBtn.disabled = true;
@@ -749,16 +764,31 @@ async function optimizeInBatches(batchSize = 50) {
   for (let i = 0; i < originales.length; i += batchSize) {
     const batch = originales.slice(i, i + batchSize);
 
+    // limitar concurrencia con maxWorkers
+    let queue = [];
     for (const file of batch) {
-      try {
-        const blob = await resizeToWebP(file);
-        const nameBase = file.name.replace(/\.(png|jpg|jpeg|gif|tiff|bmp|webp)$/i, '');
-        const finalName = `${nameBase}.webp`;
-        optimizadas.push({ name: finalName, blob, size: blob.size, url: URL.createObjectURL(blob) });
-        okCount++;
-      } catch {
-        failCount++;
+      const task = (async () => {
+        try {
+          const blob = await resizeToWebP(file);
+          if (!blob || blob.size === 0) throw new Error("Blob vacío");
+          const nameBase = file.name.replace(/\.(png|jpg|jpeg|gif|tiff|bmp|webp)$/i, '');
+          const finalName = `${nameBase}.webp`;
+          optimizadas.push({ name: finalName, blob, size: blob.size, url: URL.createObjectURL(blob) });
+          okCount++;
+        } catch {
+          failCount++;
+        }
+      })();
+
+      queue.push(task);
+
+      if (queue.length >= maxWorkers) {
+        await Promise.all(queue);
+        queue = [];
       }
+    }
+    if (queue.length > 0) {
+      await Promise.all(queue);
     }
 
     // Render parcial para feedback
@@ -784,7 +814,8 @@ async function optimizeInBatches(batchSize = 50) {
 }
 
 // Listener del botón Optimizar
-optimizeBtn.addEventListener('click', () => optimizeInBatches(50));
+optimizeBtn.addEventListener('click', () => optimizeInBatches());
+
 
 // Subida en tandas y guardado de rutas reales + mapping + repoDestino
 async function enviarOptimizado(batchSize = 5) {
