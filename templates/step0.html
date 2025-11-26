@@ -526,17 +526,27 @@ function renderOriginales() {
   }
 }
   
-// Resize a WebP 300x180 q=0.8
+// Resize a WebP 300x180 q=0.8 con logs
 async function resizeToWebP(file) {
+  console.log(`📂 Iniciando conversión: ${file.name} (${file.size} bytes)`);
+
   const imgUrl = URL.createObjectURL(file);
   const img = await new Promise((resolve, reject) => {
     const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = reject;
+    image.onload = () => {
+      console.log(`✅ Imagen cargada: ${file.name} — ${image.width}x${image.height}px`);
+      resolve(image);
+    };
+    image.onerror = (err) => {
+      console.error(`❌ Error al cargar imagen: ${file.name}`, err);
+      reject(err);
+    };
     image.src = imgUrl;
   });
 
   const targetW = 300, targetH = 180;
+  console.log(`🎯 Canvas objetivo: ${targetW}x${targetH}px`);
+
   const canvas = document.createElement('canvas');
   canvas.width = targetW;
   canvas.height = targetH;
@@ -549,12 +559,23 @@ async function resizeToWebP(file) {
   const offsetX = Math.floor((targetW - newW) / 2);
   const offsetY = Math.floor((targetH - newH) / 2);
 
+  console.log(`📐 Escalado: ratio=${ratio.toFixed(3)}, newW=${newW}, newH=${newH}, offsetX=${offsetX}, offsetY=${offsetY}`);
+
   ctx.drawImage(img, offsetX, offsetY, newW, newH);
   URL.revokeObjectURL(imgUrl);
 
   const blob = await new Promise((resolve, reject) =>
-    canvas.toBlob(b => b ? resolve(b) : reject(new Error("❌ No se pudo generar WebP")), 'image/webp', 0.8)
+    canvas.toBlob(b => {
+      if (b && b.size > 0) {
+        console.log(`✅ Conversión exitosa: ${file.name} → WebP (${b.size} bytes, ${targetW}x${targetH})`);
+        resolve(b);
+      } else {
+        console.error(`❌ Falló la conversión de ${file.name}, blob vacío`);
+        reject(new Error("❌ No se pudo generar WebP"));
+      }
+    }, 'image/webp', 0.8)
   );
+
   return blob;
 }
 
