@@ -526,7 +526,7 @@ function renderOriginales() {
   }
 }
   
-// Resize a WebP 300x180 q=0.8 — robusta y compatible con nombre sanitizado + logs detallados
+// Resize a WebP 300x180 q=0.8 — robusta, compatible y con nombre sanitizado + logs detallados
 async function resizeToWebP(file) {
   console.log(`📂 [resizeToWebP] Iniciando conversión: ${file.name} (${file.size} bytes)`);
 
@@ -582,14 +582,14 @@ async function resizeToWebP(file) {
 
     ctx.drawImage(img, offsetX, offsetY, newW, newH);
 
-    // 📝 Generar WebP
+    // 📝 Generar WebP con fallback
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(b => {
         if (b && b.size > 0) {
           console.log(`✅ [resizeToWebP] toBlob generado correctamente (${b.size} bytes)`);
           resolve(b);
         } else {
-          console.warn(`⚠️ [resizeToWebP] toBlob devolvió vacío, intentando fallback con toDataURL`);
+          console.warn(`⚠️ [resizeToWebP] toBlob vacío, intentando fallback con toDataURL`);
           try {
             const dataUrl = canvas.toDataURL('image/webp', 0.8);
             const byteString = atob(dataUrl.split(',')[1]);
@@ -602,7 +602,7 @@ async function resizeToWebP(file) {
               console.log(`✅ [resizeToWebP] Fallback generado correctamente (${fallbackBlob.size} bytes)`);
               resolve(fallbackBlob);
             } else {
-              console.error(`❌ [resizeToWebP] Fallback también devolvió vacío`);
+              console.error(`❌ [resizeToWebP] Fallback también vacío`);
               reject(new Error("No se pudo generar WebP (fallback)"));
             }
           } catch (e) {
@@ -626,26 +626,6 @@ async function resizeToWebP(file) {
     URL.revokeObjectURL(imgUrl);
     console.log(`🧹 [resizeToWebP] URL revocada para ${file.name}`);
   }
-}
-
-function guardarOptimizadaEnIndexedDB(name, blob) {
-  ensureDB(db => {
-    // Asegurate de haber creado este store en onupgradeneeded
-    const tx = db.transaction("optimizadas", "readwrite");
-    const store = tx.objectStore("optimizadas");
-
-    const rec = {
-      basename: name,
-      blob,
-      type: blob.type,
-      size: blob.size,
-      createdAt: Date.now()
-    };
-
-    store.put(rec);
-    tx.oncomplete = () => console.log("✅ [IndexedDB] Optimizada guardada:", name);
-    tx.onerror = e => console.error("❌ [IndexedDB] Error guardando optimizada:", e.target.error);
-  });
 }
 
 function fetchOriginalesPage(pagina) {
