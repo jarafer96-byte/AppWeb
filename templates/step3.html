@@ -376,13 +376,13 @@ function agregarSlide(items, makeActive) {
   const row = document.createElement("div");
   row.className = "row row-cols-4 gx-2 gy-2";
 
-  items.forEach(({ nombre, url }) => {
+  items.forEach(({ nombre, imagen_url }) => {
     const col = document.createElement("div");
     col.className = "col";
     col.innerHTML = `
       <div class="thumb-wrapper">
-        <img src="${url}" class="imagen-carrusel" alt="${nombre}"
-             data-nombre="${nombre}" data-url="${url}"
+        <img src="${imagen_url}" class="imagen-carrusel" alt="${nombre}"
+             data-nombre="${nombre}" data-url="${imagen_url}"
              loading="lazy"
              onclick="seleccionarImagen(this)">
       </div>`;
