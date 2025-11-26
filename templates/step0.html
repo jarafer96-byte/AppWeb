@@ -526,30 +526,42 @@ function renderOriginales() {
   }
 }
   
-// Resize a WebP 300x180 q=0.8 — robusta y compatible con nombre sanitizado
+// Resize a WebP 300x180 q=0.8 — robusta y compatible con nombre sanitizado + logs detallados
 async function resizeToWebP(file) {
-  console.log(`📂 Iniciando conversión: ${file.name} (${file.size} bytes)`);
+  console.log(`📂 [resizeToWebP] Iniciando conversión: ${file.name} (${file.size} bytes)`);
 
-  // Si ya es WebP, no reprocesar: devolver blob + nombre sanitizado
+  // 🔎 Caso especial: si ya es WebP, no reprocesar
   if (/\.webp$/i.test(file.name)) {
     const nameBase = file.name
       .replace(/\.(webp)$/i, '')
       .replace(/[^\w\-]/g, '_');
     const finalName = `${nameBase}.webp`;
-    console.log(`ℹ️ ${file.name} ya es WebP, se acepta sin reprocesar → ${finalName}`);
+    console.log(`ℹ️ [resizeToWebP] ${file.name} ya es WebP, se acepta sin reprocesar → ${finalName}`);
     return { blob: file, finalName };
   }
 
   const imgUrl = URL.createObjectURL(file);
   try {
+    console.log(`📥 [resizeToWebP] Creando objeto URL para ${file.name}`);
+
+    // 📸 Cargar imagen
     const img = await new Promise((resolve, reject) => {
       const image = new Image();
-      image.onload = () => (image.width && image.height) ? resolve(image) : reject(new Error("Imagen sin dimensiones"));
-      image.onerror = (e) => reject(e);
+      image.onload = () => {
+        console.log(`✅ [resizeToWebP] Imagen cargada: ${file.name} — ${image.width}x${image.height}px`);
+        resolve(image);
+      };
+      image.onerror = (e) => {
+        console.error(`❌ [resizeToWebP] Error al cargar imagen: ${file.name}`, e);
+        reject(e);
+      };
       image.src = imgUrl;
     });
 
+    // 🎯 Canvas objetivo
     const targetW = 300, targetH = 180;
+    console.log(`🎯 [resizeToWebP] Canvas objetivo: ${targetW}x${targetH}px`);
+
     const canvas = document.createElement('canvas');
     canvas.width = targetW;
     canvas.height = targetH;
@@ -559,19 +571,25 @@ async function resizeToWebP(file) {
     ctx.imageSmoothingQuality = 'high';
     ctx.clearRect(0, 0, targetW, targetH);
 
+    // 📐 Escalado proporcional
     const ratio = Math.min(targetW / img.width, targetH / img.height);
     const newW = Math.max(1, Math.round(img.width * ratio));
     const newH = Math.max(1, Math.round(img.height * ratio));
     const offsetX = Math.floor((targetW - newW) / 2);
     const offsetY = Math.floor((targetH - newH) / 2);
 
+    console.log(`📐 [resizeToWebP] Escalado calculado → ratio=${ratio.toFixed(3)}, newW=${newW}, newH=${newH}, offsetX=${offsetX}, offsetY=${offsetY}`);
+
     ctx.drawImage(img, offsetX, offsetY, newW, newH);
 
+    // 📝 Generar WebP
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(b => {
         if (b && b.size > 0) {
+          console.log(`✅ [resizeToWebP] toBlob generado correctamente (${b.size} bytes)`);
           resolve(b);
         } else {
+          console.warn(`⚠️ [resizeToWebP] toBlob devolvió vacío, intentando fallback con toDataURL`);
           try {
             const dataUrl = canvas.toDataURL('image/webp', 0.8);
             const byteString = atob(dataUrl.split(',')[1]);
@@ -580,25 +598,33 @@ async function resizeToWebP(file) {
             const ia = new Uint8Array(ab);
             for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
             const fallbackBlob = new Blob([ab], { type: mimeString });
-            if (fallbackBlob.size > 0) resolve(fallbackBlob);
-            else reject(new Error("No se pudo generar WebP (fallback)"));
+            if (fallbackBlob.size > 0) {
+              console.log(`✅ [resizeToWebP] Fallback generado correctamente (${fallbackBlob.size} bytes)`);
+              resolve(fallbackBlob);
+            } else {
+              console.error(`❌ [resizeToWebP] Fallback también devolvió vacío`);
+              reject(new Error("No se pudo generar WebP (fallback)"));
+            }
           } catch (e) {
+            console.error(`❌ [resizeToWebP] Error en fallback toDataURL`, e);
             reject(new Error("No se pudo generar WebP"));
           }
         }
       }, 'image/webp', 0.8);
     });
 
-    // Sanitizar nombre para evitar espacios/paréntesis
+    // 🔑 Sanitizar nombre
     const nameBase = file.name
       .replace(/\.(png|jpg|jpeg|gif|tiff|bmp)$/i, '')
       .replace(/[^\w\-]/g, '_');
     const finalName = `${nameBase}.webp`;
 
-    console.log(`✅ Conversión exitosa: ${file.name} → ${finalName} (${blob.size} bytes, ${targetW}x${targetH})`);
+    console.log(`✅ [resizeToWebP] Conversión exitosa: ${file.name} → ${finalName} (${blob.size} bytes, ${targetW}x${targetH})`);
+
     return { blob, finalName };
   } finally {
     URL.revokeObjectURL(imgUrl);
+    console.log(`🧹 [resizeToWebP] URL revocada para ${file.name}`);
   }
 }
 
