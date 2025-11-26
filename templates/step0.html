@@ -526,16 +526,13 @@ function renderOriginales() {
   }
 }
   
-// Resize a WebP 300x180 q=0.8 — robusta, compatible y con nombre sanitizado + logs detallados
+// Resize a WebP 300x180 q=0.8 — robusta, compatible y con nombre UUID + logs detallados
 async function resizeToWebP(file) {
   console.log(`📂 [resizeToWebP] Iniciando conversión: ${file.name} (${file.size} bytes)`);
 
   // 🔎 Caso especial: si ya es WebP, no reprocesar
   if (/\.webp$/i.test(file.name)) {
-    const nameBase = file.name
-      .replace(/\.(webp)$/i, '')
-      .replace(/[^\w\-]/g, '_');
-    const finalName = `${nameBase}.webp`;
+    const finalName = `${crypto.randomUUID().replace(/-/g, '')}.webp`;
     console.log(`ℹ️ [resizeToWebP] ${file.name} ya es WebP, se acepta sin reprocesar → ${finalName}`);
     return { blob: file, finalName };
   }
@@ -613,11 +610,8 @@ async function resizeToWebP(file) {
       }, 'image/webp', 0.8);
     });
 
-    // 🔑 Sanitizar nombre
-    const nameBase = file.name
-      .replace(/\.(png|jpg|jpeg|gif|tiff|bmp)$/i, '')
-      .replace(/[^\w\-]/g, '_');
-    const finalName = `${nameBase}.webp`;
+    // 🔑 Nombre UUID para GCS
+    const finalName = `${crypto.randomUUID().replace(/-/g, '')}.webp`;
 
     console.log(`✅ [resizeToWebP] Conversión exitosa: ${file.name} → ${finalName} (${blob.size} bytes, ${targetW}x${targetH})`);
 
