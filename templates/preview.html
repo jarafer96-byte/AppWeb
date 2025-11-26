@@ -194,7 +194,8 @@ html { scroll-behavior: auto; }
   <div class="text-center my-5 logo-wrapper">
     <img src="{{ url_for('static', filename='img/' + config.logo) }}"
          alt="Logo"
-         class="img-fluid logo mx-auto d-block">
+         class="img-fluid logo mx-auto d-block"
+         loading="lazy">
   </div>
 {% endif %}
 
@@ -278,17 +279,17 @@ html { scroll-behavior: auto; }
 <div class="social-icons">
   {% if config.facebook %}
     <a href="{{ config.facebook }}" target="_blank">
-      <img src="/static/img/facebook.png" alt="Facebook">
+      <img src="/static/img/facebook.png" alt="Facebook" loading="lazy">
     </a>
   {% endif %}
   {% if config.instagram %}
     <a href="{{ config.instagram }}" target="_blank">
-      <img src="/static/img/instagram.png" alt="Instagram">
+      <img src="/static/img/instagram.png" alt="Instagram" loading="lazy">
     </a>
   {% endif %}
   {% if config.whatsapp %}
     <a href="{{ config.whatsapp }}" target="_blank">
-      <img src="/static/img/whatsapp.png" alt="WhatsApp">
+      <img src="/static/img/whatsapp.png" alt="WhatsApp" loading="lazy">
     </a>
   {% endif %}
 </div>
@@ -301,7 +302,7 @@ html { scroll-behavior: auto; }
     {% if config.link_mapa %}
       <a href="{{ config.link_mapa }}" target="_blank" style="text-decoration: none;">
         <span style="margin-right: 6px;">➜</span>
-        <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;">
+        <img src="/static/img/map.png" alt="Ver en Google Maps" style="width: 30px;" loading="lazy">
       </a>
     {% endif %}
   </div>
