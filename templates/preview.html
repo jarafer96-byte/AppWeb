@@ -362,8 +362,16 @@ function renderPaginacion(productosFiltrados) {
   }
 }
 
-fetch("/api/productos")
-  .then(r => r.json())
+// Construir la URL con las constantes definidas arriba
+const urlProductos = `${URL_BACKEND}/api/productos?usuario=${encodeURIComponent(EMAIL_VENDEDOR)}`;
+
+fetch(urlProductos)
+  .then(r => {
+    if (!r.ok) {
+      throw new Error("HTTP " + r.status);
+    }
+    return r.json();
+  })
   .then(lista => {
     window.todosLosProductos = Array.isArray(lista) ? lista : [];
     console.log("🌐 Productos recibidos de la API:", window.todosLosProductos.length, window.todosLosProductos);
