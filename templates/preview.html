@@ -237,35 +237,6 @@ html { scroll-behavior: auto; }
     ↑
   </button>
 
-  {% if modoAdminIntentado and not modoAdmin %}
-    <div id="login-admin" class="container mt-4">
-      <h3 class="text-center">🔐 Ingresá tu clave de administrador</h3>
-      <form id="form-login-admin" class="text-center">
-        <input type="text" id="usuario_login" placeholder="Usuario" required>
-        <input type="password" id="clave_login" placeholder="Contraseña" required>
-        <button type="submit" style="margin-top: 10px;">Entrar</button>
-      </form>
-    </div>
-  {% endif %}
-
-  {% if modoAdmin %}
-    <div class="text-center mt-3">
-      <!-- 🔓 Botón para salir del modo administrador -->
-      <a href="/logout-admin" class="btn btn-sm btn-outline-light">🔓 Salir del modo administrador</a>
-
-      <!-- 💳 Botón para configurar / reconfigurar Mercado Pago -->
-      <a href="{{ url_for('conectar_mp') }}" class="btn btn-sm btn-primary mt-2">
-        <img src="{{ url_for('static', filename='img/mercadopago.png') }}" 
-             alt="Mercado Pago" style="height:20px; margin-right:8px;">
-        {% if config.mercado_pago %}
-          Reconfigurar Mercado Pago
-        {% else %}
-          Configurar Mercado Pago
-        {% endif %}
-      </a>
-    </div>
-  {% endif %}
-
 <div id="contenedor-grupos"></div>
   
 <div id="paginacion" class="text-center mt-3"></div>
@@ -307,7 +278,13 @@ html { scroll-behavior: auto; }
     {% endif %}
   </div>
 {% endif %}
-
+  
+<form onsubmit="loginAdmin(event)" class="mt-4 text-center">
+  <input type="text" id="usuario_login" placeholder="Usuario" required>
+  <input type="password" id="clave_login" placeholder="Contraseña" required>
+  <button type="submit">Entrar</button>
+</form>
+  
 <button id="toggleCarrito">🛒</button>
 
 <div id="carrito">
@@ -718,7 +695,7 @@ function loginAdmin(event) {
     btn.textContent = 'Entrando...';
   }
 
-  fetch("/login-admin", {
+  fetch("https://mpagina.onrender.com/login-admin", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ usuario, clave })
@@ -727,7 +704,11 @@ function loginAdmin(event) {
     .then(data => {
       if (data.status === "ok") {
         alert("✅ Acceso concedido");
-        location.href = "/preview"; // redirigir directo al preview
+        // en index estático no podés usar sesión Flask,
+        // pero podés guardar un flag en localStorage
+        localStorage.setItem("modoAdmin", "true");
+        // y redirigir al preview dinámico
+        location.href = "https://mpagina.onrender.com/preview?admin=true";
       } else {
         alert("❌ " + data.message);
       }
