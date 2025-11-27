@@ -981,7 +981,7 @@ def step3():
                     subir_archivo(repo_name, contenido, f"static/img/{logo}")
                     print(f"✅ [Step3] Logo subido: {logo}")
 
-            estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+            estilo_visual = session.get('estilo_visual')
             fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{estilo_visual}.jpeg")
             print(f"🔍 [Step3] Verificando fondo: {fondo_path}")
             if os.path.exists(fondo_path):
