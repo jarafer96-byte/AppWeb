@@ -878,6 +878,7 @@ async function enviarOptimizado(batchSize = 5) {
 
   // ✅ limpiar estado previo de usadas para no arrastrar sesiones anteriores
   localStorage.removeItem("imagenesUsadas");
+  console.log("🧹 [FRONT] imagenesUsadas limpiado de localStorage");
 
   let okCount = 0;
   let failCount = 0;
@@ -885,6 +886,7 @@ async function enviarOptimizado(batchSize = 5) {
   // Asegurar array válido en localStorage
   let rutasFinales = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
   if (!Array.isArray(rutasFinales)) rutasFinales = [];
+  console.log("📂 [FRONT] Estado inicial imagenes_step0:", rutasFinales);
 
   for (let i = 0; i < optimizadas.length; i += batchSize) {
     const batch = optimizadas.slice(i, i + batchSize);
@@ -905,25 +907,28 @@ async function enviarOptimizado(batchSize = 5) {
 
         // 🔑 Guardar rutas reales en localStorage
         rutasFinales = rutasFinales.concat(data.imagenes);
-        console.log("✅ Subidas:", data.imagenes);
+        console.log("✅ [FRONT] Rutas recibidas del backend:", data.imagenes);
+        console.log("📂 [FRONT] rutasFinales acumuladas:", rutasFinales);
 
         // 🔑 Guardar mapping original → generado
-        const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
+        let mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
         if (typeof mapping !== "object" || mapping === null) {
           console.warn("⚠️ [FRONT] Mapping corrupto, se reinicia.");
+          mapping = {};
         }
         data.imagenes.forEach((rutaFinal, idx) => {
           const originalName = batch[idx].name; // ej: "shopping (21).webp"
           const nombreGenerado = rutaFinal.split("/").pop(); // ej: "56fd002c4b62...webp"
           mapping[originalName] = nombreGenerado;
-          console.log("🔗 Mapping agregado:", originalName, "→", nombreGenerado);
+          console.log("🔗 [FRONT] Mapping agregado:", originalName, "→", nombreGenerado);
         });
         localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
+        console.log("💾 [FRONT] Mapping completo guardado en localStorage:", mapping);
 
         // 🔑 Guardar repoDestino si backend lo devuelve
         if (data.repoDestino) {
           localStorage.setItem("repoDestino", data.repoDestino);
-          console.log("📦 Repo destino guardado:", data.repoDestino);
+          console.log("📦 [FRONT] Repo destino guardado:", data.repoDestino);
         }
 
       } else {
@@ -938,6 +943,7 @@ async function enviarOptimizado(batchSize = 5) {
 
   // Persistir rutas reales para Step3
   localStorage.setItem("imagenes_step0", JSON.stringify(rutasFinales));
+  console.log("💾 [FRONT] imagenes_step0 guardado en localStorage:", rutasFinales);
 
   // Restaurar botón
   uploadBtn.disabled = false;
@@ -952,9 +958,9 @@ async function enviarOptimizado(batchSize = 5) {
     continueBtn.classList.remove("btn-disabled");
   }
 
+  console.log("📊 [FRONT] Resumen final → OK:", okCount, "FAIL:", failCount);
   return okCount > 0;
 }
-
 
 // Listener único para subir optimizadas
 uploadBtn.addEventListener("click", async () => {
