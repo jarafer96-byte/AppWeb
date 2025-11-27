@@ -905,7 +905,7 @@ function guardarProducto(producto) {
 }
 
 function cargarProductos(emailUsuario = null) {
-  let url = "/api/productos";
+  let url = "https://mpagina.onrender.com/api/productos";
   if (emailUsuario) {
     url += "?usuario=" + encodeURIComponent(emailUsuario);
   }
