@@ -623,20 +623,6 @@ def guardar_producto():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/ver-productos')
-def ver_productos():
-    usuario = session.get('email')
-    if not usuario:
-        return jsonify([])
-
-    try:
-        ruta = f"usuarios/{usuario}/productos"
-        docs = db.collection(ruta).get()
-        productos = [doc.to_dict() for doc in docs]
-        return jsonify(productos)
-    except Exception:
-        return jsonify([])
-
 # --- Agregar en app.py (temporal, para debug) ---
 @app.route('/debug/session')
 def debug_session():
