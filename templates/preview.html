@@ -702,13 +702,10 @@ function loginAdmin(event) {
   })
     .then(res => res.json())
     .then(data => {
-      if (data.status === "ok") {
+      if (data.status === "ok" && data.token) {
         alert("✅ Acceso concedido");
-        // en index estático no podés usar sesión Flask,
-        // pero podés guardar un flag en localStorage
-        localStorage.setItem("modoAdmin", "true");
-        // y redirigir al preview dinámico
-        location.href = "https://mpagina.onrender.com/preview?admin=true";
+        // redirigir al preview dinámico con token en la URL
+        location.href = `https://mpagina.onrender.com/preview?token=${data.token}`;
       } else {
         alert("❌ " + data.message);
       }
