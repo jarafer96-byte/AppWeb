@@ -903,15 +903,15 @@ async function enviarOptimizado(batchSize = 5) {
         console.log("✅ [FRONT] Rutas recibidas del backend:", data.imagenes);
         console.log("📂 [FRONT] rutasFinales acumuladas:", rutasFinales);
 
-        // 🔑 Guardar mapping original → generado
+        // 🔑 Guardar mapping original → generado (nombre original → UUID.webp)
         let mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
         if (typeof mapping !== "object" || mapping === null) {
           console.warn("⚠️ [FRONT] Mapping corrupto, se reinicia.");
           mapping = {};
         }
         data.imagenes.forEach((rutaFinal, idx) => {
-          const originalName = batch[idx].name; // ej: "shopping (21).webp"
-          const nombreGenerado = rutaFinal.split("/").pop(); // ej: "56fd002c4b62...webp"
+          const originalName = originales[i + idx].name; // ✅ nombre original del archivo
+          const nombreGenerado = rutaFinal.split("/").pop(); // UUID.webp
           mapping[originalName] = nombreGenerado;
           console.log("🔗 [FRONT] Mapping agregado:", originalName, "→", nombreGenerado);
         });
@@ -933,6 +933,27 @@ async function enviarOptimizado(batchSize = 5) {
       console.error("💥 [FRONT] Error en fetch:", err);
     }
   }
+
+  // Persistir rutas reales para Step3
+  localStorage.setItem("imagenes_step0", JSON.stringify(rutasFinales));
+  console.log("💾 [FRONT] imagenes_step0 guardado en localStorage:", rutasFinales);
+
+  // Restaurar botón
+  uploadBtn.disabled = false;
+  uploadBtn.textContent = "Subir optimizadas";
+
+  // Feedback visual
+  const feedback = document.getElementById("feedback");
+  feedback.textContent = `✅ ${okCount} imágenes subidas, ⚠️ ${failCount} fallidas`;
+
+  if (okCount > 0) {
+    continueBtn.disabled = false;
+    continueBtn.classList.remove("btn-disabled");
+  }
+
+  console.log("📊 [FRONT] Resumen final → OK:", okCount, "FAIL:", failCount);
+  return okCount > 0;
+}
 
   // Persistir rutas reales para Step3
   localStorage.setItem("imagenes_step0", JSON.stringify(rutasFinales));
