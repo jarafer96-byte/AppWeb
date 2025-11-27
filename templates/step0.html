@@ -373,17 +373,10 @@ input.addEventListener('change', () => {
       guardarImagenEnIndexedDB(f);
       console.log("✅ [FRONT] Imagen agregada:", f.name);
 
-      // 🔑 Guardar mapping preliminar (basename → nombre provisional)
-      const basenameOriginal = f.name;
-      const nombreGenerado = f.name; // si luego renombrás con hash, usá ese valor
-      const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
-      mapping[basenameOriginal] = nombreGenerado;
-      localStorage.setItem("imagenes_mapping", JSON.stringify(mapping));
-
-      // ⚠️ Importante: NO generar rutas finales aquí.
-      // Las rutas reales (GitHub raw o /static) se guardan recién en enviarOptimizado()
+      // ⚠️ Importante: NO guardar mapping aquí.
+      // El mapping correcto (original → UUID.webp) se establece recién en enviarOptimizado()
       // cuando el backend devuelve los nombres definitivos.
-      console.log("ℹ️ [FRONT] Ruta final se establecerá después del upload para:", nombreGenerado);
+      console.log("ℹ️ [FRONT] Mapping se definirá después del upload para:", f.name);
 
     } else {
       duplicados++;
