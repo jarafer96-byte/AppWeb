@@ -1362,7 +1362,7 @@ def preview():
         print("❌ [Preview] Sesión no iniciada")
         return "Error: sesión no iniciada", 403
 
-    estilo_visual = session.get('estilo_visual') or 'claro_moderno'
+    estilo_visual = session.get('estilo_visual')
     print(f"🎨 [Preview] email={email} estilo_visual={estilo_visual}")
 
     # Obtener productos desde Firestore
