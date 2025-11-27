@@ -905,19 +905,23 @@ function guardarProducto(producto) {
 }
 
 function cargarProductos(emailUsuario = null) {
-  let url = '/api/productos';
+  let url = "/api/productos";
   if (emailUsuario) {
-    url += '?usuario=' + encodeURIComponent(emailUsuario);
+    url += "?usuario=" + encodeURIComponent(emailUsuario);
   }
 
   fetch(url)
     .then(res => {
-      if (!res.ok) throw new Error("HTTP " + res.status);
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status);
+      }
       return res.json();
     })
     .then(productos => {
       if (Array.isArray(productos)) {
         renderizarProductos(productos);
+      } else if (productos.error) {
+        mostrarAviso("❌ " + productos.error);
       } else {
         mostrarAviso("❌ Respuesta inválida del servidor");
       }
