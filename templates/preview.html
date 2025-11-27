@@ -26,7 +26,15 @@
   {% endif %}
 
 <style>
-body { font-family: {{ config.fuente | safe }}; background-image: url("/static/img/{{ config.estilo_visual }}.jpeg"); background-size: cover; background-repeat: no-repeat; background-attachment: fixed; background-position: center; padding-top: 70px; }
+body {
+  font-family: {{ config.fuente | safe }};
+  {% if config.estilo_visual %}
+  background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
+  {% else %}
+  background-color: #121212; /* fallback seguro */
+  {% endif %}
+  background-size: cover; background-repeat: no-repeat; background-attachment: fixed; background-position: center; padding-top: 70px;
+}
 
 h1, h2, h3, .btn, .card { font-family: {{ config.fuente | safe }}; }
 
@@ -316,7 +324,10 @@ html { scroll-behavior: auto; }
 
   <script>
 const configWhatsApp = "{{ config.whatsapp }}";
-const EMAIL_VENDEDOR = "{{ session.get('email') }}";
+// Si hay sesión (preview), usa ese email.
+// Si no hay sesión (index estático), usa el email fijo del dueño.
+const EMAIL_VENDEDOR = "{{ session.get('email') or 'usuario@ejemplo.com' }}";
+
 const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
 
   // Mostrar/ocultar botón volver arriba
@@ -729,57 +740,6 @@ function loginAdmin(event) {
     });
 }
     
-function ordenarGrupo(valor) {
-  console.log("🔄 Evento change en ordenPrecio, valor seleccionado:", valor);
-
-  const cont = document.getElementById("productos");
-  if (!cont) return;
-
-  const grupoCanon = window.currentGrupo;
-  const subCanon = window.currentSub;
-
-  // Filtrar productos del grupo/subgrupo activo
-  let productosFiltrados = window.todosLosProductos.filter(p =>
-    String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase() &&
-    String(p.subgrupo || "").toLowerCase() === subCanon.toLowerCase()
-  );
-
-  // Ordenar por precio
-  productosFiltrados.sort((a, b) => {
-    const pa = Number(a.precio) || 0;
-    const pb = Number(b.precio) || 0;
-    return valor === "asc" ? pa - pb : pb - pa;
-  });
-  console.log("📊 Productos ordenados por precio:", valor, productosFiltrados);
-
-  // Limpiar contenedor
-  cont.innerHTML = "";
-
-  // Recrear bloque de grupo y subgrupo
-  const grupoDiv = document.createElement("div");
-  grupoDiv.className = "grupo-section";
-  grupoDiv.innerHTML = `<h3>${grupoCanon}</h3>`;
-
-  const subDiv = document.createElement("div");
-  subDiv.className = "subgrupo-bloque";
-  subDiv.innerHTML = `<h4>${subCanon}</h4>`;
-
-  // Insertar cards ordenadas
-  productosFiltrados.forEach(p => {
-    const card = renderProducto(p);
-    subDiv.appendChild(card);
-
-    requestAnimationFrame(() => card.classList.add("show"));
-    setTimeout(() => card.classList.remove("fade-reorder"), 50);
-
-    console.log("🛒 Card insertada en subgrupo:", p.nombre);
-  });
-
-  grupoDiv.appendChild(subDiv);
-  cont.appendChild(grupoDiv);
-  console.log("✅ Renderizado completo en ordenPrecio, hijos finales en #productos:", cont.children.length);
-}
-
 function editarTalles(id) {
   const select = document.getElementById("talle_" + id);
   if (!select) return;
@@ -1097,7 +1057,7 @@ function renderProducto(p) {
             : `<option disabled selected>Sin talles disponibles</option>`
         }
       </select>
-      ${modoAdmin ? `
+      ${window.modoAdmin ? `
         <button type="button" class="btn btn-sm btn-outline-primary ms-2"
           onclick="editarTalles('${p.id_base}')">✎ Editar</button>` : ""}
     </div>
@@ -1114,7 +1074,7 @@ function renderProducto(p) {
         <p>
           <strong>Precio:</strong> 
           $<span id="precio_${p.id_base}">${p.precio}</span>
-          ${modoAdmin ? `
+          ${window.modoAdmin ? `
             <button type="button" class="btn btn-sm btn-outline-primary ms-2"
               onclick="editarPrecio('${p.id_base}')">✎ Editar</button>` : ""}
         </p>
@@ -1189,12 +1149,6 @@ function ajustarPosicionesPaneles() {
 
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Login admin
-  const form = document.getElementById("form-login-admin");
-  if (form) {
-    form.addEventListener("submit", loginAdmin);
-  }
-
   // Ajustar posiciones al cargar y al redimensionar
   window.addEventListener("load", ajustarPosicionesPaneles);
   window.addEventListener("resize", ajustarPosicionesPaneles);
@@ -1396,7 +1350,6 @@ if (btnProductos) {
 <script type="module">
 const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
 const email = "{{ session.get('email') or '' }}";
-const modoAdmin = {{ 'true' if modoAdmin else 'false' }};
 
 setTimeout(() => {
   if (!window.todosLosProductos || window.todosLosProductos.length === 0) return;
@@ -1442,7 +1395,8 @@ setTimeout(() => {
   console.log("PUBLIC_KEY:", PUBLIC_KEY);
 </script>
 <script>
-  window.modoAdmin = {{ modoAdmin|tojson }};
-</script>  
+  // Si Flask inyecta modoAdmin, úsalo. Si no, fuerza false.
+  window.modoAdmin = {{ modoAdmin|default(false)|tojson }};
+</script> 
 </body>
 </html>
