@@ -22,6 +22,7 @@ from firebase_admin import credentials, firestore
 from flask_cors import CORS, cross_origin
 from google.cloud import storage
 from google.oauth2 import service_account
+import secrets
 
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -591,13 +592,17 @@ def login_admin():
             session.permanent = True
             session['modo_admin'] = True
             session['email'] = usuario
-            return jsonify({'status': 'ok'})
+
+            # 🔑 generar token único y guardarlo en sesión
+            token = secrets.token_urlsafe(32)
+            session['token_admin'] = token
+
+            return jsonify({'status': 'ok', 'token': token})
         else:
             return jsonify({'status': 'error', 'message': 'Clave incorrecta'}), 403
 
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
 
 @app.route('/logout-admin')
 def logout_admin():
@@ -1343,14 +1348,15 @@ def pagar():
 def preview():
     print("🚀 [Preview] Entrando a /preview")
 
-    # Flags de admin
-    modo_admin = bool(session.get('modo_admin')) and (
-        request.args.get('admin') == 'true' or request.form.get('admin') == 'true'
-    )
-    modo_admin_intentado = (request.args.get('admin') == 'true' or request.form.get('admin') == 'true')
+    # 🔑 Validar token recibido en query o form
+    token_arg = request.args.get('token') or request.form.get('token')
+    token_session = session.get('token_admin')
     email = session.get('email')
 
-    print(f"🔑 [Preview] modo_admin={modo_admin} modo_admin_intentado={modo_admin_intentado}")
+    modo_admin = bool(session.get('modo_admin')) and token_arg and token_arg == token_session
+    modo_admin_intentado = bool(token_arg)
+
+    print(f"🔑 [Preview] modo_admin={modo_admin} modo_admin_intentado={modo_admin_intentado} token_arg={token_arg}")
 
     if not email:
         print("❌ [Preview] Sesión no iniciada")
@@ -1415,7 +1421,7 @@ def preview():
         'sobre_mi': session.get('sobre_mi'),
         'mercado_pago': bool(mercado_pago_token),
         'public_key': public_key,
-        'productos': productos,   # ✅ ahora cada producto tiene 'imagen_url' con la ruta de GCS
+        'productos': productos,
         'bloques': [],
         'descargado': session.get('descargado', False),
         'usarFirestore': True
@@ -1434,13 +1440,12 @@ def preview():
         except Exception as e:
             print("💥 [Preview] Error al crear repo:", e)
 
-    # Subir archivos si el repo existe (solo logo y fondo, productos ya están en GCS)
+    # Subir archivos si el repo existe
     if session.get('repo_creado') and session.get('repo_nombre'):
         nombre_repo = session['repo_nombre']
         token = os.getenv("GITHUB_TOKEN")
         if token:
             try:
-                # Subir logo
                 logo = config.get("logo")
                 if logo:
                     logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
@@ -1449,7 +1454,6 @@ def preview():
                             subir_archivo(nombre_repo, f.read(), f"static/img/{logo}")
                         print(f"✅ [Preview] Logo subido: {logo}")
 
-                # Subir fondo
                 fondo = f"{estilo_visual}.jpeg"
                 fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
                 if os.path.exists(fondo_path):
