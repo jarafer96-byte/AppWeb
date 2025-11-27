@@ -725,21 +725,30 @@ function cargarImagenesDesdeIndexedDB(done) {
           console.log("📌 [IndexedDB] Mapping lookup:", nombreOriginal, "→", nombreGenerado);
 
           let imagen_url;
-          if (nombreGenerado) {
+          if (nombreGenerado && nombreGenerado !== nombreOriginal) {
             // ✅ Construir URL pública de GCS con email codificado
             const bucket = "mpagina";
             const email = localStorage.getItem("email") || "anonimo";
             const email_encoded = email.replace("@", "%40");
             console.log("📌 [IndexedDB] Email usado para URL:", email_encoded);
             imagen_url = `https://storage.googleapis.com/${bucket}/${email_encoded}/${nombreGenerado}`;
-            console.log("🔗 [IndexedDB] URL construida:", imagen_url);
+            console.log("🔗 [IndexedDB] URL construida con UUID:", imagen_url);
 
-            // ✅ Usar UUID como nombre (dataset.nombre)
             buffer.push({ nombre: nombreGenerado, imagen_url });
           } else {
-            imagen_url = "/static/img/fallback.webp";
-            console.warn("⚠️ [IndexedDB] No se encontró mapping para", nombreOriginal, "→ usando fallback");
-            buffer.push({ nombre: nombreOriginal, imagen_url });
+            // ⚠️ Mapping no tiene UUID → intentar usar rutas finales de step0
+            const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+            const rutaUUID = rutasStep0.find(r => r.includes(nombreOriginal.split(".")[0])) || null;
+
+            if (rutaUUID) {
+              const basename = rutaUUID.split("/").pop();
+              console.log("🔄 [IndexedDB] Fallback a imagenes_step0:", rutaUUID);
+              buffer.push({ nombre: basename, imagen_url: rutaUUID });
+            } else {
+              imagen_url = "/static/img/fallback.webp";
+              console.warn("⚠️ [IndexedDB] No se encontró UUID para", nombreOriginal, "→ usando fallback genérico");
+              buffer.push({ nombre: nombreOriginal, imagen_url });
+            }
           }
 
           count++;
@@ -769,7 +778,7 @@ function cargarImagenesDesdeIndexedDB(done) {
     };
   });
 }
-
+  
 function crearSubgrupo(btn) {
   const grupo = btn.closest('.card');
   const nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
