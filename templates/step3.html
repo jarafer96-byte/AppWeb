@@ -473,7 +473,7 @@ function inicializarCarrusel() {
 
   cargarImagenesDesdeIndexedDB((count) => {
     if (count > 0) {
-      console.log("📦 Carrusel restaurado desde IndexedDB con", count, "imágenes");
+      console.log("📦 [Step3] Carrusel restaurado desde IndexedDB con", count, "imágenes");
     } else {
       // Fallback: usar rutas finales guardadas en localStorage (ya son URLs completas de GCS)
       const imagenesFinales = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
@@ -483,21 +483,26 @@ function inicializarCarrusel() {
         imagenesFinales.forEach(ruta => {
           if (!ruta) return;
 
-          const basename = ruta.split("/").pop(); // UUID.webp
-          const imagen_url = ruta; // ya es URL absoluta de GCS
+          // 🔑 basename siempre será el UUID.webp al final de la URL
+          const basename = ruta.split("/").pop();
+          const imagen_url = ruta;
 
-          // ✅ Usar clave imagen_url para que agregarSlide funcione
-          buffer.push({ nombre: basename, imagen_url: ruta });
+          buffer.push({ nombre: basename, imagen_url });
+          console.log("➕ [Step3] Imagen agregada al buffer:", { nombre: basename, imagen_url });
 
           if (buffer.length === 8) {
             agregarSlide(buffer, first);
+            console.log("🖼️ [Step3] Slide agregado con 8 imágenes");
             first = false;
             buffer = [];
           }
         });
 
-        if (buffer.length) agregarSlide(buffer, first);
-        console.log("📦 Carrusel inicializado con imágenes finales:", imagenesFinales.length);
+        if (buffer.length) {
+          agregarSlide(buffer, first);
+          console.log("🖼️ [Step3] Slide final agregado con", buffer.length, "imágenes");
+        }
+        console.log("📦 [Step3] Carrusel inicializado con imágenes finales:", imagenesFinales.length);
       } else {
         console.warn("⚠️ [Step3] No hay imágenes en localStorage.imagenes_step0");
       }
@@ -507,7 +512,7 @@ function inicializarCarrusel() {
     const firstImg = document.querySelector('#carouselGlobal .carousel-item.active img:not(.usada)');
     if (firstImg) {
       seleccionarImagen(firstImg);
-      console.log("✅ Selección inicial:", window.imagenSeleccionada, window.imagenSeleccionadaUrl);
+      console.log("✅ [Step3] Selección inicial:", window.imagenSeleccionada, window.imagenSeleccionadaUrl);
     }
   });
 }
