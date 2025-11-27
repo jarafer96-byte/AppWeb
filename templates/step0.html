@@ -955,27 +955,6 @@ async function enviarOptimizado(batchSize = 5) {
   return okCount > 0;
 }
 
-  // Persistir rutas reales para Step3
-  localStorage.setItem("imagenes_step0", JSON.stringify(rutasFinales));
-  console.log("💾 [FRONT] imagenes_step0 guardado en localStorage:", rutasFinales);
-
-  // Restaurar botón
-  uploadBtn.disabled = false;
-  uploadBtn.textContent = "Subir optimizadas";
-
-  // Feedback visual
-  const feedback = document.getElementById("feedback");
-  feedback.textContent = `✅ ${okCount} imágenes subidas, ⚠️ ${failCount} fallidas`;
-
-  if (okCount > 0) {
-    continueBtn.disabled = false;
-    continueBtn.classList.remove("btn-disabled");
-  }
-
-  console.log("📊 [FRONT] Resumen final → OK:", okCount, "FAIL:", failCount);
-  return okCount > 0;
-}
-
 // Listener único para subir optimizadas
 uploadBtn.addEventListener("click", async () => {
   const ok = await enviarOptimizado(50);
