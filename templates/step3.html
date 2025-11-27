@@ -486,7 +486,7 @@ function inicializarCarrusel() {
           const imagen_url = ruta; // ya es URL absoluta de GCS
 
           // ✅ Usar clave imagen_url para que agregarSlide funcione
-          buffer.push({ nombre: basename, imagen_url });
+          buffer.push({ nombre: basename, imagen_url: ruta });
 
           if (buffer.length === 8) {
             agregarSlide(buffer, first);
