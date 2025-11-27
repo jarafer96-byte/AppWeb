@@ -270,9 +270,10 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
 
 @app.route("/api/productos")
 def api_productos():
-    email = session.get("email")
+    # Permitir email desde sesión (preview/admin) o desde query string (index público)
+    email = session.get("email") or request.args.get("usuario")
     if not email:
-        return jsonify({"error": "No estás logueado"}), 403
+        return jsonify({"error": "No se especificó usuario"}), 403
 
     try:
         # Colección de productos del usuario
@@ -290,7 +291,7 @@ def api_productos():
                 "grupo": data.get("grupo"),
                 "subgrupo": data.get("subgrupo"),
                 "descripcion": data.get("descripcion"),
-                "imagen_url": data.get("imagen_url"), 
+                "imagen_url": data.get("imagen_url"),
                 "orden": data.get("orden"),
                 "talles": data.get("talles", []),
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
@@ -304,7 +305,6 @@ def api_productos():
     except Exception as e:
         print(f"[API_PRODUCTOS] Error al leer productos: {e}")
         return jsonify({"error": str(e)}), 500
-
         
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
