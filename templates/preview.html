@@ -292,6 +292,17 @@ html { scroll-behavior: auto; }
   <input type="password" id="clave_login" placeholder="Contraseña" required>
   <button type="submit">Entrar</button>
 </form>
+<div class="text-center mt-4" id="logoutAdminWrapper" style="display:none;">
+  <button type="button" class="btn btn-danger" onclick="salirAdmin()">🚪 Salir de Admin</button>
+</div>
+  
+{% if modoAdmin %}
+  <div class="text-center mt-4">
+    <form action="/logout-admin" method="post">
+      <button type="submit" class="btn btn-danger">🚪 Salir de Admin</button>
+    </form>
+  </div>
+{% endif %}
   
 <button id="toggleCarrito">🛒</button>
 
@@ -346,6 +357,22 @@ const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
 const itemsPorPagina = 12;
 let totalPaginas = 0;
 
+ function salirAdmin() {
+    window.modoAdmin = false;
+    // refrescar productos para que se oculten los botones ✎
+    if (window.todosLosProductos) {
+      const cont = document.getElementById("productos");
+      cont.innerHTML = "";
+      window.todosLosProductos.forEach(p => cont.appendChild(renderProducto(p)));
+    }
+    document.getElementById("logoutAdminWrapper").style.display = "none";
+  }
+
+  // Mostrar el botón solo si modoAdmin está activo
+  if (window.modoAdmin) {
+    document.getElementById("logoutAdminWrapper").style.display = "block";
+  }
+    
 function renderPagina(pagina, productosFiltrados) {
   const cont = document.getElementById("productos"); // 👈 agregar esto
   totalPaginas = Math.ceil(productosFiltrados.length / itemsPorPagina);
