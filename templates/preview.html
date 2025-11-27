@@ -894,6 +894,7 @@ function guardarProducto(producto) {
     .then(data => {
       if (data.status === 'ok') {
         mostrarAviso("✅ Producto guardado correctamente");
+        cargarProductos(); // refresca catálogo después de guardar
       } else {
         mostrarAviso("❌ " + (data.error || "Error al guardar producto"));
       }
@@ -903,9 +904,17 @@ function guardarProducto(producto) {
     });
 }
 
-function cargarProductos() {
-  fetch('/ver-productos')
-    .then(res => res.json())
+function cargarProductos(emailUsuario = null) {
+  let url = '/api/productos';
+  if (emailUsuario) {
+    url += '?usuario=' + encodeURIComponent(emailUsuario);
+  }
+
+  fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
     .then(productos => {
       if (Array.isArray(productos)) {
         renderizarProductos(productos);
@@ -913,7 +922,8 @@ function cargarProductos() {
         mostrarAviso("❌ Respuesta inválida del servidor");
       }
     })
-    .catch(() => {
+    .catch(err => {
+      console.error("Error cargando productos:", err);
       mostrarAviso("❌ Error al cargar productos");
     });
 }
