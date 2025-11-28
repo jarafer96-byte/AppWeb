@@ -247,6 +247,22 @@ html { scroll-behavior: auto; }
 
 <div id="contenedor-grupos"></div>
   
+<div class="card producto-card admin-card">
+  <div class="card-body">
+    <!-- Foto -->
+    <img id="previewFoto" src="" alt="Sin foto" class="d-none w-100 mb-2">
+    <input type="file" id="inputFoto" accept="image/*" class="form-control mb-2">
+
+    <!-- Datos -->
+    <input type="text" id="nombreProd" placeholder="Nombre producto" class="form-control mb-2">
+    <input type="number" id="precioProd" placeholder="Precio" class="form-control mb-2">
+    <input type="text" id="tallesProd" placeholder="Talles (S,M,L)" class="form-control mb-2">
+
+    <!-- Confirmar -->
+    <button id="btnConfirmarProd" class="btn btn-success">✅ Confirmar</button>
+  </div>
+</div>
+  
 <div id="paginacion" class="text-center mt-3"></div>
 
 <div class="text-center mt-5">
@@ -355,6 +371,68 @@ const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
 const itemsPorPagina = 12;
 let totalPaginas = 0;
 
+async function optimizarImagen(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => img.src = e.target.result;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const maxW = 800;
+      const scale = maxW / img.width;
+      canvas.width = maxW;
+      canvas.height = img.height * scale;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.8);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// 👉 Preview inmediato de la foto optimizada
+document.getElementById("inputFoto").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const blobOptimizado = await optimizarImagen(file);
+  window.fotoOptimizada = blobOptimizado; // guardamos en memoria
+
+  const urlPreview = URL.createObjectURL(blobOptimizado);
+  const imgPreview = document.getElementById("previewFoto");
+  imgPreview.src = urlPreview;
+  imgPreview.classList.remove("d-none");
+});
+
+// 👉 Guardar solo al confirmar
+document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
+  const email = window.tokenAdminEmail;
+
+  // 1. Subir foto optimizada
+  const formData = new FormData();
+  formData.append("file", window.fotoOptimizada, "producto.jpg");
+  formData.append("email", email);
+
+  const respFoto = await fetch("/subir-foto", { method: "POST", body: formData });
+  const { url } = await respFoto.json();
+
+  // 2. Armar producto
+  const producto = {
+    nombre: document.getElementById("nombreProd").value,
+    precio: parseFloat(document.getElementById("precioProd").value),
+    talles: document.getElementById("tallesProd").value.split(","),
+    foto_url: url
+  };
+
+  // 3. Guardar en Firestore
+  await fetch("/guardar-producto", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ producto, email })
+  });
+
+  alert("✅ Producto guardado correctamente");
+});
+    
 function salirAdmin() {
   console.log("🚪 Saliendo de modo admin, limpiando token...");
 
