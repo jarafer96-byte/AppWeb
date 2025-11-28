@@ -269,6 +269,51 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         print(traceback.format_exc())
         return {"ok": False, "error": str(e)}
 
+@app.route("/subir-foto", methods=["POST"])
+def subir_foto():
+    try:
+        # 1) Obtener archivo y email
+        file = request.files.get("file")
+        email = request.form.get("email")
+
+        if not file or not email:
+            return jsonify({"error": "Falta archivo o email"}), 400
+
+        if not allowed_file(file.filename):
+            return jsonify({"error": "Formato inválido. Usa png/jpg/jpeg/webp"}), 400
+
+        # 2) Validar tamaño por si llega sin respetar MAX_CONTENT_LENGTH
+        file.seek(0, 2)  # ir al final
+        size = file.tell()
+        file.seek(0)     # volver al inicio
+        if size > MAX_IMAGE_SIZE_BYTES:
+            return jsonify({"error": "Imagen excede 3 MB"}), 413
+
+        # 3) Nombre seguro y único
+        original_name = secure_filename(file.filename)
+        timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        filename = f"{timestamp}_{original_name}"
+
+        # 4) Ruta organizada por email
+        # Tip: si querés evitar caracteres raros en email como ".", "@", podés reemplazarlos
+        email_path = email.replace("@", "_at_").replace(".", "_dot_")
+        blob_path = f"usuarios/{email_path}/imagenes/{filename}"
+
+        # 5) Subir al bucket con content_type correcto
+        blob = bucket.blob(blob_path)
+        blob.upload_from_file(file, content_type=file.content_type or "image/jpeg")
+
+        # 6) Hacer público y devolver URL
+        blob.make_public()
+        public_url = blob.public_url
+
+        print(f"[Upload] {email} -> {blob_path} ({size} bytes)")
+        return jsonify({"url": public_url, "path": blob_path})
+
+    except Exception as e:
+        print("[Upload][Error]", str(e))
+        return jsonify({"error": str(e)}), 500
+        
 @app.route("/api/productos")
 def api_productos():
     # Permitir email desde sesión (preview/admin) o desde query string (index público)
