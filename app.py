@@ -611,12 +611,12 @@ def logout_admin():
 
 @app.route('/guardar-producto', methods=['POST'])
 def guardar_producto():
-    usuario = session.get('email')
-    if not usuario:
-        return jsonify({'status': 'error', 'message': 'No estás logueado'}), 403
-
     data = request.get_json(silent=True) or {}
-    producto = data.get('producto')
+    usuario = data.get("email")   # 👈 ahora viene del body
+    producto = data.get("producto")
+
+    if not usuario:
+        return jsonify({'status': 'error', 'message': 'Falta email'}), 403
 
     if not producto:
         return jsonify({'status': 'error', 'message': 'Producto inválido'}), 400
@@ -624,8 +624,10 @@ def guardar_producto():
     try:
         ruta = f"usuarios/{usuario}/productos"
         db.collection(ruta).add(producto)
+        print(f"✅ Producto guardado para {usuario}: {producto.get('nombre', 'sin nombre')}")
         return jsonify({'status': 'ok'})
     except Exception as e:
+        print("❌ Error al guardar producto:", e)
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # --- Agregar en app.py (temporal, para debug) ---
@@ -700,10 +702,10 @@ def actualizar_precio():
 
 @app.route('/actualizar-talles', methods=['POST'])
 def actualizar_talles():
-    data = request.get_json()
+    data = request.get_json() or {}
     id_base = data.get("id")
     nuevos_talles = data.get("talles", [])
-    email = session.get("email")
+    email = data.get("email")   # 👈 ahora viene del body
 
     if not email or not id_base:
         return jsonify({"error": "Datos incompletos"}), 400
@@ -723,13 +725,12 @@ def actualizar_talles():
         print(f"[ACTUALIZAR-TALLES] ❌ Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-
 @app.route('/actualizar-firestore', methods=['POST'])
 def actualizar_firestore():
     data = request.get_json(silent=True) or {}
-    id_base = data.get('id')
-    campos = {k: v for k, v in data.items() if k != 'id'}
-    email = session.get("email")
+    id_base = data.get("id")          # 👈 explícito
+    email = data.get("email")         # 👈 explícito
+    campos = {k: v for k, v in data.items() if k not in ("id", "email")}
 
     if not email or not id_base or not campos:
         return jsonify({'status': 'error', 'message': 'Datos incompletos'}), 400
