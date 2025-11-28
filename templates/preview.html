@@ -1130,21 +1130,19 @@ function guardarProducto(producto) {
   })
     .then(res => {
       console.log("📡 [guardarProducto] Respuesta recibida del backend, status:", res.status);
-      return res.json()
-        .catch(err => {
-          console.error("💥 [guardarProducto] Error parseando JSON:", err);
-          throw new Error("Respuesta no es JSON válido");
-        });
+      return res.json().catch(err => {
+        console.error("💥 [guardarProducto] Error parseando JSON:", err);
+        throw new Error("Respuesta no es JSON válido");
+      });
     })
     .then(data => {
-      // 👉 guardamos la última respuesta en global para inspección manual en consola
-      window.lastResponse = data;
+      window.lastResponse = data; // 👉 inspección manual en consola
 
       console.log("📩 [guardarProducto] JSON recibido (objeto):", data);
       console.log("📩 [guardarProducto] JSON recibido (string):", JSON.stringify(data, null, 2));
 
-      // ✅ aceptar ambos formatos de éxito: {ok:true} o {status:"ok"}
-      if (Boolean(data.ok) || data.status === "ok") {
+      // ✅ éxito si backend devuelve {status:"ok"} o {ok:true}
+      if (data.status === "ok" || Boolean(data.ok)) {
         console.log("✅ [guardarProducto] Éxito detectado:", data);
         mostrarAviso("✅ Producto guardado correctamente");
 
@@ -1155,9 +1153,8 @@ function guardarProducto(producto) {
           console.warn("⚠️ [guardarProducto] cargarProductos no está definido");
         }
       } else {
-        console.error("❌ [guardarProducto] Error en respuesta backend (objeto completo):", data);
-        console.error("❌ [guardarProducto] Error en respuesta backend (string):", JSON.stringify(data));
         const errorMsg = data.error || JSON.stringify(data);
+        console.error("❌ [guardarProducto] Error en respuesta backend:", errorMsg);
         mostrarAviso("❌ " + errorMsg);
       }
     })
