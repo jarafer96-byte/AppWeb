@@ -335,10 +335,11 @@ html { scroll-behavior: auto; }
 
   <script>
 const configWhatsApp = "{{ config.whatsapp }}";
-// Si hay sesión (preview), usa ese email.
-// Si no hay sesión (index estático), usa el email fijo del dueño.
-const EMAIL_VENDEDOR = "{{ session.get('email') or 'usuario@ejemplo.com' }}";
-
+// Opción A: email fijo del dueño
+const EMAIL_VENDEDOR = "tuemail@dominio.com";
+// Opción B: leerlo de la URL si lo pasás como query param
+const urlParams = new URLSearchParams(window.location.search);
+const EMAIL_VENDEDOR = urlParams.get("usuario") || "usuario@ejemplo.com";
 const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
 
   // Mostrar/ocultar botón volver arriba
@@ -357,21 +358,46 @@ const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
 const itemsPorPagina = 12;
 let totalPaginas = 0;
 
- function salirAdmin() {
-    window.modoAdmin = false;
-    // refrescar productos para que se oculten los botones ✎
-    if (window.todosLosProductos) {
-      const cont = document.getElementById("productos");
+function salirAdmin() {
+  console.log("🚪 Saliendo de modo admin, limpiando token...");
+
+  // Desactivar modo admin y limpiar token
+  window.modoAdmin = false;
+  window.tokenAdmin = null;
+
+  // Limpiar la URL para quitar el ?token=...
+  history.replaceState(null, "", "index.html");
+
+  // Refrescar productos para que se oculten los botones ✎
+  if (window.todosLosProductos) {
+    const cont = document.getElementById("productos");
+    if (cont) {
       cont.innerHTML = "";
       window.todosLosProductos.forEach(p => cont.appendChild(renderProducto(p)));
+      console.log("✅ Productos re-renderizados en modo público, total:", cont.children.length);
+    } else {
+      console.warn("⚠️ No se encontró el contenedor #productos al salir de admin");
     }
-    document.getElementById("logoutAdminWrapper").style.display = "none";
   }
 
-  // Mostrar el botón solo si modoAdmin está activo
-  if (window.modoAdmin) {
-    document.getElementById("logoutAdminWrapper").style.display = "block";
+  // Ocultar botón de logout
+  const logoutWrapper = document.getElementById("logoutAdminWrapper");
+  if (logoutWrapper) {
+    logoutWrapper.style.display = "none";
+    console.log("✅ Botón de logout ocultado");
+  } else {
+    console.warn("⚠️ No se encontró #logoutAdminWrapper en el DOM");
   }
+}
+
+// Mostrar el botón solo si modoAdmin está activo
+if (window.modoAdmin) {
+  const logoutWrapper = document.getElementById("logoutAdminWrapper");
+  if (logoutWrapper) {
+    logoutWrapper.style.display = "block";
+    console.log("🔑 Modo admin activo, mostrando botón de logout");
+  }
+}
     
 function renderPagina(pagina, productosFiltrados) {
   const cont = document.getElementById("productos"); // 👈 agregar esto
@@ -400,8 +426,14 @@ function renderPaginacion(productosFiltrados) {
   }
 }
 
-// Construir la URL con las constantes definidas arriba
-const urlProductos = `${URL_BACKEND}/api/productos?usuario=${encodeURIComponent(EMAIL_VENDEDOR)}`;
+// const EMAIL_VENDEDOR = urlParams.get("usuario") || "usuario@ejemplo.com";
+let urlProductos = `https://mpagina.onrender.com/api/productos?usuario=${encodeURIComponent(EMAIL_VENDEDOR)}`;
+// Si estás en modo admin y tenés token, lo incluimos
+if (window.modoAdmin && window.tokenAdmin) {
+  urlProductos += `&token=${encodeURIComponent(window.tokenAdmin)}`;
+}
+
+console.log("📡 Solicitando productos desde:", urlProductos);
 
 fetch(urlProductos)
   .then(r => {
@@ -464,7 +496,7 @@ fetch(urlProductos)
     console.log("✅ Render inicial completado");
   })
   .catch(err => {
-    console.error("Error cargando productos:", err);
+    console.error("💥 Error cargando productos:", err);
     const cont = document.getElementById("productos");
     if (cont) cont.innerHTML = "<p>Error al cargar productos.</p>";
   });
@@ -689,25 +721,36 @@ function editarPrecio(id) {
 
 function guardarPrecio(id) {
   const input = document.getElementById("input_precio_" + id);
-  if (!input) return;
+  if (!input) {
+    console.warn("❌ No se encontró el input de precio:", "input_precio_" + id);
+    return;
+  }
 
   const nuevoValor = parseFloat(input.value);
   if (isNaN(nuevoValor)) {
+    console.error("⚠️ Valor ingresado no es un número válido:", input.value);
     alert("❌ El precio ingresado no es válido");
     return;
   }
 
-  fetch('/actualizar-precio', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, nuevoPrecio: nuevoValor })
+  console.log("📡 Enviando precio al backend:", { id, nuevoPrecio: nuevoValor, token: window.tokenAdmin });
+
+  fetch("https://mpagina.onrender.com/actualizar-precio", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, nuevoPrecio: nuevoValor, token: window.tokenAdmin }) // 🔑 token incluido
   })
-    .then(res => res.json())
+    .then(res => {
+      console.log("📡 Respuesta recibida del backend, status:", res.status);
+      return res.json();
+    })
     .then(data => {
+      console.log("📩 Respuesta backend guardarPrecio:", data);
+
       if (data.status === "ok") {
         const span = document.createElement("span");
         span.id = "precio_" + id;
-        const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const fmt = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         span.textContent = "$" + fmt.format(nuevoValor);
         span.className = input.className;
         span.classList.add("text-success");
@@ -715,11 +758,14 @@ function guardarPrecio(id) {
         setTimeout(() => span.classList.remove("text-success"), 1000);
 
         if (typeof mostrarAvisoPrecio === "function") mostrarAvisoPrecio();
+        console.log("✅ Precio actualizado en DOM para producto:", id);
       } else {
+        console.error("❌ Error en respuesta del backend:", data);
         alert("❌ No se pudo actualizar el precio en el servidor");
       }
     })
-    .catch(() => {
+    .catch(err => {
+      console.error("💥 Error de red al actualizar precio:", err);
       alert("❌ Error de conexión al guardar el precio");
     });
 }
@@ -751,7 +797,7 @@ function loginAdmin(event) {
       if (data.status === "ok" && data.token) {
         alert("✅ Acceso concedido");
         // redirigir al preview dinámico con token en la URL
-        location.href = `https://mpagina.onrender.com/preview?token=${data.token}`;
+        location.href = `index.html?token=${data.token}`;
       } else {
         alert("❌ " + data.message);
       }
@@ -790,18 +836,26 @@ function editarTalles(id) {
 
 function guardarTalles(id) {
   const input = document.getElementById("input_talles_" + id);
-  if (!input) return;
+  if (!input) {
+    console.warn("❌ No se encontró el input de talles:", "input_talles_" + id);
+    return;
+  }
 
+  // Parsear "S, M, L" → ["S","M","L"]
   const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
+  console.log("📡 Enviando talles al backend:", { id, talles: nuevosTalles, token: window.tokenAdmin });
 
-  fetch('/actualizar-talles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, talles: nuevosTalles })
+  fetch("https://mpagina.onrender.com/actualizar-talles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, talles: nuevosTalles, token: window.tokenAdmin }) // 🔑 token incluido
   })
     .then(res => res.json())
     .then(data => {
+      console.log("📩 Respuesta backend guardarTalles:", data);
+
       if (data.status === "ok") {
+        // Regenerar el select con las nuevas opciones
         const nuevoSelect = document.createElement("select");
         nuevoSelect.id = "talle_" + id;
         nuevoSelect.className = "form-select form-select-sm w-auto d-inline-block";
@@ -825,82 +879,122 @@ function guardarTalles(id) {
         setTimeout(() => nuevoSelect.classList.remove("text-success"), 1000);
 
         if (typeof mostrarAvisoTalle === "function") mostrarAvisoTalle();
+        console.log("✅ Talles actualizados y DOM refrescado para producto:", id);
       } else {
+        console.error("❌ Error al actualizar talles:", data.message || data);
         alert("❌ No se pudo actualizar los talles en el servidor");
       }
     })
-    .catch(() => {
+    .catch(err => {
+      console.error("💥 Error de conexión al guardar los talles:", err);
       alert("❌ Error de conexión al guardar los talles");
     });
 }
 
 function actualizarFirestore(id, datos) {
   if (!id || typeof datos !== "object" || Object.keys(datos).length === 0) {
+    console.warn("⚠️ actualizarFirestore llamado con datos inválidos:", { id, datos });
     return;
   }
 
-  fetch("/actualizar-firestore", {
+  console.log("📡 Enviando actualización a Firestore:", { id, datos, token: window.tokenAdmin });
+
+  fetch("https://mpagina.onrender.com/actualizar-firestore", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, ...datos })
+    body: JSON.stringify({ id, ...datos, token: window.tokenAdmin }) // 🔑 token incluido
   })
-    .then(res => res.json())
+    .then(res => {
+      console.log("📡 Respuesta recibida del backend, status:", res.status);
+      return res.json();
+    })
     .then(data => {
+      console.log("📩 Respuesta backend actualizarFirestore:", data);
+
       if (data.status === "ok") {
         if (typeof mostrarAvisoFirestore === "function") mostrarAvisoFirestore();
+        console.log("✅ Firestore actualizado correctamente para id:", id);
       } else {
+        console.error("❌ Error al actualizar Firestore:", data.error || data);
         mostrarAviso("❌ " + (data.error || "No se pudo actualizar Firestore"));
       }
     })
-    .catch(() => {
+    .catch(err => {
+      console.error("💥 Error de conexión al guardar los datos:", err);
       mostrarAviso("❌ Error de conexión al guardar los datos");
     });
 }
 
 function guardarProducto(producto) {
-  fetch('/guardar-producto', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ producto })
+  console.log("📡 Intentando guardar producto:", producto, "con token:", window.tokenAdmin);
+
+  fetch("https://mpagina.onrender.com/guardar-producto", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ producto, token: window.tokenAdmin }) // 🔑 token incluido
   })
     .then(res => res.json())
     .then(data => {
-      if (data.status === 'ok') {
+      console.log("📩 Respuesta backend guardarProducto:", data);
+
+      if (data.status === "ok") {
         mostrarAviso("✅ Producto guardado correctamente");
+        console.log("✅ Producto guardado, refrescando catálogo...");
         cargarProductos(); // refresca catálogo después de guardar
       } else {
+        console.error("❌ Error al guardar producto:", data.error || data);
         mostrarAviso("❌ " + (data.error || "Error al guardar producto"));
       }
     })
-    .catch(() => {
+    .catch(err => {
+      console.error("💥 Error de conexión al guardar producto:", err);
       mostrarAviso("❌ Error de conexión");
     });
 }
 
 function cargarProductos(emailUsuario = null) {
+  // Construir URL base
   let url = "https://mpagina.onrender.com/api/productos";
+
+  // Si se pasa un email explícito, lo agregamos
   if (emailUsuario) {
     url += "?usuario=" + encodeURIComponent(emailUsuario);
+  } else {
+    // Si no, usar el EMAIL_VENDEDOR global
+    url += "?usuario=" + encodeURIComponent(window.EMAIL_VENDEDOR || "usuario@ejemplo.com");
   }
+
+  // Si estamos en modo admin y hay token, lo incluimos
+  if (window.modoAdmin && window.tokenAdmin) {
+    url += `&token=${encodeURIComponent(window.tokenAdmin)}`;
+  }
+
+  console.log("📡 Solicitando productos desde:", url);
 
   fetch(url)
     .then(res => {
+      console.log("📡 Respuesta recibida del backend, status:", res.status);
       if (!res.ok) {
         throw new Error("HTTP " + res.status);
       }
       return res.json();
     })
     .then(productos => {
+      console.log("📩 Datos recibidos de productos:", productos);
+
       if (Array.isArray(productos)) {
+        console.log("✅ Renderizando productos, total:", productos.length);
         renderizarProductos(productos);
       } else if (productos.error) {
+        console.error("❌ Error en respuesta de productos:", productos.error);
         mostrarAviso("❌ " + productos.error);
       } else {
+        console.error("❌ Respuesta inválida del servidor:", productos);
         mostrarAviso("❌ Respuesta inválida del servidor");
       }
     })
     .catch(err => {
-      console.error("Error cargando productos:", err);
+      console.error("💥 Error cargando productos:", err);
       mostrarAviso("❌ Error al cargar productos");
     });
 }
@@ -1071,7 +1165,10 @@ function renderProducto(p) {
   console.log("🛒 renderProducto llamado con:", p);
 
   const card = document.createElement("div");
-  card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder";
+  // Añadimos también la clase card-producto y dataset para orden/sorting
+  card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder card-producto";
+  card.dataset.id = p.id_base;
+  card.dataset.precio = p.precio;
 
   // Generar contenido de talles
   let tallesHTML = `
@@ -1125,7 +1222,7 @@ function renderProducto(p) {
   requestAnimationFrame(() => card.classList.add("show"));
   setTimeout(() => card.classList.remove("fade-reorder"), 50);
 
-  console.log("✅ renderProducto devuelve card:", card);
+  console.log("✅ renderProducto devuelve card con dataset:", { id: card.dataset.id, precio: card.dataset.precio });
   return card;
 }
     
@@ -1191,7 +1288,18 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
+  const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get("token");
 
+if (token) {
+  console.log("🔑 Token detectado en index:", token);
+  window.modoAdmin = true;
+  window.tokenAdmin = token;
+  document.getElementById("logoutAdminWrapper").style.display = "block";
+} else {
+  console.warn("⚠️ No se detectó token, index en modo público");
+  window.modoAdmin = false;
+}
   // Botón Subcategorías
   const btnSubcategorias = document.getElementById("btnSubcategorias");
   if (btnSubcategorias) {
@@ -1355,9 +1463,6 @@ function ordenarGrupo(valor) {
 
 window.ordenarGrupo = ordenarGrupo;
 
-
-
-
 // Botón Productos (SOLO cierra los paneles)
 const btnProductos = document.getElementById('btnProductos');
 if (btnProductos) {
@@ -1371,7 +1476,6 @@ if (btnProductos) {
     // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
 }
-
    
 </script>
 <script type="module">
@@ -1421,9 +1525,5 @@ setTimeout(() => {
 
   console.log("PUBLIC_KEY:", PUBLIC_KEY);
 </script>
-<script>
-// Si Flask inyecta modoAdmin, úsalo. Si no, fuerza false.
-window.modoAdmin = {{ modoAdmin|default("false")|tojson }};
-</script> 
 </body>
 </html>
