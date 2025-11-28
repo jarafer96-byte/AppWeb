@@ -193,6 +193,11 @@ html { scroll-behavior: auto; }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
 @keyframes moverFondo { 0% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } 100% { background-position: 0% 0%; } }
+#previewFoto {
+  width: 300px;
+  height: 180px;
+  object-fit: contain; /* o cover según prefieras */
+}
 
 </style>
 </head>
@@ -247,7 +252,7 @@ html { scroll-behavior: auto; }
 
 <div id="contenedor-grupos"></div>
   
-<div class="card producto-card admin-card">
+<div id="adminCard" class="card producto-card admin-card d-none">
   <div class="card-body">
     <!-- Foto -->
     <img id="previewFoto" src="" alt="Sin foto" class="d-none w-100 mb-2">
@@ -371,6 +376,13 @@ const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
 const itemsPorPagina = 12;
 let totalPaginas = 0;
 
+// 👉 Flag de admin (puede venir de tu token backend)
+const modoAdmin = window.tokenAdminEmail ? true : false;
+
+if (modoAdmin) {
+  document.getElementById("adminCard").classList.remove("d-none");
+}   
+    
 // Optimizar imagen igual que Step0 → resize a 300x180, WebP q=0.8
 async function optimizarImagen(file) {
   console.log(`📂 [optimizarImagen] Iniciando optimización: ${file.name} (${file.size} bytes)`);
