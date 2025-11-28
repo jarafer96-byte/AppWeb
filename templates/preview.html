@@ -335,8 +335,6 @@ html { scroll-behavior: auto; }
 
   <script>
 const configWhatsApp = "{{ config.whatsapp }}";
-// Opción A: email fijo del dueño
-const EMAIL_VENDEDOR = "tuemail@dominio.com";
 // Opción B: leerlo de la URL si lo pasás como query param
 const urlParams = new URLSearchParams(window.location.search);
 const EMAIL_VENDEDOR = urlParams.get("usuario") || "usuario@ejemplo.com";
@@ -1288,18 +1286,20 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
-  const urlParams = new URLSearchParams(window.location.search);
-const token = urlParams.get("token");
 
-if (token) {
-  console.log("🔑 Token detectado en index:", token);
-  window.modoAdmin = true;
-  window.tokenAdmin = token;
-  document.getElementById("logoutAdminWrapper").style.display = "block";
-} else {
-  console.warn("⚠️ No se detectó token, index en modo público");
-  window.modoAdmin = false;
-}
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get("token");
+
+  if (token) {
+    console.log("🔑 Token detectado en index:", token);
+    window.modoAdmin = true;
+    window.tokenAdmin = token;
+    document.getElementById("logoutAdminWrapper").style.display = "block";
+  } else {
+    console.warn("⚠️ No se detectó token, index en modo público");
+    window.modoAdmin = false;
+  }
+
   // Botón Subcategorías
   const btnSubcategorias = document.getElementById("btnSubcategorias");
   if (btnSubcategorias) {
