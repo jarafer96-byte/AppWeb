@@ -336,8 +336,7 @@ html { scroll-behavior: auto; }
   <script>
 const configWhatsApp = "{{ config.whatsapp }}";
 // Opción B: leerlo de la URL si lo pasás como query param
-const urlParams = new URLSearchParams(window.location.search);
-const EMAIL_VENDEDOR = urlParams.get("usuario") || "usuario@ejemplo.com";
+const email = "{{ session.get('email') or '' }}";
 const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
 
   // Mostrar/ocultar botón volver arriba
@@ -425,7 +424,7 @@ function renderPaginacion(productosFiltrados) {
 }
 
 // const EMAIL_VENDEDOR = urlParams.get("usuario") || "usuario@ejemplo.com";
-let urlProductos = `https://mpagina.onrender.com/api/productos?usuario=${encodeURIComponent(EMAIL_VENDEDOR)}`;
+let urlProductos = `https://mpagina.onrender.com/api/productos?usuario=${encodeURIComponent(email)}`;
 // Si estás en modo admin y tenés token, lo incluimos
 if (window.modoAdmin && window.tokenAdmin) {
   urlProductos += `&token=${encodeURIComponent(window.tokenAdmin)}`;
@@ -669,7 +668,7 @@ async function pagarConMercadoPago() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         carrito,
-        email_vendedor: EMAIL_VENDEDOR,
+        email_vendedor: email,
         url_retorno: window.location.href
       })
     });
@@ -959,7 +958,7 @@ function cargarProductos(emailUsuario = null) {
     url += "?usuario=" + encodeURIComponent(emailUsuario);
   } else {
     // Si no, usar el EMAIL_VENDEDOR global
-    url += "?usuario=" + encodeURIComponent(window.EMAIL_VENDEDOR || "usuario@ejemplo.com");
+    url += "?usuario=" + encodeURIComponent(window.email || "usuario@ejemplo.com");
   }
 
   // Si estamos en modo admin y hay token, lo incluimos
