@@ -1422,9 +1422,8 @@ setTimeout(() => {
   console.log("PUBLIC_KEY:", PUBLIC_KEY);
 </script>
 <script>
-  // Si Flask inyecta modoAdmin, úsalo. Si no, fuerza false.
-  window.modoAdmin = true;   // activa edición en el index
-  window.tokenAdmin = "token-de-prueba"; // opcional, si querés simular token
+// Si Flask inyecta modoAdmin, úsalo. Si no, fuerza false.
+window.modoAdmin = {{ modoAdmin|default("false")|tojson }};
 </script> 
 </body>
 </html>
