@@ -123,23 +123,23 @@ def subir_a_firestore(producto, email):
 
         if not isinstance(producto, dict):
             print("[FIRESTORE] ❌ Producto inválido (no es dict)")
-            return {"ok": False, "error": "Producto inválido (no es dict)"}
+            return {"status": "error", "error": "Producto inválido (no es dict)"}
 
         if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio"):
             print("[FIRESTORE] ❌ Faltan campos obligatorios: nombre/grupo/precio")
-            return {"ok": False, "error": "Faltan campos obligatorios: nombre/grupo/precio"}
+            return {"status": "error", "error": "Faltan campos obligatorios: nombre/grupo/precio"}
 
         grupo_original = producto["grupo"].strip()
         subgrupo_original = (producto.get("subgrupo", "") or "").strip() or f"General_{grupo_original}"
         nombre_original = producto["nombre"].strip()
         print(f"[FIRESTORE] Campos normalizados: nombre={nombre_original}, grupo={grupo_original}, subgrupo={subgrupo_original}")
 
-        grupo_id = grupo_original.replace(" ", "_").lower()
         nombre_id = nombre_original.replace(" ", "_").lower()
+        subgrupo_id = subgrupo_original.replace(" ", "_").lower()
         fecha = time.strftime("%Y%m%d")
         sufijo = uuid.uuid4().hex[:6]
-        custom_id = f"{nombre_id}_{fecha}_{grupo_id}_{sufijo}"
-        print(f"[FIRESTORE] ID generado: {custom_id}")
+        custom_id = f"{nombre_id}_{fecha}_{subgrupo_id}_{sufijo}"
+        print(f"[FIRESTORE] ID generado (id_base): {custom_id}")
 
         # Parseo de precio
         precio_raw = producto["precio"]
@@ -157,7 +157,7 @@ def subir_a_firestore(producto, email):
             print(f"[FIRESTORE] Precio final parseado: {precio}")
         except Exception as e:
             print(f"[FIRESTORE] ❌ Error parseando precio: {e}")
-            return {"ok": False, "error": f"Formato de precio inválido: '{price_str}' -> '{price_clean}'", "detail": str(e)}
+            return {"status": "error", "error": f"Formato de precio inválido: '{price_str}' -> '{price_clean}'", "detail": str(e)}
 
         try:
             orden = int(producto.get("orden", 999))
@@ -178,7 +178,6 @@ def subir_a_firestore(producto, email):
             print(f"[FIRESTORE] Usando imagen_url provista: {imagen_url}")
         else:
             imagen_nombre = f"{custom_id}.webp"
-            # Importante: encode del email en la URL pública (%40 para '@')
             email_encoded = email.replace("@", "%40")
             imagen_url = f"https://storage.googleapis.com/mpagina/{email_encoded}/{imagen_nombre}"
             print(f"[FIRESTORE] Generada imagen_url por fallback: {imagen_url}")
@@ -202,12 +201,12 @@ def subir_a_firestore(producto, email):
         db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
         print(f"[FIRESTORE] ✅ Producto guardado correctamente en Firestore: {custom_id} para {email}")
 
-        return {"ok": True, "id": custom_id}
+        return {"status": "ok", "id_base": custom_id}
 
     except Exception as e:
         tb = traceback.format_exc()
         print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
-        return {"ok": False, "error": str(e), "trace": tb}
+        return {"status": "error", "error": str(e), "trace": tb}
 
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
     """
