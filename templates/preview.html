@@ -371,23 +371,62 @@ const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
 const itemsPorPagina = 12;
 let totalPaginas = 0;
 
+// Optimizar imagen igual que Step0 → resize a 300x180, WebP q=0.8
 async function optimizarImagen(file) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const reader = new FileReader();
-    reader.onload = e => img.src = e.target.result;
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const maxW = 800;
-      const scale = maxW / img.width;
-      canvas.width = maxW;
-      canvas.height = img.height * scale;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.8);
-    };
-    reader.readAsDataURL(file);
-  });
+  console.log(`📂 [optimizarImagen] Iniciando optimización: ${file.name} (${file.size} bytes)`);
+
+  const imgUrl = URL.createObjectURL(file);
+  try {
+    // 📸 Cargar imagen
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        console.log(`✅ [optimizarImagen] Imagen cargada: ${image.width}x${image.height}px`);
+        resolve(image);
+      };
+      image.onerror = reject;
+      image.src = imgUrl;
+    });
+
+    // 🎯 Canvas objetivo
+    const targetW = 300, targetH = 180;
+    const canvas = document.createElement("canvas");
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext("2d", { alpha: true });
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.clearRect(0, 0, targetW, targetH);
+
+    // 📐 Escalado proporcional
+    const ratio = Math.min(targetW / img.width, targetH / img.height);
+    const newW = Math.max(1, Math.round(img.width * ratio));
+    const newH = Math.max(1, Math.round(img.height * ratio));
+    const offsetX = Math.floor((targetW - newW) / 2);
+    const offsetY = Math.floor((targetH - newH) / 2);
+
+    console.log(`📐 [optimizarImagen] Escalado → newW=${newW}, newH=${newH}, offsetX=${offsetX}, offsetY=${offsetY}`);
+
+    ctx.drawImage(img, offsetX, offsetY, newW, newH);
+
+    // 📝 Generar WebP con calidad 0.8
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(b => {
+        if (b && b.size > 0) {
+          console.log(`✅ [optimizarImagen] Blob generado (${b.size} bytes)`);
+          resolve(b);
+        } else {
+          reject(new Error("❌ No se pudo generar WebP"));
+        }
+      }, "image/webp", 0.8);
+    });
+
+    return blob;
+  } finally {
+    URL.revokeObjectURL(imgUrl);
+    console.log(`🧹 [optimizarImagen] URL revocada`);
+  }
 }
 
 // 👉 Preview inmediato de la foto optimizada
