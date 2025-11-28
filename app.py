@@ -675,7 +675,6 @@ def logout_admin():
 @app.route("/guardar-producto", methods=["POST"])
 def guardar_producto():
     try:
-        # 🔎 Log inicial
         print("\n[GUARDAR_PRODUCTO] 🚀 Nueva petición recibida")
 
         # 1) Parsear body
@@ -688,28 +687,34 @@ def guardar_producto():
         # 2) Validaciones
         if not email:
             print("[GUARDAR_PRODUCTO] ❌ Falta email en body")
-            return jsonify({"ok": False, "error": "Falta email"}), 403
+            return jsonify({"status": "error", "error": "Falta email"}), 403
 
         if not producto:
             print("[GUARDAR_PRODUCTO] ❌ Falta producto en body")
-            return jsonify({"ok": False, "error": "Producto inválido"}), 400
+            return jsonify({"status": "error", "error": "Producto inválido"}), 400
 
-        print(f"[GUARDAR_PRODUCTO] Datos validados → email={email}, producto={producto}")
+        id_base = producto.get("id_base")
+        if not id_base:
+            print("[GUARDAR_PRODUCTO] ❌ Falta id_base en producto")
+            return jsonify({"status": "error", "error": "Falta id_base"}), 400
 
-        # 3) Guardar usando función robusta
-        print("[GUARDAR_PRODUCTO] → Llamando a subir_a_firestore()")
-        resultado = subir_a_firestore(producto, email)
-        print(f"[GUARDAR_PRODUCTO] Resultado de subida: {resultado}")
+        print(f"[GUARDAR_PRODUCTO] Datos validados → email={email}, id_base={id_base}")
 
-        return jsonify(resultado)
+        # 3) Guardar en Firestore
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        productos_ref.document(id_base).set(producto, merge=True)
+
+        print(f"[GUARDAR_PRODUCTO] ✅ Producto guardado correctamente → Usuario={email}, id_base={id_base}")
+
+        # 4) Respuesta normalizada
+        return jsonify({"status": "ok", "id_base": id_base})
 
     except Exception as e:
         import traceback
         tb = traceback.format_exc()
         print("[GUARDAR_PRODUCTO] 💥 Error inesperado:", e)
         print("[GUARDAR_PRODUCTO][TRACEBACK]\n", tb)
-
-        return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
+        return jsonify({"status": "error", "error": str(e), "trace": tb}), 500
 
 # --- Agregar en app.py (temporal, para debug) ---
 @app.route('/debug/session')
