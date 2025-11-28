@@ -263,6 +263,10 @@ html { scroll-behavior: auto; }
     <input type="number" id="precioProd" placeholder="Precio" class="form-control mb-2">
     <input type="text" id="tallesProd" placeholder="Talles (S,M,L)" class="form-control mb-2">
 
+    <!-- Grupo/Subgrupo -->
+    <input type="text" id="grupoProd" placeholder="Grupo" class="form-control mb-2">
+    <input type="text" id="subgrupoProd" placeholder="Subgrupo" class="form-control mb-2">
+
     <!-- Confirmar -->
     <button id="btnConfirmarProd" class="btn btn-success">✅ Confirmar</button>
   </div>
@@ -383,13 +387,12 @@ if (modoAdmin) {
   document.getElementById("adminCard").classList.remove("d-none");
 }   
     
-// Optimizar imagen igual que Step0 → resize a 300x180, WebP q=0.8
+// 👉 Optimizar imagen igual que Step0 → resize a 300x180, WebP q=0.8
 async function optimizarImagen(file) {
   console.log(`📂 [optimizarImagen] Iniciando optimización: ${file.name} (${file.size} bytes)`);
 
   const imgUrl = URL.createObjectURL(file);
   try {
-    // 📸 Cargar imagen
     const img = await new Promise((resolve, reject) => {
       const image = new Image();
       image.onload = () => {
@@ -400,7 +403,6 @@ async function optimizarImagen(file) {
       image.src = imgUrl;
     });
 
-    // 🎯 Canvas objetivo
     const targetW = 300, targetH = 180;
     const canvas = document.createElement("canvas");
     canvas.width = targetW;
@@ -411,7 +413,6 @@ async function optimizarImagen(file) {
     ctx.imageSmoothingQuality = "high";
     ctx.clearRect(0, 0, targetW, targetH);
 
-    // 📐 Escalado proporcional
     const ratio = Math.min(targetW / img.width, targetH / img.height);
     const newW = Math.max(1, Math.round(img.width * ratio));
     const newH = Math.max(1, Math.round(img.height * ratio));
@@ -419,10 +420,8 @@ async function optimizarImagen(file) {
     const offsetY = Math.floor((targetH - newH) / 2);
 
     console.log(`📐 [optimizarImagen] Escalado → newW=${newW}, newH=${newH}, offsetX=${offsetX}, offsetY=${offsetY}`);
-
     ctx.drawImage(img, offsetX, offsetY, newW, newH);
 
-    // 📝 Generar WebP con calidad 0.8
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(b => {
         if (b && b.size > 0) {
@@ -445,43 +444,109 @@ async function optimizarImagen(file) {
 document.getElementById("inputFoto").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  const blobOptimizado = await optimizarImagen(file);
-  window.fotoOptimizada = blobOptimizado; // guardamos en memoria
+  try {
+    const blobOptimizado = await optimizarImagen(file);
+    window.fotoOptimizada = blobOptimizado;
 
-  const urlPreview = URL.createObjectURL(blobOptimizado);
-  const imgPreview = document.getElementById("previewFoto");
-  imgPreview.src = urlPreview;
-  imgPreview.classList.remove("d-none");
+    const urlPreview = URL.createObjectURL(blobOptimizado);
+    const imgPreview = document.getElementById("previewFoto");
+    imgPreview.src = urlPreview;
+    imgPreview.classList.remove("d-none");
+
+    console.log("👁️ Preview inmediato mostrado");
+  } catch (err) {
+    console.error("💥 Error al optimizar imagen:", err);
+    alert("❌ No se pudo optimizar la imagen");
+  }
 });
 
-// 👉 Guardar solo al confirmar
+// 👉 Guardar solo al confirmar (usando email y campos obligatorios)
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
-  const email = window.tokenAdminEmail;
+  const email = "{{ session.get('email') or '' }}"; // 👈 email inyectado desde la sesión
+  if (!email) {
+    alert("❌ No hay email de admin, no se puede guardar");
+    return;
+  }
 
-  // 1. Subir foto optimizada
-  const formData = new FormData();
-  formData.append("file", window.fotoOptimizada, "producto.jpg");
-  formData.append("email", email);
+  try {
+    // 1. Subir foto optimizada (si existe)
+    let foto_url = "";
+    if (window.fotoOptimizada) {
+      const formData = new FormData();
+      formData.append("file", window.fotoOptimizada, "producto.jpg");
+      formData.append("email", email);
 
-  const respFoto = await fetch("/subir-foto", { method: "POST", body: formData });
-  const { url } = await respFoto.json();
+      console.log("📡 Enviando foto al backend:", { email });
+      const respFoto = await fetch("https://mpagina.onrender.com/subir-foto", {
+        method: "POST",
+        body: formData
+      });
 
-  // 2. Armar producto
-  const producto = {
-    nombre: document.getElementById("nombreProd").value,
-    precio: parseFloat(document.getElementById("precioProd").value),
-    talles: document.getElementById("tallesProd").value.split(","),
-    foto_url: url
-  };
+      console.log("📡 Respuesta recibida del backend subir-foto, status:", respFoto.status);
+      if (!respFoto.ok) {
+        const text = await respFoto.text();
+        throw new Error(`Error al subir foto: ${respFoto.status} ${text}`);
+      }
 
-  // 3. Guardar en Firestore
-  await fetch("/guardar-producto", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ producto, email })
-  });
+      const fotoData = await respFoto.json();
+      foto_url = fotoData.url || "";
+      console.log("📩 Respuesta backend subir-foto:", foto_url);
+    }
 
-  alert("✅ Producto guardado correctamente");
+    // 2. Armar producto con campos obligatorios
+    const nombre = document.getElementById("nombreProd").value.trim();
+    const precio = parseFloat(document.getElementById("precioProd").value);
+    const talles = document.getElementById("tallesProd").value.split(",").map(t => t.trim()).filter(Boolean);
+
+    // Grupo y subgrupo: tomados del contexto o default
+    const grupo = window.grupoActivo || "General";
+    const subgrupo = window.subgrupoActivo || "";
+
+    if (!nombre || isNaN(precio) || !grupo) {
+      alert("❌ Faltan campos obligatorios: nombre/grupo/precio");
+      return;
+    }
+
+    const producto = {
+      nombre,
+      precio,
+      talles,
+      grupo,
+      subgrupo,
+      imagen_url: foto_url
+    };
+    console.log("📦 Producto armado:", { producto, email });
+
+    // 3. Guardar en Firestore
+    const respGuardar = await fetch("https://mpagina.onrender.com/guardar-producto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ producto, email })
+    });
+
+    console.log("📡 Respuesta recibida del backend guardar-producto, status:", respGuardar.status);
+    if (!respGuardar.ok) {
+      const text = await respGuardar.text();
+      throw new Error(`Error al guardar producto: ${respGuardar.status} ${text}`);
+    }
+
+    const data = await respGuardar.json();
+    console.log("📩 Respuesta backend guardar-producto:", data);
+
+    if (data.status === "ok") {
+      alert("✅ Producto guardado correctamente");
+      if (typeof cargarProductos === "function") {
+        console.log("✅ Refrescando catálogo...");
+        cargarProductos();
+      }
+    } else {
+      console.error("❌ Error al guardar producto:", data.error || data);
+      alert("❌ " + (data.error || "Error al guardar producto"));
+    }
+  } catch (err) {
+    console.error("💥 Error en flujo de confirmación:", err);
+    alert("❌ Error al guardar producto: " + err.message);
+  }
 });
     
 function salirAdmin() {
@@ -1056,29 +1121,49 @@ function actualizarFirestore(id, datos) {
 }
 
 function guardarProducto(producto) {
-  console.log("📡 Intentando guardar producto:", producto, "con token:", window.tokenAdmin);
+  console.log("📡 [guardarProducto] Enviando producto al backend:", { producto, email });
 
   fetch("https://mpagina.onrender.com/guardar-producto", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ producto, token: window.tokenAdmin }) // 🔑 token incluido
+    body: JSON.stringify({ producto, email })
   })
-    .then(res => res.json())
+    .then(res => {
+      console.log("📡 [guardarProducto] Respuesta recibida del backend, status:", res.status);
+      return res.json()
+        .catch(err => {
+          console.error("💥 [guardarProducto] Error parseando JSON:", err);
+          throw new Error("Respuesta no es JSON válido");
+        });
+    })
     .then(data => {
-      console.log("📩 Respuesta backend guardarProducto:", data);
+      // 👉 guardamos la última respuesta en global para inspección manual en consola
+      window.lastResponse = data;
 
-      if (data.status === "ok") {
+      console.log("📩 [guardarProducto] JSON recibido (objeto):", data);
+      console.log("📩 [guardarProducto] JSON recibido (string):", JSON.stringify(data, null, 2));
+
+      // ✅ aceptar ambos formatos de éxito: {ok:true} o {status:"ok"}
+      if (Boolean(data.ok) || data.status === "ok") {
+        console.log("✅ [guardarProducto] Éxito detectado:", data);
         mostrarAviso("✅ Producto guardado correctamente");
-        console.log("✅ Producto guardado, refrescando catálogo...");
-        cargarProductos(); // refresca catálogo después de guardar
+
+        if (typeof cargarProductos === "function") {
+          console.log("🔄 [guardarProducto] Refrescando catálogo...");
+          cargarProductos();
+        } else {
+          console.warn("⚠️ [guardarProducto] cargarProductos no está definido");
+        }
       } else {
-        console.error("❌ Error al guardar producto:", data.error || data);
-        mostrarAviso("❌ " + (data.error || "Error al guardar producto"));
+        console.error("❌ [guardarProducto] Error en respuesta backend (objeto completo):", data);
+        console.error("❌ [guardarProducto] Error en respuesta backend (string):", JSON.stringify(data));
+        const errorMsg = data.error || JSON.stringify(data);
+        mostrarAviso("❌ " + errorMsg);
       }
     })
     .catch(err => {
-      console.error("💥 Error de conexión al guardar producto:", err);
-      mostrarAviso("❌ Error de conexión");
+      console.error("💥 [guardarProducto] Error de conexión o flujo:", err);
+      mostrarAviso("❌ Error de conexión al guardar producto");
     });
 }
 
