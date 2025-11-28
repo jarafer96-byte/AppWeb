@@ -840,14 +840,17 @@ function guardarTalles(id) {
 
   // Parsear "S, M, L" → ["S","M","L"]
   const nuevosTalles = input.value.split(",").map(t => t.trim()).filter(t => t);
-  console.log("📡 Enviando talles al backend:", { id, talles: nuevosTalles, token: window.tokenAdmin });
+  console.log("📡 Enviando talles al backend:", { id, talles: nuevosTalles, email });
 
   fetch("https://mpagina.onrender.com/actualizar-talles", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, talles: nuevosTalles, token: window.tokenAdmin }) // 🔑 token incluido
+    body: JSON.stringify({ id, talles: nuevosTalles, email }) // 👈 email incluido
   })
-    .then(res => res.json())
+    .then(res => {
+      console.log("📡 Respuesta recibida del backend, status:", res.status);
+      return res.json();
+    })
     .then(data => {
       console.log("📩 Respuesta backend guardarTalles:", data);
 
@@ -894,12 +897,13 @@ function actualizarFirestore(id, datos) {
     return;
   }
 
-  console.log("📡 Enviando actualización a Firestore:", { id, datos, token: window.tokenAdmin });
+  // 🔑 Usamos directamente el email en vez del token
+  console.log("📡 Enviando actualización a Firestore:", { id, datos, email });
 
   fetch("https://mpagina.onrender.com/actualizar-firestore", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, ...datos, token: window.tokenAdmin }) // 🔑 token incluido
+    body: JSON.stringify({ id, ...datos, email }) // 👈 email incluido
   })
     .then(res => {
       console.log("📡 Respuesta recibida del backend, status:", res.status);
