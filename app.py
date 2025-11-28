@@ -674,7 +674,7 @@ def actualizar_precio():
     data = request.get_json()
     id_base = data.get("id")
     nuevo_precio_raw = data.get("nuevoPrecio", 0)
-    email = session.get("email")
+    email = data.get("email") 
 
     if not email or not id_base:
         return jsonify({"error": "Datos incompletos"}), 400
