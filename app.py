@@ -277,41 +277,60 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
 @app.route("/subir-foto", methods=["POST"])
 def subir_foto():
     try:
+        print("\n[SUBIR_FOTO] 🚀 Nueva petición recibida")
+
+        # 1) Obtener archivo y email
         file = request.files.get("file")
         email = request.form.get("email")
+        print(f"[SUBIR_FOTO] file={file}, email={email}")
 
         if not file or not email:
-            return jsonify({"error": "Falta archivo o email"}), 400
+            print("[SUBIR_FOTO] ❌ Falta archivo o email")
+            return jsonify({"ok": False, "error": "Falta archivo o email"}), 400
 
+        # 2) Validar extensión
         if not allowed_file(file.filename):
-            return jsonify({"error": "Formato inválido. Usa png/jpg/jpeg/webp"}), 400
+            print(f"[SUBIR_FOTO] ❌ Formato inválido: {file.filename}")
+            return jsonify({"ok": False, "error": "Formato inválido. Usa png/jpg/jpeg/webp"}), 400
 
-        file.seek(0, 2)
+        # 3) Validar tamaño
+        file.seek(0, 2)  # ir al final
         size = file.tell()
-        file.seek(0)
+        file.seek(0)     # volver al inicio
+        print(f"[SUBIR_FOTO] Tamaño recibido: {size} bytes")
+
         if size > MAX_IMAGE_SIZE_BYTES:
-            return jsonify({"error": "Imagen excede 3 MB"}), 413
+            print(f"[SUBIR_FOTO] ❌ Imagen excede límite ({size} > {MAX_IMAGE_SIZE_BYTES})")
+            return jsonify({"ok": False, "error": "Imagen excede 3 MB"}), 413
 
+        # 4) Nombre seguro y único
         original_name = secure_filename(file.filename)
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")  # 👈 ojo acá
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
         filename = f"{timestamp}_{original_name}"
+        print(f"[SUBIR_FOTO] Nombre final: {filename}")
 
+        # 5) Ruta organizada por email
         email_path = email.replace("@", "_at_").replace(".", "_dot_")
         blob_path = f"usuarios/{email_path}/imagenes/{filename}"
+        print(f"[SUBIR_FOTO] Blob path: {blob_path}")
 
+        # 6) Subir al bucket
         blob = bucket.blob(blob_path)
+        print(f"[SUBIR_FOTO] Subiendo al bucket={bucket.name}, content_type={file.content_type}")
         blob.upload_from_file(file, content_type=file.content_type or "image/jpeg")
 
-        # URL pública (sin make_public si UBLA activo)
+        # 7) URL pública (sin make_public si UBLA activo)
         public_url = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
+        print(f"[SUBIR_FOTO] ✅ Upload exitoso → URL={public_url}")
 
-        print(f"[Upload] {email} -> {blob_path} ({size} bytes)")
-        return jsonify({"url": public_url, "path": blob_path})
+        return jsonify({"ok": True, "url": public_url, "path": blob_path, "size": size})
 
     except Exception as e:
-        print("[Upload][Error]", str(e))
-        import traceback; print(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        tb = traceback.format_exc()
+        print("[SUBIR_FOTO] 💥 Error inesperado:", e)
+        print("[SUBIR_FOTO][TRACEBACK]\n", tb)
+        return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
         
 @app.route("/api/productos")
 def api_productos():
@@ -656,20 +675,41 @@ def logout_admin():
 @app.route("/guardar-producto", methods=["POST"])
 def guardar_producto():
     try:
+        # 🔎 Log inicial
+        print("\n[GUARDAR_PRODUCTO] 🚀 Nueva petición recibida")
+
+        # 1) Parsear body
         data = request.get_json(force=True) or {}
+        print(f"[GUARDAR_PRODUCTO] Body recibido: {data}")
+
         email = data.get("email")
         producto = data.get("producto")
 
-        if not email or not producto:
-            return jsonify({"ok": False, "error": "Faltan datos"}), 400
+        # 2) Validaciones
+        if not email:
+            print("[GUARDAR_PRODUCTO] ❌ Falta email en body")
+            return jsonify({"ok": False, "error": "Falta email"}), 403
 
-        # 👉 Usar tu función robusta
+        if not producto:
+            print("[GUARDAR_PRODUCTO] ❌ Falta producto en body")
+            return jsonify({"ok": False, "error": "Producto inválido"}), 400
+
+        print(f"[GUARDAR_PRODUCTO] Datos validados → email={email}, producto={producto}")
+
+        # 3) Guardar usando función robusta
+        print("[GUARDAR_PRODUCTO] → Llamando a subir_a_firestore()")
         resultado = subir_a_firestore(producto, email)
+        print(f"[GUARDAR_PRODUCTO] Resultado de subida: {resultado}")
+
         return jsonify(resultado)
 
     except Exception as e:
-        print("💥 Error en /guardar-producto:", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        import traceback
+        tb = traceback.format_exc()
+        print("[GUARDAR_PRODUCTO] 💥 Error inesperado:", e)
+        print("[GUARDAR_PRODUCTO][TRACEBACK]\n", tb)
+
+        return jsonify({"ok": False, "error": str(e), "trace": tb}), 500
 
 # --- Agregar en app.py (temporal, para debug) ---
 @app.route('/debug/session')
