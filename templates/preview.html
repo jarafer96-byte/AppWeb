@@ -1629,6 +1629,17 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("👁️ Estilo de #productos:", { display: style.display, visibility: style.visibility });
     });
   }
+
+  // 👉 Mostrar card de admin si corresponde
+  if (window.modoAdmin) {
+    const adminCard = document.getElementById("adminCard");
+    if (adminCard) {
+      adminCard.classList.remove("d-none");
+      console.log("🛠️ AdminCard visible en modo admin");
+    } else {
+      console.warn("⚠️ No se encontró #adminCard en el DOM");
+    }
+  }
 });
 
 // 👉 Nueva función ordenarGrupo
