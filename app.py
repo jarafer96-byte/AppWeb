@@ -683,7 +683,7 @@ def guardar_producto():
         email = data.get("email")
         producto = data.get("producto")
 
-        # 2) Validaciones
+        # 2) Validaciones mínimas
         if not email:
             print("[GUARDAR_PRODUCTO] ❌ Falta email en body")
             return jsonify({"status": "error", "error": "Falta email"}), 403
@@ -692,21 +692,15 @@ def guardar_producto():
             print("[GUARDAR_PRODUCTO] ❌ Falta producto en body")
             return jsonify({"status": "error", "error": "Producto inválido"}), 400
 
-        id_base = producto.get("id_base")
-        if not id_base:
-            print("[GUARDAR_PRODUCTO] ❌ Falta id_base en producto")
-            return jsonify({"status": "error", "error": "Falta id_base"}), 400
+        print(f"[GUARDAR_PRODUCTO] Datos validados → email={email}")
 
-        print(f"[GUARDAR_PRODUCTO] Datos validados → email={email}, id_base={id_base}")
-
-        # 3) Guardar en Firestore
-        productos_ref = db.collection("usuarios").document(email).collection("productos")
-        productos_ref.document(id_base).set(producto, merge=True)
-
-        print(f"[GUARDAR_PRODUCTO] ✅ Producto guardado correctamente → Usuario={email}, id_base={id_base}")
+        # 3) Guardar usando función robusta
+        print("[GUARDAR_PRODUCTO] → Llamando a subir_a_firestore()")
+        resultado = subir_a_firestore(producto, email)
+        print(f"[GUARDAR_PRODUCTO] Resultado de subida: {resultado}")
 
         # 4) Respuesta normalizada
-        return jsonify({"status": "ok", "id_base": id_base})
+        return jsonify(resultado)
 
     except Exception as e:
         import traceback
