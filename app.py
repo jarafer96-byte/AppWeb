@@ -110,6 +110,11 @@ bucket = client.bucket("mpagina")
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024
+
+def allowed_file(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def subir_a_firestore(producto, email):
     try:
@@ -272,7 +277,6 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
 @app.route("/subir-foto", methods=["POST"])
 def subir_foto():
     try:
-        # 1) Obtener archivo y email
         file = request.files.get("file")
         email = request.form.get("email")
 
@@ -282,36 +286,31 @@ def subir_foto():
         if not allowed_file(file.filename):
             return jsonify({"error": "Formato inválido. Usa png/jpg/jpeg/webp"}), 400
 
-        # 2) Validar tamaño por si llega sin respetar MAX_CONTENT_LENGTH
-        file.seek(0, 2)  # ir al final
+        file.seek(0, 2)
         size = file.tell()
-        file.seek(0)     # volver al inicio
+        file.seek(0)
         if size > MAX_IMAGE_SIZE_BYTES:
             return jsonify({"error": "Imagen excede 3 MB"}), 413
 
-        # 3) Nombre seguro y único
         original_name = secure_filename(file.filename)
-        timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")  # 👈 ojo acá
         filename = f"{timestamp}_{original_name}"
 
-        # 4) Ruta organizada por email
-        # Tip: si querés evitar caracteres raros en email como ".", "@", podés reemplazarlos
         email_path = email.replace("@", "_at_").replace(".", "_dot_")
         blob_path = f"usuarios/{email_path}/imagenes/{filename}"
 
-        # 5) Subir al bucket con content_type correcto
         blob = bucket.blob(blob_path)
         blob.upload_from_file(file, content_type=file.content_type or "image/jpeg")
 
-        # 6) Hacer público y devolver URL
-        blob.make_public()
-        public_url = blob.public_url
+        # URL pública (sin make_public si UBLA activo)
+        public_url = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
 
         print(f"[Upload] {email} -> {blob_path} ({size} bytes)")
         return jsonify({"url": public_url, "path": blob_path})
 
     except Exception as e:
         print("[Upload][Error]", str(e))
+        import traceback; print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
         
 @app.route("/api/productos")
@@ -654,26 +653,23 @@ def logout_admin():
     session.pop('modo_admin', None)
     return redirect('/preview')
 
-@app.route('/guardar-producto', methods=['POST'])
+@app.route("/guardar-producto", methods=["POST"])
 def guardar_producto():
-    data = request.get_json(silent=True) or {}
-    usuario = data.get("email")   # 👈 ahora viene del body
-    producto = data.get("producto")
-
-    if not usuario:
-        return jsonify({'status': 'error', 'message': 'Falta email'}), 403
-
-    if not producto:
-        return jsonify({'status': 'error', 'message': 'Producto inválido'}), 400
-
     try:
-        ruta = f"usuarios/{usuario}/productos"
-        db.collection(ruta).add(producto)
-        print(f"✅ Producto guardado para {usuario}: {producto.get('nombre', 'sin nombre')}")
-        return jsonify({'status': 'ok'})
+        data = request.get_json(force=True) or {}
+        email = data.get("email")
+        producto = data.get("producto")
+
+        if not email or not producto:
+            return jsonify({"ok": False, "error": "Faltan datos"}), 400
+
+        # 👉 Usar tu función robusta
+        resultado = subir_a_firestore(producto, email)
+        return jsonify(resultado)
+
     except Exception as e:
-        print("❌ Error al guardar producto:", e)
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        print("💥 Error en /guardar-producto:", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 # --- Agregar en app.py (temporal, para debug) ---
 @app.route('/debug/session')
