@@ -346,9 +346,9 @@ html { scroll-behavior: auto; }
 
     {% if config.mercado_pago and config.public_key %}
       <button id="btn_pagar" class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
-    {% else %}
-      <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
     {% endif %}
+
+    <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
   </div>
 </div>
 
