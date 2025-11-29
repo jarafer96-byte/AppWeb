@@ -499,8 +499,8 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
     const talles = document.getElementById("tallesProd").value.split(",").map(t => t.trim()).filter(Boolean);
 
     // Grupo y subgrupo: tomados del contexto o default
-    const grupo = window.grupoActivo || "General";
-    const subgrupo = window.subgrupoActivo || "";
+    const grupo = document.getElementById("grupoProd")?.value.trim() || window.grupoActivo || "General";
+    const subgrupo = document.getElementById("subgrupoProd")?.value.trim() || window.subgrupoActivo || "general";
 
     if (!nombre || isNaN(precio) || !grupo) {
       alert("❌ Faltan campos obligatorios: nombre/grupo/precio");
