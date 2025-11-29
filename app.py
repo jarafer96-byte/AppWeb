@@ -1538,38 +1538,67 @@ def pagar():
         traceback.print_exc() 
         return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
         
+@app.route("/api/mp_public_key")
+def api_mp_public_key():
+    email = request.args.get("email")
+    if not email:
+        return jsonify({"error": "Falta email"}), 400
+
+    public_key = (get_mp_public_key(email) or "").strip()
+    if not public_key:
+        return jsonify({"error": "No hay public_key configurada"}), 404
+
+    return jsonify({"public_key": public_key})
+        
 @app.route('/preview', methods=["GET"])
 def preview():
-    print("🚀 [Preview] Entrando a /preview")
+    print("\n🚀 [Preview] Entrando a /preview")
 
+    # 📧 Obtener email desde query
     email = request.args.get('email')
+    print(f"[Preview] Email recibido: {email}")
     if not email:
+        print("[Preview] ❌ Falta email en query")
         return "Error: falta email", 400
 
-    # Config visual desde Firestore
-    config_doc = db.collection("usuarios").document(email).collection("config").document("general").get()
-    config_data = config_doc.to_dict() if config_doc.exists else {}
+    # 🎨 Config visual desde Firestore
+    try:
+        config_doc = db.collection("usuarios").document(email).collection("config").document("general").get()
+        config_data = config_doc.to_dict() if config_doc.exists else {}
+        print(f"[Preview] Config visual obtenida: {config_data}")
+    except Exception as e:
+        print(f"[Preview] 💥 Error leyendo config visual: {e}")
+        config_data = {}
+
     estilo_visual = config_data.get("estilo_visual", "claro_moderno")
+    print(f"[Preview] Estilo visual: {estilo_visual}")
 
-    # Productos
+    # 📦 Productos
     productos = []
-    productos_ref = db.collection("usuarios").document(email).collection("productos")
-    for doc in productos_ref.stream():
-        productos.append(doc.to_dict())
-    productos = sorted(productos, key=lambda p: p.get('orden', 0))
+    try:
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        for doc in productos_ref.stream():
+            productos.append(doc.to_dict())
+        productos = sorted(productos, key=lambda p: p.get('orden', 0))
+        print(f"[Preview] Productos cargados: {len(productos)}")
+    except Exception as e:
+        print(f"[Preview] 💥 Error leyendo productos: {e}")
 
-    # Agrupar productos por grupo/subgrupo
+    # 🧱 Agrupar productos por grupo/subgrupo
     grupos_dict = {}
     for p in productos:
         grupo = (p.get('grupo') or 'General').strip().title()
         subgrupo = (p.get('subgrupo') or 'Sin Subgrupo').strip().title()
         grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(p)
+    print(f"[Preview] Grupos generados: {list(grupos_dict.keys())}")
 
-    # Credenciales de Mercado Pago
+    # 💳 Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
-    public_key = get_mp_public_key(email) or ""
+    public_key = (get_mp_public_key(email) or "").strip()
+    print(f"[Preview] Mercado Pago token presente: {bool(mercado_pago_token)}")
+    print(f"[Preview] Public key obtenida: '{public_key}'")
 
-    # Configuración final que se pasa al template
+    # ⚙️ Configuración final que se pasa al template
     config = {
         **config_data,
         'email': email,
@@ -1579,7 +1608,9 @@ def preview():
         'productos': productos,
         'usarFirestore': True
     }
+    print(f"[Preview] Config final enviada al template: {config.keys()}")
 
+    # ✅ Renderizar template
     return render_template(
         'preview.html',
         config=config,
