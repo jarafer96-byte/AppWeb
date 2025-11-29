@@ -1200,26 +1200,27 @@ def get_mp_public_key(email: str):
 
 @app.route('/conectar_mp', methods=["GET"])
 def conectar_mp():
-    token_arg = request.args.get("token")
     email = request.args.get("email")
+    if not email:
+        return "Error: falta email", 403
 
-    if not token_arg or not email:
-        return "Error: faltan credenciales", 403
-
+    # 🔑 Validar que el usuario exista en Firestore
     try:
         doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
         snap = doc_ref.get()
-        if not snap.exists or snap.to_dict().get("token_admin") != token_arg:
-            return "Error: token inválido", 403
+        if not snap.exists:
+            print(f"[MP-CONNECT] No existe config de Mercado Pago para {email}")
     except Exception as e:
-        print(f"[MP-CONNECT] Error validando token: {e}")
+        print(f"[MP-CONNECT] Error validando usuario: {e}")
         return "Error interno", 500
 
+    # ✅ Si pasa la validación, armar URL de autorización
     client_id = os.getenv("MP_CLIENT_ID")
     if not client_id:
         return "❌ Falta configurar MP_CLIENT_ID en entorno", 500
 
-    redirect_uri = url_for("callback_mp", _external=True) + f"?email={email}&token={token_arg}"
+    # Redirigir al callback con el email
+    redirect_uri = url_for("callback_mp", _external=True) + f"?email={email}"
 
     auth_url = (
         "https://auth.mercadopago.com/authorization?"
@@ -1236,27 +1237,15 @@ def callback_mp():
     # 🔑 Validar credenciales recibidas en query
     code = request.args.get('code')
     email = request.args.get('email')
-    token_arg = request.args.get('token')
 
-    if not email or not token_arg:
-        return "Error: faltan credenciales", 403
-
-    # 👉 validar token contra Firestore
-    try:
-        doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
-        snap = doc_ref.get()
-        if not snap.exists or snap.to_dict().get("token_admin") != token_arg:
-            return "Error: token inválido", 403
-    except Exception as e:
-        print(f"[MP-CALLBACK] Error validando token: {e}")
-        return "Error interno", 500
+    if not email:
+        return "Error: falta email", 403
+    if not code:
+        return "❌ No se recibió código de autorización", 400
 
     client_id = os.getenv("MP_CLIENT_ID")
     client_secret = os.getenv("MP_CLIENT_SECRET")
-    redirect_uri = url_for('callback_mp', _external=True)
-
-    if not code:
-        return "❌ No se recibió código de autorización", 400
+    redirect_uri = url_for('callback_mp', _external=True) + f"?email={email}"
 
     token_url = "https://api.mercadopago.com/oauth/token"
     payload = {
@@ -1324,7 +1313,8 @@ def callback_mp():
         )
         print(f"[MP-CALLBACK] ✅ Credenciales guardadas para {email}")
 
-        return redirect(url_for('preview', token=token_arg))
+        # 🔄 Redirigir al preview solo con email
+        return redirect(url_for('preview', email=email))
 
     except Exception as e:
         print("Error en callback_mp:", e)
@@ -1445,20 +1435,9 @@ def pagar():
 def preview():
     print("🚀 [Preview] Entrando a /preview")
 
-    token_arg = request.args.get('token')
     email = request.args.get('email')
-
     if not email:
         return "Error: falta email", 400
-
-    # Validar admin
-    modo_admin = False
-    if token_arg:
-        doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
-        snap = doc_ref.get()
-        if snap.exists and snap.to_dict().get("token_admin") == token_arg:
-            modo_admin = True
-    modo_admin_intentado = bool(token_arg)
 
     # Config visual desde Firestore
     config_doc = db.collection("usuarios").document(email).collection("config").document("general").get()
@@ -1472,19 +1451,21 @@ def preview():
         productos.append(doc.to_dict())
     productos = sorted(productos, key=lambda p: p.get('orden', 0))
 
-    # Agrupar
+    # Agrupar productos por grupo/subgrupo
     grupos_dict = {}
     for p in productos:
         grupo = (p.get('grupo') or 'General').strip().title()
         subgrupo = (p.get('subgrupo') or 'Sin Subgrupo').strip().title()
         grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(p)
 
-    # Credenciales MP
+    # Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
     public_key = get_mp_public_key(email) or ""
 
+    # Configuración final que se pasa al template
     config = {
         **config_data,
+        'email': email,
         'estilo_visual': estilo_visual,
         'mercado_pago': bool(mercado_pago_token),
         'public_key': public_key,
@@ -1496,8 +1477,6 @@ def preview():
         'preview.html',
         config=config,
         grupos=grupos_dict,
-        modoAdmin=modo_admin,
-        modoAdminIntentado=modo_admin_intentado,
         firebase_config=firebase_config
     )
 
