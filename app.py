@@ -1200,14 +1200,12 @@ def get_mp_public_key(email: str):
 
 @app.route('/conectar_mp', methods=["GET"])
 def conectar_mp():
-    # 🔑 Validar token y email recibidos en query
     token_arg = request.args.get("token")
     email = request.args.get("email")
 
     if not token_arg or not email:
         return "Error: faltan credenciales", 403
 
-    # 👉 validar token contra Firestore (usuarios/{email}/config/mercado_pago/token_admin)
     try:
         doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
         snap = doc_ref.get()
@@ -1217,12 +1215,11 @@ def conectar_mp():
         print(f"[MP-CONNECT] Error validando token: {e}")
         return "Error interno", 500
 
-    # ✅ Si pasa la validación, armar URL de autorización
     client_id = os.getenv("MP_CLIENT_ID")
-    redirect_uri = url_for("callback_mp", _external=True)
-
     if not client_id:
         return "❌ Falta configurar MP_CLIENT_ID en entorno", 500
+
+    redirect_uri = url_for("callback_mp", _external=True) + f"?email={email}&token={token_arg}"
 
     auth_url = (
         "https://auth.mercadopago.com/authorization?"
