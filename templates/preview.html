@@ -1545,7 +1545,7 @@ function ajustarPosicionesPaneles() {
   console.log("👁️ Estilo panelSub:", { display: styleSub.display, top: styleSub.top });
 }
 
-
+////////////////////////////////////////////////////
 document.addEventListener("DOMContentLoaded", () => {
   // Ajustar posiciones al cargar y al redimensionar
   window.addEventListener("load", ajustarPosicionesPaneles);
@@ -1703,6 +1703,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Llamar a initMercadoPago al cargar
   initMercadoPago();
 
+  // 👉 Función de pago con manejo robusto de errores
   async function pagarConMercadoPago() {
     try {
       if (!carrito.length) {
@@ -1720,7 +1721,15 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (err) {
+        const text = await response.text();
+        console.error("❌ Respuesta no es JSON válido:", text);
+        alert("Error inesperado en la respuesta del servidor");
+        return;
+      }
 
       if (data.preference_id && window.mp) {
         window.mp.checkout({
@@ -1736,6 +1745,12 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("⚠️ Error al conectar con backend central:", err);
       alert("Error interno al intentar pagar");
     }
+  }
+
+  // 👉 Enlazar la función al botón pagar
+  const pagarBtn = document.getElementById('btn_pagar');
+  if (pagarBtn) {
+    pagarBtn.addEventListener("click", pagarConMercadoPago);
   }
 });
 
