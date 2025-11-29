@@ -629,8 +629,6 @@ def debug_mp():
 
 @app.route('/login-admin', methods=['POST'])
 def login_admin():
-    session.clear()
-
     data = request.get_json(silent=True) or {}
     usuario = data.get('usuario')
     clave_ingresada = data.get('clave')
@@ -651,15 +649,15 @@ def login_admin():
         clave_guardada = doc.to_dict().get("clave_admin")
 
         if clave_guardada == clave_ingresada:
-            session.permanent = True
-            session['modo_admin'] = True
-            session['email'] = usuario
-
-            # 🔑 generar token único y guardarlo en sesión
+            # 🔑 generar token único
             token = secrets.token_urlsafe(32)
-            session['token_admin'] = token
 
-            return jsonify({'status': 'ok', 'token': token})
+            # 👉 devolver email y token al frontend
+            return jsonify({
+                'status': 'ok',
+                'token': token,
+                'email': usuario
+            })
         else:
             return jsonify({'status': 'error', 'message': 'Clave incorrecta'}), 403
 
@@ -1200,19 +1198,32 @@ def get_mp_public_key(email: str):
 
     return None
 
-@app.route('/conectar_mp')
+@app.route('/conectar_mp', methods=["GET"])
 def conectar_mp():
-    if not session.get('modo_admin'):
-        return redirect(url_for('preview'))
+    # 🔑 Validar token y email recibidos en query
+    token_arg = request.args.get("token")
+    email = request.args.get("email")
 
+    if not token_arg or not email:
+        return "Error: faltan credenciales", 403
+
+    # 👉 validar token contra Firestore (usuarios/{email}/config/mercado_pago/token_admin)
+    try:
+        doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
+        snap = doc_ref.get()
+        if not snap.exists or snap.to_dict().get("token_admin") != token_arg:
+            return "Error: token inválido", 403
+    except Exception as e:
+        print(f"[MP-CONNECT] Error validando token: {e}")
+        return "Error interno", 500
+
+    # ✅ Si pasa la validación, armar URL de autorización
     client_id = os.getenv("MP_CLIENT_ID")
-    redirect_uri = url_for('callback_mp', _external=True)
+    redirect_uri = url_for("callback_mp", _external=True)
 
     if not client_id:
-        flash("❌ Falta configurar MP_CLIENT_ID en entorno")
-        return redirect(url_for('preview', admin='true'))
+        return "❌ Falta configurar MP_CLIENT_ID en entorno", 500
 
-    # URL oficial de autorización con todos los scopes necesarios
     auth_url = (
         "https://auth.mercadopago.com/authorization?"
         f"client_id={client_id}"
@@ -1223,20 +1234,32 @@ def conectar_mp():
     print(f"[MP-CONNECT] Redirigiendo a: {auth_url}")
     return redirect(auth_url)
 
-
 @app.route('/callback_mp')
 def callback_mp():
-    if not session.get('modo_admin'):
-        return redirect(url_for('preview'))
-
+    # 🔑 Validar credenciales recibidas en query
     code = request.args.get('code')
+    email = request.args.get('email')
+    token_arg = request.args.get('token')
+
+    if not email or not token_arg:
+        return "Error: faltan credenciales", 403
+
+    # 👉 validar token contra Firestore
+    try:
+        doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
+        snap = doc_ref.get()
+        if not snap.exists or snap.to_dict().get("token_admin") != token_arg:
+            return "Error: token inválido", 403
+    except Exception as e:
+        print(f"[MP-CALLBACK] Error validando token: {e}")
+        return "Error interno", 500
+
     client_id = os.getenv("MP_CLIENT_ID")
     client_secret = os.getenv("MP_CLIENT_SECRET")
     redirect_uri = url_for('callback_mp', _external=True)
 
     if not code:
-        flash("❌ No se recibió código de autorización")
-        return redirect(url_for('preview', admin='true'))
+        return "❌ No se recibió código de autorización", 400
 
     token_url = "https://api.mercadopago.com/oauth/token"
     payload = {
@@ -1250,7 +1273,6 @@ def callback_mp():
     try:
         print(f"[MP-CALLBACK] Enviando payload a {token_url}: {payload}")
         response = requests.post(token_url, data=payload, timeout=10)
-        print(f"[MP-CALLBACK] Status token_url={response.status_code}")
         response.raise_for_status()
         data = response.json()
         print(f"[MP-CALLBACK] Respuesta token: {data}")
@@ -1259,81 +1281,57 @@ def callback_mp():
         refresh_token = data.get("refresh_token")
 
         if not access_token:
-            print("[MP-CALLBACK] ❌ No se recibió access_token")
-            flash("❌ Error al obtener token de Mercado Pago")
-            return redirect(url_for('preview', admin='true'))
+            return "❌ Error al obtener token de Mercado Pago", 400
 
         # ✅ Obtener la public_key
         public_key = data.get("public_key")
-        if public_key and isinstance(public_key, str):
-            public_key = public_key.strip()
-        else:
+        if not public_key:
             try:
-                print("[MP-CALLBACK] Intentando obtener public_key desde /v1/account/credentials")
                 cred_resp = requests.get(
                     "https://api.mercadopago.com/v1/account/credentials",
                     headers={"Authorization": f"Bearer {access_token}"},
                     timeout=10
                 )
-                print(f"[MP-CALLBACK] Status credentials={cred_resp.status_code}")
                 if cred_resp.status_code == 200:
                     cred_data = cred_resp.json() or {}
-                    print(f"[MP-CALLBACK] Datos credentials: {cred_data}")
                     public_key = cred_data.get("public_key") or cred_data.get("web", {}).get("public_key")
-
                 if not public_key:
-                    print("[MP-CALLBACK] Intentando obtener public_key desde /users/me")
                     user_resp = requests.get(
                         "https://api.mercadopago.com/users/me",
                         headers={"Authorization": f"Bearer {access_token}"},
                         timeout=10
                     )
-                    print(f"[MP-CALLBACK] Status users/me={user_resp.status_code}")
                     if user_resp.status_code == 200:
                         user_data = user_resp.json() or {}
-                        print(f"[MP-CALLBACK] Datos users/me: {user_data}")
                         public_key = user_data.get("public_key")
-
-                if public_key and isinstance(public_key, str):
-                    public_key = public_key.strip()
             except Exception as e:
                 print("Error al obtener public_key:", e)
-                public_key = None
 
-        # ✅ Guardar credenciales en Firestore sin pisar public_key con null
-        email = session.get('email')
-        if email:
-            doc_data = {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "created_at": datetime.now().isoformat(),
-                # datos útiles para auditoría
-                "live_mode": data.get("live_mode"),
-                "scope": data.get("scope"),
-                "user_id": data.get("user_id"),
-            }
-            if public_key:  # solo si existe
-                doc_data["public_key"] = public_key
+        if public_key and isinstance(public_key, str):
+            public_key = public_key.strip()
 
-            db.collection("usuarios").document(email).collection("config").document("mercado_pago").set(
-                doc_data, merge=True
-            )
-            print(
-                f"[MP-CALLBACK] Guardado: "
-                f"access_token={'SET' if access_token else 'MISSING'} "
-                f"refresh_token={'SET' if refresh_token else 'MISSING'} "
-                f"public_key={'SET' if public_key else 'UNCHANGED'}"
-            )
-        else:
-            print("[MP-CALLBACK] ⚠️ No hay email en sesión, no se guardó en Firestore")
+        # ✅ Guardar credenciales en Firestore
+        doc_data = {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "created_at": datetime.now().isoformat(),
+            "live_mode": data.get("live_mode"),
+            "scope": data.get("scope"),
+            "user_id": data.get("user_id"),
+        }
+        if public_key:
+            doc_data["public_key"] = public_key
 
-        flash("✅ Mercado Pago conectado correctamente")
-        return redirect(url_for('preview', admin='true'))
+        db.collection("usuarios").document(email).collection("config").document("mercado_pago").set(
+            doc_data, merge=True
+        )
+        print(f"[MP-CALLBACK] ✅ Credenciales guardadas para {email}")
+
+        return redirect(url_for('preview', token=token_arg))
 
     except Exception as e:
         print("Error en callback_mp:", e)
-        flash("Error al conectar con Mercado Pago")
-        return redirect(url_for('preview', admin='true'))
+        return "Error al conectar con Mercado Pago", 500
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
@@ -1446,138 +1444,65 @@ def pagar():
         traceback.print_exc() 
         return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
         
-@app.route('/preview', methods=["GET", "POST"])
+@app.route('/preview', methods=["GET"])
 def preview():
     print("🚀 [Preview] Entrando a /preview")
 
-    # 🔑 Validar token recibido en query o form
-    token_arg = request.args.get('token') or request.form.get('token')
-    token_session = session.get('token_admin')
-    email = session.get('email')
-
-    modo_admin = bool(session.get('modo_admin')) and token_arg and token_arg == token_session
-    modo_admin_intentado = bool(token_arg)
-
-    print(f"🔑 [Preview] modo_admin={modo_admin} modo_admin_intentado={modo_admin_intentado} token_arg={token_arg}")
+    token_arg = request.args.get('token')
+    email = request.args.get('email')
 
     if not email:
-        print("❌ [Preview] Sesión no iniciada")
-        return "Error: sesión no iniciada", 403
+        return "Error: falta email", 400
 
-    estilo_visual = session.get('estilo_visual')
-    print(f"🎨 [Preview] email={email} estilo_visual={estilo_visual}")
+    # Validar admin
+    modo_admin = False
+    if token_arg:
+        doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
+        snap = doc_ref.get()
+        if snap.exists and snap.to_dict().get("token_admin") == token_arg:
+            modo_admin = True
+    modo_admin_intentado = bool(token_arg)
 
-    # Obtener productos desde Firestore
+    # Config visual desde Firestore
+    config_doc = db.collection("usuarios").document(email).collection("config").document("general").get()
+    config_data = config_doc.to_dict() if config_doc.exists else {}
+    estilo_visual = config_data.get("estilo_visual", "claro_moderno")
+
+    # Productos
     productos = []
-    try:
-        productos_ref = db.collection("usuarios").document(email).collection("productos")
-        for doc in productos_ref.stream():
-            data = doc.to_dict()
-            print(f"📄 [Preview] Doc ID={doc.id} Data={data}")
-            productos.append(data)
-        print(f"📊 [Preview] Productos obtenidos: {len(productos)}")
-    except Exception as e:
-        print("💥 [Preview] Error al leer productos:", e)
-        productos = []
-
-    # ✅ Ordenar por campo 'orden'
+    productos_ref = db.collection("usuarios").document(email).collection("productos")
+    for doc in productos_ref.stream():
+        productos.append(doc.to_dict())
     productos = sorted(productos, key=lambda p: p.get('orden', 0))
-    print("📊 [Preview] Orden de productos:", [p.get('orden') for p in productos])
 
-    # ✅ Agrupar por grupo y subgrupo
+    # Agrupar
     grupos_dict = {}
-    for producto in productos:
-        grupo = (producto.get('grupo') or 'General').strip().title()
-        subgrupo = (producto.get('subgrupo') or 'Sin Subgrupo').strip().title()
-        grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
+    for p in productos:
+        grupo = (p.get('grupo') or 'General').strip().title()
+        subgrupo = (p.get('subgrupo') or 'Sin Subgrupo').strip().title()
+        grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(p)
 
-    print("📂 [Preview] Grupos generados:", {g: list(s.keys()) for g, s in grupos_dict.items()})
-
-    # Credenciales de Mercado Pago
+    # Credenciales MP
     mercado_pago_token = get_mp_token(email)
     public_key = get_mp_public_key(email) or ""
-    print(f"💳 [Preview] email={email} mercado_pago_token={bool(mercado_pago_token)} public_key={public_key}")
 
-    # Configuración visual
     config = {
-        'titulo': session.get('titulo'),
-        'descripcion': session.get('descripcion'),
-        'imagen_destacada': session.get('imagen_destacada'),
-        'url': session.get('url'),
-        'nombre_emprendimiento': session.get('nombre_emprendimiento'),
-        'anio': session.get('anio'),
-        'tipo_web': session.get('tipo_web'),
-        'ubicacion': session.get('ubicacion'),
-        'link_mapa': session.get('link_mapa'),
-        'color': session.get('color'),
-        'fuente': session.get('fuente'),
-        'estilo': session.get('estilo'),
-        'bordes': session.get('bordes'),
-        'botones': session.get('botones'),
-        'vista_imagenes': session.get('vista_imagenes'),
-        'logo': session.get('logo'),
+        **config_data,
         'estilo_visual': estilo_visual,
-        'facebook': session.get('facebook'),
-        'whatsapp': session.get('whatsapp'),
-        'instagram': session.get('instagram'),
-        'sobre_mi': session.get('sobre_mi'),
         'mercado_pago': bool(mercado_pago_token),
         'public_key': public_key,
         'productos': productos,
-        'bloques': [],
-        'descargado': session.get('descargado', False),
         'usarFirestore': True
     }
 
-    # Crear repo si corresponde
-    if session.get("crear_repo") and not session.get("repo_creado"):
-        nombre_repo = generar_nombre_repo(email)
-        token = os.getenv("GITHUB_TOKEN")
-        try:
-            resultado = crear_repo_github(nombre_repo, token)
-            print(f"📦 [Preview] Creando repo: {nombre_repo}, resultado={resultado}")
-            if "url" in resultado:
-                session['repo_creado'] = resultado["url"]
-                session['repo_nombre'] = nombre_repo
-        except Exception as e:
-            print("💥 [Preview] Error al crear repo:", e)
-
-    # Subir archivos si el repo existe
-    if session.get('repo_creado') and session.get('repo_nombre'):
-        nombre_repo = session['repo_nombre']
-        token = os.getenv("GITHUB_TOKEN")
-        if token:
-            try:
-                logo = config.get("logo")
-                if logo:
-                    logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
-                    if os.path.exists(logo_path):
-                        with open(logo_path, "rb") as f:
-                            subir_archivo(nombre_repo, f.read(), f"static/img/{logo}")
-                        print(f"✅ [Preview] Logo subido: {logo}")
-
-                fondo = f"{estilo_visual}.jpeg"
-                fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
-                if os.path.exists(fondo_path):
-                    with open(fondo_path, "rb") as f:
-                        subir_archivo(nombre_repo, f.read(), f"static/img/{fondo}")
-                    print(f"✅ [Preview] Fondo subido: {fondo}")
-            except Exception as e:
-                print("💥 [Preview] Error al subir archivos al repo:", e)
-
-    try:
-        print(f"🖼️ [Preview] Renderizando template preview.html con grupos: {grupos_dict}")
-        return render_template(
-            'preview.html',
-            config=config,
-            grupos=grupos_dict,
-            modoAdmin=modo_admin,
-            modoAdminIntentado=modo_admin_intentado,
-            firebase_config=firebase_config
-        )
-    except Exception as e:
-        print("💥 [Preview] Error al renderizar preview:", e)
-        return "Internal Server Error al renderizar preview", 500
+    return render_template(
+        'preview.html',
+        config=config,
+        grupos=grupos_dict,
+        modoAdmin=modo_admin,
+        modoAdminIntentado=modo_admin_intentado,
+        firebase_config=firebase_config
+    )
 
 @app.route('/descargar')
 def descargar():
