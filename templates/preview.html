@@ -945,12 +945,16 @@ function guardarPrecio(id) {
     return;
   }
 
-  console.log("📡 Enviando precio al backend:", { id, nuevoPrecio: nuevoValor, token: window.tokenAdmin });
+  console.log("📡 Enviando precio al backend:", { id, nuevoPrecio: nuevoValor, email: window.emailAdmin });
 
   fetch("https://mpagina.onrender.com/actualizar-precio", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, nuevoPrecio: nuevoValor, token: window.tokenAdmin }) // 🔑 token incluido
+    body: JSON.stringify({
+      id,
+      nuevoPrecio: nuevoValor,
+      email: window.emailAdmin // 🔑 este campo es obligatorio
+    })
   })
     .then(res => {
       console.log("📡 Respuesta recibida del backend, status:", res.status);
