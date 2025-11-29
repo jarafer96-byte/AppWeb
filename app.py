@@ -590,7 +590,7 @@ def crear_pago():
         r = requests.post(url, json=payload, headers=headers)
         pref_data = r.json()
 
-        if "id" not in pref_data:
+        if "id" not in pref_data or "init_point" not in pref_data:
             return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
         # Guardar el pedido en Firestore con el external_reference
@@ -602,13 +602,19 @@ def crear_pago():
             "creado": firestore.SERVER_TIMESTAMP
         })
 
-        return jsonify(pref_data)
+        # 👉 Devolver también el init_point para abrir el checkout directo
+        return jsonify({
+            "id": pref_data["id"],
+            "init_point": pref_data["init_point"],
+            "external_reference": external_reference
+        })
 
     except Exception as e:
         import traceback
         tb = traceback.format_exc()
         print("[CREAR_PAGO] 💥 Error inesperado:", e)
         return jsonify({"error": str(e), "trace": tb}), 500
+
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
