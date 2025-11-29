@@ -343,11 +343,7 @@ html { scroll-behavior: auto; }
   <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
   <div class="d-grid gap-2">
     <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
-
-    {% if config.mercado_pago and config.public_key %}
       <button id="btn_pagar" class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
-    {% endif %}
-
     <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
   </div>
 </div>
