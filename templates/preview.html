@@ -945,16 +945,13 @@ function guardarPrecio(id) {
     return;
   }
 
-  console.log("📡 Enviando precio al backend:", { id, nuevoPrecio: nuevoValor, email: window.emailAdmin });
+  // 👉 Usa la misma variable global 'email' que en guardarTalles
+  console.log("📡 Enviando precio al backend:", { id, nuevoPrecio: nuevoValor, email });
 
   fetch("https://mpagina.onrender.com/actualizar-precio", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id,
-      nuevoPrecio: nuevoValor,
-      email: window.emailAdmin // 🔑 este campo es obligatorio
-    })
+    body: JSON.stringify({ id, nuevoPrecio: nuevoValor, email }) // 👈 email incluido igual que en talles
   })
     .then(res => {
       console.log("📡 Respuesta recibida del backend, status:", res.status);
