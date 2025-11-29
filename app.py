@@ -749,6 +749,28 @@ def crear_repo():
         session['repo_creado'] = resultado["url"]
 
     return jsonify(resultado), 200 if "url" in resultado else 400
+    
+@app.route("/eliminar-producto", methods=["POST"])
+def eliminar_producto():
+    try:
+        data = request.get_json(force=True) or {}
+        email = data.get("email")
+        id_base = data.get("id_base")
+
+        if not email or not id_base:
+            return jsonify({"status": "error", "error": "Faltan datos"}), 400
+
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        productos_ref.document(id_base).delete()
+
+        print(f"[ELIMINAR_PRODUCTO] ✅ Eliminado → Usuario={email}, id_base={id_base}")
+        return jsonify({"status": "ok", "id_base": id_base})
+
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print("[ELIMINAR_PRODUCTO] 💥 Error inesperado:", e)
+        return jsonify({"status": "error", "error": str(e), "trace": tb}), 500
 
 @app.route('/actualizar-precio', methods=['POST'])
 def actualizar_precio():
