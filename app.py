@@ -122,65 +122,54 @@ def subir_a_firestore(producto, email):
         print(f"[FIRESTORE] Datos recibidos: {producto}")
 
         if not isinstance(producto, dict):
-            print("[FIRESTORE] ❌ Producto inválido (no es dict)")
             return {"status": "error", "error": "Producto inválido (no es dict)"}
 
         if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio"):
-            print("[FIRESTORE] ❌ Faltan campos obligatorios: nombre/grupo/precio")
             return {"status": "error", "error": "Faltan campos obligatorios: nombre/grupo/precio"}
 
         grupo_original = producto["grupo"].strip()
         subgrupo_original = (producto.get("subgrupo", "") or "").strip() or f"General_{grupo_original}"
         nombre_original = producto["nombre"].strip()
-        print(f"[FIRESTORE] Campos normalizados: nombre={nombre_original}, grupo={grupo_original}, subgrupo={subgrupo_original}")
 
         nombre_id = nombre_original.replace(" ", "_").lower()
         subgrupo_id = subgrupo_original.replace(" ", "_").lower()
         fecha = time.strftime("%Y%m%d")
         sufijo = uuid.uuid4().hex[:6]
         custom_id = f"{nombre_id}_{fecha}_{subgrupo_id}_{sufijo}"
-        print(f"[FIRESTORE] ID generado (id_base): {custom_id}")
 
         # Parseo de precio
         precio_raw = producto["precio"]
         price_str = str(precio_raw).strip()
         price_clean = re.sub(r"[^\d,\.]", "", price_str)
-        print(f"[FIRESTORE] Precio raw='{precio_raw}' | limpio='{price_clean}'")
 
         if "," in price_clean and "." in price_clean:
             price_clean = price_clean.replace(".", "").replace(",", ".")
         elif "," in price_clean and "." not in price_clean:
             price_clean = price_clean.replace(",", ".")
+
         try:
             precio_float = float(price_clean)
             precio = int(round(precio_float))
-            print(f"[FIRESTORE] Precio final parseado: {precio}")
         except Exception as e:
-            print(f"[FIRESTORE] ❌ Error parseando precio: {e}")
             return {"status": "error", "error": f"Formato de precio inválido: '{price_str}' -> '{price_clean}'", "detail": str(e)}
 
         try:
             orden = int(producto.get("orden", 999))
         except Exception:
             orden = 999
-        print(f"[FIRESTORE] Orden final: {orden}")
 
         talles = producto.get("talles") or []
         if isinstance(talles, str):
             talles = [t.strip() for t in talles.split(',') if t.strip()]
-        print(f"[FIRESTORE] Talles procesados: {talles}")
 
         producto["id_base"] = custom_id
 
-        # Imagen: usar la URL real si ya viene del upload, si no, fallback a custom_id.webp
+        # Imagen
         imagen_url = producto.get("imagen_url")
-        if imagen_url:
-            print(f"[FIRESTORE] Usando imagen_url provista: {imagen_url}")
-        else:
+        if not imagen_url:
             imagen_nombre = f"{custom_id}.webp"
             email_encoded = email.replace("@", "%40")
             imagen_url = f"https://storage.googleapis.com/mpagina/{email_encoded}/{imagen_nombre}"
-            print(f"[FIRESTORE] Generada imagen_url por fallback: {imagen_url}")
 
         doc = {
             "nombre": nombre_original,
@@ -194,18 +183,18 @@ def subir_a_firestore(producto, email):
             "talles": talles,
             "timestamp": firestore.SERVER_TIMESTAMP
         }
+
         print(f"[FIRESTORE] Documento a guardar: {doc}")
 
-        ruta = f"usuarios/{email}/productos/{custom_id}"
-        print(f"[FIRESTORE] Guardando en ruta: {ruta}")
-        db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
-        print(f"[FIRESTORE] ✅ Producto guardado correctamente en Firestore: {custom_id} para {email}")
+        # 🔑 Guardar con add() para que el campo id_base sea el que use la query
+        productos_ref = db.collection("usuarios").document(email).collection("productos")
+        productos_ref.add(doc)
 
-        return {"status": "ok", "ok": True, "id_base": custom_id}
+        print(f"[FIRESTORE] ✅ Producto guardado correctamente en Firestore: {custom_id} para {email}")
+        return {"status": "ok", "id_base": custom_id}
 
     except Exception as e:
         tb = traceback.format_exc()
-        print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
         return {"status": "error", "error": str(e), "trace": tb}
 
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
@@ -810,15 +799,16 @@ def eliminar_producto():
             return jsonify({"status": "error", "error": "Faltan datos"}), 400
 
         productos_ref = db.collection("usuarios").document(email).collection("productos")
-        doc_ref = productos_ref.document(id_base)
+        query = productos_ref.where("id_base", "==", id_base).limit(1).get()
 
-        if doc_ref.get().exists:
-            doc_ref.delete()
-            print(f"[ELIMINAR_PRODUCTO] ✅ Eliminado en Firestore → Usuario={email}, id_base={id_base}")
-            return jsonify({"status": "ok", "id_base": id_base})
-        else:
+        if not query:
             print(f"[ELIMINAR_PRODUCTO] ⚠️ No encontrado → Usuario={email}, id_base={id_base}")
             return jsonify({"status": "not_found", "id_base": id_base}), 404
+
+        doc = query[0]
+        doc.reference.delete()
+        print(f"[ELIMINAR_PRODUCTO] ✅ Eliminado en Firestore → Usuario={email}, id_base={id_base}")
+        return jsonify({"status": "ok", "id_base": id_base})
 
     except Exception as e:
         import traceback
