@@ -387,6 +387,52 @@ if (modoAdmin) {
   document.getElementById("adminCard").classList.remove("d-none");
 }   
     
+// 👉 Mostrar/ocultar botones eliminar según modo admin
+function toggleModoAdmin(activo) {
+  document.querySelectorAll(".btnEliminarCard").forEach(btn => {
+    if (activo) {
+      btn.classList.remove("d-none");
+    } else {
+      btn.classList.add("d-none");
+    }
+  });
+}
+
+// 👉 Eliminar producto en Firestore y del DOM
+async function eliminarProducto(id_base) {
+  const email = "c@gmail.com"; // 👈 admin
+  console.log("[ELIMINAR_PRODUCTO] 🔔 Click en botón eliminar → id_base:", id_base);
+
+  try {
+    console.log("[ELIMINAR_PRODUCTO] 📡 Enviando request al backend...");
+    const resp = await fetch("https://mpagina.onrender.com/eliminar-producto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, id_base })
+    });
+
+    console.log("[ELIMINAR_PRODUCTO] 📥 Status HTTP:", resp.status);
+    const data = await resp.json();
+    console.log("[ELIMINAR_PRODUCTO] 📄 Respuesta JSON:", data);
+
+    if (data.status === "ok") {
+      const card = document.querySelector(`[data-id="${id_base}"]`);
+      if (card) {
+        card.remove();
+        console.log("[ELIMINAR_PRODUCTO] 🗑️ Card eliminada del DOM:", id_base);
+      } else {
+        console.warn("[ELIMINAR_PRODUCTO] ⚠️ No se encontró la card en el DOM para id_base:", id_base);
+      }
+    } else {
+      console.error("[ELIMINAR_PRODUCTO] ❌ Error reportado por backend:", data.error);
+      alert("Error al eliminar producto: " + data.error);
+    }
+  } catch (err) {
+    console.error("[ELIMINAR_PRODUCTO] 💥 Excepción inesperada:", err);
+    alert("Error al eliminar producto: " + err.message);
+  }
+}
+    
 // 👉 Optimizar imagen igual que Step0 → resize a 300x180, WebP q=0.8
 async function optimizarImagen(file) {
   console.log(`📂 [optimizarImagen] Iniciando optimización: ${file.name} (${file.size} bytes)`);
@@ -1220,10 +1266,22 @@ function mostrarAvisoPrecio() {
   }, 2000);
 }
 
-function eliminarProducto(id_base, talle, event) {
+// 👉 Eliminar ítem del carrito
+function eliminarDelCarrito(id_base, talle, event) {
   if (event?.stopPropagation) event.stopPropagation();
+
+  console.log("[CARRITO] ❌ Intentando eliminar → id_base:", id_base, "talle:", talle);
+
+  // Filtrar el carrito quitando el ítem que coincide
+  const antes = carrito.length;
   carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
+  const despues = carrito.length;
+
+  console.log("[CARRITO] 📉 Carrito antes:", antes, "después:", despues);
+
+  // Actualizar la vista del carrito
   actualizarCarrito();
+  console.log("[CARRITO] 🔄 Vista actualizada tras eliminar ítem");
 }
     
 function mostrarSubgrupo(subgrupo, event) {
@@ -1310,16 +1368,16 @@ function actualizarCarrito() {
   sincronizarPreciosDelCarrito();
 
   const lista = document.getElementById('listaCarrito');
-  const total = document.getElementById('totalCarrito');
+  const totalSpan = document.getElementById('totalCarrito');
   const link = document.getElementById('enviarCarrito');
-  if (!lista || !total) return;
+  if (!lista || !totalSpan) return;
 
   lista.innerHTML = '';
   let suma = 0;
 
   if (carrito.length === 0) {
     lista.innerHTML = "<li>🛒 Carrito vacío</li>";
-    total.textContent = "0.00";
+    totalSpan.textContent = "0.00";
     if (link) link.href = configWhatsApp;
     return;
   }
@@ -1333,14 +1391,14 @@ function actualizarCarrito() {
     lista.insertAdjacentHTML("beforeend", `
       <li style="display: flex; justify-content: space-between; align-items: center;">
         <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${fmt.format(subtotal)}</span>
-        <button onclick="eliminarProducto('${item.id_base}', '${item.talle}', event)" 
+        <button onclick="eliminarDelCarrito('${item.id_base}', '${item.talle}', event)" 
                 style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">
           ❌
         </button>
       </li>`);
   });
 
-  total.textContent = fmt.format(suma);
+  totalSpan.textContent = fmt.format(suma);
 
   const mensaje = encodeURIComponent(
     `Hola, quiero consultar por:\n` +
@@ -1377,7 +1435,6 @@ function renderProducto(p) {
   console.log("🛒 renderProducto llamado con:", p);
 
   const card = document.createElement("div");
-  // Añadimos también la clase card-producto y dataset para orden/sorting
   card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder card-producto";
   card.dataset.id = p.id_base;
   card.dataset.precio = p.precio;
@@ -1390,7 +1447,7 @@ function renderProducto(p) {
         ${
           Array.isArray(p.talles) && p.talles.length
             ? p.talles.map(t => `<option value="${t}">${t}</option>`).join("")
-            : `<option disabled selected>Sin talles disponibles</option>`
+            : `<option disabled selected>Sin talles</option>`
         }
       </select>
       ${window.modoAdmin ? `
@@ -1426,6 +1483,11 @@ function renderProducto(p) {
             Agregar al carrito
           </button>
         </div>
+        ${window.modoAdmin ? `
+          <div class="mt-3">
+            <button type="button" class="btn btn-danger btn-sm btnEliminarCard"
+              onclick="eliminarProducto('${p.id_base}')">🗑️ Eliminar</button>
+          </div>` : ""}
       </div>
     </div>
   `;
