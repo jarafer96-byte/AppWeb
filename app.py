@@ -553,28 +553,79 @@ def pago_failure():
 def pago_pending():
     return "⏳ El pago está pendiente de aprobación."
 
+@app.route('/crear-pago', methods=['POST'])
+def crear_pago():
+    access_token = os.getenv("MP_ACCESS_TOKEN")  # token del vendedor
+    url = "https://api.mercadopago.com/checkout/preferences"
+
+    # Datos del carrito enviados por el usuario
+    data = request.json
+    items = data.get("items", [])
+
+    # Generar external_reference único
+    external_reference = f"pedido_{int(time.time())}"
+
+    payload = {
+        "items": items,
+        "back_urls": {
+            "success": "https://mpagina.onrender.com/success",
+            "failure": "https://mpagina.onrender.com/failure",
+            "pending": "https://mpagina.onrender.com/pending"
+        },
+        "auto_return": "approved",
+        "notification_url": "https://mpagina.onrender.com/webhook_mp",
+        "external_reference": external_reference
+    }
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    r = requests.post(url, json=payload, headers=headers)
+    data = r.json()
+
+    # Guardar el pedido en Firestore con el external_reference
+    db.collection("usuarios").document(data.get("email")).collection("pedidos").document(external_reference).set({
+        "items": items,
+        "estado": "pendiente",
+        "preference_id": data.get("id")
+    })
+
+    return jsonify(data)
+
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
-    # ✅ Registrar el evento crudo para auditoría (opcional)
-    log_event("mp_webhook", event)
+    log_event("mp_webhook", event)  # auditoría
 
-    # Podés inspeccionar si querés ver qué llega
     topic = event.get("type") or event.get("action")
     payment_id = event.get("data", {}).get("id")
 
     if topic == "payment" and payment_id:
         try:
-            # Consultar detalle del pago solo para auditar (opcional)
             detail = requests.get(
                 f"https://api.mercadopago.com/v1/payments/{payment_id}",
                 headers={"Authorization": f"Bearer {get_platform_token()}"}
             ).json()
             log_event("mp_payment_detail", detail)
+
+            # ✅ Extraer external_reference para correlacionar con tu pedido interno
+            ext_ref = detail.get("external_reference")
+            status = detail.get("status")
+
+            if ext_ref:
+                # Actualizar tu orden interna en Firestore
+                db.collection("usuarios").document(detail.get("payer", {}).get("email", "desconocido")) \
+                  .collection("pedidos").document(ext_ref).set({
+                      "payment_id": payment_id,
+                      "status": status,
+                      "raw": detail
+                  }, merge=True)
+
         except Exception as e:
             log_event("mp_webhook_error", str(e))
 
-    # ✅ No se guarda nada en Firestore, solo respondemos OK
     return "OK", 200
 
 @app.route('/crear-admin', methods=['POST'])
