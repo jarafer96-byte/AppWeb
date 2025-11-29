@@ -559,8 +559,12 @@ def crear_pago():
     url = "https://api.mercadopago.com/checkout/preferences"
 
     # Datos del carrito enviados por el usuario
-    data = request.json
+    data = request.get_json(force=True) or {}
     items = data.get("items", [])
+    email = data.get("email")  # 👈 el frontend debe enviarlo
+
+    if not items or not email:
+        return jsonify({"error": "Faltan datos (items o email)"}), 400
 
     # Generar external_reference único
     external_reference = f"pedido_{int(time.time())}"
@@ -582,17 +586,29 @@ def crear_pago():
         "Content-Type": "application/json"
     }
 
-    r = requests.post(url, json=payload, headers=headers)
-    data = r.json()
+    try:
+        r = requests.post(url, json=payload, headers=headers)
+        pref_data = r.json()
 
-    # Guardar el pedido en Firestore con el external_reference
-    db.collection("usuarios").document(data.get("email")).collection("pedidos").document(external_reference).set({
-        "items": items,
-        "estado": "pendiente",
-        "preference_id": data.get("id")
-    })
+        if "id" not in pref_data:
+            return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
-    return jsonify(data)
+        # Guardar el pedido en Firestore con el external_reference
+        db.collection("usuarios").document(email).collection("pedidos").document(external_reference).set({
+            "items": items,
+            "estado": "pendiente",
+            "preference_id": pref_data["id"],
+            "external_reference": external_reference,
+            "creado": firestore.SERVER_TIMESTAMP
+        })
+
+        return jsonify(pref_data)
+
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print("[CREAR_PAGO] 💥 Error inesperado:", e)
+        return jsonify({"error": str(e), "trace": tb}), 500
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
