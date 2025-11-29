@@ -619,7 +619,9 @@ def crear_pago():
         print("[CREAR_PAGO] 💥 Error inesperado:", e)
         return jsonify({"error": str(e), "trace": tb}), 500
 
-
+def get_platform_token():
+    return os.environ.get("MERCADO_PAGO_TOKEN")
+    
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
@@ -630,23 +632,20 @@ def webhook_mp():
 
     if topic == "payment" and payment_id:
         try:
-            # Consultar detalle del pago con tu token de plataforma
             detail = requests.get(
                 f"https://api.mercadopago.com/v1/payments/{payment_id}",
-                headers={"Authorization": f"Bearer {get_platform_token()}"}
+                headers={"Authorization": f"Bearer {os.environ.get('MERCADO_PAGO_TOKEN')}"}
             ).json()
             log_event("mp_payment_detail", detail)
 
-            # ✅ Extraer external_reference para correlacionar con tu pedido interno
             ext_ref = detail.get("external_reference")
             status = detail.get("status")
 
             if ext_ref:
-                # Actualizar el pedido en Firestore usando solo external_reference
                 db.collection("usuarios").document("cliente@ejemplo.com") \
                   .collection("pedidos").document(ext_ref).set({
                       "payment_id": payment_id,
-                      "status": status,
+                      "estado": status,   # usa 'estado' para mantener consistencia
                       "raw": detail
                   }, merge=True)
 
