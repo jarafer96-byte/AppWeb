@@ -552,6 +552,10 @@ def pago_failure():
 @app.route('/pending')
 def pago_pending():
     return "⏳ El pago está pendiente de aprobación."
+    
+def log_event(tag, data):
+    print(f"[{tag}] {data}")
+    # opcional: guardar en Firestore o en un archivo de logs
 
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
