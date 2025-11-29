@@ -1395,6 +1395,25 @@ function mostrarTodos() {
 }
 window.mostrarTodos = mostrarTodos; 
     
+async function initMercadoPago() {
+  try {
+    const resp = await fetch(`${URL_BACKEND}/api/mp_public_key?email=${encodeURIComponent(email)}`);
+    const data = await resp.json();
+
+    if (data.public_key) {
+      console.log("🔑 Public key recibida:", data.public_key);
+      window.mp = new MercadoPago(data.public_key, { locale: "es-AR" });
+      document.getElementById("btn_pagar").disabled = false;
+    } else {
+      console.error("❌ No se encontró public_key:", data.error);
+      document.getElementById("btn_pagar").disabled = true;
+    }
+  } catch (err) {
+    console.error("💥 Error al obtener public_key:", err);
+    document.getElementById("btn_pagar").disabled = true;
+  }
+}
+    
 function irAContacto() {
   const contacto = document.getElementById('ubicacion');
   if (contacto) contacto.scrollIntoView({ behavior: 'auto' });
@@ -1677,17 +1696,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 👉 Inicializar Mercado Pago
-  const PUBLIC_KEY = "{{ config.public_key or '' }}"; // inyectada desde backend
-  let mp = null;
-  if (PUBLIC_KEY) {
-    mp = new MercadoPago(PUBLIC_KEY, { locale: 'es-AR' });
+  // 👉 Inicializar Mercado Pago dinámicamente
+  async function initMercadoPago() {
+    try {
+      const resp = await fetch(`${URL_BACKEND}/api/mp_public_key?email=${encodeURIComponent(email)}`);
+      const data = await resp.json();
+
+      if (data.public_key) {
+        console.log("🔑 Public key recibida:", data.public_key);
+        window.mp = new MercadoPago(data.public_key, { locale: 'es-AR' });
+        const pagarBtn = document.getElementById('btn_pagar');
+        if (pagarBtn) pagarBtn.disabled = false;
+      } else {
+        console.error("❌ No se encontró public_key:", data.error);
+        const pagarBtn = document.getElementById('btn_pagar');
+        if (pagarBtn) pagarBtn.disabled = true;
+      }
+    } catch (err) {
+      console.error("💥 Error al obtener public_key:", err);
+      const pagarBtn = document.getElementById('btn_pagar');
+      if (pagarBtn) pagarBtn.disabled = true;
+    }
   }
 
-  const pagarBtn = document.getElementById('btn_pagar');
-  if (pagarBtn && !PUBLIC_KEY) {
-    pagarBtn.disabled = true;
-  }
+  // Llamar a initMercadoPago al cargar
+  initMercadoPago();
 
   async function pagarConMercadoPago() {
     try {
@@ -1708,8 +1741,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await response.json();
 
-      if (data.preference_id && mp) {
-        mp.checkout({
+      if (data.preference_id && window.mp) {
+        window.mp.checkout({
           preference: { id: data.preference_id },
           autoOpen: true
         });
