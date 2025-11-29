@@ -257,7 +257,7 @@ html { scroll-behavior: auto; }
     <!-- Foto -->
     <img id="previewFoto" src="" alt="Sin foto" class="d-none w-100 mb-2">
     <input type="file" id="inputFoto" accept="image/*" class="form-control mb-2">
-
+    <button id="btnQuitarFoto" type="button" class="btn btn-danger mb-2 d-none">❌ Quitar foto</button>
     <!-- Datos -->
     <input type="text" id="nombreProd" placeholder="Nombre producto" class="form-control mb-2">
     <input type="number" id="precioProd" placeholder="Precio" class="form-control mb-2">
@@ -1732,6 +1732,41 @@ setTimeout(() => {
   }
 }, 100);
 
+document.getElementById("inputFoto").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const blobOptimizado = await optimizarImagen(file);
+    window.fotoOptimizada = blobOptimizado;
+
+    const urlPreview = URL.createObjectURL(blobOptimizado);
+    const imgPreview = document.getElementById("previewFoto");
+    imgPreview.src = urlPreview;
+    imgPreview.classList.remove("d-none");
+
+    // Mostrar botón quitar foto
+    document.getElementById("btnQuitarFoto").classList.remove("d-none");
+
+    console.log("👁️ Preview inmediato mostrado");
+  } catch (err) {
+    console.error("💥 Error al optimizar imagen:", err);
+    alert("❌ No se pudo optimizar la imagen");
+  }
+});
+
+document.getElementById("btnQuitarFoto").addEventListener("click", () => {
+  // Limpiar input y preview
+  document.getElementById("inputFoto").value = "";
+  const imgPreview = document.getElementById("previewFoto");
+  imgPreview.src = "";
+  imgPreview.classList.add("d-none");
+
+  // Ocultar botón y limpiar referencia global
+  document.getElementById("btnQuitarFoto").classList.add("d-none");
+  window.fotoOptimizada = null;
+
+  console.log("🗑️ Foto eliminada");
+});
    
 </script>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
