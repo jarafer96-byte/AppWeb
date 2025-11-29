@@ -560,7 +560,7 @@ def log_event(tag, data):
 
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
-    access_token = os.getenv("MERCADO_PAGO_TOKEN")  # token del vendedor
+    access_token = os.getenv("MP_ACCESS_TOKEN")  # token del vendedor
     url = "https://api.mercadopago.com/checkout/preferences"
 
     # Datos del carrito enviados por el usuario
@@ -595,7 +595,7 @@ def crear_pago():
         r = requests.post(url, json=payload, headers=headers)
         pref_data = r.json()
 
-        if "id" not in pref_data or "init_point" not in pref_data:
+        if "id" not in pref_data:
             return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
         # Guardar el pedido en Firestore con el external_reference
@@ -607,12 +607,7 @@ def crear_pago():
             "creado": firestore.SERVER_TIMESTAMP
         })
 
-        # 👉 Devolver también el init_point para abrir el checkout directo
-        return jsonify({
-            "id": pref_data["id"],
-            "init_point": pref_data["init_point"],
-            "external_reference": external_reference
-        })
+        return jsonify(pref_data)
 
     except Exception as e:
         import traceback
