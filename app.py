@@ -630,6 +630,7 @@ def webhook_mp():
 
     if topic == "payment" and payment_id:
         try:
+            # Consultar detalle del pago con tu token de plataforma
             detail = requests.get(
                 f"https://api.mercadopago.com/v1/payments/{payment_id}",
                 headers={"Authorization": f"Bearer {get_platform_token()}"}
@@ -641,8 +642,8 @@ def webhook_mp():
             status = detail.get("status")
 
             if ext_ref:
-                # Actualizar tu orden interna en Firestore
-                db.collection("usuarios").document(detail.get("payer", {}).get("email", "desconocido")) \
+                # Actualizar el pedido en Firestore usando solo external_reference
+                db.collection("usuarios").document("cliente@ejemplo.com") \
                   .collection("pedidos").document(ext_ref).set({
                       "payment_id": payment_id,
                       "status": status,
