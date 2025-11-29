@@ -810,10 +810,15 @@ def eliminar_producto():
             return jsonify({"status": "error", "error": "Faltan datos"}), 400
 
         productos_ref = db.collection("usuarios").document(email).collection("productos")
-        productos_ref.document(id_base).delete()
+        doc_ref = productos_ref.document(id_base)
 
-        print(f"[ELIMINAR_PRODUCTO] ✅ Eliminado → Usuario={email}, id_base={id_base}")
-        return jsonify({"status": "ok", "id_base": id_base})
+        if doc_ref.get().exists:
+            doc_ref.delete()
+            print(f"[ELIMINAR_PRODUCTO] ✅ Eliminado en Firestore → Usuario={email}, id_base={id_base}")
+            return jsonify({"status": "ok", "id_base": id_base})
+        else:
+            print(f"[ELIMINAR_PRODUCTO] ⚠️ No encontrado → Usuario={email}, id_base={id_base}")
+            return jsonify({"status": "not_found", "id_base": id_base}), 404
 
     except Exception as e:
         import traceback
