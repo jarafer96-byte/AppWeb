@@ -829,10 +829,10 @@ def eliminar_producto():
 
 @app.route('/actualizar-precio', methods=['POST'])
 def actualizar_precio():
-    data = request.get_json()
+    data = request.get_json() or {}
     id_base = data.get("id")
     nuevo_precio_raw = data.get("nuevoPrecio", 0)
-    email = data.get("email") 
+    email = data.get("email")   # 👈 igual que en talles
 
     if not email or not id_base:
         return jsonify({"error": "Datos incompletos"}), 400
@@ -851,10 +851,11 @@ def actualizar_precio():
 
         doc = query[0]
         doc.reference.update({"precio": nuevo_precio})
+        print(f"[ACTUALIZAR-PRECIO] ✅ Usuario={email}, id_base={id_base}, precio={nuevo_precio}")
         return jsonify({"status": "ok"})
     except Exception as e:
+        print(f"[ACTUALIZAR-PRECIO] ❌ Error: {e}")
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/actualizar-talles', methods=['POST'])
 def actualizar_talles():
