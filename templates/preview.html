@@ -410,9 +410,7 @@ function toggleModoAdmin(activo) {
     window.location.href = `${URL_BACKEND}/conectar_mp?email=${email}`;
   }
     
-// 👉 Eliminar producto en Firestore y del DOM
 async function eliminarProducto(id_base) {
-  const email = "c@gmail.com"; // 👈 admin
   console.log("[ELIMINAR_PRODUCTO] 🔔 Click en botón eliminar → id_base:", id_base);
 
   try {
@@ -420,7 +418,7 @@ async function eliminarProducto(id_base) {
     const resp = await fetch("https://mpagina.onrender.com/eliminar-producto", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, id_base })
+      body: JSON.stringify({ id_base, email }) // 👈 usa la variable global
     });
 
     console.log("[ELIMINAR_PRODUCTO] 📥 Status HTTP:", resp.status);
