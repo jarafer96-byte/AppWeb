@@ -1474,6 +1474,36 @@ function renderProducto(p) {
   return card;
 }
     
+document.getElementById("btn_pagar").onclick = async () => {
+  try {
+    const resp = await fetch("/crear-pago", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: [
+          { title: "Campera", quantity: 1, unit_price: 1000 }
+        ],
+        email: email // 👈 pasás el email del comprador
+      })
+    });
+
+    const data = await resp.json();
+    console.log("Preferencia creada:", data);
+
+    if (data.id) {
+      window.mp.checkout({
+        preference: { id: data.id },
+        autoOpen: true
+      });
+    } else {
+      alert("No se pudo crear la preferencia de pago");
+    }
+  } catch (err) {
+    console.error("Error al crear pago:", err);
+    alert("Error al iniciar el pago");
+  }
+};
+    
 function ajustarPosicionesPaneles() {
   const panelGrupos = document.getElementById('panelGrupos');
   const panelSub = document.getElementById('panelSubcategorias');
