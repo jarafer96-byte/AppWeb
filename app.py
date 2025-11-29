@@ -555,7 +555,7 @@ def pago_pending():
 
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
-    access_token = os.getenv("MP_ACCESS_TOKEN")  # token del vendedor
+    access_token = os.getenv("MERCADO_PAGO_TOKEN")  # token del vendedor
     url = "https://api.mercadopago.com/checkout/preferences"
 
     # Datos del carrito enviados por el usuario
