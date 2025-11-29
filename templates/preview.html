@@ -1394,26 +1394,7 @@ function mostrarTodos() {
   }
 }
 window.mostrarTodos = mostrarTodos; 
-    
-async function initMercadoPago() {
-  try {
-    const resp = await fetch(`${URL_BACKEND}/api/mp_public_key?email=${encodeURIComponent(email)}`);
-    const data = await resp.json();
-
-    if (data.public_key) {
-      console.log("🔑 Public key recibida:", data.public_key);
-      window.mp = new MercadoPago(data.public_key, { locale: "es-AR" });
-      document.getElementById("btn_pagar").disabled = false;
-    } else {
-      console.error("❌ No se encontró public_key:", data.error);
-      document.getElementById("btn_pagar").disabled = true;
-    }
-  } catch (err) {
-    console.error("💥 Error al obtener public_key:", err);
-    document.getElementById("btn_pagar").disabled = true;
-  }
-}
-    
+      
 function irAContacto() {
   const contacto = document.getElementById('ubicacion');
   if (contacto) contacto.scrollIntoView({ behavior: 'auto' });
