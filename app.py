@@ -572,14 +572,14 @@ def log_event(tag, data):
 
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
-    access_token = os.getenv("MP_ACCESS_TOKEN")  # token del vendedor
+    access_token = os.getenv("MP_ACCESS_TOKEN")  # token del vendedor (global fallback)
     url = "https://api.mercadopago.com/checkout/preferences"
 
     # Datos del carrito enviados por el usuario
     data = request.get_json(force=True) or {}
     items = data.get("items", [])
     email_vendedor = data.get("email")  # 👈 el frontend debe enviarlo (vendedor logueado)
-    numero_vendedor = data.get("numero_vendedor")  # opcional, si lo tenés en el frontend
+    numero_vendedor = data.get("numero_vendedor")  # opcional
 
     if not items or not email_vendedor:
         return jsonify({"error": "Faltan datos (items o email_vendedor)"}), 400
@@ -609,10 +609,13 @@ def crear_pago():
         pref_data = r.json()
 
         if "id" not in pref_data:
-            return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
+            return jsonify({
+                "error": "No se pudo crear la preferencia",
+                "detalle": pref_data
+            }), 500
 
-        # Guardar la orden inicial en Firestore (colección ordenes)
-        db.collection("ordenes").document(external_reference).set({
+        # Guardar la orden inicial en Firestore dentro del usuario
+        orden_doc = {
             "email_vendedor": email_vendedor,
             "numero_vendedor": numero_vendedor,
             "items": items,
@@ -620,12 +623,16 @@ def crear_pago():
             "preference_id": pref_data["id"],
             "external_reference": external_reference,
             "creado": firestore.SERVER_TIMESTAMP
-        })
+        }
+
+        db.collection("usuarios").document(email_vendedor) \
+          .collection("ordenes").document(external_reference).set(orden_doc)
+
+        print(f"[CREAR_PAGO] ✅ Orden guardada en usuarios/{email_vendedor}/ordenes/{external_reference}")
 
         return jsonify(pref_data)
 
     except Exception as e:
-        import traceback
         tb = traceback.format_exc()
         print("[CREAR_PAGO] 💥 Error inesperado:", e)
         return jsonify({"error": str(e), "trace": tb}), 500
@@ -693,59 +700,88 @@ def webhook_mp():
             status = detail.get("status")
 
             if ext_ref:
-                # Buscar la orden en Firestore
-                orden_doc = db.collection("ordenes").document(ext_ref).get()
+                # Buscar la orden en Firestore dentro del usuario
+                # Primero necesitamos saber el vendedor: lo guardamos en la orden
+                # en usuarios/{email_vendedor}/ordenes/{ext_ref}
+                # Para eso recorremos todos los usuarios o usamos el campo email_vendedor
+                # que ya está guardado en la orden
+                # ⚠️ Aquí asumimos que la orden se guardó en crear-pago con email_vendedor
+                # dentro de usuarios/{email_vendedor}/ordenes/{ext_ref}
+                # Por lo tanto, debemos buscar primero el email_vendedor
+                # → Lo más simple: guardar email_vendedor en el campo "additional_info" del pago
+                # o en la orden misma.
+
+                # Buscar orden en subcolección del usuario
+                # Para eso necesitamos email_vendedor, lo obtenemos de la orden
+                # en usuarios/{email_vendedor}/ordenes/{ext_ref}
+                # Como no sabemos el email aún, primero intentamos leerlo de la orden global
+                # pero ahora lo guardamos en la subcolección
+
+                # 🔑 Buscar orden en todos los usuarios (si no tenés el email directo)
+                # Mejor: guardar email_vendedor en el external_reference o en el payload inicial
+
+                # Ejemplo: si external_reference ya incluye el email, podés parsearlo
+                # Aquí asumimos que lo guardaste en la orden del usuario
+
+                # Buscar orden en cada usuario → más costoso
+                # Lo correcto: external_reference debe ser único y estar guardado en la orden del usuario
+
+                # Supongamos que ya sabemos el email_vendedor desde el campo adicional
+                # (porque lo guardaste en la orden inicial)
+                # Entonces:
+                email_vendedor = detail.get("metadata", {}).get("email_vendedor")
+
+                if not email_vendedor:
+                    log_event("mp_webhook_error", "No se encontró email_vendedor en metadata")
+                    return "OK", 200
+
+                orden_doc = db.collection("usuarios").document(email_vendedor) \
+                              .collection("ordenes").document(ext_ref).get()
+
                 if orden_doc.exists:
                     orden_data = orden_doc.to_dict()
-
-                    # ✅ Email del vendedor viene de la orden creada en el index
-                    email_vendedor = orden_data.get("email_vendedor")
                     numero_vendedor = orden_data.get("numero_vendedor")
-
-                    # Email del cliente solo para trazabilidad
                     cliente_email = detail.get("payer", {}).get("email")
 
-                    if email_vendedor:
-                        # Guardar la venta bajo el vendedor con datos mínimos
+                    # Guardar la venta bajo el vendedor
+                    db.collection("usuarios").document(email_vendedor) \
+                      .collection("pedidos").document(ext_ref).set({
+                          "estado": status,
+                          "precio": detail.get("transaction_amount"),
+                          "producto": orden_data.get("items"),
+                          "cliente_email": cliente_email,
+                          "fecha": firestore.SERVER_TIMESTAMP
+                      }, merge=True)
+
+                    # 🚀 Notificación automática por WhatsApp
+                    if numero_vendedor:
+                        comprobante_url = f"https://go.miapp.com/comprobante/{ext_ref}"
+                        mensaje = (
+                            f"Nueva venta ✅\n"
+                            f"Cliente: {cliente_email}\n"
+                            f"Comprobante: {comprobante_url}"
+                        )
+
+                        url = "https://graph.facebook.com/v17.0/862682153602191/messages"
+                        headers = {
+                            "Authorization": f"Bearer {os.environ.get('WHATSAPP_TOKEN')}",
+                            "Content-Type": "application/json"
+                        }
+                        payload = {
+                            "messaging_product": "whatsapp",
+                            "to": numero_vendedor,
+                            "type": "text",
+                            "text": {"body": mensaje}
+                        }
+
+                        resp = requests.post(url, json=payload, headers=headers)
+                        log_event("whatsapp_api_response", resp.json())
+
+                        # Guardar estado de notificación en Firestore
                         db.collection("usuarios").document(email_vendedor) \
-                          .collection("pedidos").document(ext_ref).set({
-                              "estado": status,
-                              "precio": detail.get("transaction_amount"),
-                              "producto": orden_data.get("producto"),
-                              "cliente_email": cliente_email,
-                              "fecha": firestore.SERVER_TIMESTAMP
-                          }, merge=True)
-
-                        # 🚀 Notificación automática por WhatsApp
-                        if numero_vendedor:
-                            comprobante_url = f"https://go.miapp.com/comprobante/{ext_ref}"
-                            mensaje = (
-                                f"Nueva venta ✅\n"
-                                f"Cliente: {cliente_email}\n"
-                                f"Comprobante: {comprobante_url}"
-                            )
-
-                            # Llamada a la API Graph
-                            url = "https://graph.facebook.com/v17.0/862682153602191/messages"
-                            headers = {
-                                "Authorization": f"Bearer {os.environ.get('WHATSAPP_TOKEN')}",
-                                "Content-Type": "application/json"
-                            }
-                            payload = {
-                                "messaging_product": "whatsapp",
-                                "to": numero_vendedor,
-                                "type": "text",
-                                "text": {"body": mensaje}
-                            }
-
-                            resp = requests.post(url, json=payload, headers=headers)
-                            log_event("whatsapp_api_response", resp.json())
-
-                            # Guardar estado de notificación en Firestore
-                            db.collection("usuarios").document(email_vendedor) \
-                              .collection("pedidos").document(ext_ref).update({
-                                  "whatsapp_status": resp.json()
-                              })
+                          .collection("pedidos").document(ext_ref).update({
+                              "whatsapp_status": resp.json()
+                          })
 
         except Exception as e:
             log_event("mp_webhook_error", str(e))
