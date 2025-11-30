@@ -1402,8 +1402,6 @@ function irAContacto() {
 window.irAContacto = irAContacto; // si usás módulos
     
 function renderProducto(p) {
-  console.log("🛒 renderProducto llamado con:", p);
-
   const card = document.createElement("div");
   card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder card-producto";
   card.dataset.id = p.id_base;
@@ -1462,13 +1460,39 @@ function renderProducto(p) {
     </div>
   `;
 
-  // 🔁 Animación
   requestAnimationFrame(() => card.classList.add("show"));
   setTimeout(() => card.classList.remove("fade-reorder"), 50);
 
-  console.log("✅ renderProducto devuelve card con dataset:", { id: card.dataset.id, precio: card.dataset.precio });
   return card;
 }
+
+// 👉 Función de pago limpia, sin alertas
+document.getElementById("btn_pagar").onclick = async () => {
+  try {
+    const resp = await fetch("/crear-pago", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: [
+          { title: "Campera", quantity: 1, unit_price: 1000 }
+        ],
+        email: email
+      })
+    });
+
+    const data = await resp.json();
+
+    if (data.id) {
+      window.mp.checkout({
+        preference: { id: data.id },
+        autoOpen: true
+      });
+    }
+    // Si no hay data.id simplemente no hace nada
+  } catch (err) {
+    // Error silencioso, no se muestra nada al usuario
+  }
+};
     
 document.getElementById("btn_pagar").onclick = async () => {
   try {
@@ -1566,12 +1590,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const token = urlParams.get("token");
 
   if (token) {
-    console.log("🔑 Token detectado en index:", token);
     window.modoAdmin = true;
     window.tokenAdmin = token;
     document.getElementById("logoutAdminWrapper").style.display = "block";
   } else {
-    console.warn("⚠️ No se detectó token, index en modo público");
     window.modoAdmin = false;
   }
 
@@ -1591,7 +1613,6 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(ajustarPosicionesPaneles, 0);
     }
 
-    // ✅ Cerrar carrito al hacer clic fuera
     const carritoDiv = document.getElementById("carrito");
     const toggleBtn = document.getElementById("toggleCarrito");
     if (carritoDiv && toggleBtn) {
@@ -1602,7 +1623,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // ✅ Ocultar paneles al hacer clic fuera
     const panelGrupos = document.getElementById("panelGrupos");
     const panelSub = document.getElementById("panelSubcategorias");
     if (panelGrupos && panelSub) {
@@ -1623,18 +1643,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (ordenSelect) {
     ordenSelect.addEventListener("change", (e) => {
       const valor = e.target.value; // "asc" o "desc"
-      console.log("🔄 Evento change en ordenPrecio, valor seleccionado:", valor);
 
       const grupoActivoBtn = document.querySelector(".btn-grupo.active");
       const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
-      console.log("🎯 Grupo activo detectado:", grupoActivo);
 
       const subActivoBtn = document.querySelector(".btn-subgrupo.active");
       const subActivo = subActivoBtn ? subActivoBtn.textContent.trim() : null;
-      console.log("🎯 Subgrupo activo detectado:", subActivo);
 
       let productosFiltrados = window.todosLosProductos;
-      console.log("📦 Total productos en memoria:", productosFiltrados.length);
 
       if (grupoActivo) {
         productosFiltrados = productosFiltrados.filter(
@@ -1673,7 +1689,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnConfigMP = document.getElementById("configurarMP");
     if (btnConfigMP) {
       btnConfigMP.classList.remove("d-none");
-      console.log("💳 Botón Configurar Mercado Pago visible en modo admin");
     }
   }
 
@@ -1684,30 +1699,25 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await resp.json();
 
       if (data.public_key) {
-        console.log("🔑 Public key recibida:", data.public_key);
         window.mp = new MercadoPago(data.public_key, { locale: 'es-AR' });
         const pagarBtn = document.getElementById('btn_pagar');
         if (pagarBtn) pagarBtn.disabled = false;
       } else {
-        console.error("❌ No se encontró public_key:", data.error);
         const pagarBtn = document.getElementById('btn_pagar');
         if (pagarBtn) pagarBtn.disabled = true;
       }
     } catch (err) {
-      console.error("💥 Error al obtener public_key:", err);
       const pagarBtn = document.getElementById('btn_pagar');
       if (pagarBtn) pagarBtn.disabled = true;
     }
   }
 
-  // Llamar a initMercadoPago al cargar
   initMercadoPago();
 
-  // 👉 Función de pago con manejo robusto de errores
+  // 👉 Función de pago limpia
   async function pagarConMercadoPago() {
     try {
       if (!carrito.length) {
-        alert("Tu carrito está vacío");
         return;
       }
 
@@ -1721,33 +1731,32 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (err) {
-        const text = await response.text();
-        console.error("❌ Respuesta no es JSON válido:", text);
-        alert("Error inesperado en la respuesta del servidor");
+      let data = null;
+      const contentType = response.headers.get("content-type") || "";
+
+      if (response.ok && contentType.includes("application/json")) {
+        try {
+          data = await response.json();
+        } catch {
+          return;
+        }
+      } else {
         return;
       }
 
-      if (data.preference_id && window.mp) {
+      if (data && data.preference_id && window.mp) {
         window.mp.checkout({
           preference: { id: data.preference_id },
           autoOpen: true
         });
-      } else if (data.init_point) {
+      } else if (data && data.init_point) {
         window.location.href = data.init_point;
-      } else {
-        alert("Error al generar el pago: " + (data.error || "desconocido"));
       }
-    } catch (err) {
-      console.error("⚠️ Error al conectar con backend central:", err);
-      alert("Error interno al intentar pagar");
+    } catch {
+      return;
     }
   }
 
-  // 👉 Enlazar la función al botón pagar
   const pagarBtn = document.getElementById('btn_pagar');
   if (pagarBtn) {
     pagarBtn.addEventListener("click", pagarConMercadoPago);
