@@ -572,21 +572,26 @@ def log_event(tag, data):
 
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
-    access_token = os.getenv("MERCADO_PAGO_TOKEN")  # token global de la plataforma
+    # Token global de la plataforma (puede ser reemplazado por token por vendedor si lo implementás)
+    access_token = os.getenv("MERCADO_PAGO_TOKEN")
     url = "https://api.mercadopago.com/checkout/preferences"
 
-    # Datos del carrito enviados por el usuario
+    # Datos enviados desde el frontend
     data = request.get_json(force=True) or {}
     items = data.get("items", [])
-    email_vendedor = data.get("email")  # 👈 el frontend debe enviarlo (vendedor logueado)
-    numero_vendedor = data.get("numero_vendedor")  # opcional
+    email_vendedor = data.get("email")            # 👈 correo del vendedor logueado
+    numero_vendedor = data.get("numero_vendedor") # opcional (para notificación WhatsApp)
 
-    if not items or not email_vendedor:
-        return jsonify({"error": "Faltan datos (items o email_vendedor)"}), 400
+    # Validaciones mínimas
+    if not items or not isinstance(items, list):
+        return jsonify({"error": "Carrito vacío o inválido"}), 400
+    if not email_vendedor or not isinstance(email_vendedor, str):
+        return jsonify({"error": "Falta email del vendedor"}), 400
 
     # Generar external_reference único y corto
     external_reference = f"ORD-{int(time.time())}"
 
+    # Payload para Mercado Pago
     payload = {
         "items": items,
         "back_urls": {
@@ -597,7 +602,7 @@ def crear_pago():
         "auto_return": "approved",
         "notification_url": "https://mpagina.onrender.com/webhook_mp",
         "external_reference": external_reference,
-        "metadata": {   # 👈 incluimos datos del vendedor para el webhook
+        "metadata": {   # 👈 datos del vendedor para el webhook
             "email_vendedor": email_vendedor,
             "numero_vendedor": numero_vendedor
         }
@@ -609,23 +614,27 @@ def crear_pago():
     }
 
     try:
-        r = requests.post(url, json=payload, headers=headers)
+        # Crear preferencia en Mercado Pago
+        r = requests.post(url, json=payload, headers=headers, timeout=15)
         pref_data = r.json()
 
-        if "id" not in pref_data:
+        if not pref_data or "id" not in pref_data:
+            print(f"[CREAR_PAGO] ❌ Error creando preferencia: {pref_data}")
             return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
         # Guardar la orden inicial en Firestore dentro del usuario
+        orden_doc = {
+            "email_vendedor": email_vendedor,
+            "numero_vendedor": numero_vendedor,
+            "items": items,
+            "estado": "pendiente",
+            "preference_id": pref_data["id"],
+            "external_reference": external_reference,
+            "creado": firestore.SERVER_TIMESTAMP
+        }
+
         db.collection("usuarios").document(email_vendedor) \
-          .collection("ordenes").document(external_reference).set({
-              "email_vendedor": email_vendedor,
-              "numero_vendedor": numero_vendedor,
-              "items": items,
-              "estado": "pendiente",
-              "preference_id": pref_data["id"],
-              "external_reference": external_reference,
-              "creado": firestore.SERVER_TIMESTAMP
-          })
+          .collection("ordenes").document(external_reference).set(orden_doc)
 
         print(f"[CREAR_PAGO] ✅ Orden guardada en usuarios/{email_vendedor}/ordenes/{external_reference}")
 
@@ -689,6 +698,7 @@ def webhook_mp():
 
     if topic == "payment" and payment_id:
         try:
+            # Consultar detalle del pago en Mercado Pago
             detail = requests.get(
                 f"https://api.mercadopago.com/v1/payments/{payment_id}",
                 headers={"Authorization": f"Bearer {os.environ.get('MERCADO_PAGO_TOKEN')}"}
@@ -724,7 +734,7 @@ def webhook_mp():
                       .collection("pedidos").document(ext_ref).set({
                           "estado": status,
                           "precio": detail.get("transaction_amount"),
-                          "producto": orden_data.get("items"),
+                          "items": orden_data.get("items"),  # 👈 guardamos los items completos
                           "cliente_email": cliente_email,
                           "fecha": firestore.SERVER_TIMESTAMP
                       }, merge=True)
