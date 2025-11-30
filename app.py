@@ -578,18 +578,27 @@ def crear_pago():
 
     # Datos enviados desde el frontend
     data = request.get_json(force=True) or {}
+    print("\n[CREAR_PAGO] 📥 Datos recibidos del frontend:", data)
+
     items = data.get("items", [])
     email_vendedor = data.get("email")            # 👈 correo del vendedor logueado
     numero_vendedor = data.get("numero_vendedor") # opcional (para notificación WhatsApp)
 
+    print(f"[CREAR_PAGO] items={items}")
+    print(f"[CREAR_PAGO] email_vendedor={email_vendedor}")
+    print(f"[CREAR_PAGO] numero_vendedor={numero_vendedor}")
+
     # Validaciones mínimas
     if not items or not isinstance(items, list):
+        print("[CREAR_PAGO] ❌ Carrito vacío o inválido")
         return jsonify({"error": "Carrito vacío o inválido"}), 400
     if not email_vendedor or not isinstance(email_vendedor, str):
+        print("[CREAR_PAGO] ❌ Falta email del vendedor")
         return jsonify({"error": "Falta email del vendedor"}), 400
 
     # Generar external_reference único y corto
     external_reference = f"ORD-{int(time.time())}"
+    print(f"[CREAR_PAGO] 🔑 external_reference={external_reference}")
 
     # Payload para Mercado Pago
     payload = {
@@ -607,6 +616,7 @@ def crear_pago():
             "numero_vendedor": numero_vendedor
         }
     }
+    print("[CREAR_PAGO] 📦 Payload enviado a MP:", payload)
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -617,6 +627,7 @@ def crear_pago():
         # Crear preferencia en Mercado Pago
         r = requests.post(url, json=payload, headers=headers, timeout=15)
         pref_data = r.json()
+        print("[CREAR_PAGO] 📡 Respuesta de MP:", pref_data)
 
         if not pref_data or "id" not in pref_data:
             print(f"[CREAR_PAGO] ❌ Error creando preferencia: {pref_data}")
@@ -632,6 +643,7 @@ def crear_pago():
             "external_reference": external_reference,
             "creado": firestore.SERVER_TIMESTAMP
         }
+        print("[CREAR_PAGO] 📝 Documento a guardar en Firestore:", orden_doc)
 
         db.collection("usuarios").document(email_vendedor) \
           .collection("ordenes").document(external_reference).set(orden_doc)
@@ -643,6 +655,7 @@ def crear_pago():
     except Exception as e:
         tb = traceback.format_exc()
         print("[CREAR_PAGO] 💥 Error inesperado:", e)
+        print(tb)
         return jsonify({"error": str(e), "trace": tb}), 500
 
 @app.route("/comprobante/<venta_id>")
@@ -691,10 +704,12 @@ def notificar_vendedor(numero_vendedor, cliente, comprobante_url):
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
+    print("\n[WEBHOOK] 🔔 Evento recibido:", event)
     log_event("mp_webhook", event)
 
     topic = event.get("type") or event.get("action")
     payment_id = event.get("data", {}).get("id")
+    print(f"[WEBHOOK] topic={topic}, payment_id={payment_id}")
 
     if topic == "payment" and payment_id:
         try:
@@ -703,6 +718,7 @@ def webhook_mp():
                 f"https://api.mercadopago.com/v1/payments/{payment_id}",
                 headers={"Authorization": f"Bearer {os.environ.get('MERCADO_PAGO_TOKEN')}"}
             ).json()
+            print("\n[WEBHOOK] 📦 Detalle del pago:", detail)
             log_event("mp_payment_detail", detail)
 
             ext_ref = detail.get("external_reference")
@@ -713,13 +729,24 @@ def webhook_mp():
             numero_vendedor = metadata.get("numero_vendedor")
             cliente_email = detail.get("payer", {}).get("email")
 
+            print(f"[WEBHOOK] external_reference={ext_ref}")
+            print(f"[WEBHOOK] status={status}")
+            print(f"[WEBHOOK] metadata={metadata}")
+            print(f"[WEBHOOK] email_vendedor={email_vendedor}, numero_vendedor={numero_vendedor}")
+            print(f"[WEBHOOK] cliente_email={cliente_email}")
+
+            if not email_vendedor:
+                print("[WEBHOOK] ⚠️ No se recibió email_vendedor en metadata")
+
             if ext_ref and email_vendedor:
                 # Buscar la orden en Firestore dentro del usuario
                 orden_doc = db.collection("usuarios").document(email_vendedor) \
                               .collection("ordenes").document(ext_ref).get()
+                print(f"[WEBHOOK] Buscando orden usuarios/{email_vendedor}/ordenes/{ext_ref}")
 
                 if orden_doc.exists:
                     orden_data = orden_doc.to_dict()
+                    print("[WEBHOOK] ✅ Orden encontrada en Firestore:", orden_data)
 
                     # Actualizar estado de la orden
                     db.collection("usuarios").document(email_vendedor) \
@@ -728,16 +755,18 @@ def webhook_mp():
                           "cliente_email": cliente_email,
                           "actualizado": firestore.SERVER_TIMESTAMP
                       })
+                    print("[WEBHOOK] 🔄 Orden actualizada con estado:", status)
 
                     # Guardar la venta confirmada en pedidos
                     db.collection("usuarios").document(email_vendedor) \
                       .collection("pedidos").document(ext_ref).set({
                           "estado": status,
                           "precio": detail.get("transaction_amount"),
-                          "items": orden_data.get("items"),  # 👈 guardamos los items completos
+                          "items": orden_data.get("items"),
                           "cliente_email": cliente_email,
                           "fecha": firestore.SERVER_TIMESTAMP
                       }, merge=True)
+                    print("[WEBHOOK] 🛒 Pedido guardado en Firestore")
 
                     # 🚀 Notificación automática por WhatsApp
                     if numero_vendedor:
@@ -747,6 +776,8 @@ def webhook_mp():
                             f"Cliente: {cliente_email}\n"
                             f"Comprobante: {comprobante_url}"
                         )
+                        print("[WEBHOOK] 📲 Enviando WhatsApp a:", numero_vendedor)
+                        print("[WEBHOOK] Mensaje:", mensaje)
 
                         url = "https://graph.facebook.com/v17.0/862682153602191/messages"
                         headers = {
@@ -761,6 +792,7 @@ def webhook_mp():
                         }
 
                         resp = requests.post(url, json=payload, headers=headers)
+                        print("[WEBHOOK] 📡 Respuesta WhatsApp API:", resp.json())
                         log_event("whatsapp_api_response", resp.json())
 
                         # Guardar estado de notificación en Firestore
@@ -768,9 +800,18 @@ def webhook_mp():
                           .collection("pedidos").document(ext_ref).update({
                               "whatsapp_status": resp.json()
                           })
+                        print("[WEBHOOK] ✅ Estado de notificación guardado en Firestore")
+                else:
+                    print("[WEBHOOK] ❌ No se encontró la orden en Firestore")
 
         except Exception as e:
+            tb = traceback.format_exc()
+            print("[WEBHOOK] 💥 Error inesperado:", e)
+            print(tb)
             log_event("mp_webhook_error", str(e))
+
+    else:
+        print("[WEBHOOK] ⚠️ Evento ignorado, no es payment o falta payment_id")
 
     return "OK", 200
 
