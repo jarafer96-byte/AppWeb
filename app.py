@@ -687,7 +687,7 @@ def notificar_vendedor(numero_vendedor, cliente, comprobante_url):
     resp = requests.post(url, json=payload, headers=headers)
     log_event("whatsapp_api_response", resp.json())
     return resp.json()
-
+    
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
@@ -728,16 +728,35 @@ def webhook_mp():
                               "raw": detail
                           }, merge=True)
 
-                        # 🚀 Generar link de WhatsApp con comprobante
+                        # 🚀 Notificación automática por WhatsApp
                         if numero_vendedor:
-                            # Podés armar tu comprobante_url dinámico (ej: go.miapp.com/comprobante/<ext_ref>)
                             comprobante_url = f"https://go.miapp.com/comprobante/{ext_ref}"
-                            link = notificar_vendedor(numero_vendedor, cliente, comprobante_url)
+                            mensaje = (
+                                f"Nueva venta ✅\n"
+                                f"Cliente: {cliente}\n"
+                                f"Comprobante: {comprobante_url}"
+                            )
 
-                            # Guardar el link en Firestore para mostrarlo en el panel del vendedor
+                            # Llamada a la API Graph
+                            url = "https://graph.facebook.com/v17.0/862682153602191/messages"
+                            headers = {
+                                "Authorization": f"Bearer {os.environ.get('WHATSAPP_TOKEN')}",
+                                "Content-Type": "application/json"
+                            }
+                            payload = {
+                                "messaging_product": "whatsapp",
+                                "to": numero_vendedor,
+                                "type": "text",
+                                "text": {"body": mensaje}
+                            }
+
+                            resp = requests.post(url, json=payload, headers=headers)
+                            log_event("whatsapp_api_response", resp.json())
+
+                            # Guardar estado en Firestore
                             db.collection("usuarios").document(email_vendedor) \
                               .collection("pedidos").document(ext_ref).update({
-                                  "whatsapp_link": link
+                                  "whatsapp_status": resp.json()
                               })
 
         except Exception as e:
