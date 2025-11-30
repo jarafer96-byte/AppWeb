@@ -621,7 +621,7 @@ def get_platform_token():
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
-    log_event("mp_webhook", event)  # auditoría
+    log_event("mp_webhook", event)
 
     topic = event.get("type") or event.get("action")
     payment_id = event.get("data", {}).get("id")
@@ -638,12 +638,23 @@ def webhook_mp():
             status = detail.get("status")
 
             if ext_ref:
-                db.collection("usuarios").document("cliente@ejemplo.com") \
-                  .collection("pedidos").document(ext_ref).set({
-                      "payment_id": payment_id,
-                      "estado": status,   # usa 'estado' para mantener consistencia
-                      "raw": detail
-                  }, merge=True)
+                # Buscar la orden en Firestore usando el external_reference
+                orden_doc = db.collection("ordenes").document(ext_ref).get()
+                if orden_doc.exists:
+                    orden_data = orden_doc.to_dict()
+                    email_vendedor = orden_data.get("email_vendedor")
+
+                    if email_vendedor:
+                        db.collection("usuarios").document(email_vendedor) \
+                          .collection("pedidos").document(ext_ref).set({
+                              "payment_id": payment_id,
+                              "estado": status,
+                              "raw": detail
+                          }, merge=True)
+
+                        # 🚀 Aquí ya tenés el email real del vendedor
+                        # Podés disparar el WhatsApp automático con la foto del producto
+                        # notificar_vendedor(email_vendedor, producto, cliente, imagen_url)
 
         except Exception as e:
             log_event("mp_webhook_error", str(e))
