@@ -99,7 +99,7 @@ html { scroll-behavior: auto; }
 
 .oculta { display: none !important; }
 
-.logo { height: 10vw; max-height: 380px; filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px white); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
+.logo { height: 40vw; max-height: 380px; filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px white); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
 
 @keyframes pulsoLogo { 0%, 100% { filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px none); } 50% { filter: brightness(1.8) contrast(1.3) drop-shadow(0 0 20px none); } }
 
@@ -305,7 +305,7 @@ html { scroll-behavior: auto; }
 </div>
 
 {% if config.ubicacion %}
-  <div id="ubicacion" class="bloque-ubicacion text-center mt-4">
+  <div id="ubicacion" class="bloque-ubicacion text-center mt-4" style="margin-bottom:120px;">
     <p style="margin-bottom: 6px;">
       📍 {{ config.ubicacion }}
     </p>
@@ -321,10 +321,11 @@ html { scroll-behavior: auto; }
 <form onsubmit="loginAdmin(event)" class="mt-5 text-center">
   <input type="text" id="usuario_login" placeholder="Usuario" required>
   <input type="password" id="clave_login" placeholder="Contraseña" required>
-  <button type="submit">Entrar</button>
+  <button type="submit" class="btn-grupo">Entrar</button>
 </form>
+
 <div class="text-center mt-4" id="logoutAdminWrapper" style="display:none;">
-  <button type="button" class="btn btn-danger" onclick="salirAdmin()">🚪 Salir de Admin</button>
+  <button type="button" class="btn-grupo" onclick="salirAdmin()">🚪 Salir de Admin</button>
 </div>
   
 {% if modoAdmin %}
