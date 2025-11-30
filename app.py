@@ -624,29 +624,43 @@ def crear_pago():
         print("[CREAR_PAGO] 💥 Error inesperado:", e)
         return jsonify({"error": str(e), "trace": tb}), 500
 
+@app.route("/comprobante/<venta_id>")
+def comprobante(venta_id):
+    doc = db.collection("ordenes").document(venta_id).get()
+    if not doc.exists:
+        return "Comprobante no encontrado", 404
+
+    data = doc.to_dict()
+    cliente = data.get("cliente_email")
+    productos = data.get("productos", [])
+    total = data.get("total", 0)
+
+    # Renderizar plantilla Jinja
+    return render_template("comprobante.html",
+                           cliente=cliente,
+                           productos=productos,
+                           total=total)
+
 def get_platform_token():
     return os.environ.get("MERCADO_PAGO_TOKEN")
     
-def notificar_vendedor(numero_vendedor, producto, cliente, imagen_url):
-    # Armamos el mensaje con saltos de línea y la URL de la foto
+def notificar_vendedor(numero_vendedor, cliente, comprobante_url):
+    # Mensaje breve de confirmación con link al comprobante
     mensaje = (
         f"Nueva venta ✅\n"
-        f"Producto: {producto}\n"
         f"Cliente: {cliente}\n"
-        f"Foto: {imagen_url}"
+        f"Comprobante: {comprobante_url}"
     )
 
     # Codificamos el mensaje para URL
-    from urllib.parse import quote
     mensaje_encoded = quote(mensaje)
 
     # Construimos el link wa.me
     link = f"https://wa.me/{numero_vendedor}?text={mensaje_encoded}"
 
-    # En este caso no hay request a API, simplemente devolvemos el link
     log_event("whatsapp_link", link)
     return link
-    
+
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
@@ -672,9 +686,7 @@ def webhook_mp():
                 if orden_doc.exists:
                     orden_data = orden_doc.to_dict()
                     email_vendedor = orden_data.get("email_vendedor")
-                    numero_vendedor = orden_data.get("numero_vendedor")  # guardado en index/config
-                    producto = orden_data.get("producto", {}).get("nombre")
-                    imagen_url = orden_data.get("producto", {}).get("imagen_url")
+                    numero_vendedor = orden_data.get("numero_vendedor")
                     cliente = detail.get("payer", {}).get("email")
 
                     if email_vendedor:
@@ -689,10 +701,13 @@ def webhook_mp():
                               "raw": detail
                           }, merge=True)
 
-                        # 🚀 Generar link de WhatsApp para notificación
+                        # 🚀 Generar link de WhatsApp con comprobante
                         if numero_vendedor:
-                            link = notificar_vendedor(numero_vendedor, producto, cliente, imagen_url)
-                            # Podés guardar el link en Firestore para mostrarlo en el panel del vendedor
+                            # Podés armar tu comprobante_url dinámico (ej: go.miapp.com/comprobante/<ext_ref>)
+                            comprobante_url = f"https://go.miapp.com/comprobante/{ext_ref}"
+                            link = notificar_vendedor(numero_vendedor, cliente, comprobante_url)
+
+                            # Guardar el link en Firestore para mostrarlo en el panel del vendedor
                             db.collection("usuarios").document(email_vendedor) \
                               .collection("pedidos").document(ext_ref).update({
                                   "whatsapp_link": link
