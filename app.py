@@ -108,6 +108,8 @@ client = storage.Client(credentials=credentials, project="arcane-sentinel-479319
 # Bucket donde se guardan las imágenes
 bucket = client.bucket("mpagina")
 
+ext_ref = shortuuid.uuid()[:8]
+
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -692,20 +694,23 @@ def webhook_mp():
                 orden_doc = db.collection("ordenes").document(ext_ref).get()
                 if orden_doc.exists:
                     orden_data = orden_doc.to_dict()
+
+                    # ✅ Email del vendedor viene de la orden creada en el index
                     email_vendedor = orden_data.get("email_vendedor")
                     numero_vendedor = orden_data.get("numero_vendedor")
-                    cliente = detail.get("payer", {}).get("email")
+
+                    # Email del cliente solo para trazabilidad
+                    cliente_email = detail.get("payer", {}).get("email")
 
                     if email_vendedor:
-                        # Guardar la venta bajo el vendedor
+                        # Guardar la venta bajo el vendedor con datos mínimos
                         db.collection("usuarios").document(email_vendedor) \
                           .collection("pedidos").document(ext_ref).set({
-                              "payment_id": payment_id,
                               "estado": status,
-                              "cliente_email": cliente,
-                              "monto": detail.get("transaction_amount"),
+                              "precio": detail.get("transaction_amount"),
                               "producto": orden_data.get("producto"),
-                              "raw": detail
+                              "cliente_email": cliente_email,
+                              "fecha": firestore.SERVER_TIMESTAMP
                           }, merge=True)
 
                         # 🚀 Notificación automática por WhatsApp
@@ -713,7 +718,7 @@ def webhook_mp():
                             comprobante_url = f"https://go.miapp.com/comprobante/{ext_ref}"
                             mensaje = (
                                 f"Nueva venta ✅\n"
-                                f"Cliente: {cliente}\n"
+                                f"Cliente: {cliente_email}\n"
                                 f"Comprobante: {comprobante_url}"
                             )
 
@@ -733,7 +738,7 @@ def webhook_mp():
                             resp = requests.post(url, json=payload, headers=headers)
                             log_event("whatsapp_api_response", resp.json())
 
-                            # Guardar estado en Firestore
+                            # Guardar estado de notificación en Firestore
                             db.collection("usuarios").document(email_vendedor) \
                               .collection("pedidos").document(ext_ref).update({
                                   "whatsapp_status": resp.json()
