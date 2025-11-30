@@ -81,6 +81,27 @@ app.config['SESSION_COOKIE_SECURE'] = not app.debug
 # Mantener las sesiones persistentes por defecto y duración
 app.config['SESSION_PERMANENT'] = True
 app.permanent_session_lifetime = timedelta(days=7)
+ACCESS_TOKEN = os.getenv("WHATSAPP_TOKEN")
+url = f"https://graph.facebook.com/v17.0/862682153602191/messages"
+headers = {
+    "Authorization": f"Bearer {ACCESS_TOKEN}",
+    "Content-Type": "application/json"
+}
+# Supongamos que configWhatsApp = "549"
+# y el vendedor tiene su número guardado en Firestore
+numero_vendedor = f"{configWhatsApp}{seller_number}"
+
+payload = {
+    "messaging_product": "whatsapp",
+    "to": numero_vendedor,   # dinámico desde configWhatsApp
+    "type": "text",
+    "text": {
+        "body": f"Nueva venta ✅\nCliente: {cliente}\nComprobante: {comprobante_url}"
+    }
+}
+
+resp = requests.post(url, json=payload, headers=headers)
+print(resp.json())
 
 firebase_config = {
     "apiKey": os.getenv("FIREBASE_API_KEY"),
@@ -645,21 +666,27 @@ def get_platform_token():
     return os.environ.get("MERCADO_PAGO_TOKEN")
     
 def notificar_vendedor(numero_vendedor, cliente, comprobante_url):
-    # Mensaje breve de confirmación con link al comprobante
     mensaje = (
         f"Nueva venta ✅\n"
         f"Cliente: {cliente}\n"
         f"Comprobante: {comprobante_url}"
     )
 
-    # Codificamos el mensaje para URL
-    mensaje_encoded = quote(mensaje)
+    url = "https://graph.facebook.com/v17.0/862682153602191/messages"
+    headers = {
+        "Authorization": f"Bearer {os.environ.get('WHATSAPP_TOKEN')}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": numero_vendedor,
+        "type": "text",
+        "text": {"body": mensaje}
+    }
 
-    # Construimos el link wa.me
-    link = f"https://wa.me/{numero_vendedor}?text={mensaje_encoded}"
-
-    log_event("whatsapp_link", link)
-    return link
+    resp = requests.post(url, json=payload, headers=headers)
+    log_event("whatsapp_api_response", resp.json())
+    return resp.json()
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
