@@ -612,7 +612,7 @@ def crear_pago():
         "notification_url": "https://mpagina.onrender.com/webhook_mp",
         "external_reference": external_reference,
         "metadata": {   # 👈 datos del vendedor para el webhook
-            "email_vendedor": email_vendedor,
+            "email_vendedor": email,
             "numero_vendedor": numero_vendedor
         }
     }
