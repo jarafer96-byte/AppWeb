@@ -90,7 +90,6 @@ firebase_config = {
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
-
 # 🔑 Inicialización de Google Cloud Storage
 key_json = os.environ.get("GOOGLE_CLOUD_KEY")
 if not key_json:
@@ -208,7 +207,17 @@ def subir_a_firestore(producto, email):
         tb = traceback.format_exc()
         print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
         return {"status": "error", "error": str(e), "trace": tb}
-
+        
+@app.route("/img/<short_id>")
+def redirect_image(short_id):
+    # Buscar la URL larga en Firestore
+    doc = db.collection("short_links").document(short_id).get()
+    if doc.exists:
+        url_larga = doc.to_dict().get("url")
+        return redirect(url_larga)
+    else:
+        return "Link no encontrado", 404
+        
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
     """
     Subida de archivo a GitHub con logs detallados.
@@ -618,6 +627,26 @@ def crear_pago():
 def get_platform_token():
     return os.environ.get("MERCADO_PAGO_TOKEN")
     
+def notificar_vendedor(numero_vendedor, producto, cliente, imagen_url):
+    # Armamos el mensaje con saltos de línea y la URL de la foto
+    mensaje = (
+        f"Nueva venta ✅\n"
+        f"Producto: {producto}\n"
+        f"Cliente: {cliente}\n"
+        f"Foto: {imagen_url}"
+    )
+
+    # Codificamos el mensaje para URL
+    from urllib.parse import quote
+    mensaje_encoded = quote(mensaje)
+
+    # Construimos el link wa.me
+    link = f"https://wa.me/{numero_vendedor}?text={mensaje_encoded}"
+
+    # En este caso no hay request a API, simplemente devolvemos el link
+    log_event("whatsapp_link", link)
+    return link
+    
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
@@ -638,23 +667,36 @@ def webhook_mp():
             status = detail.get("status")
 
             if ext_ref:
-                # Buscar la orden en Firestore usando el external_reference
+                # Buscar la orden en Firestore
                 orden_doc = db.collection("ordenes").document(ext_ref).get()
                 if orden_doc.exists:
                     orden_data = orden_doc.to_dict()
                     email_vendedor = orden_data.get("email_vendedor")
+                    numero_vendedor = orden_data.get("numero_vendedor")  # guardado en index/config
+                    producto = orden_data.get("producto", {}).get("nombre")
+                    imagen_url = orden_data.get("producto", {}).get("imagen_url")
+                    cliente = detail.get("payer", {}).get("email")
 
                     if email_vendedor:
+                        # Guardar la venta bajo el vendedor
                         db.collection("usuarios").document(email_vendedor) \
                           .collection("pedidos").document(ext_ref).set({
                               "payment_id": payment_id,
                               "estado": status,
+                              "cliente_email": cliente,
+                              "monto": detail.get("transaction_amount"),
+                              "producto": orden_data.get("producto"),
                               "raw": detail
                           }, merge=True)
 
-                        # 🚀 Aquí ya tenés el email real del vendedor
-                        # Podés disparar el WhatsApp automático con la foto del producto
-                        # notificar_vendedor(email_vendedor, producto, cliente, imagen_url)
+                        # 🚀 Generar link de WhatsApp para notificación
+                        if numero_vendedor:
+                            link = notificar_vendedor(numero_vendedor, producto, cliente, imagen_url)
+                            # Podés guardar el link en Firestore para mostrarlo en el panel del vendedor
+                            db.collection("usuarios").document(email_vendedor) \
+                              .collection("pedidos").document(ext_ref).update({
+                                  "whatsapp_link": link
+                              })
 
         except Exception as e:
             log_event("mp_webhook_error", str(e))
