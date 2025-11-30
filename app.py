@@ -578,13 +578,14 @@ def crear_pago():
     # Datos del carrito enviados por el usuario
     data = request.get_json(force=True) or {}
     items = data.get("items", [])
-    email = data.get("email")  # 👈 el frontend debe enviarlo
+    email_vendedor = data.get("email")  # 👈 el frontend debe enviarlo (vendedor logueado)
+    numero_vendedor = data.get("numero_vendedor")  # opcional, si lo tenés en el frontend
 
-    if not items or not email:
-        return jsonify({"error": "Faltan datos (items o email)"}), 400
+    if not items or not email_vendedor:
+        return jsonify({"error": "Faltan datos (items o email_vendedor)"}), 400
 
-    # Generar external_reference único
-    external_reference = f"pedido_{int(time.time())}"
+    # Generar external_reference único y corto
+    external_reference = f"ORD-{int(time.time())}"
 
     payload = {
         "items": items,
@@ -610,8 +611,10 @@ def crear_pago():
         if "id" not in pref_data:
             return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
-        # Guardar el pedido en Firestore con el external_reference
-        db.collection("usuarios").document(email).collection("pedidos").document(external_reference).set({
+        # Guardar la orden inicial en Firestore (colección ordenes)
+        db.collection("ordenes").document(external_reference).set({
+            "email_vendedor": email_vendedor,
+            "numero_vendedor": numero_vendedor,
             "items": items,
             "estado": "pendiente",
             "preference_id": pref_data["id"],
