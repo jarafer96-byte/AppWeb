@@ -1467,17 +1467,38 @@ function renderProducto(p) {
   return card;
 }
 
+// 👉 Carrito global
+const carrito = [];
+
+// 👉 Función que arma los items reales
+function obtenerCarrito() {
+  return carrito.map(item => ({
+    title: item.nombre + (item.talle ? ` (${item.talle})` : ""),
+    quantity: item.cantidad,
+    unit_price: item.precio,
+    id_base: item.id_base,
+    grupo: item.grupo,
+    subgrupo: item.subgrupo
+  }));
+}
+
 // 👉 Función de pago limpia, sin alertas
 document.getElementById("btn_pagar").onclick = async () => {
   try {
+    const carritoItems = obtenerCarrito();
+
+    if (!carritoItems.length) {
+      console.warn("⚠️ Carrito vacío, no se puede pagar");
+      return;
+    }
+
     const resp = await fetch("/crear-pago", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        items: [
-          { title: "Campera", quantity: 1, unit_price: 1000 }
-        ],
-        email: email // 👈 pasás el email del comprador
+        items: carritoItems,
+        email: email,               // 👈 este email es el del vendedor
+        numero_vendedor: telefonoVendedor // opcional
       })
     });
 
@@ -1490,10 +1511,9 @@ document.getElementById("btn_pagar").onclick = async () => {
         autoOpen: true
       });
     }
-    // Si no hay data.id simplemente no hace nada
   } catch (err) {
     console.error("Error al crear pago:", err);
-    // Error silencioso, no se muestra nada al usuario
+    // Error silencioso
   }
 };
     
