@@ -572,7 +572,7 @@ def log_event(tag, data):
 
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
-    access_token = os.getenv("MP_ACCESS_TOKEN")  # token del vendedor (global fallback)
+    access_token = os.getenv("MERCADO_PAGO_TOKEN")  # token global de la plataforma
     url = "https://api.mercadopago.com/checkout/preferences"
 
     # Datos del carrito enviados por el usuario
@@ -596,7 +596,11 @@ def crear_pago():
         },
         "auto_return": "approved",
         "notification_url": "https://mpagina.onrender.com/webhook_mp",
-        "external_reference": external_reference
+        "external_reference": external_reference,
+        "metadata": {   # 👈 incluimos datos del vendedor para el webhook
+            "email_vendedor": email_vendedor,
+            "numero_vendedor": numero_vendedor
+        }
     }
 
     headers = {
@@ -609,24 +613,19 @@ def crear_pago():
         pref_data = r.json()
 
         if "id" not in pref_data:
-            return jsonify({
-                "error": "No se pudo crear la preferencia",
-                "detalle": pref_data
-            }), 500
+            return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
         # Guardar la orden inicial en Firestore dentro del usuario
-        orden_doc = {
-            "email_vendedor": email_vendedor,
-            "numero_vendedor": numero_vendedor,
-            "items": items,
-            "estado": "pendiente",
-            "preference_id": pref_data["id"],
-            "external_reference": external_reference,
-            "creado": firestore.SERVER_TIMESTAMP
-        }
-
         db.collection("usuarios").document(email_vendedor) \
-          .collection("ordenes").document(external_reference).set(orden_doc)
+          .collection("ordenes").document(external_reference).set({
+              "email_vendedor": email_vendedor,
+              "numero_vendedor": numero_vendedor,
+              "items": items,
+              "estado": "pendiente",
+              "preference_id": pref_data["id"],
+              "external_reference": external_reference,
+              "creado": firestore.SERVER_TIMESTAMP
+          })
 
         print(f"[CREAR_PAGO] ✅ Orden guardada en usuarios/{email_vendedor}/ordenes/{external_reference}")
 
@@ -698,52 +697,29 @@ def webhook_mp():
 
             ext_ref = detail.get("external_reference")
             status = detail.get("status")
+            metadata = detail.get("metadata", {}) or {}
 
-            if ext_ref:
+            email_vendedor = metadata.get("email_vendedor")
+            numero_vendedor = metadata.get("numero_vendedor")
+            cliente_email = detail.get("payer", {}).get("email")
+
+            if ext_ref and email_vendedor:
                 # Buscar la orden en Firestore dentro del usuario
-                # Primero necesitamos saber el vendedor: lo guardamos en la orden
-                # en usuarios/{email_vendedor}/ordenes/{ext_ref}
-                # Para eso recorremos todos los usuarios o usamos el campo email_vendedor
-                # que ya está guardado en la orden
-                # ⚠️ Aquí asumimos que la orden se guardó en crear-pago con email_vendedor
-                # dentro de usuarios/{email_vendedor}/ordenes/{ext_ref}
-                # Por lo tanto, debemos buscar primero el email_vendedor
-                # → Lo más simple: guardar email_vendedor en el campo "additional_info" del pago
-                # o en la orden misma.
-
-                # Buscar orden en subcolección del usuario
-                # Para eso necesitamos email_vendedor, lo obtenemos de la orden
-                # en usuarios/{email_vendedor}/ordenes/{ext_ref}
-                # Como no sabemos el email aún, primero intentamos leerlo de la orden global
-                # pero ahora lo guardamos en la subcolección
-
-                # 🔑 Buscar orden en todos los usuarios (si no tenés el email directo)
-                # Mejor: guardar email_vendedor en el external_reference o en el payload inicial
-
-                # Ejemplo: si external_reference ya incluye el email, podés parsearlo
-                # Aquí asumimos que lo guardaste en la orden del usuario
-
-                # Buscar orden en cada usuario → más costoso
-                # Lo correcto: external_reference debe ser único y estar guardado en la orden del usuario
-
-                # Supongamos que ya sabemos el email_vendedor desde el campo adicional
-                # (porque lo guardaste en la orden inicial)
-                # Entonces:
-                email_vendedor = detail.get("metadata", {}).get("email_vendedor")
-
-                if not email_vendedor:
-                    log_event("mp_webhook_error", "No se encontró email_vendedor en metadata")
-                    return "OK", 200
-
                 orden_doc = db.collection("usuarios").document(email_vendedor) \
                               .collection("ordenes").document(ext_ref).get()
 
                 if orden_doc.exists:
                     orden_data = orden_doc.to_dict()
-                    numero_vendedor = orden_data.get("numero_vendedor")
-                    cliente_email = detail.get("payer", {}).get("email")
 
-                    # Guardar la venta bajo el vendedor
+                    # Actualizar estado de la orden
+                    db.collection("usuarios").document(email_vendedor) \
+                      .collection("ordenes").document(ext_ref).update({
+                          "estado": status,
+                          "cliente_email": cliente_email,
+                          "actualizado": firestore.SERVER_TIMESTAMP
+                      })
+
+                    # Guardar la venta confirmada en pedidos
                     db.collection("usuarios").document(email_vendedor) \
                       .collection("pedidos").document(ext_ref).set({
                           "estado": status,
