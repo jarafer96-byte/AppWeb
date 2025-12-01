@@ -660,14 +660,21 @@ def crear_pago():
 
 @app.route("/comprobante/<venta_id>")
 def comprobante(venta_id):
+    print(f"\n[COMPROBANTE] 📥 Solicitud recibida para venta_id={venta_id}")
     doc = db.collection("ordenes").document(venta_id).get()
+
     if not doc.exists:
+        print(f"[COMPROBANTE] ❌ No se encontró comprobante con ID={venta_id}")
         return "Comprobante no encontrado", 404
 
     data = doc.to_dict()
+    print(f"[COMPROBANTE] ✅ Documento encontrado: {data}")
+
     cliente = data.get("cliente_email")
     productos = data.get("productos", [])
     total = data.get("total", 0)
+
+    print(f"[COMPROBANTE] Cliente={cliente}, Total={total}, Productos={len(productos)}")
 
     # Renderizar plantilla Jinja
     return render_template("comprobante.html",
@@ -675,15 +682,23 @@ def comprobante(venta_id):
                            productos=productos,
                            total=total)
 
+
 def get_platform_token():
-    return os.environ.get("MERCADO_PAGO_TOKEN")
-    
+    token = os.environ.get("MERCADO_PAGO_TOKEN")
+    print(f"[TOKEN] 🔑 Token de Mercado Pago obtenido: {'OK' if token else '❌ NO DEFINIDO'}")
+    return token
+
+
 def notificar_vendedor(numero_vendedor, cliente, comprobante_url):
     mensaje = (
         f"Nueva venta ✅\n"
         f"Cliente: {cliente}\n"
         f"Comprobante: {comprobante_url}"
     )
+
+    print(f"\n[WHATSAPP] 📲 Preparando notificación")
+    print(f"[WHATSAPP] Número destino: {numero_vendedor}")
+    print(f"[WHATSAPP] Mensaje: {mensaje}")
 
     url = "https://graph.facebook.com/v17.0/862682153602191/messages"
     headers = {
@@ -697,9 +712,28 @@ def notificar_vendedor(numero_vendedor, cliente, comprobante_url):
         "text": {"body": mensaje}
     }
 
-    resp = requests.post(url, json=payload, headers=headers)
-    log_event("whatsapp_api_response", resp.json())
-    return resp.json()
+    print(f"[WHATSAPP] 📦 Payload enviado: {payload}")
+
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=15)
+        print(f"[WHATSAPP] 📡 Status code: {resp.status_code}")
+        print(f"[WHATSAPP] 📡 Respuesta: {resp.json()}")
+
+        log_event("whatsapp_api_response", resp.json())
+
+        if resp.status_code != 200:
+            print("[WHATSAPP] ❌ Error al enviar mensaje")
+            return {"error": True, "status": resp.status_code, "response": resp.json()}
+
+        print("[WHATSAPP] ✅ Mensaje enviado correctamente")
+        return resp.json()
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        print("[WHATSAPP] 💥 Error inesperado:", e)
+        print(tb)
+        log_event("whatsapp_api_error", str(e))
+        return {"error": True, "exception": str(e), "trace": tb}
     
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
