@@ -716,12 +716,16 @@ def enviar_comprobante(destinatario, orden_id):
     cuerpo = f"Comprobante de venta ✅\nID: {orden_id}"
     msg = MIMEText(cuerpo)
     msg["Subject"] = f"Comprobante {orden_id}"
-    msg["From"] = "ferj6009@gmail.com"
+    msg["From"] = "tuapp@gmail.com"
     msg["To"] = destinatario
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login("tuapp@gmail.com", os.environ["GMAIL_APP_PASSWORD"])
-        server.send_message(msg)
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login("tuapp@gmail.com", os.environ["GMAIL_APP_PASSWORD"])
+            server.send_message(msg)
+        print(f"[EMAIL] ✅ Comprobante enviado a {destinatario}")
+    except Exception as e:
+        print(f"[EMAIL] ❌ Error enviando comprobante: {e}")
     
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
@@ -796,44 +800,15 @@ def webhook_mp():
                     except Exception as e:
                         print("[WEBHOOK] ❌ Error guardando pedido:", e)
 
-                    # 🚀 Notificación automática por WhatsApp
-                    if numero_vendedor:
-                        comprobante_url = f"https://go.miapp.com/comprobante/{orden_id}"
-                        mensaje = (
-                            f"Nueva venta ✅\n"
-                            f"Cliente: {cliente_email}\n"
-                            f"Comprobante: {comprobante_url}"
-                        )
-                        print("[WEBHOOK] 📲 Enviando WhatsApp a:", numero_vendedor)
-                        print("[WEBHOOK] Mensaje:", mensaje)
-
-                        url = "https://graph.facebook.com/v17.0/862682153602191/messages"
-                        headers = {
-                            "Authorization": f"Bearer {os.environ.get('WHATSAPP_TOKEN')}",
-                            "Content-Type": "application/json"
-                        }
-                        payload = {
-                            "messaging_product": "whatsapp",
-                            "to": numero_vendedor,
-                            "type": "text",
-                            "text": {"body": mensaje}
-                        }
-
+                    # 🚀 Notificación automática por Gmail
+                    if email_vendedor:
                         try:
-                            resp = requests.post(url, json=payload, headers=headers)
-                            print(f"[WEBHOOK] 📡 WhatsApp Status: {resp.status_code}")
-                            print("[WEBHOOK] 📡 Respuesta WhatsApp API:", resp.json())
-                            log_event("whatsapp_api_response", resp.json())
-
-                            # Guardar estado de notificación en pedidos
-                            db.collection("pedidos").document(orden_id).update({
-                                "whatsapp_status": resp.json()
-                            })
-                            print("[WEBHOOK] ✅ Estado de notificación guardado en Firestore")
+                            enviar_comprobante(email_vendedor, orden_id)
+                            print("[WEBHOOK] ✅ Comprobante enviado por Gmail a:", email_vendedor)
                         except Exception as e:
-                            print("[WEBHOOK] ❌ Error enviando WhatsApp:", e)
+                            print("[WEBHOOK] ❌ Error enviando comprobante por Gmail:", e)
                     else:
-                        print("[WEBHOOK] ⚠️ No se envió WhatsApp: numero_vendedor vacío")
+                        print("[WEBHOOK] ⚠️ No se envió comprobante: email_vendedor vacío")
                 else:
                     print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: ordenes/{orden_id}")
 
