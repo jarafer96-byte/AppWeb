@@ -1475,7 +1475,7 @@ document.getElementById("btn_pagar").onclick = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         items: obtenerCarrito(),    // 👈 único cambio: usamos el carrito real
-        email: email,               // 👈 este email es el del vendedor
+        email_vendedor: email,               // 👈 este email es el del vendedor
         numero_vendedor: telefonoVendedor // opcional
       })
     });
