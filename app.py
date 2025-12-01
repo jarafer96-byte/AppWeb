@@ -1673,6 +1673,7 @@ def pagar():
 
         carrito = data.get('carrito', [])
         email_vendedor = data.get('email_vendedor')
+        numero_vendedor = data.get('numero_vendedor')
 
         if not email_vendedor:
             print("[PAGAR] ❌ Falta email_vendedor en payload")
@@ -1748,7 +1749,11 @@ def pagar():
             "auto_return": "approved",
             "statement_descriptor": "TuEmprendimiento", 
             "external_reference": external_ref,
-            "notification_url": url_for('webhook_mp', _external=True)
+            "notification_url": url_for('webhook_mp', _external=True),
+            "metadata": {
+                "email_vendedor": email_vendedor,
+                "numero_vendedor": numero_vendedor
+            }
         }
         print(f"[PAGAR] 📦 Preference data armado: {preference_data}")
 
@@ -1761,7 +1766,12 @@ def pagar():
             print(f"[PAGAR] ❌ Error al generar preferencia: {preference_response}")
             return jsonify({'error': 'No se pudo generar la preferencia de pago en MP'}), 500
 
-        # 6. Devolver resultado al frontend
+        # 6. Guardar la orden inicial en Firestore (colección global)
+        ok = guardar_orden(external_ref, preference.get("id"), items_mp, email_vendedor, numero_vendedor)
+        if not ok:
+            return jsonify({'error': 'No se pudo guardar la orden en Firestore'}), 500
+
+        # 7. Devolver resultado al frontend
         resultado = {
             "preference_id": preference.get("id"),
             "init_point": preference.get("init_point"),
