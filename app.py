@@ -604,8 +604,8 @@ def crear_pago():
             print("[CREAR_PAGO] ❌ Precio inválido:", i)
             return jsonify({"error": "Precio inválido"}), 400
 
-    # Generar external_reference único y trazable (incluye email)
-    external_reference = f"{email_vendedor}__ORD-{int(time.time())}"
+    # Generar external_reference con formato pedido_...
+    external_reference = f"pedido_{int(time.time())}"
     print(f"[CREAR_PAGO] 🔑 external_reference={external_reference}")
 
     # Payload para Mercado Pago
@@ -771,6 +771,7 @@ def webhook_mp():
             print("\n[WEBHOOK] 📦 Detalle del pago:", detail)
             log_event("mp_payment_detail", detail)
 
+            # External_reference siempre viene como pedido_...
             ext_ref = detail.get("external_reference")
             status = detail.get("status")
             metadata = detail.get("metadata", {}) or {}
@@ -787,18 +788,7 @@ def webhook_mp():
             print(f"[WEBHOOK] email_vendedor={email_vendedor}, numero_vendedor={numero_vendedor}")
             print(f"[WEBHOOK] cliente_email={cliente_email}")
 
-            # Fallback: si no hay email en metadata, parsear desde external_reference
-            if not email_vendedor and ext_ref and "__ORD-" in ext_ref:
-                try:
-                    email_vendedor, _ = ext_ref.split("__ORD-")
-                    print(f"[WEBHOOK] 📥 Email recuperado desde external_reference: {email_vendedor}")
-                except Exception as e:
-                    print("[WEBHOOK] ❌ Error parseando external_reference:", e)
-
-            if not email_vendedor:
-                print("[WEBHOOK] ⚠️ No se recibió email_vendedor en metadata ni en external_reference")
-
-            # Usar external_reference como ID, o fallback por preference_id
+            # Usar siempre el external_reference (pedido_...) como ID
             orden_id = ext_ref or pref_id
             if orden_id and email_vendedor:
                 print(f"[WEBHOOK] 🔎 Buscando orden usuarios/{email_vendedor}/ordenes/{orden_id}")
