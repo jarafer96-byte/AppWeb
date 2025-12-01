@@ -778,7 +778,33 @@ def get_platform_token():
 
 
 def enviar_comprobante(destinatario, orden_id):
-    cuerpo = f"Comprobante de venta ✅\nID: {orden_id}"
+    # Recuperar la orden desde Firestore
+    doc = db.collection("ordenes").document(orden_id).get()
+    if not doc.exists:
+        print(f"[EMAIL] ❌ No se encontró orden con ID={orden_id}")
+        return
+
+    data = doc.to_dict()
+    items = data.get("items", [])
+    total = sum(i.get("unit_price", 0) * i.get("quantity", 1) for i in items)
+
+    # Armar listado de productos
+    productos_txt = "\n".join(
+        [f"- {i.get('title')} x{i.get('quantity')} (${i.get('unit_price')})" for i in items]
+    )
+
+    # Link al comprobante renderizado
+    link_comprobante = f"https://mpagina.onrender.com/comprobante/{orden_id}"
+
+    # Cuerpo del email
+    cuerpo = (
+        f"Comprobante de venta ✅\n"
+        f"ID: {orden_id}\n\n"
+        f"Productos:\n{productos_txt}\n\n"
+        f"Total: ${total}\n\n"
+        f"Ver comprobante completo: {link_comprobante}"
+    )
+
     msg = MIMEText(cuerpo)
     msg["Subject"] = f"Comprobante {orden_id}"
     msg["From"] = "ferj6009@gmail.com"
