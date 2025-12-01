@@ -26,6 +26,7 @@ import secrets
 from urllib.parse import urlencode
 import smtplib
 from email.mime.text import MIMEText
+from google_auth_oauthlib.flow import Flow
 
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -112,11 +113,14 @@ bucket = client.bucket("mpagina")
 
 ext_ref = shortuuid.uuid()[:8]
 
+creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
+
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024
+SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -212,7 +216,37 @@ def subir_a_firestore(producto, email):
         tb = traceback.format_exc()
         print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
         return {"status": "error", "error": str(e), "trace": tb}
-        
+
+@app.route("/authorize")
+def authorize():
+    flow = build_flow()
+    auth_url, _ = flow.authorization_url(prompt="consent")
+    return redirect(auth_url)
+
+@app.route("/oauth2callback")
+def oauth2callback():
+    flow = build_flow()
+    flow.fetch_token(authorization_response=request.url)
+    creds = flow.credentials
+    # Guardar token.json para usar después
+    with open("token.json", "w") as token:
+        token.write(creds.to_json())
+    return "✅ Autorización completada"
+
+def get_gmail_service():
+    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    return build("gmail", "v1", credentials=creds)
+    
+def build_flow():
+    creds_json = os.environ["GOOGLE_CREDENTIALS_JSON"]
+    creds_dict = json.loads(creds_json)
+    flow = Flow.from_client_config(
+        creds_dict,
+        scopes=SCOPES,
+        redirect_uri="https://mpagina.onrender.com/oauth2callback"
+    )
+    return flow   
+    
 @app.route("/img/<short_id>")
 def redirect_image(short_id):
     # Buscar la URL larga en Firestore
@@ -627,7 +661,7 @@ def crear_pago():
             return jsonify({"error": "Precio inválido"}), 400
 
     # Generar external_reference con formato pedido_...
-    external_reference = f"pedido_{int(time.time())}"
+    external_reference = f"pedido_{int(time.time())}_{shortuuid.uuid()[:6]}"
     print(f"[CREAR_PAGO] 🔑 external_reference={external_reference}")
 
     # Payload para Mercado Pago
@@ -716,13 +750,14 @@ def enviar_comprobante(destinatario, orden_id):
     cuerpo = f"Comprobante de venta ✅\nID: {orden_id}"
     msg = MIMEText(cuerpo)
     msg["Subject"] = f"Comprobante {orden_id}"
-    msg["From"] = "ferj6009@gmail.com"   # 👈 tu cuenta real
+    msg["From"] = "ferj6009@gmail.com"
     msg["To"] = destinatario
 
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login("ferj6009@gmail.com", os.environ["GMAIL_APP_PASSWORD"])  # 👈 tu cuenta real
-            server.send_message(msg)
+        service = get_gmail_service()
+        service.users().messages().send(userId="me", body={"raw": raw}).execute()
         print(f"[EMAIL] ✅ Comprobante enviado a {destinatario}")
     except Exception as e:
         print(f"[EMAIL] ❌ Error enviando comprobante: {e}")
