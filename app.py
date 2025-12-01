@@ -716,12 +716,12 @@ def enviar_comprobante(destinatario, orden_id):
     cuerpo = f"Comprobante de venta ✅\nID: {orden_id}"
     msg = MIMEText(cuerpo)
     msg["Subject"] = f"Comprobante {orden_id}"
-    msg["From"] = "tuapp@gmail.com"
+    msg["From"] = "ferj6009@gmail.com"   # 👈 tu cuenta real
     msg["To"] = destinatario
 
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login("tuapp@gmail.com", os.environ["GMAIL_APP_PASSWORD"])
+            server.login("ferj6009@gmail.com", os.environ["GMAIL_APP_PASSWORD"])  # 👈 tu cuenta real
             server.send_message(msg)
         print(f"[EMAIL] ✅ Comprobante enviado a {destinatario}")
     except Exception as e:
