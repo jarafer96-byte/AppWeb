@@ -1470,7 +1470,7 @@ function renderProducto(p) {
 // 👉 Función de pago limpia, sin alertas
 document.getElementById("btn_pagar").onclick = async () => {
   try {
-    const resp = await fetch("/crear-pago", {
+    const resp = await fetch(`${URL_BACKEND}/crear-pago`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
