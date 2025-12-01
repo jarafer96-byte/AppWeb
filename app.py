@@ -755,12 +755,12 @@ def webhook_mp():
     print("\n[WEBHOOK] 🔔 Evento recibido:", event)
     log_event("mp_webhook", event)
 
-    topic = event.get("type") or event.get("action")
-    payment_id = event.get("data", {}).get("id")
+    topic = event.get("type") or event.get("action") or event.get("topic")
+    payment_id = event.get("data", {}).get("id") or event.get("resource")
     print(f"[WEBHOOK] topic={topic}, payment_id={payment_id}")
 
-    if topic == "payment" and payment_id:
-        try:
+    try:
+        if topic == "payment" and payment_id:
             # Consultar detalle del pago en Mercado Pago
             resp = requests.get(
                 f"https://api.mercadopago.com/v1/payments/{payment_id}",
@@ -774,6 +774,7 @@ def webhook_mp():
             ext_ref = detail.get("external_reference")
             status = detail.get("status")
             metadata = detail.get("metadata", {}) or {}
+            pref_id = detail.get("preference_id")
 
             email_vendedor = metadata.get("email_vendedor")
             numero_vendedor = metadata.get("numero_vendedor")
@@ -781,11 +782,12 @@ def webhook_mp():
 
             print(f"[WEBHOOK] external_reference={ext_ref}")
             print(f"[WEBHOOK] status={status}")
+            print(f"[WEBHOOK] preference_id={pref_id}")
             print(f"[WEBHOOK] metadata={metadata}")
             print(f"[WEBHOOK] email_vendedor={email_vendedor}, numero_vendedor={numero_vendedor}")
             print(f"[WEBHOOK] cliente_email={cliente_email}")
 
-            # Si metadata está vacío, parsear email desde external_reference
+            # Fallback: si no hay email en metadata, parsear desde external_reference
             if not email_vendedor and ext_ref and "__ORD-" in ext_ref:
                 try:
                     email_vendedor, _ = ext_ref.split("__ORD-")
@@ -796,8 +798,9 @@ def webhook_mp():
             if not email_vendedor:
                 print("[WEBHOOK] ⚠️ No se recibió email_vendedor en metadata ni en external_reference")
 
-            if ext_ref and email_vendedor:
-                orden_id = ext_ref  # usar SIEMPRE el external_reference completo como ID
+            # Usar external_reference como ID, o fallback por preference_id
+            orden_id = ext_ref or pref_id
+            if orden_id and email_vendedor:
                 print(f"[WEBHOOK] 🔎 Buscando orden usuarios/{email_vendedor}/ordenes/{orden_id}")
                 orden_doc = db.collection("usuarios").document(email_vendedor) \
                               .collection("ordenes").document(orden_id).get()
@@ -872,16 +875,63 @@ def webhook_mp():
                     else:
                         print("[WEBHOOK] ⚠️ No se envió WhatsApp: numero_vendedor vacío")
                 else:
-                    print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: usuarios/{email_vendedor}/ordenes/{ext_ref}")
+                    print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: usuarios/{email_vendedor}/ordenes/{orden_id}")
 
-        except Exception as e:
-            tb = traceback.format_exc()
-            print("[WEBHOOK] 💥 Error inesperado:", e)
-            print(tb)
-            log_event("mp_webhook_error", str(e))
+        elif topic == "merchant_order" and payment_id:
+            # Consultar detalle de la orden de comerciante
+            resp = requests.get(
+                f"https://api.mercadolibre.com/merchant_orders/{payment_id}",
+                headers={"Authorization": f"Bearer {os.environ.get('MERCADO_PAGO_TOKEN')}"}
+            )
+            print(f"[WEBHOOK] 📡 Status code Merchant Order: {resp.status_code}")
+            order_detail = resp.json()
+            print("\n[WEBHOOK] 📦 Detalle merchant_order:", order_detail)
+            log_event("mp_merchant_order_detail", order_detail)
 
-    else:
-        print("[WEBHOOK] ⚠️ Evento ignorado, no es payment o falta payment_id")
+            ext_ref = order_detail.get("external_reference")
+            status = order_detail.get("status")
+            payments = order_detail.get("payments", [])
+            metadata = order_detail.get("metadata", {}) or {}
+
+            email_vendedor = metadata.get("email_vendedor")
+            numero_vendedor = metadata.get("numero_vendedor")
+            cliente_email = None
+            if payments:
+                cliente_email = payments[0].get("payer", {}).get("email")
+
+            print(f"[WEBHOOK] external_reference={ext_ref}")
+            print(f"[WEBHOOK] status={status}")
+            print(f"[WEBHOOK] email_vendedor={email_vendedor}, numero_vendedor={numero_vendedor}")
+            print(f"[WEBHOOK] cliente_email={cliente_email}")
+
+            if ext_ref and email_vendedor:
+                orden_id = ext_ref
+                print(f"[WEBHOOK] 🔎 Buscando orden usuarios/{email_vendedor}/ordenes/{orden_id}")
+                orden_doc = db.collection("usuarios").document(email_vendedor) \
+                              .collection("ordenes").document(orden_id).get()
+
+                if orden_doc.exists:
+                    try:
+                        db.collection("usuarios").document(email_vendedor) \
+                          .collection("ordenes").document(orden_id).update({
+                              "estado": status,
+                              "cliente_email": cliente_email,
+                              "actualizado": firestore.SERVER_TIMESTAMP
+                          })
+                        print("[WEBHOOK] 🔄 Orden actualizada desde merchant_order con estado:", status)
+                    except Exception as e:
+                        print("[WEBHOOK] ❌ Error actualizando orden desde merchant_order:", e)
+                else:
+                    print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: usuarios/{email_vendedor}/ordenes/{orden_id}")
+
+        else:
+            print("[WEBHOOK] ⚠️ Evento ignorado, no es payment ni merchant_order válido")
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        print("[WEBHOOK] 💥 Error inesperado:", e)
+        print(tb)
+        log_event("mp_webhook_error", str(e))
 
     return "OK", 200
 
