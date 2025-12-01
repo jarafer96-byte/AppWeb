@@ -1500,7 +1500,7 @@ def step3():
 
         if exitos > 0:
             print("➡️ [Step3] Redirigiendo a /preview")
-            return redirect('/preview')
+            return redirect(f"/preview?email={email}")
         else:
             print("⚠️ [Step3] Ningún producto subido, renderizando step3.html")
             return render_template(
