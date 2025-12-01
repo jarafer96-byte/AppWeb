@@ -1183,6 +1183,13 @@ def step1():
         session['link_mapa'] = request.form.get('link_mapa')
         session['fuente'] = request.form.get('fuente')
 
+        email = request.form.get('email')
+        if email:
+            session['email'] = email.strip()
+            print(f"✅ Email guardado en sesión: {session['email']}")
+        else:
+            print("⚠️ No se recibió email en step1")
+            
         mercado_pago = request.form.get('mercado_pago')
         if mercado_pago and mercado_pago.startswith("APP_USR-"):
             session['mercado_pago'] = mercado_pago.strip()
