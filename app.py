@@ -24,6 +24,8 @@ from google.cloud import storage
 from google.oauth2 import service_account
 import secrets
 from urllib.parse import urlencode
+import smtplib
+from email.mime.text import MIMEText
 
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -710,51 +712,16 @@ def get_platform_token():
     return token
 
 
-def notificar_vendedor(numero_vendedor, cliente, comprobante_url):
-    mensaje = (
-        f"Nueva venta ✅\n"
-        f"Cliente: {cliente}\n"
-        f"Comprobante: {comprobante_url}"
-    )
+def enviar_comprobante(destinatario, orden_id):
+    cuerpo = f"Comprobante de venta ✅\nID: {orden_id}"
+    msg = MIMEText(cuerpo)
+    msg["Subject"] = f"Comprobante {orden_id}"
+    msg["From"] = "ferj6009@gmail.com"
+    msg["To"] = destinatario
 
-    print(f"\n[WHATSAPP] 📲 Preparando notificación")
-    print(f"[WHATSAPP] Número destino: {numero_vendedor}")
-    print(f"[WHATSAPP] Mensaje: {mensaje}")
-
-    url = "https://graph.facebook.com/v17.0/862682153602191/messages"
-    headers = {
-        "Authorization": f"Bearer {os.environ.get('WHATSAPP_TOKEN')}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": numero_vendedor,
-        "type": "text",
-        "text": {"body": mensaje}
-    }
-
-    print(f"[WHATSAPP] 📦 Payload enviado: {payload}")
-
-    try:
-        resp = requests.post(url, json=payload, headers=headers, timeout=15)
-        print(f"[WHATSAPP] 📡 Status code: {resp.status_code}")
-        print(f"[WHATSAPP] 📡 Respuesta: {resp.json()}")
-
-        log_event("whatsapp_api_response", resp.json())
-
-        if resp.status_code != 200:
-            print("[WHATSAPP] ❌ Error al enviar mensaje")
-            return {"error": True, "status": resp.status_code, "response": resp.json()}
-
-        print("[WHATSAPP] ✅ Mensaje enviado correctamente")
-        return resp.json()
-
-    except Exception as e:
-        tb = traceback.format_exc()
-        print("[WHATSAPP] 💥 Error inesperado:", e)
-        print(tb)
-        log_event("whatsapp_api_error", str(e))
-        return {"error": True, "exception": str(e), "trace": tb}
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login("tuapp@gmail.com", os.environ["GMAIL_APP_PASSWORD"])
+        server.send_message(msg)
     
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
