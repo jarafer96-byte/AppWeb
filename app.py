@@ -834,32 +834,6 @@ def enviar_comprobante(destinatario, orden_id):
         print(f"[EMAIL] ✅ Comprobante enviado a {destinatario}")
     except Exception as e:
         print(f"[EMAIL] ❌ Error enviando comprobante: {e}")
-        
-def procesar_webhook(data, topic):
-    orden_id = data.get("external_reference")
-    estado = data.get("status")
-    email_vendedor = data.get("metadata", {}).get("email_vendedor")
-
-    print(f"[WEBHOOK] Evento recibido: topic={topic}, orden={orden_id}, estado={estado}")
-
-    # Solo procesar si es un pago aprobado
-    if topic != "payment" or estado != "approved":
-        print("[WEBHOOK] ⚠️ Evento ignorado, no es payment aprobado")
-        return
-
-    doc_ref = db.collection("ordenes").document(orden_id)
-    doc = doc_ref.get()
-
-    if doc.exists and doc.to_dict().get("comprobante_enviado"):
-        print("[WEBHOOK] ⚠️ Comprobante ya enviado, se evita duplicado")
-        return
-
-    # Enviar comprobante
-    enviar_comprobante(email_vendedor, orden_id)
-
-    # Marcar en Firestore
-    doc_ref.update({"comprobante_enviado": True})
-    print(f"[WEBHOOK] ✅ Comprobante enviado y marcado para orden {orden_id}")
     
 def inicializar_comprobantes():
     print("[MIGRACION] 🚀 Iniciando inicialización de comprobantes_enviados")
@@ -876,6 +850,38 @@ def inicializar_comprobantes():
 
     print(f"[MIGRACION] ✅ Total órdenes actualizadas: {total_actualizados}") 
     
+def procesar_webhook(data, topic):
+    if topic == "payment":
+        procesar_webhook_pago(data, topic)
+    elif topic == "merchant_order":
+        print("[WEBHOOK] ⚠️ Evento merchant_order ignorado")
+    else:
+        print(f"[WEBHOOK] ⚠️ Evento desconocido: {topic}")
+
+def procesar_webhook_pago(data, topic):
+    orden_id = data.get("external_reference")
+    estado = data.get("status")
+    email_vendedor = data.get("metadata", {}).get("email_vendedor")
+
+    print(f"[WEBHOOK] Pago recibido: orden={orden_id}, estado={estado}")
+
+    # Solo procesar si es un pago aprobado
+    if estado != "approved":
+        print("[WEBHOOK] ⚠️ Estado no aprobado, no se envía comprobante")
+        return
+
+    doc_ref = db.collection("ordenes").document(orden_id)
+    doc = doc_ref.get()
+
+    if doc.exists and doc.to_dict().get("comprobante_enviado"):
+        print("[WEBHOOK] ⚠️ Comprobante ya enviado, se evita duplicado")
+        return
+
+    enviar_comprobante(email_vendedor, orden_id)
+    doc_ref.update({"comprobante_enviado": True})
+    print(f"[WEBHOOK] ✅ Comprobante enviado y marcado para orden {orden_id}")
+
+
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
@@ -902,7 +908,6 @@ def webhook_mp():
             status = detail.get("status")
             metadata = detail.get("metadata", {}) or {}
             pref_id = detail.get("preference_id")
-
             cliente_email = detail.get("payer", {}).get("email")
 
             print(f"[WEBHOOK] external_reference={ext_ref}")
@@ -949,15 +954,9 @@ def webhook_mp():
                     except Exception as e:
                         print("[WEBHOOK] ❌ Error guardando pedido:", e)
 
-                    # 🚀 Notificación automática por Gmail
-                    if email_vendedor:
-                        try:
-                            enviar_comprobante(email_vendedor, orden_id)
-                            print("[WEBHOOK] ✅ Comprobante enviado por Gmail a:", email_vendedor)
-                        except Exception as e:
-                            print("[WEBHOOK] ❌ Error enviando comprobante por Gmail:", e)
-                    else:
-                        print("[WEBHOOK] ⚠️ No se envió comprobante: email_vendedor vacío")
+                    # 🚀 Delegar notificación a la función que filtra duplicados
+                    procesar_webhook(detail, topic)
+
                 else:
                     print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: ordenes/{orden_id}")
 
