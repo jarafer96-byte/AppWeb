@@ -754,7 +754,8 @@ def comprobante(venta_id):
         return "Comprobante no encontrado", 404
 
     data = doc.to_dict()
-    cliente = data.get("cliente_email")
+    cliente_nombre = data.get("cliente_nombre")   # 👈 nuevo
+    cliente_email = data.get("cliente_email")     # 👈 ya lo tenías
     email_vendedor = data.get("email_vendedor")
     items = data.get("items", [])
 
@@ -782,10 +783,13 @@ def comprobante(venta_id):
             "imagen_url": imagen_url
         })
 
-    return render_template("comprobante.html",
-                           cliente=cliente,
-                           productos=productos,
-                           total=total)
+    return render_template(
+        "comprobante.html",
+        cliente_nombre=cliente_nombre,   # 👈 pasar nombre
+        cliente_email=cliente_email,     # 👈 pasar email
+        productos=productos,
+        total=total
+    )
 
 def get_platform_token():
     token = os.environ.get("MERCADO_PAGO_TOKEN")
@@ -908,13 +912,18 @@ def webhook_mp():
             status = detail.get("status")
             metadata = detail.get("metadata", {}) or {}
             pref_id = detail.get("preference_id")
-            cliente_email = detail.get("payer", {}).get("email")
+
+            # 📧 Datos del cliente desde Mercado Pago
+            payer = detail.get("payer", {}) or {}
+            cliente_email = payer.get("email")
+            cliente_nombre = f"{payer.get('first_name', '')} {payer.get('last_name', '')}".strip()
 
             print(f"[WEBHOOK] external_reference={ext_ref}")
             print(f"[WEBHOOK] status={status}")
             print(f"[WEBHOOK] preference_id={pref_id}")
             print(f"[WEBHOOK] metadata={metadata}")
             print(f"[WEBHOOK] cliente_email={cliente_email}")
+            print(f"[WEBHOOK] cliente_nombre={cliente_nombre}")
 
             orden_id = ext_ref or pref_id
             if orden_id:
@@ -928,11 +937,12 @@ def webhook_mp():
                     email_vendedor = orden_data.get("email_vendedor")
                     numero_vendedor = orden_data.get("numero_vendedor")
 
-                    # Actualizar estado de la orden
+                    # Actualizar estado de la orden con datos del cliente
                     try:
                         db.collection("ordenes").document(orden_id).update({
                             "estado": status,
                             "cliente_email": cliente_email,
+                            "cliente_nombre": cliente_nombre,
                             "actualizado": firestore.SERVER_TIMESTAMP
                         })
                         print("[WEBHOOK] 🔄 Orden actualizada con estado:", status)
@@ -946,6 +956,7 @@ def webhook_mp():
                             "precio": detail.get("transaction_amount"),
                             "items": orden_data.get("items"),
                             "cliente_email": cliente_email,
+                            "cliente_nombre": cliente_nombre,
                             "email_vendedor": email_vendedor,
                             "numero_vendedor": numero_vendedor,
                             "fecha": firestore.SERVER_TIMESTAMP
