@@ -225,30 +225,44 @@ def authorize():
 
 @app.route("/oauth2callback")
 def oauth2callback():
-    flow = build_flow()
-    flow.fetch_token(authorization_response=request.url)
-    creds = flow.credentials
-
+    print("\n[OAUTH] 📥 Callback recibido con URL:", request.url)
     try:
-        # Guardar el token en Firestore
+        flow = build_flow()
+        flow.fetch_token(authorization_response=request.url)
+        creds = flow.credentials
+        print("[OAUTH] ✅ Token obtenido correctamente")
+
+        # Guardar token en Firestore
+        token_data = creds.to_json()
+        print("[OAUTH] 📦 Token JSON generado:", token_data[:80], "...")  # mostramos solo el inicio por seguridad
+
         db.collection("_tokens").document("gmail").set({
-            "token": creds.to_json(),
+            "token": token_data,
             "actualizado": firestore.SERVER_TIMESTAMP
         })
-        print("✅ Token guardado en Firestore (_tokens/gmail)")
-    except Exception as e:
-        print("❌ Error guardando token en Firestore:", e)
-        return "❌ Error guardando token en Firestore", 500
+        print("[OAUTH] ✅ Token guardado en Firestore (_tokens/gmail)")
 
-    return "✅ Autorización completada y token guardado en Firestore"
+        return "✅ Autorización completada y token guardado en Firestore"
+
+    except Exception as e:
+        tb = traceback.format_exc()
+        print("[OAUTH] ❌ Error en oauth2callback:", e)
+        print(tb)
+        return "❌ Error en oauth2callback", 500
+
 
 def get_gmail_service():
+    print("\n[GMAIL] 🔎 Intentando recuperar token desde Firestore...")
     doc = db.collection("_tokens").document("gmail").get()
     if not doc.exists:
+        print("[GMAIL] ❌ No se encontró token en Firestore")
         raise RuntimeError("No hay token guardado en Firestore")
 
     creds_json = doc.to_dict()["token"]
+    print("[GMAIL] 📦 Token recuperado de Firestore:", creds_json[:80], "...")  # mostramos solo el inicio
+
     creds = Credentials.from_authorized_user_info(json.loads(creds_json), SCOPES)
+    print("[GMAIL] ✅ Cliente Gmail inicializado correctamente")
     return build("gmail", "v1", credentials=creds)
     
 def build_flow():
