@@ -862,6 +862,7 @@ def procesar_webhook(data, topic):
     else:
         print(f"[WEBHOOK] ⚠️ Evento desconocido: {topic}")
 
+
 def procesar_webhook_pago(data, topic):
     orden_id = data.get("external_reference")
     estado = data.get("status")
@@ -877,14 +878,28 @@ def procesar_webhook_pago(data, topic):
     doc_ref = db.collection("ordenes").document(orden_id)
     doc = doc_ref.get()
 
-    if doc.exists and doc.to_dict().get("comprobante_enviado"):
+    if not doc.exists:
+        print(f"[WEBHOOK] ❌ No se encontró la orden {orden_id}")
+        return
+
+    data_doc = doc.to_dict()
+    if data_doc.get("comprobante_enviado"):
         print("[WEBHOOK] ⚠️ Comprobante ya enviado, se evita duplicado")
         return
 
-    enviar_comprobante(email_vendedor, orden_id)
-    doc_ref.update({"comprobante_enviado": True})
-    print(f"[WEBHOOK] ✅ Comprobante enviado y marcado para orden {orden_id}")
+    try:
+        # 🚨 marcar primero para evitar condiciones de carrera
+        doc_ref.update({"comprobante_enviado": True})
+        print(f"[WEBHOOK] 🔒 Flag comprobante_enviado marcado en orden {orden_id}")
 
+        # luego enviar
+        enviar_comprobante(email_vendedor, orden_id)
+        print(f"[WEBHOOK] ✅ Comprobante enviado a {email_vendedor} para orden {orden_id}")
+
+    except Exception as e:
+        print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
+        # rollback del flag si falla el envío
+        doc_ref.update({"comprobante_enviado": False})
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
