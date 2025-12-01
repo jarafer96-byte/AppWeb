@@ -638,7 +638,7 @@ def crear_pago():
         pref_data = r.json()
         print("[CREAR_PAGO] 📡 Respuesta de MP:", pref_data)
 
-        if r.status_code != 200 or not pref_data or "id" not in pref_data:
+        if r.status_code not in (200, 201) or not pref_data or "id" not in pref_data:
             print(f"[CREAR_PAGO] ❌ Error creando preferencia: {pref_data}")
             return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
