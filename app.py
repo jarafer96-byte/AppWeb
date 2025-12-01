@@ -645,6 +645,7 @@ def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_ven
         "estado": "pendiente",
         "preference_id": pref_id,
         "external_reference": external_reference,
+        "comprobante_enviado": False,   # 👈 inicializar siempre
         "creado": firestore.SERVER_TIMESTAMP
     }
     print("[ORDEN] 📝 Documento a guardar:", orden_doc)
@@ -876,15 +877,9 @@ def procesar_webhook_pago(data, topic):
         return
 
     doc_ref = db.collection("ordenes").document(orden_id)
-    doc = doc_ref.get()
 
-    if not doc.exists:
+    if not doc_ref.get().exists:
         print(f"[WEBHOOK] ❌ No se encontró la orden {orden_id}")
-        return
-
-    data_doc = doc.to_dict()
-    if data_doc.get("comprobante_enviado"):
-        print("[WEBHOOK] ⚠️ Comprobante ya enviado, se evita duplicado")
         return
 
     try:
@@ -898,8 +893,11 @@ def procesar_webhook_pago(data, topic):
 
     except Exception as e:
         print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
-        # rollback del flag si falla el envío
-        doc_ref.update({"comprobante_enviado": False})
+        # rollback si falla el envío
+        try:
+            doc_ref.update({"comprobante_enviado": False})
+        except Exception as e2:
+            print(f"[WEBHOOK] ⚠️ Error en rollback: {e2}")
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
