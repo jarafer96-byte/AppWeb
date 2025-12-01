@@ -642,7 +642,7 @@ def crear_pago():
             print(f"[CREAR_PAGO] ❌ Error creando preferencia: {pref_data}")
             return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
-        # Guardar la orden inicial en Firestore dentro del usuario
+        # Guardar la orden inicial en Firestore en colección global
         orden_doc = {
             "email_vendedor": email_vendedor,
             "numero_vendedor": numero_vendedor,
@@ -655,9 +655,8 @@ def crear_pago():
         print("[CREAR_PAGO] 📝 Documento a guardar en Firestore:", orden_doc)
 
         try:
-            db.collection("usuarios").document(email_vendedor) \
-              .collection("ordenes").document(external_reference).set(orden_doc)
-            print(f"[CREAR_PAGO] ✅ Orden guardada en usuarios/{email_vendedor}/ordenes/{external_reference}")
+            db.collection("ordenes").document(external_reference).set(orden_doc)
+            print(f"[CREAR_PAGO] ✅ Orden guardada en ordenes/{external_reference}")
         except Exception as e:
             print("[CREAR_PAGO] ❌ Error guardando en Firestore:", e)
             return jsonify({"error": "No se pudo guardar la orden en Firestore"}), 500
@@ -685,17 +684,18 @@ def comprobante(venta_id):
     print(f"[COMPROBANTE] ✅ Documento encontrado: {data}")
 
     cliente = data.get("cliente_email")
-    productos = data.get("productos", [])
-    total = data.get("total", 0)
+    items = data.get("items", [])
 
-    print(f"[COMPROBANTE] Cliente={cliente}, Total={total}, Productos={len(productos)}")
+    # Calcular total dinámicamente a partir de items
+    total = sum(i.get("unit_price", 0) * i.get("quantity", 1) for i in items)
+
+    print(f"[COMPROBANTE] Cliente={cliente}, Total={total}, Items={len(items)}")
 
     # Renderizar plantilla Jinja
     return render_template("comprobante.html",
                            cliente=cliente,
-                           productos=productos,
+                           productos=items,  # pasamos items como productos para la plantilla
                            total=total)
-
 
 def get_platform_token():
     token = os.environ.get("MERCADO_PAGO_TOKEN")
@@ -771,56 +771,53 @@ def webhook_mp():
             print("\n[WEBHOOK] 📦 Detalle del pago:", detail)
             log_event("mp_payment_detail", detail)
 
-            # External_reference siempre viene como pedido_...
             ext_ref = detail.get("external_reference")
             status = detail.get("status")
             metadata = detail.get("metadata", {}) or {}
             pref_id = detail.get("preference_id")
 
-            email_vendedor = metadata.get("email_vendedor")
-            numero_vendedor = metadata.get("numero_vendedor")
             cliente_email = detail.get("payer", {}).get("email")
 
             print(f"[WEBHOOK] external_reference={ext_ref}")
             print(f"[WEBHOOK] status={status}")
             print(f"[WEBHOOK] preference_id={pref_id}")
             print(f"[WEBHOOK] metadata={metadata}")
-            print(f"[WEBHOOK] email_vendedor={email_vendedor}, numero_vendedor={numero_vendedor}")
             print(f"[WEBHOOK] cliente_email={cliente_email}")
 
-            # Usar siempre el external_reference (pedido_...) como ID
             orden_id = ext_ref or pref_id
-            if orden_id and email_vendedor:
-                print(f"[WEBHOOK] 🔎 Buscando orden usuarios/{email_vendedor}/ordenes/{orden_id}")
-                orden_doc = db.collection("usuarios").document(email_vendedor) \
-                              .collection("ordenes").document(orden_id).get()
+            if orden_id:
+                print(f"[WEBHOOK] 🔎 Buscando orden global ordenes/{orden_id}")
+                orden_doc = db.collection("ordenes").document(orden_id).get()
 
                 if orden_doc.exists:
                     orden_data = orden_doc.to_dict()
                     print("[WEBHOOK] ✅ Orden encontrada en Firestore:", orden_data)
 
+                    email_vendedor = orden_data.get("email_vendedor")
+                    numero_vendedor = orden_data.get("numero_vendedor")
+
                     # Actualizar estado de la orden
                     try:
-                        db.collection("usuarios").document(email_vendedor) \
-                          .collection("ordenes").document(orden_id).update({
-                              "estado": status,
-                              "cliente_email": cliente_email,
-                              "actualizado": firestore.SERVER_TIMESTAMP
-                          })
+                        db.collection("ordenes").document(orden_id).update({
+                            "estado": status,
+                            "cliente_email": cliente_email,
+                            "actualizado": firestore.SERVER_TIMESTAMP
+                        })
                         print("[WEBHOOK] 🔄 Orden actualizada con estado:", status)
                     except Exception as e:
                         print("[WEBHOOK] ❌ Error actualizando orden:", e)
 
-                    # Guardar la venta confirmada en pedidos
+                    # Guardar la venta confirmada en pedidos globales
                     try:
-                        db.collection("usuarios").document(email_vendedor) \
-                          .collection("pedidos").document(orden_id).set({
-                              "estado": status,
-                              "precio": detail.get("transaction_amount"),
-                              "items": orden_data.get("items"),
-                              "cliente_email": cliente_email,
-                              "fecha": firestore.SERVER_TIMESTAMP
-                          }, merge=True)
+                        db.collection("pedidos").document(orden_id).set({
+                            "estado": status,
+                            "precio": detail.get("transaction_amount"),
+                            "items": orden_data.get("items"),
+                            "cliente_email": cliente_email,
+                            "email_vendedor": email_vendedor,
+                            "numero_vendedor": numero_vendedor,
+                            "fecha": firestore.SERVER_TIMESTAMP
+                        }, merge=True)
                         print("[WEBHOOK] 🛒 Pedido guardado en Firestore")
                     except Exception as e:
                         print("[WEBHOOK] ❌ Error guardando pedido:", e)
@@ -854,68 +851,20 @@ def webhook_mp():
                             print("[WEBHOOK] 📡 Respuesta WhatsApp API:", resp.json())
                             log_event("whatsapp_api_response", resp.json())
 
-                            # Guardar estado de notificación en Firestore
-                            db.collection("usuarios").document(email_vendedor) \
-                              .collection("pedidos").document(orden_id).update({
-                                  "whatsapp_status": resp.json()
-                              })
+                            # Guardar estado de notificación en pedidos
+                            db.collection("pedidos").document(orden_id).update({
+                                "whatsapp_status": resp.json()
+                            })
                             print("[WEBHOOK] ✅ Estado de notificación guardado en Firestore")
                         except Exception as e:
                             print("[WEBHOOK] ❌ Error enviando WhatsApp:", e)
                     else:
                         print("[WEBHOOK] ⚠️ No se envió WhatsApp: numero_vendedor vacío")
                 else:
-                    print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: usuarios/{email_vendedor}/ordenes/{orden_id}")
-
-        elif topic == "merchant_order" and payment_id:
-            # Consultar detalle de la orden de comerciante
-            resp = requests.get(
-                f"https://api.mercadolibre.com/merchant_orders/{payment_id}",
-                headers={"Authorization": f"Bearer {os.environ.get('MERCADO_PAGO_TOKEN')}"}
-            )
-            print(f"[WEBHOOK] 📡 Status code Merchant Order: {resp.status_code}")
-            order_detail = resp.json()
-            print("\n[WEBHOOK] 📦 Detalle merchant_order:", order_detail)
-            log_event("mp_merchant_order_detail", order_detail)
-
-            ext_ref = order_detail.get("external_reference")
-            status = order_detail.get("status")
-            payments = order_detail.get("payments", [])
-            metadata = order_detail.get("metadata", {}) or {}
-
-            email_vendedor = metadata.get("email_vendedor")
-            numero_vendedor = metadata.get("numero_vendedor")
-            cliente_email = None
-            if payments:
-                cliente_email = payments[0].get("payer", {}).get("email")
-
-            print(f"[WEBHOOK] external_reference={ext_ref}")
-            print(f"[WEBHOOK] status={status}")
-            print(f"[WEBHOOK] email_vendedor={email_vendedor}, numero_vendedor={numero_vendedor}")
-            print(f"[WEBHOOK] cliente_email={cliente_email}")
-
-            if ext_ref and email_vendedor:
-                orden_id = ext_ref
-                print(f"[WEBHOOK] 🔎 Buscando orden usuarios/{email_vendedor}/ordenes/{orden_id}")
-                orden_doc = db.collection("usuarios").document(email_vendedor) \
-                              .collection("ordenes").document(orden_id).get()
-
-                if orden_doc.exists:
-                    try:
-                        db.collection("usuarios").document(email_vendedor) \
-                          .collection("ordenes").document(orden_id).update({
-                              "estado": status,
-                              "cliente_email": cliente_email,
-                              "actualizado": firestore.SERVER_TIMESTAMP
-                          })
-                        print("[WEBHOOK] 🔄 Orden actualizada desde merchant_order con estado:", status)
-                    except Exception as e:
-                        print("[WEBHOOK] ❌ Error actualizando orden desde merchant_order:", e)
-                else:
-                    print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: usuarios/{email_vendedor}/ordenes/{orden_id}")
+                    print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: ordenes/{orden_id}")
 
         else:
-            print("[WEBHOOK] ⚠️ Evento ignorado, no es payment ni merchant_order válido")
+            print("[WEBHOOK] ⚠️ Evento ignorado, no es payment válido")
 
     except Exception as e:
         tb = traceback.format_exc()
