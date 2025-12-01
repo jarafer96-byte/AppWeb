@@ -572,7 +572,6 @@ def log_event(tag, data):
 
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
-    # Token global de la plataforma (puede ser reemplazado por token por vendedor si lo implementás)
     access_token = os.getenv("MERCADO_PAGO_TOKEN")
     url = "https://api.mercadopago.com/checkout/preferences"
 
@@ -581,8 +580,8 @@ def crear_pago():
     print("\n[CREAR_PAGO] 📥 Datos recibidos del frontend:", data)
 
     items = data.get("items", [])
-    email_vendedor = data.get("email")            # 👈 correo del vendedor logueado
-    numero_vendedor = data.get("numero_vendedor") # opcional (para notificación WhatsApp)
+    email_vendedor = data.get("email")
+    numero_vendedor = data.get("numero_vendedor")
 
     print(f"[CREAR_PAGO] items={items}")
     print(f"[CREAR_PAGO] email_vendedor={email_vendedor}")
@@ -595,6 +594,15 @@ def crear_pago():
     if not email_vendedor or not isinstance(email_vendedor, str):
         print("[CREAR_PAGO] ❌ Falta email del vendedor")
         return jsonify({"error": "Falta email del vendedor"}), 400
+
+    # Validar cada item
+    for i in items:
+        if not all(k in i for k in ("title", "quantity", "unit_price")):
+            print("[CREAR_PAGO] ❌ Item inválido:", i)
+            return jsonify({"error": "Item inválido"}), 400
+        if not isinstance(i["unit_price"], (int, float)) or i["unit_price"] <= 0:
+            print("[CREAR_PAGO] ❌ Precio inválido:", i)
+            return jsonify({"error": "Precio inválido"}), 400
 
     # Generar external_reference único y trazable (incluye email)
     external_reference = f"{email_vendedor}__ORD-{int(time.time())}"
@@ -611,7 +619,7 @@ def crear_pago():
         "auto_return": "approved",
         "notification_url": "https://mpagina.onrender.com/webhook_mp",
         "external_reference": external_reference,
-        "metadata": {   # 👈 datos del vendedor para el webhook (puede venir vacío en MP)
+        "metadata": {
             "email_vendedor": email_vendedor,
             "numero_vendedor": numero_vendedor
         }
@@ -626,10 +634,11 @@ def crear_pago():
     try:
         # Crear preferencia en Mercado Pago
         r = requests.post(url, json=payload, headers=headers, timeout=15)
+        print(f"[CREAR_PAGO] 📡 Status code MP: {r.status_code}")
         pref_data = r.json()
         print("[CREAR_PAGO] 📡 Respuesta de MP:", pref_data)
 
-        if not pref_data or "id" not in pref_data:
+        if r.status_code != 200 or not pref_data or "id" not in pref_data:
             print(f"[CREAR_PAGO] ❌ Error creando preferencia: {pref_data}")
             return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
@@ -645,11 +654,16 @@ def crear_pago():
         }
         print("[CREAR_PAGO] 📝 Documento a guardar en Firestore:", orden_doc)
 
-        db.collection("usuarios").document(email_vendedor) \
-          .collection("ordenes").document(external_reference).set(orden_doc)
+        try:
+            db.collection("usuarios").document(email_vendedor) \
+              .collection("ordenes").document(external_reference).set(orden_doc)
+            print(f"[CREAR_PAGO] ✅ Orden guardada en usuarios/{email_vendedor}/ordenes/{external_reference}")
+        except Exception as e:
+            print("[CREAR_PAGO] ❌ Error guardando en Firestore:", e)
+            return jsonify({"error": "No se pudo guardar la orden en Firestore"}), 500
 
-        print(f"[CREAR_PAGO] ✅ Orden guardada en usuarios/{email_vendedor}/ordenes/{external_reference}")
-
+        # Devolver también el external_reference para trazabilidad en frontend
+        pref_data["external_reference"] = external_reference
         return jsonify(pref_data)
 
     except Exception as e:
