@@ -835,23 +835,23 @@ def enviar_comprobante(destinatario, orden_id):
     except Exception as e:
         print(f"[EMAIL] ❌ Error enviando comprobante: {e}")
         
-def procesar_webhook_pago(data):
+def procesar_webhook(data, topic):
     orden_id = data.get("external_reference")
     estado = data.get("status")
     email_vendedor = data.get("metadata", {}).get("email_vendedor")
 
-    print(f"[WEBHOOK] Pago recibido: orden={orden_id}, estado={estado}")
+    print(f"[WEBHOOK] Evento recibido: topic={topic}, orden={orden_id}, estado={estado}")
 
-    # Filtrar solo pagos aprobados
-    if estado != "approved":
-        print("[WEBHOOK] ⚠️ Estado no aprobado, no se envía comprobante")
+    # Solo procesar si es un pago aprobado
+    if topic != "payment" or estado != "approved":
+        print("[WEBHOOK] ⚠️ Evento ignorado, no es payment aprobado")
         return
 
-    # Verificar si ya se envió comprobante
     doc_ref = db.collection("ordenes").document(orden_id)
     doc = doc_ref.get()
+
     if doc.exists and doc.to_dict().get("comprobante_enviado"):
-        print("[WEBHOOK] ⚠️ Comprobante ya enviado previamente, se evita duplicado")
+        print("[WEBHOOK] ⚠️ Comprobante ya enviado, se evita duplicado")
         return
 
     # Enviar comprobante
@@ -859,7 +859,7 @@ def procesar_webhook_pago(data):
 
     # Marcar en Firestore
     doc_ref.update({"comprobante_enviado": True})
-    print(f"[WEBHOOK] ✅ Comprobante marcado como enviado para orden {orden_id}")
+    print(f"[WEBHOOK] ✅ Comprobante enviado y marcado para orden {orden_id}")
     
 def inicializar_comprobantes():
     print("[MIGRACION] 🚀 Iniciando inicialización de comprobantes_enviados")
