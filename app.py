@@ -228,13 +228,27 @@ def oauth2callback():
     flow = build_flow()
     flow.fetch_token(authorization_response=request.url)
     creds = flow.credentials
-    # Guardar token.json para usar después
-    with open("token.json", "w") as token:
-        token.write(creds.to_json())
-    return "✅ Autorización completada"
+
+    try:
+        # Guardar el token en Firestore
+        db.collection("_tokens").document("gmail").set({
+            "token": creds.to_json(),
+            "actualizado": firestore.SERVER_TIMESTAMP
+        })
+        print("✅ Token guardado en Firestore (_tokens/gmail)")
+    except Exception as e:
+        print("❌ Error guardando token en Firestore:", e)
+        return "❌ Error guardando token en Firestore", 500
+
+    return "✅ Autorización completada y token guardado en Firestore"
 
 def get_gmail_service():
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    doc = db.collection("_tokens").document("gmail").get()
+    if not doc.exists:
+        raise RuntimeError("No hay token guardado en Firestore")
+
+    creds_json = doc.to_dict()["token"]
+    creds = Credentials.from_authorized_user_info(json.loads(creds_json), SCOPES)
     return build("gmail", "v1", credentials=creds)
     
 def build_flow():
