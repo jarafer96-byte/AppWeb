@@ -570,6 +570,26 @@ def log_event(tag, data):
     print(f"[{tag}] {data}")
     # opcional: guardar en Firestore o en un archivo de logs
 
+def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_vendedor):
+    orden_doc = {
+        "email_vendedor": email_vendedor,
+        "numero_vendedor": numero_vendedor,
+        "items": items,
+        "estado": "pendiente",
+        "preference_id": pref_id,
+        "external_reference": external_reference,
+        "creado": firestore.SERVER_TIMESTAMP
+    }
+    print("[ORDEN] 📝 Documento a guardar:", orden_doc)
+
+    try:
+        db.collection("ordenes").document(external_reference).set(orden_doc)
+        print(f"[ORDEN] ✅ Orden guardada en ordenes/{external_reference}")
+        return True
+    except Exception as e:
+        print("[ORDEN] ❌ Error guardando en Firestore:", e)
+        return False
+
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
     access_token = os.getenv("MERCADO_PAGO_TOKEN")
@@ -580,7 +600,7 @@ def crear_pago():
     print("\n[CREAR_PAGO] 📥 Datos recibidos del frontend:", data)
 
     items = data.get("items", [])
-    email_vendedor = data.get("email")
+    email_vendedor = data.get("email_vendedor")   # 👈 más claro y consistente
     numero_vendedor = data.get("numero_vendedor")
 
     print(f"[CREAR_PAGO] items={items}")
@@ -642,23 +662,9 @@ def crear_pago():
             print(f"[CREAR_PAGO] ❌ Error creando preferencia: {pref_data}")
             return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
-        # Guardar la orden inicial en Firestore en colección global
-        orden_doc = {
-            "email_vendedor": email_vendedor,
-            "numero_vendedor": numero_vendedor,
-            "items": items,
-            "estado": "pendiente",
-            "preference_id": pref_data["id"],
-            "external_reference": external_reference,
-            "creado": firestore.SERVER_TIMESTAMP
-        }
-        print("[CREAR_PAGO] 📝 Documento a guardar en Firestore:", orden_doc)
-
-        try:
-            db.collection("ordenes").document(external_reference).set(orden_doc)
-            print(f"[CREAR_PAGO] ✅ Orden guardada en ordenes/{external_reference}")
-        except Exception as e:
-            print("[CREAR_PAGO] ❌ Error guardando en Firestore:", e)
+        # Guardar la orden inicial en Firestore usando la función auxiliar
+        ok = guardar_orden(external_reference, pref_data["id"], items, email_vendedor, numero_vendedor)
+        if not ok:
             return jsonify({"error": "No se pudo guardar la orden en Firestore"}), 500
 
         # Devolver también el external_reference para trazabilidad en frontend
@@ -670,6 +676,7 @@ def crear_pago():
         print("[CREAR_PAGO] 💥 Error inesperado:", e)
         print(tb)
         return jsonify({"error": str(e), "trace": tb}), 500
+
 
 @app.route("/comprobante/<venta_id>")
 def comprobante(venta_id):
