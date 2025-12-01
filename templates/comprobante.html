@@ -39,15 +39,15 @@
         <div class="card h-100 shadow-sm">
           <div class="row g-0">
             <div class="col-md-4">
-              <img src="{{ p.imagen_url }}" class="img-fluid rounded-start" alt="{{ p.nombre }}">
+              <img src="{{ p.imagen_url }}" class="img-fluid rounded-start" alt="{{ p.title }}">
             </div>
             <div class="col-md-8">
               <div class="card-body">
-                <h5 class="card-title">{{ p.nombre }}</h5>
+                <h5 class="card-title">{{ p.title }}</h5>
                 {% if p.talle %}<p class="card-text">Talle: {{ p.talle }}</p>{% endif %}
-                <p class="card-text">Precio: ${{ p.precio }}</p>
-                <p class="card-text">Cantidad: {{ p.cantidad }}</p>
-                <p class="card-text"><strong>Subtotal: ${{ p.precio * p.cantidad }}</strong></p>
+                <p class="card-text">Precio: ${{ p.unit_price }}</p>
+                <p class="card-text">Cantidad: {{ p.quantity }}</p>
+                <p class="card-text"><strong>Subtotal: ${{ p.unit_price * p.quantity }}</strong></p>
               </div>
             </div>
           </div>
