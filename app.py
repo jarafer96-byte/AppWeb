@@ -596,8 +596,8 @@ def crear_pago():
         print("[CREAR_PAGO] ❌ Falta email del vendedor")
         return jsonify({"error": "Falta email del vendedor"}), 400
 
-    # Generar external_reference único y corto
-    external_reference = f"ORD-{int(time.time())}"
+    # Generar external_reference único y trazable (incluye email)
+    external_reference = f"{email_vendedor}__ORD-{int(time.time())}"
     print(f"[CREAR_PAGO] 🔑 external_reference={external_reference}")
 
     # Payload para Mercado Pago
@@ -611,7 +611,7 @@ def crear_pago():
         "auto_return": "approved",
         "notification_url": "https://mpagina.onrender.com/webhook_mp",
         "external_reference": external_reference,
-        "metadata": {   # 👈 datos del vendedor para el webhook
+        "metadata": {   # 👈 datos del vendedor para el webhook (puede venir vacío en MP)
             "email_vendedor": email_vendedor,
             "numero_vendedor": numero_vendedor
         }
@@ -725,6 +725,7 @@ def webhook_mp():
             status = detail.get("status")
             metadata = detail.get("metadata", {}) or {}
 
+            # Intentar recuperar email/telefono desde metadata
             email_vendedor = metadata.get("email_vendedor")
             numero_vendedor = metadata.get("numero_vendedor")
             cliente_email = detail.get("payer", {}).get("email")
@@ -735,14 +736,21 @@ def webhook_mp():
             print(f"[WEBHOOK] email_vendedor={email_vendedor}, numero_vendedor={numero_vendedor}")
             print(f"[WEBHOOK] cliente_email={cliente_email}")
 
+            # Si metadata está vacío, intentar parsear email desde external_reference
+            if not email_vendedor and ext_ref:
+                if "__ORD-" in ext_ref:
+                    email_vendedor, _ = ext_ref.split("__ORD-")
+                    print(f"[WEBHOOK] 📥 Email recuperado desde external_reference: {email_vendedor}")
+                else:
+                    print("[WEBHOOK] ⚠️ No se pudo recuperar email desde external_reference")
+
             if not email_vendedor:
-                print("[WEBHOOK] ⚠️ No se recibió email_vendedor en metadata")
+                print("[WEBHOOK] ⚠️ No se recibió email_vendedor en metadata ni en external_reference")
 
             if ext_ref and email_vendedor:
-                # Buscar la orden en Firestore dentro del usuario
+                print(f"[WEBHOOK] 🔎 Buscando orden usuarios/{email_vendedor}/ordenes/{ext_ref}")
                 orden_doc = db.collection("usuarios").document(email_vendedor) \
                               .collection("ordenes").document(ext_ref).get()
-                print(f"[WEBHOOK] Buscando orden usuarios/{email_vendedor}/ordenes/{ext_ref}")
 
                 if orden_doc.exists:
                     orden_data = orden_doc.to_dict()
@@ -801,6 +809,8 @@ def webhook_mp():
                               "whatsapp_status": resp.json()
                           })
                         print("[WEBHOOK] ✅ Estado de notificación guardado en Firestore")
+                    else:
+                        print("[WEBHOOK] ⚠️ No se envió WhatsApp: numero_vendedor vacío")
                 else:
                     print("[WEBHOOK] ❌ No se encontró la orden en Firestore")
 
