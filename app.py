@@ -786,23 +786,18 @@ def webhook_mp():
             print(f"[WEBHOOK] cliente_email={cliente_email}")
 
             # Si metadata está vacío, parsear email desde external_reference
-            orden_id = None
-            if not email_vendedor and ext_ref:
-                if "__ORD-" in ext_ref:
-                    email_vendedor, orden_suffix = ext_ref.split("__ORD-")
-                    orden_id = "ORD-" + orden_suffix
+            if not email_vendedor and ext_ref and "__ORD-" in ext_ref:
+                try:
+                    email_vendedor, _ = ext_ref.split("__ORD-")
                     print(f"[WEBHOOK] 📥 Email recuperado desde external_reference: {email_vendedor}")
-                    print(f"[WEBHOOK] 📥 Orden ID recuperado: {orden_id}")
-                else:
-                    print("[WEBHOOK] ⚠️ No se pudo recuperar email desde external_reference")
-
-            if not orden_id:
-                orden_id = ext_ref  # fallback: usar external_reference completo
+                except Exception as e:
+                    print("[WEBHOOK] ❌ Error parseando external_reference:", e)
 
             if not email_vendedor:
                 print("[WEBHOOK] ⚠️ No se recibió email_vendedor en metadata ni en external_reference")
 
-            if orden_id and email_vendedor:
+            if ext_ref and email_vendedor:
+                orden_id = ext_ref  # usar SIEMPRE el external_reference completo como ID
                 print(f"[WEBHOOK] 🔎 Buscando orden usuarios/{email_vendedor}/ordenes/{orden_id}")
                 orden_doc = db.collection("usuarios").document(email_vendedor) \
                               .collection("ordenes").document(orden_id).get()
@@ -877,7 +872,7 @@ def webhook_mp():
                     else:
                         print("[WEBHOOK] ⚠️ No se envió WhatsApp: numero_vendedor vacío")
                 else:
-                    print("[WEBHOOK] ❌ No se encontró la orden en Firestore")
+                    print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: usuarios/{email_vendedor}/ordenes/{ext_ref}")
 
         except Exception as e:
             tb = traceback.format_exc()
