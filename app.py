@@ -747,28 +747,44 @@ def crear_pago():
 
 @app.route("/comprobante/<venta_id>")
 def comprobante(venta_id):
-    print(f"\n[COMPROBANTE] 📥 Solicitud recibida para venta_id={venta_id}")
+    print(f"[COMPROBANTE] 📥 Solicitud recibida para venta_id={venta_id}")
     doc = db.collection("ordenes").document(venta_id).get()
 
     if not doc.exists:
-        print(f"[COMPROBANTE] ❌ No se encontró comprobante con ID={venta_id}")
         return "Comprobante no encontrado", 404
 
     data = doc.to_dict()
-    print(f"[COMPROBANTE] ✅ Documento encontrado: {data}")
-
     cliente = data.get("cliente_email")
+    email_vendedor = data.get("email_vendedor")
     items = data.get("items", [])
 
-    # Calcular total dinámicamente a partir de items
-    total = sum(i.get("unit_price", 0) * i.get("quantity", 1) for i in items)
+    productos = []
+    total = 0
 
-    print(f"[COMPROBANTE] Cliente={cliente}, Total={total}, Items={len(items)}")
+    for i in items:
+        cantidad = int(i.get("quantity", 1))
+        precio = float(i.get("unit_price", 0))
+        total += precio * cantidad
 
-    # Renderizar plantilla Jinja
+        # Buscar producto completo en la colección del vendedor
+        id_base = i.get("id")
+        imagen_url = None
+        if email_vendedor and id_base:
+            prod_doc = db.collection("usuarios").document(email_vendedor).collection("productos").document(id_base).get()
+            if prod_doc.exists:
+                imagen_url = prod_doc.to_dict().get("imagen_url")
+
+        productos.append({
+            "title": i.get("title"),
+            "description": i.get("description"),
+            "unit_price": precio,
+            "quantity": cantidad,
+            "imagen_url": imagen_url
+        })
+
     return render_template("comprobante.html",
                            cliente=cliente,
-                           productos=items,  # pasamos items como productos para la plantilla
+                           productos=productos,
                            total=total)
 
 def get_platform_token():
