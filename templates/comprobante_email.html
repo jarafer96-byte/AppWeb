@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Venta - Orden #{{ orden_id }}</title>
+</head>
+<body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
+    
+    <!-- Contenedor principal -->
+    <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 20px;">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 700;">🎉 ¡NUEVA VENTA!</h1>
+            <div style="background: rgba(255,255,255,0.2); display: inline-block; padding: 6px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-top: 15px;">
+                Orden #{{ orden_id }}
+            </div>
+        </div>
+        
+        <!-- Información del cliente -->
+        <div style="padding: 25px; background: #f8f9fa; border-bottom: 1px solid #e9ecef;">
+            <h2 style="color: #495057; margin-top: 0; margin-bottom: 20px; font-size: 20px;">👤 Información del Cliente</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <div style="font-size: 12px; color: #6c757d; font-weight: 600; text-transform: uppercase;">Nombre</div>
+                    <div style="font-size: 16px; font-weight: 500; margin-top: 5px;">{{ cliente_nombre }}</div>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <div style="font-size: 12px; color: #6c757d; font-weight: 600; text-transform: uppercase;">Email</div>
+                    <div style="font-size: 16px; font-weight: 500; margin-top: 5px;">{{ cliente_email }}</div>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <div style="font-size: 12px; color: #6c757d; font-weight: 600; text-transform: uppercase;">Teléfono</div>
+                    <div style="font-size: 16px; font-weight: 500; margin-top: 5px;">{{ cliente_telefono }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Productos -->
+        <div style="padding: 25px;">
+            <h2 style="color: #495057; margin-top: 0; margin-bottom: 20px; font-size: 20px;">🛍️ Productos Comprados</h2>
+            
+            {% for p in productos %}
+            <div style="background: white; border: 1px solid #e9ecef; border-radius: 8px; margin-bottom: 15px; overflow: hidden;">
+                <div style="padding: 15px; background: #f8f9fa; border-bottom: 1px solid #e9ecef;">
+                    <div style="font-size: 18px; font-weight: 600; color: #212529;">{{ p.title }}</div>
+                    {% if p.talle %}
+                    <span style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-top: 5px; display: inline-block;">
+                        Talle: {{ p.talle }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div style="padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: #6c757d;">Precio unitario:</span>
+                        <span style="font-weight: 500;">${{ "%.2f"|format(p.unit_price) }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: #6c757d;">Cantidad:</span>
+                        <span style="font-weight: 500;">{{ p.quantity }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #f1f3f5;">
+                        <span style="color: #212529; font-weight: 600;">Subtotal:</span>
+                        <span style="color: #28a745; font-weight: 700;">${{ "%.2f"|format(p.subtotal) }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Total -->
+        <div style="padding: 25px; background: #f8f9fa; border-top: 1px solid #e9ecef; text-align: center;">
+            <div style="font-size: 14px; color: #6c757d; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">
+                Total de la compra
+            </div>
+            <div style="font-size: 36px; font-weight: 700; color: #28a745;">
+                ${{ "%.2f"|format(total) }}
+            </div>
+        </div>
+        
+        <!-- Botón comprobante -->
+        <div style="padding: 25px; text-align: center;">
+            <a href="{{ comprobante_url }}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block;">
+                📄 Ver Comprobante Completo
+            </a>
+            <p style="color: #6c757d; font-size: 14px; margin-top: 15px;">
+                Este enlace contiene todos los detalles de la transacción.
+            </p>
+        </div>
+        
+    </div>
+    
+    <!-- Footer -->
+    <div style="text-align: center; color: #6c757d; font-size: 13px; padding: 20px;">
+        <p style="margin-bottom: 5px;">Este es un comprobante automático generado por tu tienda online.</p>
+        <p style="margin-bottom: 5px;">📧 No responder a este correo - Contacta directamente al cliente si es necesario.</p>
+        <p style="margin-top: 15px; font-size: 12px; color: #adb5bd;">
+            Fecha: {{ fecha_creacion }}
+        </p>
+    </div>
+
+</body>
+</html>
