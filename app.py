@@ -858,32 +858,55 @@ def procesar_webhook(data, topic):
         print(f"[WEBHOOK] ⚠️ Evento desconocido: {topic}")
 
 
-def procesar_webhook_pago(data):
-    orden_id = data.get("external_reference")
-    estado = data.get("status")
+def procesar_webhook_pago(detalle):
+    """
+    Procesa el detalle de un pago recibido desde el webhook de Mercado Pago.
+    Solo envía comprobante si el estado es 'approved' y aún no fue enviado.
+    """
 
-    if estado != "approved":
+    orden_id = detalle.get("external_reference") or detalle.get("preference_id")
+    estado = detalle.get("status")
+
+    if not orden_id:
+        print("[WEBHOOK] ❌ No se encontró external_reference/preference_id en el pago")
         return
 
     doc_ref = db.collection("ordenes").document(orden_id)
     snap = doc_ref.get()
     if not snap.exists:
-        print(f"[WEBHOOK] ❌ Orden {orden_id} no encontrada")
+        print(f"[WEBHOOK] ❌ Orden {orden_id} no encontrada en Firestore")
         return
 
     orden = snap.to_dict() or {}
+
+    # ⚠️ Evitar duplicados
     if orden.get("comprobante_enviado"):
         print(f"[WEBHOOK] ⚠️ Comprobante ya enviado para {orden_id}, no se reenvía")
         return
 
-    # 👉 Aquí tu lógica de armado y envío del comprobante por email
+    if estado == "approved":
+        # Actualizar estado y marcar comprobante enviado
+        doc_ref.update({
+            "estado": "approved",
+            "comprobante_enviado": True,
+            "actualizado": firestore.SERVER_TIMESTAMP
+        })
+        print(f"[WEBHOOK] ✅ Orden {orden_id} aprobada y comprobante marcado como enviado")
 
-    # marcar como enviado
-    doc_ref.update({
-        "comprobante_enviado": True,
-        "actualizado": firestore.SERVER_TIMESTAMP
-    })
-    print(f"[WEBHOOK] ✅ Comprobante enviado para {orden_id}")
+        # 👉 Llamada a tu función de envío de comprobante
+        try:
+            enviar_comprobante(email_vendedor=orden.get("email_vendedor"), orden_id=orden_id)
+            print(f"[WEBHOOK] 📧 Comprobante enviado a {orden.get('cliente_email')}")
+        except Exception as e:
+            print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
+
+    else:
+        # Actualizar estado sin enviar comprobante
+        doc_ref.update({
+            "estado": estado,
+            "actualizado": firestore.SERVER_TIMESTAMP
+        })
+        print(f"[WEBHOOK] ℹ️ Orden {orden_id} actualizada a estado={estado}")
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
