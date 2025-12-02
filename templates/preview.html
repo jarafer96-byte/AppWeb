@@ -573,19 +573,65 @@ async function pagarTodoJunto() {
     // 4. Generar un ID único para esta orden
     const orden_id = 'ORD_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
-    // 5. Preparar el payload para el backend
+    // 5. Función para convertir precio a número
+    function convertirPrecio(precio) {
+        if (typeof precio === 'number') {
+            return precio;
+        }
+        if (typeof precio === 'string') {
+            // Remover símbolo $, comas y espacios
+            const limpio = precio.replace(/[$\s,]/g, '').trim();
+            const num = parseFloat(limpio);
+            return isNaN(num) ? 0 : num;
+        }
+        return 0;
+    }
+    
+    // 6. Función para convertir cantidad a número
+    function convertirCantidad(cantidad) {
+        const num = parseInt(cantidad);
+        return isNaN(num) || num < 1 ? 1 : num;
+    }
+    
+    // 7. Preparar el payload para el backend
+    const itemsMP = []; // Para Mercado Pago
+    const itemsCarrito = []; // Para Firestore
+    
+    let totalCalculado = 0;
+    
+    carrito.forEach(item => {
+        // Convertir precios y cantidades
+        const precio = convertirPrecio(item.precio);
+        const cantidad = convertirCantidad(item.cantidad);
+        const subtotal = precio * cantidad;
+        totalCalculado += subtotal;
+        
+        // Item para Mercado Pago
+        itemsMP.push({
+            title: item.nombre + (item.talle ? ` (${item.talle})` : ""),
+            quantity: cantidad,
+            unit_price: precio,
+            currency_id: "ARS"
+        });
+        
+        // Item para Firestore (formato completo)
+        itemsCarrito.push({
+            nombre: item.nombre,
+            precio: precio,
+            cantidad: cantidad,
+            talle: item.talle || "",
+            id_base: item.id_base || "",
+            grupo: item.grupo || "",
+            subgrupo: item.subgrupo || "",
+            subtotal: subtotal
+        });
+    });
+    
     const payload = {
         email_vendedor: window.email || "ferj.9622@gmail.com",
-        items: carrito.map(item => ({
-            nombre: item.nombre,
-            precio: item.precio,
-            cantidad: item.cantidad,
-            talle: item.talle,
-            id_base: item.id_base,
-            grupo: item.grupo || "",
-            subgrupo: item.subgrupo || ""
-        })),
-        total: carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0),
+        carrito: itemsCarrito,  // Enviar carrito completo con precios convertidos
+        items_mp: itemsMP,      // Enviar también items formateados para MP
+        total: totalCalculado,
         cliente_nombre: `${nombre} ${apellido}`.trim(),
         cliente_email: emailCliente,
         cliente_telefono: telefono,
@@ -594,6 +640,13 @@ async function pagarTodoJunto() {
     };
     
     console.log("📦 Payload para el pago:", payload);
+    console.log("💰 Total calculado:", totalCalculado);
+    console.log("🛒 Items procesados:", itemsCarrito.length);
+    
+    // Debug: mostrar precios convertidos
+    itemsCarrito.forEach((item, idx) => {
+        console.log(`  ${idx+1}. ${item.nombre}: $${item.precio} x ${item.cantidad} = $${item.subtotal}`);
+    });
     
     try {
         // Mostrar indicador de carga
@@ -603,7 +656,7 @@ async function pagarTodoJunto() {
             btnPagarFinal.textContent = 'Procesando...';
         }
         
-        // 6. Enviar al backend para crear la preferencia de pago
+        // 8. Enviar al backend para crear la preferencia de pago
         const response = await fetch(`${URL_BACKEND}/pagar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -611,13 +664,14 @@ async function pagarTodoJunto() {
         });
         
         if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Error HTTP ${response.status}: ${errorText}`);
         }
         
         const data = await response.json();
         console.log("✅ Respuesta del backend:", data);
         
-        // 7. Manejar la respuesta
+        // 9. Manejar la respuesta
         if (data.error) {
             alert("❌ Error: " + data.error);
         } else if (data.init_point) {
@@ -626,7 +680,7 @@ async function pagarTodoJunto() {
             localStorage.setItem('ultima_orden_data', JSON.stringify({
                 fecha: new Date().toISOString(),
                 items: carrito.length,
-                total: payload.total,
+                total: totalCalculado,
                 cliente: `${nombre} ${apellido}`,
                 email: emailCliente
             }));
@@ -634,6 +688,14 @@ async function pagarTodoJunto() {
             // Redirigir a Mercado Pago
             console.log("➡️ Redirigiendo a Mercado Pago...");
             window.location.href = data.init_point;
+        } else if (data.preference_id && window.mp) {
+            // Usar SDK de Mercado Pago si está disponible
+            localStorage.setItem('ultima_orden_id', orden_id);
+            
+            window.mp.checkout({
+                preference: { id: data.preference_id },
+                autoOpen: true
+            });
         } else {
             console.warn("Respuesta inesperada del backend:", data);
             alert("⚠️ No se pudo procesar el pago. Intenta de nuevo.");
