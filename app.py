@@ -965,9 +965,9 @@ def enviar_comprobante(email_vendedor, orden_id):
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
-    """Webhook unificado - Elimina las otras funciones de webhook"""
+    """Webhook unificado - Soporta múltiples vendedores"""
     evento = request.get_json(force=True) or {}
-    print(f"[WEBHOOK] 📥 Evento recibido")
+    print(f"\n[WEBHOOK] 📥 Evento recibido: {evento.get('type', 'unknown')}")
     
     # Extraer payment_id
     payment_id = None
@@ -980,7 +980,9 @@ def webhook_mp():
         print("[WEBHOOK] ❌ No se encontró payment_id")
         return jsonify({"ok": False}), 400
     
-    # Consultar detalle del pago
+    print(f"[WEBHOOK] 🔍 Payment ID: {payment_id}")
+    
+    # Consultar detalle del pago usando token global primero
     access_token = os.getenv("MERCADO_PAGO_TOKEN")  # Token global de la plataforma
     headers = {"Authorization": f"Bearer {access_token}"}
     
@@ -991,7 +993,14 @@ def webhook_mp():
         
         if r.status_code != 200:
             print(f"[WEBHOOK] ❌ Error consultando pago: {r.text}")
-            return jsonify({"ok": False}), 500
+            # Intentar con token de backup si existe
+            backup_token = os.getenv("MERCADO_PAGO_TOKEN_BACKUP")
+            if backup_token:
+                print("[WEBHOOK] 🔄 Intentando con token de backup...")
+                headers = {"Authorization": f"Bearer {backup_token}"}
+                r = requests.get(f"https://api.mercadopago.com/v1/payments/{payment_id}", 
+                               headers=headers, timeout=15)
+                detalle = r.json()
         
         # ID CLAVE - DEBE SER EL MISMO QUE GUARDAMOS
         external_ref = detalle.get("external_reference")
@@ -1011,33 +1020,198 @@ def webhook_mp():
             return jsonify({"ok": False}), 404
         
         orden_data = doc.to_dict()
+        email_vendedor = orden_data.get("email_vendedor")
         
-        # Actualizar estado del pago
-        doc_ref.update({
+        if not email_vendedor:
+            print(f"[WEBHOOK] ❌ No se encontró email_vendedor en orden {external_ref}")
+            return jsonify({"ok": False}), 400
+        
+        # Ahora obtener el token específico del vendedor para operaciones adicionales
+        token_vendedor = get_mp_token(email_vendedor)
+        if not token_vendedor:
+            print(f"[WEBHOOK] ⚠️ No se encontró token MP para vendedor {email_vendedor}")
+            # Continuar con token global para consultas básicas
+        
+        # Actualizar estado del pago con más detalles
+        updates = {
             "estado": estado,
             "payment_id": payment_id,
+            "payment_status": estado,
+            "payment_data": detalle,  # Guardar toda la respuesta de MP
             "actualizado": firestore.SERVER_TIMESTAMP
-        })
+        }
+        
+        # Agregar fecha de aprobación si corresponde
+        if estado == "approved" and detalle.get("date_approved"):
+            updates["fecha_aprobacion"] = detalle.get("date_approved")
+        
+        # Agregar método de pago
+        if detalle.get("payment_method_id"):
+            updates["metodo_pago"] = detalle.get("payment_method_id")
+        
+        # Agregar monto aprobado
+        if detalle.get("transaction_amount"):
+            updates["monto_aprobado"] = detalle.get("transaction_amount")
+        
+        doc_ref.update(updates)
+        print(f"[WEBHOOK] ✅ Orden {external_ref} actualizada: {estado}")
         
         # Si el pago fue aprobado, enviar comprobante
         if estado == "approved":
-            email_vendedor = orden_data.get("email_vendedor")
-            
-            if email_vendedor:
-                # Verificar si ya se envió comprobante
-                if not orden_data.get("comprobante_enviado", False):
-                    enviar_comprobante(email_vendedor, external_ref)
-                    print(f"[WEBHOOK] ✅ Comprobante enviado para orden {external_ref}")
-                else:
-                    print(f"[WEBHOOK] ⚠️ Comprobante ya enviado anteriormente para {external_ref}")
+            # Verificar si ya se envió comprobante
+            if not orden_data.get("comprobante_enviado", False):
+                print(f"[WEBHOOK] 📤 Enviando comprobante para orden {external_ref}")
+                
+                # Enviar en thread separado para no bloquear webhook
+                import threading
+                thread = threading.Thread(
+                    target=enviar_comprobante,
+                    args=(email_vendedor, external_ref)
+                )
+                thread.start()
+                print(f"[WEBHOOK] ✅ Thread de comprobante iniciado")
+            else:
+                print(f"[WEBHOOK] ⚠️ Comprobante ya enviado anteriormente para {external_ref}")
+        
+        # También actualizar en la subcolección del vendedor
+        try:
+            vendedor_doc_ref = db.collection("usuarios").document(email_vendedor)\
+                .collection("pedidos").document(external_ref)
+            vendedor_doc_ref.update({
+                "estado": estado,
+                "payment_id": payment_id,
+                "actualizado": firestore.SERVER_TIMESTAMP
+            })
+            print(f"[WEBHOOK] ✅ Subcolección del vendedor actualizada")
+        except Exception as e:
+            print(f"[WEBHOOK] ⚠️ Error actualizando subcolección: {e}")
         
         return jsonify({"ok": True})
         
+    except requests.exceptions.RequestException as e:
+        print(f"[WEBHOOK] ❌ Error de conexión con Mercado Pago: {e}")
+        # Intentar guardar el evento para procesar más tarde
+        try:
+            db.collection("webhook_errors").add({
+                "payment_id": payment_id,
+                "evento": evento,
+                "error": str(e),
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+            print("[WEBHOOK] ⚠️ Error guardado para procesar más tarde")
+        except:
+            pass
+        
+        return jsonify({"ok": False}), 500
+        
     except Exception as e:
         print(f"[WEBHOOK] ❌ Error procesando webhook: {e}")
+        import traceback
         traceback.print_exc()
+        
+        # Intentar guardar el error
+        try:
+            db.collection("webhook_errors").add({
+                "payment_id": payment_id,
+                "evento": evento,
+                "error": str(e),
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+        except:
+            pass
+            
         return jsonify({"ok": False}), 500
 
+
+# 👇 Función auxiliar para consultar estado de orden (para frontend)
+@app.route('/orden/<orden_id>')
+def obtener_orden(orden_id):
+    """Endpoint para que el frontend consulte estado de una orden"""
+    try:
+        doc_ref = db.collection("ordenes").document(orden_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            return jsonify({"error": "Orden no encontrada"}), 404
+        
+        data = doc.to_dict()
+        
+        # Solo devolver información necesaria para el frontend
+        respuesta = {
+            "orden_id": orden_id,
+            "estado": data.get("estado", "pendiente"),
+            "total": data.get("total", 0),
+            "cliente_nombre": data.get("cliente_nombre", ""),
+            "fecha_creacion": data.get("fecha_creacion"),
+            "comprobante_enviado": data.get("comprobante_enviado", False),
+            "payment_id": data.get("payment_id"),
+            "metodo_pago": data.get("metodo_pago")
+        }
+        
+        # Si está aprobada, agregar fecha de aprobación
+        if data.get("estado") == "approved" and data.get("fecha_aprobacion"):
+            respuesta["fecha_aprobacion"] = data.get("fecha_aprobacion")
+        
+        return jsonify(respuesta)
+        
+    except Exception as e:
+        print(f"[ORDEN] ❌ Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# 👇 Endpoint para forzar reenvío de comprobante
+@app.route('/reenviar-comprobante/<orden_id>')
+def reenviar_comprobante(orden_id):
+    """Endpoint para reenviar comprobante manualmente"""
+    try:
+        doc_ref = db.collection("ordenes").document(orden_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            return jsonify({"error": "Orden no encontrada"}), 404
+        
+        data = doc.to_dict()
+        email_vendedor = data.get("email_vendedor")
+        
+        if not email_vendedor:
+            return jsonify({"error": "No se encontró email del vendedor"}), 400
+        
+        # Enviar comprobante
+        success = enviar_comprobante(email_vendedor, orden_id)
+        
+        if success:
+            return jsonify({"ok": True, "message": "Comprobante reenviado"})
+        else:
+            return jsonify({"error": "Error al enviar comprobante"}), 500
+            
+    except Exception as e:
+        print(f"[REENVIO] ❌ Error: {e}")
+        return jsonify({"error": str(e)}), 500
+        
+@app.route('/verificar-pago/<orden_id>')
+def verificar_pago(orden_id):
+    """Verificar estado de una orden"""
+    try:
+        doc_ref = db.collection("ordenes").document(orden_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            return jsonify({"error": "Orden no encontrada"}), 404
+        
+        data = doc.to_dict()
+        
+        return jsonify({
+            "orden_id": orden_id,
+            "estado": data.get("estado", "pendiente"),
+            "total": data.get("total", 0),
+            "cliente": data.get("cliente_nombre"),
+            "fecha": data.get("fecha_creacion")
+        })
+        
+    except Exception as e:
+        print(f"[VERIFICAR] ❌ Error: {e}")
+        return jsonify({"error": str(e)}), 500
+        
 @app.route('/pagar', methods=['POST'])
 def pagar():
     print("\n🚀 [PAGAR] Nueva petición recibida")
