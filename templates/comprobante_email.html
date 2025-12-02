@@ -42,39 +42,46 @@
             <h2 style="color: #495057; margin-top: 0; margin-bottom: 20px; font-size: 20px;">🛍️ Productos Comprados</h2>
             
             {% for p in productos %}
-            <div style="background: white; border: 1px solid #e9ecef; border-radius: 8px; margin-bottom: 15px; overflow: hidden;">
+            <div style="background: white; border: 1px solid #e9ecef; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
                 
-                <!-- Contenedor de imagen con dimensiones fijas y fondo transparente -->
+                <!-- Imagen del producto con tamaño fijo 300x180 -->
                 {% if p.imagen_url %}
-                <div style="width: 100%; height: 180px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); display: flex; align-items: center; justify-content: center; padding: 15px;">
-                    <div style="width: 300px; height: 180px; position: relative; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); display: flex; align-items: center; justify-content: center; padding: 15px; border-bottom: 1px solid #e9ecef;">
+                    <div style="width: 300px; height: 180px; position: relative; display: flex; align-items: center; justify-content: center; background: white; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
                         <img src="{{ p.imagen_url }}" 
                              alt="{{ p.title }}" 
-                             style="max-width: 300px; max-height: 180px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+                             style="max-width: 280px; max-height: 160px; width: auto; height: auto; object-fit: contain; display: block;">
                     </div>
                 </div>
                 {% endif %}
                 
-                <div style="padding: 15px; {% if not p.imagen_url %}background: #f8f9fa; border-bottom: 1px solid #e9ecef;{% endif %}">
-                    <div style="font-size: 18px; font-weight: 600; color: #212529;">{{ p.title }}</div>
-                    {% if p.talle %}
-                    <span style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-top: 5px; display: inline-block;">
-                        Talle: {{ p.talle }}
-                    </span>
-                    {% endif %}
-                </div>
-                <div style="padding: 15px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="color: #6c757d;">Precio unitario:</span>
-                        <span style="font-weight: 500;">${{ "%.2f"|format(p.unit_price) }}</span>
+                <!-- Información del producto -->
+                <div style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-size: 18px; font-weight: 600; color: #212529; margin-bottom: 5px;">{{ p.title }}</div>
+                            {% if p.talle %}
+                            <span style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; display: inline-block;">
+                                Talle: {{ p.talle }}
+                            </span>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="color: #6c757d;">Cantidad:</span>
-                        <span style="font-weight: 500;">{{ p.quantity }}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #f1f3f5;">
-                        <span style="color: #212529; font-weight: 600;">Subtotal:</span>
-                        <span style="color: #28a745; font-weight: 700;">${{ "%.2f"|format(p.subtotal) }}</span>
+                    
+                    <!-- Detalles del precio -->
+                    <div style="background: #f8f9fa; border-radius: 6px; padding: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #6c757d;">Precio unitario:</span>
+                            <span style="font-weight: 600;">${{ "%.2f"|format(p.unit_price) }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #6c757d;">Cantidad:</span>
+                            <span style="font-weight: 600;">{{ p.quantity }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #dee2e6; margin-top: 10px;">
+                            <span style="color: #212529; font-weight: 700;">Subtotal:</span>
+                            <span style="color: #28a745; font-weight: 700; font-size: 18px;">${{ "%.2f"|format(p.subtotal) }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
