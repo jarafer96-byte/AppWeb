@@ -707,8 +707,11 @@ def comprobante(orden_id):
                           total=total,
                           fecha=data.get("creado"))
 
-# Enviar comprobante por correo - VERSIÓN CORREGIDA
+# Enviar comprobante por correo - VERSIÓN MEJORADA
 def enviar_comprobante(email_vendedor, orden_id):
+    import json
+    from datetime import datetime
+    
     doc_ref = db.collection("ordenes").document(orden_id)
     doc = doc_ref.get()
     if not doc.exists:
@@ -731,10 +734,11 @@ def enviar_comprobante(email_vendedor, orden_id):
     print(f"[EMAIL] 📊 Datos de la orden {orden_id}:")
     print(f"  - Cliente: {cliente_nombre}")
     print(f"  - Total en data: {data.get('total')}")
-    print(f"  - Items keys: {list(data.keys())}")
+    print(f"  - Tiene items_mp?: {'items_mp' in data}")
+    print(f"  - Tiene items?: {'items' in data}")
     
-    # Obtener productos de la manera correcta
-    productos_data = data.get("items_mp") or data.get("items") or []
+    # Obtener productos - PRIMERO intentar con carrito (items completos)
+    productos_data = data.get("carrito") or data.get("items") or data.get("items_mp") or []
     
     # Si productos_data es string, convertirlo a lista
     if isinstance(productos_data, str):
@@ -742,62 +746,149 @@ def enviar_comprobante(email_vendedor, orden_id):
             productos_data = json.loads(productos_data)
         except:
             productos_data = []
+            print(f"[EMAIL] ⚠️ No se pudo convertir string a JSON")
     
-    print(f"[EMAIL] 📦 Productos encontrados: {len(productos_data)}")
+    print(f"[EMAIL] 📦 Productos encontrados (raw): {len(productos_data)}")
     
     total = 0
     productos_procesados = []
     
     for idx, p in enumerate(productos_data):
         try:
-            print(f"[EMAIL] 🔍 Procesando producto {idx+1}: {p}")
+            print(f"[EMAIL] 🔍 Procesando producto {idx+1}:")
             
-            # Manejar diferentes formatos de datos
-            if isinstance(p, dict):
-                # Formato 1: items_mp de Mercado Pago
-                cantidad = int(p.get("quantity", p.get("cantidad", 1)))
-                precio = float(p.get("unit_price", p.get("precio", 0)))
-                nombre = p.get("title", p.get("nombre", f"Producto {idx+1}"))
-                talle = p.get("talle", "")
-                imagen_url = p.get("imagen_url", "")
-            else:
-                # Formato desconocido
-                print(f"[EMAIL] ⚠️ Formato desconocido del producto: {type(p)}")
+            # Verificar que sea un diccionario
+            if not isinstance(p, dict):
+                print(f"[EMAIL] ⚠️ Producto no es diccionario: {type(p)}")
                 continue
             
+            # DEBUG: Mostrar todas las claves del producto
+            print(f"  - Claves disponibles: {list(p.keys())}")
+            
+            # Extraer datos con múltiples intentos (diferentes formatos)
+            # 1. Buscar nombre/title
+            nombre = p.get("title") or p.get("nombre") or p.get("name") or f"Producto {idx+1}"
+            
+            # 2. Buscar precio - con múltiples nombres posibles
+            precio_raw = None
+            for key in ["unit_price", "precio", "price", "unit_price"]:
+                if key in p:
+                    precio_raw = p[key]
+                    break
+            
+            # Convertir precio a float
+            precio = 0.0
+            if precio_raw is not None:
+                if isinstance(precio_raw, (int, float)):
+                    precio = float(precio_raw)
+                elif isinstance(precio_raw, str):
+                    # Limpiar string: quitar $, comas, espacios
+                    limpio = precio_raw.replace('$', '').replace(',', '.').strip()
+                    try:
+                        precio = float(limpio)
+                    except:
+                        print(f"[EMAIL] ⚠️ No se pudo convertir precio: {precio_raw}")
+                        precio = 0.0
+            else:
+                print(f"[EMAIL] ⚠️ Precio no encontrado en producto")
+            
+            # 3. Buscar cantidad - con múltiples nombres posibles
+            cantidad_raw = None
+            for key in ["quantity", "cantidad", "qty"]:
+                if key in p:
+                    cantidad_raw = p[key]
+                    break
+            
+            # Convertir cantidad a int
+            cantidad = 1
+            if cantidad_raw is not None:
+                if isinstance(cantidad_raw, (int, float)):
+                    cantidad = int(cantidad_raw)
+                elif isinstance(cantidad_raw, str):
+                    try:
+                        cantidad = int(cantidad_raw)
+                    except:
+                        print(f"[EMAIL] ⚠️ No se pudo convertir cantidad: {cantidad_raw}")
+                        cantidad = 1
+            else:
+                print(f"[EMAIL] ⚠️ Cantidad no encontrada, usando 1")
+            
+            # 4. Buscar talle
+            talle = p.get("talle") or p.get("size") or ""
+            
+            # 5. Buscar imagen_url y procesar para tamaño 300x180
+            imagen_url = p.get("imagen_url") or p.get("image_url") or ""
+            
+            # Si hay imagen_url, agregar parámetros para tamaño si no los tiene
+            if imagen_url and ("?" not in imagen_url or ("width=" not in imagen_url and "height=" not in imagen_url)):
+                # Dependiendo de tu servicio de imágenes, ajusta estos parámetros
+                # Opción 1: Agregar parámetros de tamaño (si tu backend los soporta)
+                if "cloudinary" in imagen_url or "res.cloudinary.com" in imagen_url:
+                    # Cloudinary soporta parámetros de transformación
+                    if "/image/upload/" in imagen_url:
+                        parts = imagen_url.split("/image/upload/")
+                        if len(parts) == 2:
+                            imagen_url = f"{parts[0]}/image/upload/w_300,h_180,c_fill/{parts[1]}"
+                elif "firebasestorage.googleapis.com" in imagen_url:
+                    # Firebase Storage - agregar tamaño
+                    imagen_url = f"{imagen_url}?alt=media"
+            
+            # Calcular subtotal
             subtotal = precio * cantidad
             total += subtotal
             
-            productos_procesados.append({
+            producto_procesado = {
                 "title": nombre,
                 "unit_price": precio,
                 "quantity": cantidad,
                 "subtotal": subtotal,
                 "talle": talle,
                 "imagen_url": imagen_url
-            })
+            }
             
-            print(f"[EMAIL]   ✓ {nombre} - ${precio} x {cantidad} = ${subtotal}")
+            productos_procesados.append(producto_procesado)
+            
+            print(f"[EMAIL]   ✓ {nombre}")
+            print(f"      Precio: ${precio:.2f} (raw: {precio_raw})")
+            print(f"      Cantidad: {cantidad} (raw: {cantidad_raw})")
+            print(f"      Subtotal: ${subtotal:.2f}")
+            print(f"      Talle: {talle}")
+            print(f"      Imagen: {imagen_url[:50]}..." if imagen_url else "      Imagen: No")
             
         except Exception as e:
             print(f"[EMAIL] ❌ Error procesando producto {idx+1}: {e}")
+            import traceback
+            traceback.print_exc()
             continue
     
-    # Usar el total de la orden si lo tenemos, o calcularlo
+    # Usar el total de la orden si lo tenemos, o usar el calculado
     orden_total = data.get("total")
     if orden_total:
         try:
             total = float(orden_total)
-        except:
-            pass
+            print(f"[EMAIL] 💰 Usando total de orden: ${total:.2f}")
+        except Exception as e:
+            print(f"[EMAIL] ⚠️ No se pudo convertir total de orden: {orden_total}, usando calculado")
+    else:
+        print(f"[EMAIL] 💰 Total calculado: ${total:.2f}")
     
-    print(f"[EMAIL] 💰 Total calculado: ${total}")
+    # Verificar si hay productos procesados
+    if len(productos_procesados) == 0:
+        print(f"[EMAIL] ⚠️ No se procesaron productos, enviando datos mínimos")
+        # Crear un producto mínimo para evitar errores en el template
+        productos_procesados.append({
+            "title": "Productos varios",
+            "unit_price": total if total > 0 else 1.0,
+            "quantity": 1,
+            "subtotal": total if total > 0 else 1.0,
+            "talle": "",
+            "imagen_url": ""
+        })
     
     # Link al comprobante
     comprobante_url = f"https://mpagina.onrender.com/comprobante/{orden_id}"
     
     # Obtener fecha
-    from datetime import datetime
     fecha_creacion = data.get("fecha_creacion") or data.get("timestamp") or datetime.now()
     if isinstance(fecha_creacion, datetime):
         fecha_str = fecha_creacion.strftime("%d/%m/%Y %H:%M")
@@ -807,8 +898,8 @@ def enviar_comprobante(email_vendedor, orden_id):
     try:
         service = get_gmail_service()
         
-        # Renderizar el HTML con inline styles para compatibilidad con Gmail
-        html = render_template("comprobante_email.html",  # <-- Nuevo template específico para email
+        # Renderizar el HTML
+        html = render_template("comprobante_email.html",
                                cliente_nombre=cliente_nombre,
                                cliente_email=cliente_email,
                                cliente_telefono=cliente_telefono,
@@ -831,11 +922,14 @@ def enviar_comprobante(email_vendedor, orden_id):
         service.users().messages().send(userId="me", body={"raw": raw}).execute()
         
         print(f"[EMAIL] ✅ Comprobante enviado a {email_vendedor} - Orden #{orden_id}")
+        print(f"[EMAIL] 📧 Productos incluidos: {len(productos_procesados)}")
+        print(f"[EMAIL] 💵 Total: ${total:.2f}")
         
         # Marcar como enviado en Firestore
         doc_ref.update({
             "comprobante_enviado": True,
             "comprobante_enviado_fecha": firestore.SERVER_TIMESTAMP,
+            "productos_procesados": productos_procesados,  # Guardar también los productos procesados
             "actualizado": firestore.SERVER_TIMESTAMP
         })
         
