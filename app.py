@@ -29,8 +29,7 @@ from email.mime.text import MIMEText
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-
-
+##################
 # 🔐 Inicialización segura de Firebase con logs
 db = None
 try:
@@ -53,7 +52,7 @@ except Exception as e:
     import traceback
     print(traceback.format_exc())
     db = None
-
+###################
 # Verificación final del cliente Firestore
 if db:
     try:
@@ -64,7 +63,7 @@ if db:
 else:
     print("⚠️ Firestore client no disponible (db=None)")
 
-
+####################
 # 🔑 Inicialización segura de Mercado Pago
 access_token = os.getenv("MERCADO_PAGO_TOKEN")
 if access_token and isinstance(access_token, str):
@@ -73,8 +72,8 @@ if access_token and isinstance(access_token, str):
 else:
     sdk = None
     print("⚠️ MERCADO_PAGO_TOKEN no configurado, SDK no inicializado")
-    
-# GitHub y Flask config
+####################
+# ⚙️ Configuración de GitHub, Flask y sesiones
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 ACCESS_TOKEN = os.getenv("WHATSAPP_TOKEN")
@@ -88,7 +87,8 @@ app.config['SESSION_COOKIE_SECURE'] = not app.debug
 # Mantener las sesiones persistentes por defecto y duración
 app.config['SESSION_PERMANENT'] = True
 app.permanent_session_lifetime = timedelta(days=7)
-
+###################
+# 🔧 Configuración de Firebase Frontend (si se usa en JS)
 firebase_config = {
     "apiKey": os.getenv("FIREBASE_API_KEY"),
     "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
@@ -97,7 +97,8 @@ firebase_config = {
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
-# 🔑 Inicialización de Google Cloud Storage
+###################
+# ☁️ Inicialización de Google Cloud Storage
 key_json = os.environ.get("GOOGLE_CLOUD_KEY")
 if not key_json:
     raise RuntimeError("Falta la variable GOOGLE_CLOUD_KEY en Render")
@@ -113,20 +114,28 @@ client = storage.Client(credentials=credentials, project="arcane-sentinel-479319
 
 # Bucket donde se guardan las imágenes
 bucket = client.bucket("mpagina")
-
-ext_ref = shortuuid.uuid()[:8]
-
-creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
-
+###################
+# 📂 Configuración de subida de imágenes
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024
+###################
+# 🌀 Generación de referencia corta (sirve para IDs temporales)
+ext_ref = shortuuid.uuid()[:8]
+###################
+# ⚠️ Carga alternativa de credenciales (si se usa otra variable de entorno)
+creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
+###################
+# 📧 Configuración de Gmail API
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
+# 📂 Validación de archivos permitidos
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 def subir_a_firestore(producto, email):
     try:
