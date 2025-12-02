@@ -707,81 +707,145 @@ def comprobante(orden_id):
                           total=total,
                           fecha=data.get("creado"))
 
-# Enviar comprobante por correo
+# Enviar comprobante por correo - VERSIÓN CORREGIDA
 def enviar_comprobante(email_vendedor, orden_id):
     doc_ref = db.collection("ordenes").document(orden_id)
     doc = doc_ref.get()
     if not doc.exists:
         print(f"[EMAIL] ❌ No se encontró orden {orden_id}")
-        return
+        return False
 
     data = doc.to_dict()
 
     # ⚠️ Evitar duplicados
     if data.get("comprobante_enviado"):
-        print(f"[EMAIL] ⚠️ Comprobante ya enviado para orden {orden_id}, no se reenvía")
-        return
+        print(f"[EMAIL] ⚠️ Comprobante ya enviado para orden {orden_id}")
+        return True
 
-    # Datos del cliente con valores por defecto
-    cliente_nombre = data.get("cliente_nombre") or "Cliente"
-    cliente_email = data.get("cliente_email") or "sin email"
-    cliente_telefono = data.get("cliente_telefono") or "sin teléfono"
+    # Datos del cliente
+    cliente_nombre = data.get("cliente_nombre", "Cliente").strip()
+    cliente_email = data.get("cliente_email", "").strip()
+    cliente_telefono = data.get("cliente_telefono", "No especificado").strip()
     
-    # Usar items_mp si está disponible, si no usar items
-    productos_data = data.get("items_mp") or data.get("items", [])
+    # DEBUG: Ver qué datos tenemos
+    print(f"[EMAIL] 📊 Datos de la orden {orden_id}:")
+    print(f"  - Cliente: {cliente_nombre}")
+    print(f"  - Total en data: {data.get('total')}")
+    print(f"  - Items keys: {list(data.keys())}")
     
-    # Calcular total
-    total = 0
-    productos = []
-    for p in productos_data:
+    # Obtener productos de la manera correcta
+    productos_data = data.get("items_mp") or data.get("items") or []
+    
+    # Si productos_data es string, convertirlo a lista
+    if isinstance(productos_data, str):
         try:
-            cantidad = int(p.get("quantity", 1))
-            precio = float(p.get("unit_price", 0))
-            total += precio * cantidad
+            productos_data = json.loads(productos_data)
+        except:
+            productos_data = []
+    
+    print(f"[EMAIL] 📦 Productos encontrados: {len(productos_data)}")
+    
+    total = 0
+    productos_procesados = []
+    
+    for idx, p in enumerate(productos_data):
+        try:
+            print(f"[EMAIL] 🔍 Procesando producto {idx+1}: {p}")
             
-            productos.append({
-                "nombre": p.get("title", "Producto"),
-                "cantidad": cantidad,
-                "precio": precio,
-                "descripcion": p.get("description", "")
+            # Manejar diferentes formatos de datos
+            if isinstance(p, dict):
+                # Formato 1: items_mp de Mercado Pago
+                cantidad = int(p.get("quantity", p.get("cantidad", 1)))
+                precio = float(p.get("unit_price", p.get("precio", 0)))
+                nombre = p.get("title", p.get("nombre", f"Producto {idx+1}"))
+                talle = p.get("talle", "")
+                imagen_url = p.get("imagen_url", "")
+            else:
+                # Formato desconocido
+                print(f"[EMAIL] ⚠️ Formato desconocido del producto: {type(p)}")
+                continue
+            
+            subtotal = precio * cantidad
+            total += subtotal
+            
+            productos_procesados.append({
+                "title": nombre,
+                "unit_price": precio,
+                "quantity": cantidad,
+                "subtotal": subtotal,
+                "talle": talle,
+                "imagen_url": imagen_url
             })
+            
+            print(f"[EMAIL]   ✓ {nombre} - ${precio} x {cantidad} = ${subtotal}")
+            
         except Exception as e:
-            print(f"[EMAIL] ❌ Error procesando producto: {e}")
+            print(f"[EMAIL] ❌ Error procesando producto {idx+1}: {e}")
             continue
-
+    
+    # Usar el total de la orden si lo tenemos, o calcularlo
+    orden_total = data.get("total")
+    if orden_total:
+        try:
+            total = float(orden_total)
+        except:
+            pass
+    
+    print(f"[EMAIL] 💰 Total calculado: ${total}")
+    
     # Link al comprobante
     comprobante_url = f"https://mpagina.onrender.com/comprobante/{orden_id}"
-
-    # Renderizar comprobante en HTML
-    html = render_template("comprobante.html",
-                           cliente_nombre=cliente_nombre,
-                           cliente_email=cliente_email,
-                           cliente_telefono=cliente_telefono,
-                           productos=productos,
-                           total=total,
-                           comprobante_url=comprobante_url)
-
-    # Construir mensaje MIME
-    msg = MIMEText(html, "html")
-    msg["Subject"] = f"Comprobante de compra #{orden_id}"
-    msg["From"] = "ferj6009@gmail.com"
-    msg["To"] = email_vendedor
-
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    
+    # Obtener fecha
+    from datetime import datetime
+    fecha_creacion = data.get("fecha_creacion") or data.get("timestamp") or datetime.now()
+    if isinstance(fecha_creacion, datetime):
+        fecha_str = fecha_creacion.strftime("%d/%m/%Y %H:%M")
+    else:
+        fecha_str = str(fecha_creacion)
 
     try:
         service = get_gmail_service()
-        service.users().messages().send(userId="me", body={"raw": raw}).execute()
-        print(f"[EMAIL] ✅ Comprobante enviado al vendedor {email_vendedor}")
+        
+        # Renderizar el HTML con inline styles para compatibilidad con Gmail
+        html = render_template("comprobante_email.html",  # <-- Nuevo template específico para email
+                               cliente_nombre=cliente_nombre,
+                               cliente_email=cliente_email,
+                               cliente_telefono=cliente_telefono,
+                               productos=productos_procesados,
+                               total=total,
+                               comprobante_url=comprobante_url,
+                               orden_id=orden_id,
+                               fecha_creacion=fecha_str)
 
+        # Crear mensaje MIME
+        msg = MIMEText(html, "html")
+        msg["Subject"] = f"💰 Nueva venta - Orden #{orden_id} - ${total:.2f}"
+        msg["From"] = "ferj6009@gmail.com"
+        msg["To"] = email_vendedor
+        msg["Date"] = datetime.now().strftime("%a, %d %b %Y %H:%M:%S %z")
+
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+        
+        # Enviar email
+        service.users().messages().send(userId="me", body={"raw": raw}).execute()
+        
+        print(f"[EMAIL] ✅ Comprobante enviado a {email_vendedor} - Orden #{orden_id}")
+        
         # Marcar como enviado en Firestore
         doc_ref.update({
             "comprobante_enviado": True,
+            "comprobante_enviado_fecha": firestore.SERVER_TIMESTAMP,
             "actualizado": firestore.SERVER_TIMESTAMP
         })
-
+        
+        return True
+        
     except Exception as e:
         print(f"[EMAIL] ❌ Error enviando comprobante: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
