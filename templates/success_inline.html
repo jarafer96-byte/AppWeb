@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Pago Exitoso</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            margin: 0;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+        }
+        h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        .orden-id {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        .message {
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Pago Exitoso</h1>
+        <div class="orden-id">Orden #{{ orden_id }}</div>
+        <div class="message">
+            <p>Tu pago ha sido procesado correctamente.</p>
+            <p>Recibirás un email con los detalles de tu compra.</p>
+            <p>Puedes cerrar esta ventana y volver a la tienda.</p>
+        </div>
+        <p><small>Esta ventana se cerrará automáticamente en 10 segundos...</small></p>
+    </div>
+    
+    <script>
+        // Cerrar ventana después de 10 segundos
+        setTimeout(() => {
+            window.close();
+        }, 10000);
+        
+        // También permitir cerrar con Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                window.close();
+            }
+        });
+    </script>
+</body>
+</html>
