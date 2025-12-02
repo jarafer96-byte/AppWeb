@@ -951,8 +951,6 @@ function salirAdmin() {
       cont.innerHTML = "";
       window.todosLosProductos.forEach(p => cont.appendChild(renderProducto(p)));
       console.log("✅ Productos re-renderizados en modo público, total:", cont.children.length);
-    } else {
-      console.warn("⚠️ No se encontró el contenedor #productos al salir de admin");
     }
   }
 
@@ -961,18 +959,14 @@ function salirAdmin() {
   if (logoutWrapper) {
     logoutWrapper.style.display = "none";
     console.log("✅ Botón de logout ocultado");
-  } else {
-    console.warn("⚠️ No se encontró #logoutAdminWrapper en el DOM");
   }
-}
 
-// Mostrar el botón solo si modoAdmin está activo
-if (window.modoAdmin) {
-  const logoutWrapper = document.getElementById("logoutAdminWrapper");
-  if (logoutWrapper) {
-    logoutWrapper.style.display = "block";
-    console.log("🔑 Modo admin activo, mostrando botón de logout");
-  }
+  // Ocultar paneles exclusivos de admin
+  const adminCard = document.getElementById("adminCard");
+  if (adminCard) adminCard.classList.add("d-none");
+
+  const configurarMP = document.getElementById("configurarMP");
+  if (configurarMP) configurarMP.classList.add("d-none");
 }
     
 function renderPagina(pagina, productosFiltrados) {
