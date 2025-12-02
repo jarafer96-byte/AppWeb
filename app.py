@@ -782,21 +782,28 @@ def get_platform_token():
     print(f"[TOKEN] 🔑 Token de Mercado Pago obtenido: {'OK' if token else '❌ NO DEFINIDO'}")
     return token
 
-
 # Enviar comprobante por correo
 def enviar_comprobante(email_vendedor, orden_id):
-    doc = db.collection("ordenes").document(orden_id).get()
+    doc_ref = db.collection("ordenes").document(orden_id)
+    doc = doc_ref.get()
     if not doc.exists:
         print(f"[EMAIL] ❌ No se encontró orden {orden_id}")
         return
 
     data = doc.to_dict()
+
+    # ⚠️ Evitar duplicados
+    if data.get("comprobante_enviado"):
+        print(f"[EMAIL] ⚠️ Comprobante ya enviado para orden {orden_id}, no se reenvía")
+        return
+
     cliente_nombre = data.get("cliente_nombre")
     cliente_email = data.get("cliente_email")
     cliente_telefono = data.get("cliente_telefono")
     productos = data.get("items", [])
     total = sum([p.get("unit_price", 0) * p.get("quantity", 1) for p in productos])
 
+    # Renderizar comprobante en HTML
     html = render_template("comprobante.html",
                            cliente_nombre=cliente_nombre,
                            cliente_email=cliente_email,
@@ -804,9 +811,27 @@ def enviar_comprobante(email_vendedor, orden_id):
                            productos=productos,
                            total=total)
 
-    # Aquí tu lógica SMTP/Gmail para enviar el correo con html
-    print(f"[EMAIL] ✅ Comprobante armado para {cliente_nombre} ({cliente_email})")
+    # Construir mensaje MIME
+    msg = MIMEText(html, "html")
+    msg["Subject"] = f"Comprobante de compra #{orden_id}"
+    msg["From"] = "ferj6009@gmail.com"  # remitente configurado
+    msg["To"] = cliente_email
 
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+
+    try:
+        service = get_gmail_service()
+        service.users().messages().send(userId="me", body={"raw": raw}).execute()
+        print(f"[EMAIL] ✅ Comprobante enviado a {cliente_email}")
+
+        # Marcar como enviado en Firestore
+        doc_ref.update({
+            "comprobante_enviado": True,
+            "actualizado": firestore.SERVER_TIMESTAMP
+        })
+
+    except Exception as e:
+        print(f"[EMAIL] ❌ Error enviando comprobante: {e}")
     
 def inicializar_comprobantes():
     print("[MIGRACION] 🚀 Iniciando inicialización de comprobantes_enviados")
