@@ -630,46 +630,8 @@ def get_mp_token(email: str):
     return None
 
 @app.route('/success')
-def success():
-    orden_id = request.args.get('orden_id')
-    payment_id = request.args.get('payment_id')
-    status = request.args.get('status')
-    
-    print(f"[SUCCESS] 🔄 Redirección exitosa recibida:")
-    print(f"  - Orden ID: {orden_id}")
-    print(f"  - Payment ID: {payment_id}")
-    print(f"  - Status: {status}")
-    
-    if orden_id:
-        try:
-            # Actualizar estado de la orden
-            doc_ref = db.collection("ordenes").document(orden_id)
-            doc = doc_ref.get()
-            
-            if doc.exists:
-                # Enviar comprobante inmediatamente
-                data = doc.to_dict()
-                email_vendedor = data.get("email_vendedor")
-                
-                if email_vendedor and not data.get("comprobante_enviado"):
-                    print(f"[SUCCESS] 📤 Enviando comprobante para orden {orden_id}")
-                    # Ejecutar en background
-                    import threading
-                    thread = threading.Thread(
-                        target=enviar_comprobante,
-                        args=(email_vendedor, orden_id)
-                    )
-                    thread.start()
-            
-            # Agregar parámetros para mostrar mensaje en la tienda
-            return redirect(f"/?pago_exitoso=true&orden_id={orden_id}")
-            
-        except Exception as e:
-            print(f"[SUCCESS] ❌ Error procesando éxito: {e}")
-            # Redirigir igual pero con parámetro de error
-            return redirect("/?pago_exitoso=false")
-    else:
-        return redirect("/?pago_exitoso=false")
+def pago_success():
+    return "✅ Pago aprobado correctamente. ¡Gracias por tu compra!"
 
 @app.route('/failure')
 def failure():
