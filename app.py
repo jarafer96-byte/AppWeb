@@ -883,7 +883,7 @@ def procesar_webhook_pago(data):
         "comprobante_enviado": True,
         "actualizado": firestore.SERVER_TIMESTAMP
     })
-    print(f"[WEBHOOK] ✅ Comprobante enviado para {orden_id}"
+    print(f"[WEBHOOK] ✅ Comprobante enviado para {orden_id}")
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
