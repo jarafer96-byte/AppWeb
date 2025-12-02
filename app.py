@@ -802,11 +802,16 @@ def enviar_comprobante(email_vendedor, orden_id):
         print(f"[EMAIL] ⚠️ Comprobante ya enviado para orden {orden_id}, no se reenvía")
         return
 
-    cliente_nombre = data.get("cliente_nombre")
-    cliente_email = data.get("cliente_email")
-    cliente_telefono = data.get("cliente_telefono")
+    # Datos del cliente con valores por defecto
+    cliente_nombre = data.get("cliente_nombre") or "Cliente"
+    cliente_email = data.get("cliente_email") or "sin email"
+    cliente_telefono = data.get("cliente_telefono") or "sin teléfono"
+
     productos = data.get("items", [])
     total = sum([p.get("unit_price", 0) * p.get("quantity", 1) for p in productos])
+
+    # Link al comprobante
+    comprobante_url = f"https://mpagina.onrender.com/comprobante/{orden_id}"
 
     # Renderizar comprobante en HTML
     html = render_template("comprobante.html",
@@ -814,7 +819,8 @@ def enviar_comprobante(email_vendedor, orden_id):
                            cliente_email=cliente_email,
                            cliente_telefono=cliente_telefono,
                            productos=productos,
-                           total=total)
+                           total=total,
+                           comprobante_url=comprobante_url)
 
     # Construir mensaje MIME
     msg = MIMEText(html, "html")
@@ -827,7 +833,8 @@ def enviar_comprobante(email_vendedor, orden_id):
     try:
         service = get_gmail_service()
         service.users().messages().send(userId="me", body={"raw": raw}).execute()
-        print(f"[EMAIL] ✅ Comprobante enviado a {email_vendedor}")
+        print(f"[EMAIL] ✅ Comprobante enviado al vendedor {email_vendedor}")
+        print(f"[EMAIL] ℹ️ Datos cliente incluidos: {cliente_nombre} ({cliente_email})")
 
         # Marcar como enviado en Firestore
         doc_ref.update({
@@ -862,13 +869,24 @@ def procesar_webhook(data, topic):
     else:
         print(f"[WEBHOOK] ⚠️ Evento desconocido: {topic}")
 
+def fusionar_ordenes(orden_id, orden_pago):
+    # Buscar otra orden del mismo vendedor con estado pendiente y sin external_reference
+    posibles = db.collection("ordenes").where("email_vendedor", "==", orden_pago.get("email_vendedor")).stream()
+    for doc in posibles:
+        data = doc.to_dict()
+        if data.get("cliente_email") and not orden_pago.get("cliente_email"):
+            print(f"[WEBHOOK] 🔗 Fusionando datos de {doc.id} en {orden_id}")
+            db.collection("ordenes").document(orden_id).set({
+                "cliente_nombre": data.get("cliente_nombre"),
+                "cliente_email": data.get("cliente_email"),
+                "cliente_telefono": data.get("cliente_telefono"),
+                "actualizado": firestore.SERVER_TIMESTAMP
+            }, merge=True)
+            # opcional: borrar duplicado
+            # doc.reference.delete()
+            break
 
 def procesar_webhook_pago(detalle):
-    """
-    Procesa el detalle de un pago recibido desde el webhook de Mercado Pago.
-    Solo envía comprobante si el estado es 'approved' y aún no fue enviado.
-    """
-
     orden_id = detalle.get("external_reference") or detalle.get("preference_id")
     estado = detalle.get("status")
 
@@ -882,31 +900,28 @@ def procesar_webhook_pago(detalle):
         print(f"[WEBHOOK] ❌ Orden {orden_id} no encontrada en Firestore")
         return
 
-    orden = snap.to_dict() or {}
+    orden_pago = snap.to_dict() or {}
+
+    # 👉 Intentar fusionar datos de cliente si están en otro doc
+    fusionar_ordenes(orden_id, orden_pago)
 
     # ⚠️ Evitar duplicados
-    if orden.get("comprobante_enviado"):
+    if orden_pago.get("comprobante_enviado"):
         print(f"[WEBHOOK] ⚠️ Comprobante ya enviado para {orden_id}, no se reenvía")
         return
 
     if estado == "approved":
         try:
-            # 👉 Llamada a tu función de envío de comprobante
-            enviar_comprobante(email_vendedor=orden.get("email_vendedor"), orden_id=orden_id)
-
-            # Si el envío fue exitoso, marcar como enviado
+            enviar_comprobante(email_vendedor=orden_pago.get("email_vendedor"), orden_id=orden_id)
             doc_ref.update({
                 "estado": "approved",
                 "comprobante_enviado": True,
                 "actualizado": firestore.SERVER_TIMESTAMP
             })
             print(f"[WEBHOOK] ✅ Orden {orden_id} aprobada y comprobante enviado correctamente")
-
         except Exception as e:
             print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
-
     else:
-        # Actualizar estado sin enviar comprobante
         doc_ref.update({
             "estado": estado,
             "actualizado": firestore.SERVER_TIMESTAMP
