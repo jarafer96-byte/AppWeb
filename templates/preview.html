@@ -153,17 +153,85 @@ html { scroll-behavior: auto; }
 
 .bloque-ubicacion { background-color: rgba(0, 0, 0, 0.5); color: white; padding: 12px 16px; border-radius: 10px; text-align: center; max-width: 600px; margin: 20px auto 0; box-shadow: 0 0 6px rgba(255,255,255,0.3); }
 
-#carrito { position: fixed; bottom: 80px; right: 20px; padding: 15px; border-radius: 10px; width: 300px; z-index: 999; display: none; }
+/* Contenedor flotante del carrito */
+#carrito {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  padding: 15px;
+  border-radius: 10px;
+  width: 320px;              /* un poco más ancho para el carrusel */
+  z-index: 999;
+  display: none;             /* oculto por defecto */
+}
 
-.modo-oscuro #carrito { background-color: rgba(0,0,0,0.85); color: white; border: 1px solid white; box-shadow: 0 0 10px white; }
+/* Modo oscuro */
+.modo-oscuro #carrito {
+  background-color: rgba(0,0,0,0.85);
+  color: white;
+  border: 1px solid white;
+  box-shadow: 0 0 10px white;
+}
 
-.modo-claro #carrito { background-color: #fff; color: #333; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
+/* Modo claro */
+.modo-claro #carrito {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ccc;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
 
-#toggleCarrito { position: fixed; bottom: 20px; right: 20px; z-index: 1000; padding: 10px 14px; border-radius: 50px; font-weight: bold; box-shadow: 0 0 5px white; }
+/* Botón flotante para abrir/cerrar */
+#toggleCarrito {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  padding: 10px 14px;
+  border-radius: 50px;
+  font-weight: bold;
+  box-shadow: 0 0 5px white;
+  cursor: pointer;
+}
 
-.modo-oscuro #toggleCarrito { background-color: transparent; color: black; border: none; }
+.modo-oscuro #toggleCarrito {
+  background-color: transparent;
+  color: black;
+  border: none;
+}
 
-.modo-claro #toggleCarrito { background-color: transparent; color: white; border: none; }
+.modo-claro #toggleCarrito {
+  background-color: transparent;
+  color: white;
+  border: none;
+}
+
+/* Carrusel interno */
+#carritoCarousel .carousel-item {
+  padding: 10px;
+}
+
+#carritoCarousel h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+#carritoCarousel ul {
+  padding-left: 0;
+  list-style: none;
+  margin-bottom: 10px;
+}
+
+#carritoCarousel li {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+/* Botones dentro del carrusel */
+#carritoCarousel .btn {
+  font-size: 0.9rem;
+  padding: 6px 10px;
+}
 
 .panel-subcategorias { position: fixed; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 908; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
 
@@ -336,18 +404,57 @@ html { scroll-behavior: auto; }
   </div>
 {% endif %}
   
-<button id="toggleCarrito">🛒</button>
-
+<!-- Contenedor flotante -->
 <div id="carrito">
-  <h5>🛒 Tu carrito</h5>
-  <ul id="listaCarrito"></ul>
-  <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
-  <div class="d-grid gap-2">
-    <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
-      <button id="btn_pagar" class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()">Pagar con Mercado Pago</button>
-    <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+  <div id="carritoCarousel" class="carousel slide" data-bs-ride="false">
+    <div class="carousel-inner">
+
+      <!-- Slide 1: Carrito -->
+      <div class="carousel-item active">
+        <h3>🛒 Tu carrito</h3>
+        <ul id="listaCarrito"></ul>
+        <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
+        <div class="d-grid gap-2">
+          <button class="btn btn-sm btn-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+          <a id="enviarCarrito" class="btn btn-sm btn-success" target="_blank">Enviar por WhatsApp</a>
+        </div>
+        <!-- Botón para avanzar al slide 2 -->
+        <button class="btn btn-success w-100 mt-3" data-bs-target="#carritoCarousel" data-bs-slide="next">
+          Continuar
+        </button>
+      </div>
+
+      <!-- Slide 2: Formulario cliente -->
+      <div class="carousel-item">
+        <h3>🧑 Datos del cliente</h3>
+        <form id="clienteForm">
+          <input type="text" name="nombre" placeholder="Nombre" class="form-control mb-2" required>
+          <input type="text" name="apellido" placeholder="Apellido" class="form-control mb-2" required>
+          <input type="email" name="email" placeholder="Email" class="form-control mb-2" required>
+          <input type="tel" name="telefono" placeholder="Teléfono" class="form-control mb-2">
+          <button type="submit" class="btn btn-primary w-100">Guardar datos</button>
+        </form>
+        <div id="clienteOk" class="mt-2"></div>
+
+        <div class="mt-3 d-grid gap-2">
+          <!-- Botón de pago deshabilitado al inicio -->
+          <button id="btn_pagar" class="btn btn-sm btn-primary" onclick="pagarConMercadoPago()" disabled>
+            Pagar con Mercado Pago
+          </button>
+        </div>
+        <!-- Botón para volver al slide 1 -->
+        <button class="btn btn-secondary w-100 mt-3" data-bs-target="#carritoCarousel" data-bs-slide="prev">
+          Volver al carrito
+        </button>
+      </div>
+
+    </div>
   </div>
 </div>
+
+<!-- Botón flotante -->
+<button id="toggleCarrito">🛒</button>
+
 
 <!-- Aviso flotante de precio actualizado -->
 <div id="avisoPrecio" class="alert alert-success text-center" role="alert"
@@ -389,6 +496,42 @@ const modoAdmin = window.tokenAdminEmail ? true : false;
 if (modoAdmin) {
   document.getElementById("adminCard").classList.remove("d-none");
 }   
+
+document.getElementById("clienteForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const formData = {
+    orden_id: window.orden_id,
+    nombre: e.target.nombre.value,
+    apellido: e.target.apellido.value,
+    email: e.target.email.value,
+    telefono: e.target.telefono.value
+  };
+
+  try {
+    const resp = await fetch(`${URL_BACKEND}/guardar-cliente`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    });
+    const data = await resp.json();
+    const okDiv = document.getElementById("clienteOk");
+
+    if (data.ok) {
+      okDiv.textContent = "✅ Datos guardados correctamente";
+      okDiv.style.color = "green";
+
+      // habilitar botón de pago
+      document.getElementById("btn_pagar").disabled = false;
+    } else {
+      okDiv.textContent = "❌ Error guardando datos";
+      okDiv.style.color = "red";
+    }
+  } catch (err) {
+    const okDiv = document.getElementById("clienteOk");
+    okDiv.textContent = "💥 Error de conexión";
+    okDiv.style.color = "red";
+  }
+});
     
 // 👉 Mostrar/ocultar botones eliminar según modo admin
 function toggleModoAdmin(activo) {
