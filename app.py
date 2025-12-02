@@ -637,6 +637,7 @@ def log_event(tag, data):
     print(f"[{tag}] {data}")
     # opcional: guardar en Firestore o en un archivo de logs
 
+# Guardar orden inicial en Firestore
 def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_vendedor):
     orden_doc = {
         "email_vendedor": email_vendedor,
@@ -646,9 +647,9 @@ def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_ven
         "preference_id": pref_id,
         "external_reference": external_reference,
         "comprobante_enviado": False,
-        "cliente_nombre": None,   # 👈 inicializar
-        "cliente_email": None,    # 👈 inicializar
-        "cliente_telefono": None, # 👈 inicializar
+        "cliente_nombre": None,
+        "cliente_email": None,
+        "cliente_telefono": None,
         "creado": firestore.SERVER_TIMESTAMP
     }
     print("[ORDEN] 📝 Documento a guardar:", orden_doc)
@@ -661,6 +662,7 @@ def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_ven
         print("[ORDEN] ❌ Error guardando en Firestore:", e)
         return False
         
+# Guardar datos del cliente desde el mini formulario
 @app.route("/guardar-cliente", methods=["POST"])
 def guardar_cliente():
     data = request.json or {}
@@ -682,41 +684,29 @@ def guardar_cliente():
         print("[CLIENTE] ❌ Error guardando datos:", e)
         return jsonify({"ok": False, "error": str(e)}), 500
 
+# Crear preferencia de pago en Mercado Pago
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
     access_token = os.getenv("MERCADO_PAGO_TOKEN")
     url = "https://api.mercadopago.com/checkout/preferences"
 
-    # Datos enviados desde el frontend
     data = request.get_json(force=True) or {}
-    print("\n[CREAR_PAGO] 📥 Datos recibidos del frontend:", data)
-
     items = data.get("items", [])
     email_vendedor = data.get("email_vendedor")
     numero_vendedor = data.get("numero_vendedor")
 
-    # Validaciones mínimas
-    if not items or not isinstance(items, list):
-        print("[CREAR_PAGO] ❌ Carrito vacío o inválido")
-        return jsonify({"error": "Carrito vacío o inválido"}), 400
-    if not email_vendedor or not isinstance(email_vendedor, str):
-        print("[CREAR_PAGO] ❌ Falta email del vendedor")
-        return jsonify({"error": "Falta email del vendedor"}), 400
+    if not items or not email_vendedor:
+        return jsonify({"error": "Carrito vacío o falta email vendedor"}), 400
 
-    # Validar cada item
+    # Validar items
     for i in items:
         if not all(k in i for k in ("title", "quantity", "unit_price")):
-            print("[CREAR_PAGO] ❌ Item inválido:", i)
             return jsonify({"error": "Item inválido"}), 400
         if not isinstance(i["unit_price"], (int, float)) or i["unit_price"] <= 0:
-            print("[CREAR_PAGO] ❌ Precio inválido:", i)
             return jsonify({"error": "Precio inválido"}), 400
 
-    # Generar external_reference con formato pedido_...
     external_reference = f"pedido_{int(time.time())}_{shortuuid.uuid()[:6]}"
-    print(f"[CREAR_PAGO] 🔑 external_reference={external_reference}")
 
-    # Payload para Mercado Pago
     payload = {
         "items": items,
         "back_urls": {
@@ -732,35 +722,19 @@ def crear_pago():
             "numero_vendedor": numero_vendedor
         }
     }
-    print("[CREAR_PAGO] 📦 Payload enviado a MP:", payload)
 
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    r = requests.post(url, json=payload, headers=headers, timeout=15)
+    pref_data = r.json()
 
-    try:
-        # Crear preferencia en Mercado Pago
-        r = requests.post(url, json=payload, headers=headers, timeout=15)
-        print(f"[CREAR_PAGO] 📡 Status code MP: {r.status_code}")
-        pref_data = r.json()
-        print("[CREAR_PAGO] 📡 Respuesta de MP:", pref_data)
+    if r.status_code not in (200, 201) or "id" not in pref_data:
+        return jsonify({"error": "No se pudo crear preferencia", "detalle": pref_data}), 500
 
-        if r.status_code not in (200, 201) or "id" not in pref_data:
-            print(f"[CREAR_PAGO] ❌ Error creando preferencia: {pref_data}")
-            return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
+    guardar_orden(external_reference, pref_data["id"], items, email_vendedor, numero_vendedor)
 
-        # Guardar la orden inicial en Firestore con espacio para datos del cliente
-        ok = guardar_orden(external_reference, pref_data["id"], items, email_vendedor, numero_vendedor)
-        if not ok:
-            return jsonify({"error": "No se pudo guardar la orden en Firestore"}), 500
+    return jsonify({"preference_id": pref_data["id"], "external_reference": external_reference})
 
-        # Devolver preference_id y external_reference para trazabilidad en frontend
-        return jsonify({"preference_id": pref_data["id"], "external_reference": external_reference})
-
-    except Exception as e:
-        tb = traceback.format_exc()
-        print("[CREAR_PAGO] 💥 Error inesperado:", e)
-        print(tb)
-        return jsonify({"error": str(e), "trace": tb}), 500
-
+# Renderizar comprobante
 @app.route("/comprobante/<orden_id>")
 def comprobante(orden_id):
     doc = db.collection("ordenes").document(orden_id).get()
@@ -776,7 +750,6 @@ def comprobante(orden_id):
 
     productos = []
     total = 0
-
     for i in items:
         cantidad = int(i.get("quantity", 1))
         precio = float(i.get("unit_price", 0))
@@ -810,6 +783,7 @@ def get_platform_token():
     return token
 
 
+# Enviar comprobante por correo
 def enviar_comprobante(email_vendedor, orden_id):
     doc = db.collection("ordenes").document(orden_id).get()
     if not doc.exists:
@@ -820,7 +794,6 @@ def enviar_comprobante(email_vendedor, orden_id):
     cliente_nombre = data.get("cliente_nombre")
     cliente_email = data.get("cliente_email")
     cliente_telefono = data.get("cliente_telefono")
-
     productos = data.get("items", [])
     total = sum([p.get("unit_price", 0) * p.get("quantity", 1) for p in productos])
 
@@ -850,6 +823,7 @@ def inicializar_comprobantes():
 
     print(f"[MIGRACION] ✅ Total órdenes actualizadas: {total_actualizados}") 
     
+# Procesar webhook
 def procesar_webhook(data, topic):
     if topic == "payment":
         procesar_webhook_pago(data, topic)
@@ -889,6 +863,7 @@ def procesar_webhook_pago(data, topic):
         print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
         doc_ref.update({"comprobante_enviado": False})
 
+# Webhook de Mercado Pago
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     event = request.json or {}
