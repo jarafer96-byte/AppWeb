@@ -815,7 +815,7 @@ def enviar_comprobante(email_vendedor, orden_id):
     msg = MIMEText(html, "html")
     msg["Subject"] = f"Comprobante de compra #{orden_id}"
     msg["From"] = "ferj6009@gmail.com"  # remitente configurado
-    msg["To"] =  email_vendedor
+    msg["To"] = email_vendedor
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
