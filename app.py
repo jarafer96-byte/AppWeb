@@ -887,26 +887,27 @@ def procesar_webhook_pago(data):
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
-    try:
-        evento = request.get_json(force=True) or {}
-        print(f"[WEBHOOK] 📥 Evento recibido: {evento}")
+    evento = request.get_json(force=True) or {}
+    print(f"[WEBHOOK] 📥 Evento recibido: {evento}")
 
-        # Identificar el tipo de evento
-        topic = evento.get("type") or evento.get("action") or evento.get("topic")
+    topic = evento.get("topic") or evento.get("type") or evento.get("action")
+
+    if topic == "merchant_order":
+        print("[WEBHOOK] ℹ️ Evento merchant_order recibido, no se procesa como pago")
+        return jsonify({"ok": True})
+
+    if topic.startswith("payment"):
         payment_id = None
-
-        # Mercado Pago puede mandar el ID en distintos lugares
         if "data" in evento and isinstance(evento["data"], dict):
             payment_id = evento["data"].get("id")
         if not payment_id and "resource" in evento:
-            # Ejemplo: https://api.mercadopago.com/v1/payments/123456789
             payment_id = evento["resource"].split("/")[-1]
 
         if not payment_id:
-            print("[WEBHOOK] ❌ No se encontró payment_id en el evento")
-            return jsonify({"ok": False, "error": "payment_id faltante"}), 400
+            print("[WEBHOOK] ❌ No se encontró payment_id")
+            return jsonify({"ok": False}), 400
 
-        # Obtener detalle del pago con el token global
+        # Consultar detalle del pago
         access_token = os.getenv("MERCADO_PAGO_TOKEN")
         headers = {"Authorization": f"Bearer {access_token}"}
         r = requests.get(f"https://api.mercadopago.com/v1/payments/{payment_id}", headers=headers, timeout=15)
@@ -915,59 +916,13 @@ def webhook_mp():
 
         if r.status_code != 200:
             print(f"[WEBHOOK] ❌ Error al consultar pago {payment_id}: {r.text}")
-            return jsonify({"ok": False, "error": "No se pudo consultar pago"}), 500
+            return jsonify({"ok": False}), 500
 
-        estado = detalle.get("status")
-        orden_id = detalle.get("external_reference") or detalle.get("preference_id")
-
-        if not orden_id:
-            print("[WEBHOOK] ❌ No se encontró external_reference/preference_id en el pago")
-            return jsonify({"ok": False, "error": "orden_id faltante"}), 400
-
-        doc_ref = db.collection("ordenes").document(orden_id)
-        snap = doc_ref.get()
-        if not snap.exists:
-            print(f"[WEBHOOK] ❌ Orden {orden_id} no encontrada en Firestore")
-            return jsonify({"ok": False, "error": "orden no encontrada"}), 404
-
-        orden = snap.to_dict() or {}
-
-        # ⚠️ Control para evitar duplicados
-        if orden.get("comprobante_enviado"):
-            print(f"[WEBHOOK] ⚠️ Comprobante ya enviado para orden {orden_id}, no se reenvía")
-            return jsonify({"ok": True, "msg": "comprobante ya enviado"})
-
-        if estado == "approved":
-            # Actualizar estado y marcar comprobante enviado
-            doc_ref.update({
-                "estado": "approved",
-                "comprobante_enviado": True,
-                "actualizado": firestore.SERVER_TIMESTAMP
-            })
-            print(f"[WEBHOOK] ✅ Orden {orden_id} aprobada y comprobante marcado como enviado")
-
-            # 👉 Aquí llamás a tu función enviar_comprobante
-            try:
-                enviar_comprobante(destinatario=orden.get("cliente_email"), orden_id=orden_id)
-                print(f"[WEBHOOK] 📧 Comprobante enviado a {orden.get('cliente_email')}")
-            except Exception as e:
-                print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
-
-        else:
-            # Actualizar estado sin enviar comprobante
-            doc_ref.update({
-                "estado": estado,
-                "actualizado": firestore.SERVER_TIMESTAMP
-            })
-            print(f"[WEBHOOK] ℹ️ Orden {orden_id} actualizada a estado={estado}")
-
+        procesar_webhook_pago(detalle)
         return jsonify({"ok": True})
 
-    except Exception as e:
-        tb = traceback.format_exc()
-        print("[WEBHOOK] 💥 Error general en webhook_mp:", e)
-        print(tb)
-        return jsonify({"ok": False, "error": str(e)}), 500
+    print("[WEBHOOK] ⚠️ Evento no reconocido, se ignora")
+    return jsonify({"ok": True})
 
 @app.route('/crear-admin', methods=['POST'])
 def crear_admin():
