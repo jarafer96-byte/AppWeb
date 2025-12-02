@@ -143,23 +143,33 @@ function agregarFila() {
   container.appendChild(div);
 }
 function prepararStep3() {
-  // 🧹 limpiar estado viejo
   localStorage.removeItem("step3_state");
 
-  // 📦 guardar estructura de listas para Step3
   const filas = [];
   const container = document.getElementById('listas-container');
   container.querySelectorAll('div').forEach((fila, idx) => {
-    const grupo = fila.querySelector(`[name="grupo_${idx+1}"]`)?.value || "";
-    const subgrupo = fila.querySelector(`[name="subgrupo_${idx+1}"]`)?.value || "";
-    const productoBase = fila.querySelector(`[name="producto_${idx+1}"]`)?.value || "";
-    const cantidad = fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1";
-    const talles = fila.querySelector(`[name="talles_${idx+1}"]`)?.value || "";
+    const grupo = fila.querySelector(`[name="grupo_${idx+1}"]`)?.value.trim() || "";
+    const subgrupo = fila.querySelector(`[name="subgrupo_${idx+1}"]`)?.value.trim() || "";
+    const productoBase = fila.querySelector(`[name="producto_${idx+1}"]`)?.value.trim() || "";
+    const cantidad = parseInt(fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1");
+    const talles = fila.querySelector(`[name="talles_${idx+1}"]`)?.value.trim() || "";
 
-    // Guardar fila si hay al menos un dato
-    if (grupo || subgrupo || productoBase) {
-      filas.push({ grupo, subgrupo, productoBase, cantidad, talles });
+    if (!grupo && !subgrupo && !productoBase) return;
+
+    // 👉 si el producto tiene comas, dividir en lista
+    let productos = productoBase.split(",").map(p => p.trim()).filter(p => p);
+
+    if (productos.length === 1 && cantidad > 1) {
+      // 👉 expandir usando el productoBase como raíz
+      productos = [];
+      for (let i = 1; i <= cantidad; i++) {
+        productos.push(`${productoBase}${i}`);
+      }
     }
+
+    productos.forEach(prod => {
+      filas.push({ grupo, subgrupo, producto: prod, cantidad, talles });
+    });
   });
 
   localStorage.setItem("listas_step2-5", JSON.stringify(filas));
