@@ -637,8 +637,8 @@ def log_event(tag, data):
     print(f"[{tag}] {data}")
     # opcional: guardar en Firestore o en un archivo de logs
 
-# Guardar orden inicial en Firestore
-def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_vendedor):
+def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_vendedor,
+                  cliente_nombre=None, cliente_email=None, cliente_telefono=None):
     orden_doc = {
         "email_vendedor": email_vendedor,
         "numero_vendedor": numero_vendedor,
@@ -647,9 +647,9 @@ def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_ven
         "preference_id": pref_id,
         "external_reference": external_reference,
         "comprobante_enviado": False,
-        "cliente_nombre": None,
-        "cliente_email": None,
-        "cliente_telefono": None,
+        "cliente_nombre": cliente_nombre,
+        "cliente_email": cliente_email,
+        "cliente_telefono": cliente_telefono,
         "creado": firestore.SERVER_TIMESTAMP
     }
     print("[ORDEN] 📝 Documento a guardar:", orden_doc)
@@ -662,11 +662,10 @@ def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_ven
         print("[ORDEN] ❌ Error guardando en Firestore:", e)
         return False
         
-# Guardar datos del cliente desde el mini formulario
 @app.route("/guardar-cliente", methods=["POST"])
 def guardar_cliente():
     data = request.json or {}
-    orden_id = data.get("orden_id")
+    orden_id = data.get("orden_id")  # 👈 debe ser el external_reference
     cliente_nombre = data.get("nombre")
     cliente_email = data.get("email")
     cliente_telefono = data.get("telefono")
@@ -684,7 +683,6 @@ def guardar_cliente():
         print("[CLIENTE] ❌ Error guardando datos:", e)
         return jsonify({"ok": False, "error": str(e)}), 500
 
-# Crear preferencia de pago en Mercado Pago
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
     access_token = os.getenv("MERCADO_PAGO_TOKEN")
@@ -694,6 +692,11 @@ def crear_pago():
     items = data.get("items", [])
     email_vendedor = data.get("email_vendedor")
     numero_vendedor = data.get("numero_vendedor")
+
+    # Datos del cliente enviados desde el carrito
+    cliente_nombre = data.get("cliente_nombre")
+    cliente_email = data.get("cliente_email")
+    cliente_telefono = data.get("cliente_telefono")
 
     if not items or not email_vendedor:
         return jsonify({"error": "Carrito vacío o falta email vendedor"}), 400
@@ -730,7 +733,9 @@ def crear_pago():
     if r.status_code not in (200, 201) or "id" not in pref_data:
         return jsonify({"error": "No se pudo crear preferencia", "detalle": pref_data}), 500
 
-    guardar_orden(external_reference, pref_data["id"], items, email_vendedor, numero_vendedor)
+    # Guardar orden con datos del cliente incluidos
+    guardar_orden(external_reference, pref_data["id"], items, email_vendedor, numero_vendedor,
+                  cliente_nombre=cliente_nombre, cliente_email=cliente_email, cliente_telefono=cliente_telefono)
 
     return jsonify({"preference_id": pref_data["id"], "external_reference": external_reference})
 
@@ -885,18 +890,18 @@ def procesar_webhook_pago(detalle):
         return
 
     if estado == "approved":
-        # Actualizar estado y marcar comprobante enviado
-        doc_ref.update({
-            "estado": "approved",
-            "comprobante_enviado": True,
-            "actualizado": firestore.SERVER_TIMESTAMP
-        })
-        print(f"[WEBHOOK] ✅ Orden {orden_id} aprobada y comprobante marcado como enviado")
-
-        # 👉 Llamada a tu función de envío de comprobante
         try:
+            # 👉 Llamada a tu función de envío de comprobante
             enviar_comprobante(email_vendedor=orden.get("email_vendedor"), orden_id=orden_id)
-            print(f"[WEBHOOK] 📧 Comprobante enviado a {orden.get('cliente_email')}")
+
+            # Si el envío fue exitoso, marcar como enviado
+            doc_ref.update({
+                "estado": "approved",
+                "comprobante_enviado": True,
+                "actualizado": firestore.SERVER_TIMESTAMP
+            })
+            print(f"[WEBHOOK] ✅ Orden {orden_id} aprobada y comprobante enviado correctamente")
+
         except Exception as e:
             print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
 
