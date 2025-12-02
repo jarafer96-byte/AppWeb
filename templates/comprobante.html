@@ -7,97 +7,335 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      background-color: #121212;
-      color: #ffffff;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
     }
-    .card {
-      background-color: #1e1e1e;
-      border: 1px solid #333;
-      max-width: 320px;
-      margin: auto;
+    
+    .invoice-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     }
-    .card img {
-      max-width: 300px;
-      max-height: 180px;
-      object-fit: contain;
-      background-color: transparent;
-      border-radius: 4px;
+    
+    .invoice-header {
+      background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .card-body,
-    .card-title,
-    .card-text {
-      color: #ffffff;
+    
+    .invoice-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
     }
-    .total {
-      font-size: 20px;
-      font-weight: bold;
-      margin-top: 20px;
-      color: #00ff99;
+    
+    .order-id {
+      background: rgba(255, 255, 255, 0.2);
+      display: inline-block;
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
     }
-    .header {
-      max-width: 640px;
-      margin: 0 auto 24px;
+    
+    .customer-info {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .link-comprobante {
-      margin-top: 20px;
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    
+    .info-item {
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      border-left: 4px solid #7c3aed;
+    }
+    
+    .info-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .info-value {
+      font-size: 16px;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    
+    .products-section {
+      padding: 0 24px;
+    }
+    
+    .product-card {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      margin-bottom: 16px;
+    }
+    
+    .product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      border-color: rgba(124, 58, 237, 0.3);
+    }
+    
+    .product-image {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    }
+    
+    .product-header {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(15, 23, 42, 0.4);
+    }
+    
+    .product-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+    }
+    
+    .product-details {
+      padding: 16px;
+    }
+    
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .detail-label {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    
+    .detail-value {
+      font-weight: 500;
+      color: #e2e8f0;
+    }
+    
+    .talle-badge {
+      background: rgba(124, 58, 237, 0.2);
+      color: #c4b5fd;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(124, 58, 237, 0.3);
+    }
+    
+    .total-section {
+      background: rgba(15, 23, 42, 0.8);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 24px;
+      margin-top: 24px;
+    }
+    
+    .total-amount {
+      font-size: 32px;
+      font-weight: 700;
+      color: #10b981;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    
+    .total-label {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .comprobante-link {
+      background: rgba(124, 58, 237, 0.1);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px;
       text-align: center;
     }
-    .link-comprobante a {
-      color: #00ff99;
+    
+    .btn-comprobante {
+      background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+      color: white;
+      padding: 12px 32px;
+      border-radius: 8px;
       text-decoration: none;
-      font-weight: bold;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      border: none;
+    }
+    
+    .btn-comprobante:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+      color: white;
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 24px;
+      color: #64748b;
+      font-size: 13px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .invoice-container {
+        margin: 16px;
+        border-radius: 12px;
+      }
+      
+      .invoice-header {
+        padding: 20px;
+      }
+      
+      .customer-info,
+      .products-section,
+      .comprobante-link {
+        margin: 16px;
+      }
+      
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
-<body class="container py-4">
+<body class="py-4">
 
-  <!-- Encabezado con datos del cliente -->
-  <div class="header text-center">
-    <h2 class="text-success mb-3">Nueva venta ✅</h2>
-    <p>Cliente: <span class="fw-bold">{{ cliente_nombre|default('Cliente') }}</span></p>
-    <p>Email: <span class="fw-bold">{{ cliente_email|default('sin email') }}</span></p>
-    <p>Teléfono: <span class="fw-bold">{{ cliente_telefono|default('sin teléfono') }}</span></p>
-  </div>
-
-  <!-- Productos -->
-  <div class="row justify-content-center">
-    {% for p in productos %}
-      {% set precio = p.unit_price|default(0) %}
-      {% set cantidad = p.quantity|default(1) %}
-      {% set subtotal = precio * cantidad %}
-      <div class="col-md-4 mb-4">
-        <div class="card h-100 shadow-sm">
+  <div class="invoice-container">
+    
+    <!-- Header con orden ID -->
+    <div class="invoice-header">
+      <h1 class="invoice-title">🎉 ¡Nueva Venta Realizada!</h1>
+      <div class="order-id mt-3">ORDEN #{{ orden_id|default('N/A') }}</div>
+    </div>
+    
+    <!-- Información del cliente -->
+    <div class="customer-info">
+      <h3 class="mb-4" style="color: #f1f5f9;">👤 Información del Cliente</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Nombre completo</div>
+          <div class="info-value">{{ cliente_nombre|default('Cliente') }}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Correo electrónico</div>
+          <div class="info-value">{{ cliente_email|default('No especificado') }}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Teléfono</div>
+          <div class="info-value">{{ cliente_telefono|default('No especificado') }}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Productos -->
+    <div class="products-section">
+      <h3 class="mb-4" style="color: #f1f5f9;">🛍️ Productos Comprados</h3>
+      
+      {% for p in productos %}
+        <div class="product-card">
+          <div class="product-header">
+            <div class="product-title">{{ p.title|default('Producto') }}</div>
+            {% if p.talle %}
+              <span class="talle-badge">Talle: {{ p.talle }}</span>
+            {% endif %}
+          </div>
+          
           <div class="row g-0">
-            <div class="col-12 text-center">
-              {% if p.imagen_url %}
-                <img src="{{ p.imagen_url }}" alt="{{ p.title|default('Producto') }}">
-              {% endif %}
-            </div>
-            <div class="col-12">
-              <div class="card-body">
-                <h5 class="card-title">{{ p.title|default('Producto') }}</h5>
-                {% if p.talle %}
-                  <p class="card-text">Talle: {{ p.talle }}</p>
-                {% endif %}
-                <p class="card-text">Precio: ${{ "%.2f"|format(precio) }}</p>
-                <p class="card-text">Cantidad: {{ cantidad }}</p>
-                <p class="card-text"><strong>Subtotal: ${{ "%.2f"|format(subtotal) }}</strong></p>
+            {% if p.imagen_url %}
+              <div class="col-md-4">
+                <img src="{{ p.imagen_url }}" alt="{{ p.title|default('Producto') }}" class="product-image">
+              </div>
+            {% endif %}
+            
+            <div class="{{ 'col-md-8' if p.imagen_url else 'col-12' }}">
+              <div class="product-details">
+                <div class="detail-row">
+                  <span class="detail-label">Precio unitario</span>
+                  <span class="detail-value">${{ "%.2f"|format(p.unit_price|default(0)) }}</span>
+                </div>
+                
+                <div class="detail-row">
+                  <span class="detail-label">Cantidad</span>
+                  <span class="detail-value">{{ p.quantity|default(1) }}</span>
+                </div>
+                
+                <div class="detail-row" style="border-bottom: none;">
+                  <span class="detail-label">Subtotal</span>
+                  <span class="detail-value" style="color: #10b981; font-weight: 600;">
+                    ${{ "%.2f"|format((p.unit_price|default(0)) * (p.quantity|default(1))) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    {% endfor %}
-  </div>
-
-  <!-- Total -->
-  <div class="total text-center">
-    Total: ${{ "%.2f"|format(total|default(0)) }}
-  </div>
-
-  <!-- Link al comprobante -->
-  <div class="link-comprobante">
-    📄 Ver comprobante completo: <a href="{{ comprobante_url }}">{{ comprobante_url }}</a>
+      {% endfor %}
+    </div>
+    
+    <!-- Total -->
+    <div class="total-section">
+      <div class="total-label">Total de la compra</div>
+      <div class="total-amount">${{ "%.2f"|format(total|default(0)) }}</div>
+    </div>
+    
+    <!-- Link al comprobante -->
+    <div class="comprobante-link">
+      <h4 class="mb-3" style="color: #f1f5f9;">📄 Comprobante digital</h4>
+      <p class="mb-4" style="color: #94a3b8;">Accede al comprobante completo con todos los detalles de la transacción.</p>
+      <a href="{{ comprobante_url }}" class="btn-comprobante">
+        <span>Ver comprobante completo</span>
+      </a>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+      <p>Este es un comprobante automático generado por tu tienda online.</p>
+      <p>📧 No responder a este correo - Contacta directamente al cliente si es necesario.</p>
+      <p class="mt-3" style="font-size: 12px; color: #475569;">
+        Fecha de generación: {{ fecha_actual|default('') }}
+      </p>
+    </div>
+    
   </div>
 
 </body>
