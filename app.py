@@ -646,184 +646,66 @@ def log_event(tag, data):
     print(f"[{tag}] {data}")
     # opcional: guardar en Firestore o en un archivo de logs
 
-def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_vendedor,
-                  cliente_nombre=None, cliente_email=None, cliente_telefono=None):
-    orden_doc = {
-        "email_vendedor": email_vendedor,
-        "numero_vendedor": numero_vendedor,
-        "items": items,
-        "estado": "pendiente",
-        "preference_id": pref_id,
-        "external_reference": external_reference,
-        "comprobante_enviado": False,
-        "cliente_nombre": cliente_nombre,
-        "cliente_email": cliente_email,
-        "cliente_telefono": cliente_telefono,
-        "creado": firestore.SERVER_TIMESTAMP
-    }
-    print("[ORDEN] 📝 Documento a guardar:", orden_doc)
-
-    try:
-        db.collection("ordenes").document(external_reference).set(orden_doc)
-        print(f"[ORDEN] ✅ Orden guardada en ordenes/{external_reference}")
-        return True
-    except Exception as e:
-        print("[ORDEN] ❌ Error guardando en Firestore:", e)
-        return False
-
-@app.route("/preorden", methods=["POST"])
-def preorden():
-    data = request.get_json(force=True) or {}
-    email_vendedor = data.get("email_vendedor")
-    numero_vendedor = data.get("numero_vendedor")
-    items = data.get("items", [])
-
-    # Generar un ID único y estable para toda la compra
-    external_reference = f"pedido_{int(time.time())}_{shortuuid.uuid()[:6]}"
-
-    # Crear documento base en Firestore
-    db.collection("ordenes").document(external_reference).set({
-        "email_vendedor": email_vendedor,
-        "numero_vendedor": numero_vendedor,
-        "items": items,
-        "estado": "pendiente",
-        "external_reference": external_reference,
-        "preference_id": None,
-        "comprobante_enviado": False,
-        "cliente_nombre": None,
-        "cliente_email": None,
-        "cliente_telefono": None,
-        "creado": firestore.SERVER_TIMESTAMP
-    }, merge=True)
-
-    print(f"[PREORDEN] ✅ Orden creada con ID {external_reference}")
-
-    return jsonify({"external_reference": external_reference})
-
-@app.route("/guardar-cliente", methods=["POST"])
-def guardar_cliente():
-    data = request.json or {}
-    orden_id = data.get("orden_id")  # 👈 debe ser el external_reference
-    cliente_nombre = data.get("nombre")
-    cliente_email = data.get("email")
-    cliente_telefono = data.get("telefono")
-
-    try:
-        db.collection("ordenes").document(orden_id).set({
-            "cliente_nombre": cliente_nombre,
-            "cliente_email": cliente_email,
-            "cliente_telefono": cliente_telefono,
-            "actualizado": firestore.SERVER_TIMESTAMP
-        }, merge=True)
-        print(f"[CLIENTE] ✅ Datos guardados para orden {orden_id}")
-        return jsonify({"ok": True})
-    except Exception as e:
-        print("[CLIENTE] ❌ Error guardando datos:", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-@app.route('/crear-pago', methods=['POST'])
-def crear_pago():
-    access_token = os.getenv("MERCADO_PAGO_TOKEN")
-    url = "https://api.mercadopago.com/checkout/preferences"
-
-    data = request.get_json(force=True) or {}
-    items = data.get("items", [])
-    email_vendedor = data.get("email_vendedor")
-    numero_vendedor = data.get("numero_vendedor")
-
-    # Datos del cliente enviados desde el carrito
-    cliente_nombre = data.get("cliente_nombre")
-    cliente_email = data.get("cliente_email")
-    cliente_telefono = data.get("cliente_telefono")
-
-    if not items or not email_vendedor:
-        return jsonify({"error": "Carrito vacío o falta email vendedor"}), 400
-
-    # Validar items
-    for i in items:
-        if not all(k in i for k in ("title", "quantity", "unit_price")):
-            return jsonify({"error": "Item inválido"}), 400
-        if not isinstance(i["unit_price"], (int, float)) or i["unit_price"] <= 0:
-            return jsonify({"error": "Precio inválido"}), 400
-
-    external_reference = f"pedido_{int(time.time())}_{shortuuid.uuid()[:6]}"
-
-    payload = {
-        "items": items,
-        "back_urls": {
-            "success": "https://mpagina.onrender.com/success",
-            "failure": "https://mpagina.onrender.com/failure",
-            "pending": "https://mpagina.onrender.com/pending"
-        },
-        "auto_return": "approved",
-        "notification_url": "https://mpagina.onrender.com/webhook_mp",
-        "external_reference": external_reference,
-        "metadata": {
-            "email_vendedor": email_vendedor,
-            "numero_vendedor": numero_vendedor
-        }
-    }
-
-    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
-    r = requests.post(url, json=payload, headers=headers, timeout=15)
-    pref_data = r.json()
-
-    if r.status_code not in (200, 201) or "id" not in pref_data:
-        return jsonify({"error": "No se pudo crear preferencia", "detalle": pref_data}), 500
-
-    # Guardar orden con datos del cliente incluidos
-    guardar_orden(external_reference, pref_data["id"], items, email_vendedor, numero_vendedor,
-                  cliente_nombre=cliente_nombre, cliente_email=cliente_email, cliente_telefono=cliente_telefono)
-
-    return jsonify({"preference_id": pref_data["id"], "external_reference": external_reference})
-
-# Renderizar comprobante
-@app.route("/comprobante/<orden_id>")
-def comprobante(orden_id):
-    doc = db.collection("ordenes").document(orden_id).get()
-    if not doc.exists:
-        return "❌ Orden no encontrada", 404
-
-    data = doc.to_dict()
-    cliente_nombre = data.get("cliente_nombre")
-    cliente_email = data.get("cliente_email")
-    cliente_telefono = data.get("cliente_telefono")
-    email_vendedor = data.get("email_vendedor")
-    items = data.get("items", [])
-
-    productos = []
-    total = 0
-    for i in items:
-        cantidad = int(i.get("quantity", 1))
-        precio = float(i.get("unit_price", 0))
-        total += precio * cantidad
-
-        imagen_url = None
-        id_base = i.get("id")
-        if email_vendedor and id_base:
-            prod_doc = db.collection("usuarios").document(email_vendedor).collection("productos").document(id_base).get()
-            if prod_doc.exists:
-                imagen_url = prod_doc.to_dict().get("imagen_url")
-
-        productos.append({
-            "title": i.get("title"),
-            "description": i.get("description"),
-            "unit_price": precio,
-            "quantity": cantidad,
-            "imagen_url": imagen_url
-        })
-
-    return render_template("comprobante.html",
-                           cliente_nombre=cliente_nombre,
-                           cliente_email=cliente_email,
-                           cliente_telefono=cliente_telefono,
-                           productos=productos,
-                           total=total)
-
 def get_platform_token():
     token = os.environ.get("MERCADO_PAGO_TOKEN")
     print(f"[TOKEN] 🔑 Token de Mercado Pago obtenido: {'OK' if token else '❌ NO DEFINIDO'}")
     return token
+
+@app.route("/comprobante/<orden_id>")
+def comprobante(orden_id):
+    """Renderizar comprobante con TODOS los datos unificados"""
+    # Buscar en la colección global
+    doc = db.collection("ordenes").document(orden_id).get()
+    
+    if not doc.exists:
+        return "❌ Orden no encontrada", 404
+    
+    data = doc.to_dict()
+    
+    cliente_nombre = data.get("cliente_nombre", "Cliente")
+    cliente_email = data.get("cliente_email", "Sin email")
+    cliente_telefono = data.get("cliente_telefono", "Sin teléfono")
+    items = data.get("items", [])  # Los items originales del carrito
+    email_vendedor = data.get("email_vendedor")
+    
+    # Calcular total
+    total = 0
+    productos = []
+    
+    for item in items:
+        try:
+            cantidad = int(item.get('cantidad', 1))
+            precio = float(item.get('precio', 0))
+            total += precio * cantidad
+            
+            # Buscar imagen del producto
+            imagen_url = None
+            id_base = item.get('id_base')
+            if email_vendedor and id_base:
+                prod_doc = db.collection("usuarios").document(email_vendedor)\
+                              .collection("productos").document(id_base).get()
+                if prod_doc.exists:
+                    imagen_url = prod_doc.to_dict().get("imagen_url")
+            
+            productos.append({
+                "nombre": item.get('nombre', 'Producto'),
+                "cantidad": cantidad,
+                "precio": precio,
+                "imagen_url": imagen_url,
+                "talle": item.get('talle', '')
+            })
+        except Exception as e:
+            print(f"[COMPROBANTE] ❌ Error procesando item: {e}")
+            continue
+    
+    return render_template("comprobante.html",
+                          orden_id=orden_id,
+                          cliente_nombre=cliente_nombre,
+                          cliente_email=cliente_email,
+                          cliente_telefono=cliente_telefono,
+                          productos=productos,
+                          total=total,
+                          fecha=data.get("creado"))
 
 # Enviar comprobante por correo
 def enviar_comprobante(email_vendedor, orden_id):
@@ -844,9 +726,28 @@ def enviar_comprobante(email_vendedor, orden_id):
     cliente_nombre = data.get("cliente_nombre") or "Cliente"
     cliente_email = data.get("cliente_email") or "sin email"
     cliente_telefono = data.get("cliente_telefono") or "sin teléfono"
-
-    productos = data.get("items", [])
-    total = sum([p.get("unit_price", 0) * p.get("quantity", 1) for p in productos])
+    
+    # Usar items_mp si está disponible, si no usar items
+    productos_data = data.get("items_mp") or data.get("items", [])
+    
+    # Calcular total
+    total = 0
+    productos = []
+    for p in productos_data:
+        try:
+            cantidad = int(p.get("quantity", 1))
+            precio = float(p.get("unit_price", 0))
+            total += precio * cantidad
+            
+            productos.append({
+                "nombre": p.get("title", "Producto"),
+                "cantidad": cantidad,
+                "precio": precio,
+                "descripcion": p.get("description", "")
+            })
+        except Exception as e:
+            print(f"[EMAIL] ❌ Error procesando producto: {e}")
+            continue
 
     # Link al comprobante
     comprobante_url = f"https://mpagina.onrender.com/comprobante/{orden_id}"
@@ -863,7 +764,7 @@ def enviar_comprobante(email_vendedor, orden_id):
     # Construir mensaje MIME
     msg = MIMEText(html, "html")
     msg["Subject"] = f"Comprobante de compra #{orden_id}"
-    msg["From"] = "ferj6009@gmail.com"  # remitente configurado
+    msg["From"] = "ferj6009@gmail.com"
     msg["To"] = email_vendedor
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
@@ -872,7 +773,6 @@ def enviar_comprobante(email_vendedor, orden_id):
         service = get_gmail_service()
         service.users().messages().send(userId="me", body={"raw": raw}).execute()
         print(f"[EMAIL] ✅ Comprobante enviado al vendedor {email_vendedor}")
-        print(f"[EMAIL] ℹ️ Datos cliente incluidos: {cliente_nombre} ({cliente_email})")
 
         # Marcar como enviado en Firestore
         doc_ref.update({
@@ -882,128 +782,241 @@ def enviar_comprobante(email_vendedor, orden_id):
 
     except Exception as e:
         print(f"[EMAIL] ❌ Error enviando comprobante: {e}")
-    
-def inicializar_comprobantes():
-    print("[MIGRACION] 🚀 Iniciando inicialización de comprobantes_enviados")
-    ordenes_ref = db.collection("ordenes")
-    docs = ordenes_ref.stream()
-
-    total_actualizados = 0
-    for doc in docs:
-        data = doc.to_dict()
-        if "comprobante_enviado" not in data:
-            doc.reference.update({"comprobante_enviado": False})
-            total_actualizados += 1
-            print(f"[MIGRACION] Campo agregado en orden {doc.id}")
-
-    print(f"[MIGRACION] ✅ Total órdenes actualizadas: {total_actualizados}") 
-    
-# Procesar webhook
-def procesar_webhook(data, topic):
-    if topic == "payment":
-        procesar_webhook_pago(data, topic)
-    elif topic == "merchant_order":
-        print("[WEBHOOK] ⚠️ Evento merchant_order ignorado")
-    else:
-        print(f"[WEBHOOK] ⚠️ Evento desconocido: {topic}")
-
-def fusionar_ordenes(orden_id, orden_pago):
-    # Buscar otra orden del mismo vendedor con estado pendiente y sin external_reference
-    posibles = db.collection("ordenes").where("email_vendedor", "==", orden_pago.get("email_vendedor")).stream()
-    for doc in posibles:
-        data = doc.to_dict()
-        if data.get("cliente_email") and not orden_pago.get("cliente_email"):
-            print(f"[WEBHOOK] 🔗 Fusionando datos de {doc.id} en {orden_id}")
-            db.collection("ordenes").document(orden_id).set({
-                "cliente_nombre": data.get("cliente_nombre"),
-                "cliente_email": data.get("cliente_email"),
-                "cliente_telefono": data.get("cliente_telefono"),
-                "actualizado": firestore.SERVER_TIMESTAMP
-            }, merge=True)
-            # opcional: borrar duplicado
-            # doc.reference.delete()
-            break
-
-def procesar_webhook_pago(detalle):
-    orden_id = detalle.get("external_reference") or detalle.get("preference_id")
-    estado = detalle.get("status")
-
-    if not orden_id:
-        print("[WEBHOOK] ❌ No se encontró external_reference/preference_id en el pago")
-        return
-
-    doc_ref = db.collection("ordenes").document(orden_id)
-    snap = doc_ref.get()
-    if not snap.exists:
-        print(f"[WEBHOOK] ❌ Orden {orden_id} no encontrada en Firestore")
-        return
-
-    orden_pago = snap.to_dict() or {}
-
-    # 👉 Intentar fusionar datos de cliente si están en otro doc
-    fusionar_ordenes(orden_id, orden_pago)
-
-    # ⚠️ Evitar duplicados
-    if orden_pago.get("comprobante_enviado"):
-        print(f"[WEBHOOK] ⚠️ Comprobante ya enviado para {orden_id}, no se reenvía")
-        return
-
-    if estado == "approved":
-        try:
-            enviar_comprobante(email_vendedor=orden_pago.get("email_vendedor"), orden_id=orden_id)
-            doc_ref.update({
-                "estado": "approved",
-                "comprobante_enviado": True,
-                "actualizado": firestore.SERVER_TIMESTAMP
-            })
-            print(f"[WEBHOOK] ✅ Orden {orden_id} aprobada y comprobante enviado correctamente")
-        except Exception as e:
-            print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
-    else:
-        doc_ref.update({
-            "estado": estado,
-            "actualizado": firestore.SERVER_TIMESTAMP
-        })
-        print(f"[WEBHOOK] ℹ️ Orden {orden_id} actualizada a estado={estado}")
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
+    """Webhook unificado - Elimina las otras funciones de webhook"""
     evento = request.get_json(force=True) or {}
-    print(f"[WEBHOOK] 📥 Evento recibido: {evento}")
-
-    topic = evento.get("topic") or evento.get("type") or evento.get("action")
-
-    if topic == "merchant_order":
-        print("[WEBHOOK] ℹ️ Evento merchant_order recibido, no se procesa como pago")
-        return jsonify({"ok": True})
-
-    if topic.startswith("payment"):
-        payment_id = None
-        if "data" in evento and isinstance(evento["data"], dict):
-            payment_id = evento["data"].get("id")
-        if not payment_id and "resource" in evento:
-            payment_id = evento["resource"].split("/")[-1]
-
-        if not payment_id:
-            print("[WEBHOOK] ❌ No se encontró payment_id")
-            return jsonify({"ok": False}), 400
-
-        # Consultar detalle del pago
-        access_token = os.getenv("MERCADO_PAGO_TOKEN")
-        headers = {"Authorization": f"Bearer {access_token}"}
-        r = requests.get(f"https://api.mercadopago.com/v1/payments/{payment_id}", headers=headers, timeout=15)
+    print(f"[WEBHOOK] 📥 Evento recibido")
+    
+    # Extraer payment_id
+    payment_id = None
+    if "data" in evento and isinstance(evento["data"], dict):
+        payment_id = evento["data"].get("id")
+    elif "id" in evento:
+        payment_id = evento.get("id")
+    
+    if not payment_id:
+        print("[WEBHOOK] ❌ No se encontró payment_id")
+        return jsonify({"ok": False}), 400
+    
+    # Consultar detalle del pago
+    access_token = os.getenv("MERCADO_PAGO_TOKEN")  # Token global de la plataforma
+    headers = {"Authorization": f"Bearer {access_token}"}
+    
+    try:
+        r = requests.get(f"https://api.mercadopago.com/v1/payments/{payment_id}", 
+                        headers=headers, timeout=15)
         detalle = r.json()
-        print(f"[WEBHOOK] 🔎 Detalle del pago: {detalle}")
-
+        
         if r.status_code != 200:
-            print(f"[WEBHOOK] ❌ Error al consultar pago {payment_id}: {r.text}")
+            print(f"[WEBHOOK] ❌ Error consultando pago: {r.text}")
             return jsonify({"ok": False}), 500
-
-        procesar_webhook_pago(detalle)
+        
+        # ID CLAVE - DEBE SER EL MISMO QUE GUARDAMOS
+        external_ref = detalle.get("external_reference")
+        if not external_ref:
+            print("[WEBHOOK] ❌ No external_reference en el pago")
+            return jsonify({"ok": False}), 400
+        
+        estado = detalle.get("status")
+        print(f"[WEBHOOK] 🔎 Orden: {external_ref}, Estado: {estado}")
+        
+        # Buscar en la colección global "ordenes"
+        doc_ref = db.collection("ordenes").document(external_ref)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            print(f"[WEBHOOK] ❌ Orden {external_ref} no encontrada en Firestore")
+            return jsonify({"ok": False}), 404
+        
+        orden_data = doc.to_dict()
+        
+        # Actualizar estado del pago
+        doc_ref.update({
+            "estado": estado,
+            "payment_id": payment_id,
+            "actualizado": firestore.SERVER_TIMESTAMP
+        })
+        
+        # Si el pago fue aprobado, enviar comprobante
+        if estado == "approved":
+            email_vendedor = orden_data.get("email_vendedor")
+            
+            if email_vendedor:
+                # Verificar si ya se envió comprobante
+                if not orden_data.get("comprobante_enviado", False):
+                    enviar_comprobante(email_vendedor, external_ref)
+                    print(f"[WEBHOOK] ✅ Comprobante enviado para orden {external_ref}")
+                else:
+                    print(f"[WEBHOOK] ⚠️ Comprobante ya enviado anteriormente para {external_ref}")
+        
         return jsonify({"ok": True})
+        
+    except Exception as e:
+        print(f"[WEBHOOK] ❌ Error procesando webhook: {e}")
+        traceback.print_exc()
+        return jsonify({"ok": False}), 500
 
-    print("[WEBHOOK] ⚠️ Evento no reconocido, se ignora")
-    return jsonify({"ok": True})
+@app.route('/pagar', methods=['POST'])
+def pagar():
+    print("\n🚀 [PAGAR UNIFICADO] Nueva petición recibida")
+    
+    if not db:
+        return jsonify({'error': 'Firestore no disponible'}), 503
+        
+    try:
+        data = request.get_json(silent=True) or {}
+        print(f"[PAGAR] Datos recibidos: {data}")
+        
+        # 1. Recibir TODOS los datos del frontend
+        carrito = data.get('items', [])
+        email_vendedor = data.get('email_vendedor')
+        numero_vendedor = data.get('numero_vendedor')
+        cliente_nombre = data.get('cliente_nombre')
+        cliente_email = data.get('cliente_email')
+        cliente_telefono = data.get('cliente_telefono')
+        orden_id = data.get('orden_id')  # Si viene del flujo de preorden
+        
+        if not email_vendedor or not carrito:
+            return jsonify({'error': 'Falta email vendedor o carrito'}), 400
+        
+        # 2. Generar ID único (usar el existente si viene, o crear uno nuevo)
+        if orden_id and orden_id.strip():
+            external_ref = orden_id.strip()
+            print(f"[PAGAR] ✅ Usando orden_id proporcionado: {external_ref}")
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            external_ref = f"pedido_{timestamp}_{shortuuid.uuid()[:8]}"
+            print(f"[PAGAR] ⚠️ No se recibió orden_id, se generó uno nuevo: {external_ref}")
+        
+        # 3. Obtener token de Mercado Pago DEL VENDEDOR
+        access_token = get_mp_token(email_vendedor)
+        if not access_token or not isinstance(access_token, str):
+            print(f"[PAGAR] ❌ Token inválido para vendedor: {email_vendedor}")
+            return jsonify({'error': 'Vendedor sin credenciales MP o credenciales inválidas'}), 400
+        
+        sdk = mercadopago.SDK(access_token.strip())
+        
+        # 4. Preparar items para Mercado Pago
+        items_mp = []
+        productos_ref = db.collection("usuarios").document(email_vendedor).collection("productos")
+        
+        for item_frontend in carrito:
+            id_base = item_frontend.get('id_base')
+            if not id_base:
+                print("⚠️ Item sin id_base, saltando")
+                continue
+                
+            try:
+                cantidad = int(item_frontend.get('cantidad', 1))
+                if cantidad <= 0:
+                    cantidad = 1
+            except:
+                cantidad = 1
+            
+            talle = item_frontend.get('talle', '')
+            
+            # Buscar producto real en Firestore
+            prod_doc = productos_ref.document(id_base).get()
+            if prod_doc.exists:
+                prod_real = prod_doc.to_dict()
+                precio_real = float(prod_real.get('precio', 0))
+                nombre_real = prod_real.get('nombre', 'Producto')
+                
+                if precio_real <= 0:
+                    print(f"⚠️ Producto {id_base} precio inválido: {precio_real}")
+                    continue
+                
+                items_mp.append({
+                    "id": id_base,
+                    "title": f"{nombre_real}{f' ({talle})' if talle else ''}",
+                    "description": nombre_real,
+                    "quantity": cantidad,
+                    "unit_price": precio_real,
+                    "currency_id": "ARS"
+                })
+                print(f"[PAGAR] ✅ Item agregado: {id_base}, cantidad={cantidad}, precio={precio_real}")
+            else:
+                print(f"⚠️ Producto {id_base} no encontrado en BD")
+        
+        if not items_mp:
+            return jsonify({'error': 'No se pudieron validar productos en el carrito'}), 400
+        
+        # 5. Crear preferencia con el MISMO external_reference
+        preference_data = {
+            "items": items_mp,
+            "back_urls": {
+                "success": f"https://mpagina.onrender.com/success?orden_id={external_ref}",
+                "failure": f"https://mpagina.onrender.com/failure?orden_id={external_ref}",
+                "pending": f"https://mpagina.onrender.com/pending?orden_id={external_ref}"
+            },
+            "auto_return": "approved",
+            "external_reference": external_ref,  # 👈 MISMO ID QUE SE GUARDARÁ
+            "notification_url": url_for('webhook_mp', _external=True),
+            "metadata": {
+                "email_vendedor": email_vendedor,
+                "numero_vendedor": numero_vendedor
+            }
+        }
+        
+        print(f"[PAGAR] 📦 Preference data: {preference_data}")
+        
+        # 6. Crear preferencia en Mercado Pago
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response.get("response", {}) or {}
+        print(f"[PAGAR] 📩 Respuesta SDK: {preference}")
+        
+        if not preference.get("id"):
+            print(f"[PAGAR] ❌ Error al generar preferencia: {preference_response}")
+            return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
+        
+        # 7. GUARDAR TODO EN UN SOLO DOCUMENTO
+        orden_doc = {
+            "email_vendedor": email_vendedor,
+            "numero_vendedor": numero_vendedor,
+            "cliente_nombre": cliente_nombre,
+            "cliente_email": cliente_email,
+            "cliente_telefono": cliente_telefono,
+            "items": carrito,  # Items originales del frontend
+            "items_mp": items_mp,  # Items formateados para MP
+            "estado": "pendiente",
+            "preference_id": preference.get("id"),
+            "external_reference": external_ref,
+            "comprobante_enviado": False,
+            "creado": firestore.SERVER_TIMESTAMP,
+            "actualizado": firestore.SERVER_TIMESTAMP
+        }
+        
+        # Guardar en colección global "ordenes"
+        db.collection("ordenes").document(external_ref).set(orden_doc)
+        print(f"[PAGAR] ✅ Orden guardada en Firestore: {external_ref}")
+        
+        # 8. También guardar en colección del vendedor
+        db.collection("usuarios").document(email_vendedor)\
+          .collection("pedidos").document(external_ref).set({
+              "cliente_nombre": cliente_nombre,
+              "cliente_email": cliente_email,
+              "cliente_telefono": cliente_telefono,
+              "items": carrito,
+              "items_mp": items_mp,
+              "estado": "pendiente",
+              "preference_id": preference.get("id"),
+              "creado": firestore.SERVER_TIMESTAMP
+          })
+        
+        # 9. Devolver respuesta
+        return jsonify({
+            "preference_id": preference.get("id"),
+            "init_point": preference.get("init_point"),
+            "external_reference": external_ref,
+            "message": "Orden creada exitosamente"
+        })
+        
+    except Exception as e:
+        print(f"[PAGAR] ❌ Error interno: {e}")
+        traceback.print_exc()
+        return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
 
 @app.route('/crear-admin', methods=['POST'])
 def crear_admin():
@@ -1788,133 +1801,6 @@ def callback_mp():
         print("[MP-CALLBACK] 💥 Error general en callback_mp:", e)
         import traceback; print(traceback.format_exc())
         return "Error al conectar con Mercado Pago", 500
-
-@app.route('/pagar', methods=['POST'])
-def pagar():
-    print("\n🚀 [PAGAR] Nueva petición recibida")
-
-    if not db:
-        print("[PAGAR] ❌ Firestore no disponible")
-        return jsonify({'error': 'El servicio de base de datos no está disponible (Firestore)'}), 503
-        
-    try:
-        # 1. Recibir y validar datos base
-        data = request.get_json(silent=True) or {}
-        print(f"[PAGAR] Datos recibidos del frontend: {data}")
-
-        carrito = data.get('carrito', [])
-        email_vendedor = data.get('email_vendedor')
-        numero_vendedor = data.get('numero_vendedor')
-
-        if not email_vendedor:
-            print("[PAGAR] ❌ Falta email_vendedor en payload")
-            return jsonify({'error': 'Falta identificar al vendedor'}), 400
-
-        # 2. Obtener Token de Mercado Pago
-        access_token = get_mp_token(email_vendedor)
-        if not access_token or not isinstance(access_token, str):
-            print("[PAGAR] ❌ Token inválido o inexistente para vendedor:", email_vendedor)
-            return jsonify({'error': 'Vendedor sin credenciales MP o credenciales inválidas'}), 400
-
-        sdk = mercadopago.SDK(access_token.strip())
-
-        if not carrito or not isinstance(carrito, list):
-            print("[PAGAR] ❌ Carrito vacío o inválido")
-            return jsonify({'error': 'Carrito vacío o inválido'}), 400
-
-        items_mp = []
-        productos_ref = db.collection("usuarios").document(email_vendedor).collection("productos")
-
-        for item_frontend in carrito:
-            id_base = item_frontend.get('id_base') 
-            try:
-                cantidad = int(item_frontend.get('cantidad', 1))
-                if cantidad <= 0:
-                    raise ValueError("Cantidad inválida")
-            except Exception as e:
-                print(f"[PAGAR] ⚠️ Error en cantidad ({e}), fallback=1")
-                cantidad = 1
-            
-            talle = item_frontend.get('talle', '')
-            
-            if not id_base:
-                print("⚠️ Item inválido o sin id_base. Saltando.")
-                continue 
-
-            prod_doc = productos_ref.document(id_base).get()
-            if prod_doc.exists:
-                prod_real = prod_doc.to_dict()
-                precio_real = float(prod_real.get('precio', 0))
-                if precio_real <= 0:
-                    print(f"⚠️ Producto {id_base} con precio no válido ({precio_real}). Saltando.")
-                    continue
-
-                nombre_real = prod_real.get('nombre', 'Producto Desconocido')
-                items_mp.append({
-                    "id": id_base,
-                    "title": f"{nombre_real}{f' ({talle})' if talle else ''}", 
-                    "description": nombre_real,
-                    "quantity": cantidad,
-                    "unit_price": precio_real,
-                    "currency_id": "ARS"
-                })
-                print(f"[PAGAR] ✅ Item agregado: {id_base}, cantidad={cantidad}, precio={precio_real}")
-            else:
-                print(f"⚠️ Producto con id_base {id_base} no encontrado en BD. Saltando.")
-
-        if not items_mp:
-            print("[PAGAR] ❌ Ningún producto válido en carrito")
-            return jsonify({'error': 'No se pudieron validar productos en el carrito. Todos los ítems son inválidos.'}), 400
-
-        # 4. Preparar Preferencia de Pago
-        external_ref = "pedido_" + datetime.now().strftime("%Y%m%d%H%M%S")
-        url_retorno = data.get('url_retorno', 'https://google.com').split("?")[0] 
-
-        preference_data = {
-            "items": items_mp,
-            "back_urls": {
-                "success": f"{url_retorno}?status=success",
-                "failure": f"{url_retorno}?status=failure",
-                "pending": f"{url_retorno}?status=pending"
-            },
-            "auto_return": "approved",
-            "statement_descriptor": "TuEmprendimiento", 
-            "external_reference": external_ref,
-            "notification_url": url_for('webhook_mp', _external=True),
-            "metadata": {
-                "email_vendedor": email_vendedor,
-                "numero_vendedor": numero_vendedor
-            }
-        }
-        print(f"[PAGAR] 📦 Preference data armado: {preference_data}")
-
-        # 5. Crear Preferencia
-        preference_response = sdk.preference().create(preference_data)
-        preference = preference_response.get("response", {}) or {}
-        print(f"[PAGAR] 📩 Respuesta SDK: {preference}")
-
-        if not preference.get("id"):
-            print(f"[PAGAR] ❌ Error al generar preferencia: {preference_response}")
-            return jsonify({'error': 'No se pudo generar la preferencia de pago en MP'}), 500
-
-        # 6. Guardar la orden inicial en Firestore (colección global)
-        ok = guardar_orden(external_ref, preference.get("id"), items_mp, email_vendedor, numero_vendedor)
-        if not ok:
-            return jsonify({'error': 'No se pudo guardar la orden en Firestore'}), 500
-
-        # 7. Devolver resultado al frontend
-        resultado = {
-            "preference_id": preference.get("id"),
-            "init_point": preference.get("init_point"),
-            "external_reference": external_ref
-        }
-        print(f"[PAGAR] ✅ Respuesta final al frontend: {resultado}")
-        return jsonify(resultado)
-
-    except Exception as e:
-        print(f"[PAGAR] 💥 Error interno: {e}")
-        traceback.print_exc() 
-        return jsonify({'error': 'Error interno al generar el pago', 'message': str(e)}), 500
         
 @app.route("/api/mp_public_key")
 def api_mp_public_key():
