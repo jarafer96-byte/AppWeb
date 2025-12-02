@@ -38,6 +38,15 @@
       max-width: 640px;
       margin: 0 auto 24px;
     }
+    .link-comprobante {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .link-comprobante a {
+      color: #00ff99;
+      text-decoration: none;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body class="container py-4">
@@ -45,11 +54,9 @@
   <!-- Encabezado con datos del cliente -->
   <div class="header text-center">
     <h2 class="text-success mb-3">Nueva venta ✅</h2>
-    <p>Cliente: <span class="fw-bold">{{ cliente_nombre|default('') }}</span></p>
-    <p>Email: <span class="fw-bold">{{ cliente_email|default('') }}</span></p>
-    {% if cliente_telefono %}
-      <p>Teléfono: <span class="fw-bold">{{ cliente_telefono }}</span></p>
-    {% endif %}
+    <p>Cliente: <span class="fw-bold">{{ cliente_nombre|default('Cliente') }}</span></p>
+    <p>Email: <span class="fw-bold">{{ cliente_email|default('sin email') }}</span></p>
+    <p>Teléfono: <span class="fw-bold">{{ cliente_telefono|default('sin teléfono') }}</span></p>
   </div>
 
   <!-- Productos -->
@@ -86,6 +93,11 @@
   <!-- Total -->
   <div class="total text-center">
     Total: ${{ "%.2f"|format(total|default(0)) }}
+  </div>
+
+  <!-- Link al comprobante -->
+  <div class="link-comprobante">
+    📄 Ver comprobante completo: <a href="{{ comprobante_url }}">{{ comprobante_url }}</a>
   </div>
 
 </body>
