@@ -39,7 +39,29 @@ body {
 h1, h2, h3, .btn, .card { font-family: {{ config.fuente | safe }}; }
 
 body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: -1; }
+/* Estilos para el checkout inline */
+#mp-checkout-container {
+    animation: fadeIn 0.3s ease;
+}
 
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Estilos del brick de Mercado Pago */
+.mercadopago-button {
+    background: #009ee3 !important;
+    border-radius: 6px !important;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    #mp-checkout-container > div {
+        width: 95% !important;
+        margin: 10px !important;
+    }
+}
 .fade-reorder { opacity: 0; transform: scale(0.95); transition: opacity 0.3s ease, transform 0.3s ease; }
 
 .fade-reorder.show { opacity: 1; transform: scale(1); }
@@ -480,7 +502,64 @@ const modoAdmin = window.tokenAdminEmail ? true : false;
 if (modoAdmin) {
   document.getElementById("adminCard").classList.remove("d-none");
 }   
+function mostrarMensajeExito(ordenId, total) {
+    // Cerrar checkout modal si está abierto
+    cerrarCheckout();
+    
+    // Mostrar mensaje de éxito
+    const modalHTML = `
+        <div id="modalExito" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        ">
+            <div style="
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                max-width: 500px;
+                text-align: center;
+                animation: slideIn 0.3s ease;
+            ">
+                <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+                <h2 style="color: #28a745; margin-bottom: 15px;">¡Pago Exitoso!</h2>
+                <p>Tu pedido <strong>#${ordenId}</strong> ha sido procesado.</p>
+                <p style="font-size: 20px; font-weight: bold; margin: 15px 0;">
+                    Total: <span style="color: #28a745;">$${total.toFixed(2)}</span>
+                </p>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Recibirás un email de confirmación con los detalles.
+                </p>
+                <button onclick="cerrarModalExito()" style="
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    padding: 12px 30px;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    cursor: pointer;
+                    font-weight: bold;
+                ">
+                    Continuar comprando
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
 
+function cerrarModalExito() {
+    const modal = document.getElementById('modalExito');
+    if (modal) modal.remove();
+}
 // ========== FUNCIONES NUEVAS PARA EL CARRITO ==========
 
 // 1. Mostrar formulario de datos del cliente (NUEVA)
@@ -532,7 +611,6 @@ function ocultarFormulario() {
     }
 }
 
-// 3. Procesar pago completo (NUEVA)
 async function pagarTodoJunto() {
     console.log("🛒 Iniciando proceso de pago...");
     
@@ -570,16 +648,10 @@ async function pagarTodoJunto() {
         return;
     }
     
-    // 4. Generar un ID único para esta orden
-    const orden_id = 'ORD_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
-    // 5. Función para convertir precio a número
+    // 4. Función para convertir precio a número
     function convertirPrecio(precio) {
-        if (typeof precio === 'number') {
-            return precio;
-        }
+        if (typeof precio === 'number') return precio;
         if (typeof precio === 'string') {
-            // Remover símbolo $, comas y espacios
             const limpio = precio.replace(/[$\s,]/g, '').trim();
             const num = parseFloat(limpio);
             return isNaN(num) ? 0 : num;
@@ -587,34 +659,23 @@ async function pagarTodoJunto() {
         return 0;
     }
     
-    // 6. Función para convertir cantidad a número
+    // 5. Función para convertir cantidad a número
     function convertirCantidad(cantidad) {
         const num = parseInt(cantidad);
         return isNaN(num) || num < 1 ? 1 : num;
     }
     
-    // 7. Preparar el payload para el backend
-    const itemsMP = []; // Para Mercado Pago
-    const itemsCarrito = []; // Para Firestore
-    
+    // 6. Preparar datos para el backend
+    const itemsCarrito = [];
+    const itemsMP = [];
     let totalCalculado = 0;
     
     carrito.forEach(item => {
-        // Convertir precios y cantidades
         const precio = convertirPrecio(item.precio);
         const cantidad = convertirCantidad(item.cantidad);
         const subtotal = precio * cantidad;
         totalCalculado += subtotal;
         
-        // Item para Mercado Pago
-        itemsMP.push({
-            title: item.nombre + (item.talle ? ` (${item.talle})` : ""),
-            quantity: cantidad,
-            unit_price: precio,
-            currency_id: "ARS"
-        });
-        
-        // Item para Firestore (formato completo)
         itemsCarrito.push({
             nombre: item.nombre,
             precio: precio,
@@ -622,41 +683,42 @@ async function pagarTodoJunto() {
             talle: item.talle || "",
             id_base: item.id_base || "",
             grupo: item.grupo || "",
-            subgrupo: item.subgrupo || "",
-            subtotal: subtotal
+            subgrupo: item.subgrupo || ""
+        });
+        
+        itemsMP.push({
+            title: item.nombre + (item.talle ? ` (${item.talle})` : ""),
+            quantity: cantidad,
+            unit_price: precio,
+            currency_id: "ARS"
         });
     });
     
+    const orden_id = 'ORD_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
     const payload = {
         email_vendedor: window.email || "ferj.9622@gmail.com",
-        carrito: itemsCarrito,  // Enviar carrito completo con precios convertidos
-        items_mp: itemsMP,      // Enviar también items formateados para MP
+        carrito: itemsCarrito,
+        items_mp: itemsMP,
         total: totalCalculado,
         cliente_nombre: `${nombre} ${apellido}`.trim(),
         cliente_email: emailCliente,
         cliente_telefono: telefono,
         orden_id: orden_id,
-        url_retorno: window.location.href
+        checkout_mode: "inline"  // 👈 Nuevo: indicar que queremos checkout inline
     };
     
     console.log("📦 Payload para el pago:", payload);
-    console.log("💰 Total calculado:", totalCalculado);
-    console.log("🛒 Items procesados:", itemsCarrito.length);
-    
-    // Debug: mostrar precios convertidos
-    itemsCarrito.forEach((item, idx) => {
-        console.log(`  ${idx+1}. ${item.nombre}: $${item.precio} x ${item.cantidad} = $${item.subtotal}`);
-    });
     
     try {
         // Mostrar indicador de carga
         const btnPagarFinal = document.getElementById('btnPagarFinal');
         if (btnPagarFinal) {
             btnPagarFinal.disabled = true;
-            btnPagarFinal.textContent = 'Procesando...';
+            btnPagarFinal.textContent = 'Creando pago...';
         }
         
-        // 8. Enviar al backend para crear la preferencia de pago
+        // 7. Enviar al backend
         const response = await fetch(`${URL_BACKEND}/pagar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -671,12 +733,15 @@ async function pagarTodoJunto() {
         const data = await response.json();
         console.log("✅ Respuesta del backend:", data);
         
-        // 9. Manejar la respuesta
+        // 8. Manejar la respuesta
         if (data.error) {
             alert("❌ Error: " + data.error);
-        } else if (data.init_point) {
-            // Guardar el ID de la orden en localStorage para referencia
-            localStorage.setItem('ultima_orden_id', orden_id);
+        } else if (data.preference_id) {
+            // 👇 USAR CHECKOUT INLINE/FLOTANTE
+            iniciarCheckoutInline(data.preference_id, data.external_reference, totalCalculado);
+            
+            // Guardar datos en localStorage para referencia
+            localStorage.setItem('ultima_orden_id', data.external_reference);
             localStorage.setItem('ultima_orden_data', JSON.stringify({
                 fecha: new Date().toISOString(),
                 items: carrito.length,
@@ -684,21 +749,9 @@ async function pagarTodoJunto() {
                 cliente: `${nombre} ${apellido}`,
                 email: emailCliente
             }));
-            
-            // Redirigir a Mercado Pago
-            console.log("➡️ Redirigiendo a Mercado Pago...");
-            window.location.href = data.init_point;
-        } else if (data.preference_id && window.mp) {
-            // Usar SDK de Mercado Pago si está disponible
-            localStorage.setItem('ultima_orden_id', orden_id);
-            
-            window.mp.checkout({
-                preference: { id: data.preference_id },
-                autoOpen: true
-            });
         } else {
-            console.warn("Respuesta inesperada del backend:", data);
-            alert("⚠️ No se pudo procesar el pago. Intenta de nuevo.");
+            console.warn("Respuesta inesperada:", data);
+            alert("⚠️ No se pudo crear el pago. Intenta de nuevo.");
         }
         
     } catch (error) {
@@ -711,6 +764,175 @@ async function pagarTodoJunto() {
             btnPagarFinal.disabled = false;
             btnPagarFinal.textContent = 'Pagar con Mercado Pago';
         }
+    }
+}
+
+// 👇 NUEVA FUNCIÓN PARA CHECKOUT INLINE
+function iniciarCheckoutInline(preferenceId, ordenId, total) {
+    console.log("🎯 Iniciando checkout inline con preference ID:", preferenceId);
+    
+    // Verificar que Mercado Pago SDK esté cargado
+    if (!window.mp) {
+        console.error("❌ Mercado Pago SDK no está cargado");
+        alert("Error: Mercado Pago no está disponible. Recarga la página.");
+        return;
+    }
+    
+    // Crear contenedor para el checkout
+    let checkoutContainer = document.getElementById('mp-checkout-container');
+    
+    if (!checkoutContainer) {
+        checkoutContainer = document.createElement('div');
+        checkoutContainer.id = 'mp-checkout-container';
+        checkoutContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            padding: 20px;
+        `;
+        
+        document.body.appendChild(checkoutContainer);
+    } else {
+        checkoutContainer.innerHTML = '';
+        checkoutContainer.style.display = 'flex';
+    }
+    
+    // Crear contenido del modal
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    `;
+    
+    modalContent.innerHTML = `
+        <div style="padding: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #333;">💳 Pagar con Mercado Pago</h3>
+                <button id="cerrarCheckout" style="
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    cursor: pointer;
+                    color: #666;
+                ">×</button>
+            </div>
+            
+            <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span>Orden:</span>
+                    <strong>#${ordenId}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Total a pagar:</span>
+                    <strong style="color: #28a745; font-size: 20px;">$${total.toFixed(2)}</strong>
+                </div>
+            </div>
+            
+            <div id="mp-checkout-brick"></div>
+            
+            <div style="margin-top: 20px; text-align: center; color: #666; font-size: 14px;">
+                <p>✅ Pago seguro con Mercado Pago</p>
+                <p>🔒 Tus datos están protegidos</p>
+            </div>
+        </div>
+    `;
+    
+    checkoutContainer.appendChild(modalContent);
+    
+    // Configurar botón cerrar
+    document.getElementById('cerrarCheckout').onclick = cerrarCheckout;
+    
+    // Cerrar al hacer clic fuera del modal
+    checkoutContainer.onclick = function(e) {
+        if (e.target === checkoutContainer) {
+            cerrarCheckout();
+        }
+    };
+    
+    // Inicializar el brick de Mercado Pago
+    const bricksBuilder = window.mp.bricks();
+    
+    const renderComponent = async () => {
+        try {
+            await bricksBuilder.create("wallet", "mp-checkout-brick", {
+                initialization: {
+                    preferenceId: preferenceId,
+                },
+                customization: {
+                    texts: {
+                        valueProp: 'smart_option',
+                    },
+                },
+                callbacks: {
+                    onReady: () => {
+                        console.log("✅ Brick de pago listo");
+                    },
+                    onSubmit: (cardFormData) => {
+                        console.log("📤 Datos del formulario enviados:", cardFormData);
+                        // Aquí puedes mostrar un loader
+                    },
+                    onError: (error) => {
+                        console.error("❌ Error en el brick:", error);
+                        alert("Error en el proceso de pago: " + error.message);
+                    },
+                },
+            });
+        } catch (error) {
+            console.error("💥 Error al crear brick:", error);
+            alert("Error al cargar el formulario de pago: " + error.message);
+            cerrarCheckout();
+        }
+    };
+    
+    renderComponent();
+}
+
+// Función para cerrar el checkout
+function cerrarCheckout() {
+    const container = document.getElementById('mp-checkout-container');
+    if (container) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+    }
+}
+
+// 👇 Función para manejar webhook (cuando el pago se complete)
+async function verificarEstadoPago(ordenId) {
+    console.log("🔍 Verificando estado del pago para orden:", ordenId);
+    
+    try {
+        const response = await fetch(`${URL_BACKEND}/verificar-pago/${ordenId}`);
+        const data = await response.json();
+        
+        if (data.estado === 'approved') {
+            // Pago aprobado
+            cerrarCheckout();
+            mostrarMensajeExito(ordenId, data.total);
+            
+            // Limpiar carrito
+            carrito = [];
+            actualizarCarrito();
+            ocultarFormulario();
+        } else if (data.estado === 'rejected') {
+            alert("❌ El pago fue rechazado. Intenta con otro método de pago.");
+        } else if (data.estado === 'pending') {
+            alert("⏳ El pago está pendiente. Te notificaremos cuando se complete.");
+        }
+    } catch (error) {
+        console.error("Error verificando pago:", error);
     }
 }
 
