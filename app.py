@@ -1887,11 +1887,12 @@ def api_mp_public_key():
 def preview():
     print("\n🚀 [Preview] Entrando a /preview")
 
-    # 📧 Obtener email desde query
-    email = request.args.get('email')
-    print(f"[Preview] Email recibido: {email}")
+    # 📧 Obtener email desde query o sesión
+    email = request.args.get('email') or session.get("email")
+    orden_id = request.args.get("orden_id")
+    print(f"[Preview] Email recibido: {email}, orden_id={orden_id}")
     if not email:
-        print("[Preview] ❌ Falta email en query")
+        print("[Preview] ❌ Falta email en query o sesión")
         return "Error: falta email", 400
 
     # 🎨 Config visual desde Firestore
@@ -1935,13 +1936,14 @@ def preview():
     config = {
         **config_data,
         'email': email,
+        'orden_id': orden_id,              # 👈 añadido para trazabilidad del formulario cliente
         'estilo_visual': estilo_visual,
         'mercado_pago': bool(mercado_pago_token),
         'public_key': public_key,
         'productos': productos,
         'usarFirestore': True
     }
-    print(f"[Preview] Config final enviada al template: {config.keys()}")
+    print(f"[Preview] Config final enviada al template: {list(config.keys())}")
 
     # ✅ Renderizar template
     return render_template(
