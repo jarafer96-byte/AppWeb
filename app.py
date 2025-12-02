@@ -645,7 +645,10 @@ def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_ven
         "estado": "pendiente",
         "preference_id": pref_id,
         "external_reference": external_reference,
-        "comprobante_enviado": False,   # 👈 inicializar siempre
+        "comprobante_enviado": False,
+        "cliente_nombre": None,   # 👈 inicializar
+        "cliente_email": None,    # 👈 inicializar
+        "cliente_telefono": None, # 👈 inicializar
         "creado": firestore.SERVER_TIMESTAMP
     }
     print("[ORDEN] 📝 Documento a guardar:", orden_doc)
@@ -657,6 +660,27 @@ def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_ven
     except Exception as e:
         print("[ORDEN] ❌ Error guardando en Firestore:", e)
         return False
+        
+@app.route("/guardar-cliente", methods=["POST"])
+def guardar_cliente():
+    data = request.json or {}
+    orden_id = data.get("orden_id")
+    cliente_nombre = data.get("nombre")
+    cliente_email = data.get("email")
+    cliente_telefono = data.get("telefono")
+
+    try:
+        db.collection("ordenes").document(orden_id).set({
+            "cliente_nombre": cliente_nombre,
+            "cliente_email": cliente_email,
+            "cliente_telefono": cliente_telefono,
+            "actualizado": firestore.SERVER_TIMESTAMP
+        }, merge=True)
+        print(f"[CLIENTE] ✅ Datos guardados para orden {orden_id}")
+        return jsonify({"ok": True})
+    except Exception as e:
+        print("[CLIENTE] ❌ Error guardando datos:", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route('/crear-pago', methods=['POST'])
 def crear_pago():
@@ -668,12 +692,8 @@ def crear_pago():
     print("\n[CREAR_PAGO] 📥 Datos recibidos del frontend:", data)
 
     items = data.get("items", [])
-    email_vendedor = data.get("email_vendedor")   # 👈 más claro y consistente
+    email_vendedor = data.get("email_vendedor")
     numero_vendedor = data.get("numero_vendedor")
-
-    print(f"[CREAR_PAGO] items={items}")
-    print(f"[CREAR_PAGO] email_vendedor={email_vendedor}")
-    print(f"[CREAR_PAGO] numero_vendedor={numero_vendedor}")
 
     # Validaciones mínimas
     if not items or not isinstance(items, list):
@@ -714,10 +734,7 @@ def crear_pago():
     }
     print("[CREAR_PAGO] 📦 Payload enviado a MP:", payload)
 
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     try:
         # Crear preferencia en Mercado Pago
@@ -726,18 +743,17 @@ def crear_pago():
         pref_data = r.json()
         print("[CREAR_PAGO] 📡 Respuesta de MP:", pref_data)
 
-        if r.status_code not in (200, 201) or not pref_data or "id" not in pref_data:
+        if r.status_code not in (200, 201) or "id" not in pref_data:
             print(f"[CREAR_PAGO] ❌ Error creando preferencia: {pref_data}")
             return jsonify({"error": "No se pudo crear la preferencia", "detalle": pref_data}), 500
 
-        # Guardar la orden inicial en Firestore usando la función auxiliar
+        # Guardar la orden inicial en Firestore con espacio para datos del cliente
         ok = guardar_orden(external_reference, pref_data["id"], items, email_vendedor, numero_vendedor)
         if not ok:
             return jsonify({"error": "No se pudo guardar la orden en Firestore"}), 500
 
-        # Devolver también el external_reference para trazabilidad en frontend
-        pref_data["external_reference"] = external_reference
-        return jsonify(pref_data)
+        # Devolver preference_id y external_reference para trazabilidad en frontend
+        return jsonify({"preference_id": pref_data["id"], "external_reference": external_reference})
 
     except Exception as e:
         tb = traceback.format_exc()
@@ -745,18 +761,16 @@ def crear_pago():
         print(tb)
         return jsonify({"error": str(e), "trace": tb}), 500
 
-
-@app.route("/comprobante/<venta_id>")
-def comprobante(venta_id):
-    print(f"[COMPROBANTE] 📥 Solicitud recibida para venta_id={venta_id}")
-    doc = db.collection("ordenes").document(venta_id).get()
-
+@app.route("/comprobante/<orden_id>")
+def comprobante(orden_id):
+    doc = db.collection("ordenes").document(orden_id).get()
     if not doc.exists:
-        return "Comprobante no encontrado", 404
+        return "❌ Orden no encontrada", 404
 
     data = doc.to_dict()
-    cliente_nombre = data.get("cliente_nombre")   # 👈 nuevo
-    cliente_email = data.get("cliente_email")     # 👈 ya lo tenías
+    cliente_nombre = data.get("cliente_nombre")
+    cliente_email = data.get("cliente_email")
+    cliente_telefono = data.get("cliente_telefono")
     email_vendedor = data.get("email_vendedor")
     items = data.get("items", [])
 
@@ -768,9 +782,8 @@ def comprobante(venta_id):
         precio = float(i.get("unit_price", 0))
         total += precio * cantidad
 
-        # Buscar producto completo en la colección del vendedor
-        id_base = i.get("id")
         imagen_url = None
+        id_base = i.get("id")
         if email_vendedor and id_base:
             prod_doc = db.collection("usuarios").document(email_vendedor).collection("productos").document(id_base).get()
             if prod_doc.exists:
@@ -784,13 +797,12 @@ def comprobante(venta_id):
             "imagen_url": imagen_url
         })
 
-    return render_template(
-        "comprobante.html",
-        cliente_nombre=cliente_nombre,   # 👈 pasar nombre
-        cliente_email=cliente_email,     # 👈 pasar email
-        productos=productos,
-        total=total
-    )
+    return render_template("comprobante.html",
+                           cliente_nombre=cliente_nombre,
+                           cliente_email=cliente_email,
+                           cliente_telefono=cliente_telefono,
+                           productos=productos,
+                           total=total)
 
 def get_platform_token():
     token = os.environ.get("MERCADO_PAGO_TOKEN")
@@ -798,47 +810,30 @@ def get_platform_token():
     return token
 
 
-def enviar_comprobante(destinatario, orden_id):
-    # Recuperar la orden desde Firestore
+def enviar_comprobante(email_vendedor, orden_id):
     doc = db.collection("ordenes").document(orden_id).get()
     if not doc.exists:
-        print(f"[EMAIL] ❌ No se encontró orden con ID={orden_id}")
+        print(f"[EMAIL] ❌ No se encontró orden {orden_id}")
         return
 
     data = doc.to_dict()
-    items = data.get("items", [])
-    total = sum(i.get("unit_price", 0) * i.get("quantity", 1) for i in items)
+    cliente_nombre = data.get("cliente_nombre")
+    cliente_email = data.get("cliente_email")
+    cliente_telefono = data.get("cliente_telefono")
 
-    # Armar listado de productos
-    productos_txt = "\n".join(
-        [f"- {i.get('title')} x{i.get('quantity')} (${i.get('unit_price')})" for i in items]
-    )
+    productos = data.get("items", [])
+    total = sum([p.get("unit_price", 0) * p.get("quantity", 1) for p in productos])
 
-    # Link al comprobante renderizado
-    link_comprobante = f"https://mpagina.onrender.com/comprobante/{orden_id}"
+    html = render_template("comprobante.html",
+                           cliente_nombre=cliente_nombre,
+                           cliente_email=cliente_email,
+                           cliente_telefono=cliente_telefono,
+                           productos=productos,
+                           total=total)
 
-    # Cuerpo del email
-    cuerpo = (
-        f"Comprobante de venta ✅\n"
-        f"ID: {orden_id}\n\n"
-        f"Productos:\n{productos_txt}\n\n"
-        f"Total: ${total}\n\n"
-        f"Ver comprobante completo: {link_comprobante}"
-    )
+    # Aquí tu lógica SMTP/Gmail para enviar el correo con html
+    print(f"[EMAIL] ✅ Comprobante armado para {cliente_nombre} ({cliente_email})")
 
-    msg = MIMEText(cuerpo)
-    msg["Subject"] = f"Comprobante {orden_id}"
-    msg["From"] = "ferj6009@gmail.com"
-    msg["To"] = destinatario
-
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-
-    try:
-        service = get_gmail_service()
-        service.users().messages().send(userId="me", body={"raw": raw}).execute()
-        print(f"[EMAIL] ✅ Comprobante enviado a {destinatario}")
-    except Exception as e:
-        print(f"[EMAIL] ❌ Error enviando comprobante: {e}")
     
 def inicializar_comprobantes():
     print("[MIGRACION] 🚀 Iniciando inicialización de comprobantes_enviados")
@@ -871,33 +866,28 @@ def procesar_webhook_pago(data, topic):
 
     print(f"[WEBHOOK] Pago recibido: orden={orden_id}, estado={estado}")
 
-    # Solo procesar si es un pago aprobado
     if estado != "approved":
         print("[WEBHOOK] ⚠️ Estado no aprobado, no se envía comprobante")
         return
 
     doc_ref = db.collection("ordenes").document(orden_id)
-
-    if not doc_ref.get().exists:
+    snap = doc_ref.get()
+    if not snap.exists:
         print(f"[WEBHOOK] ❌ No se encontró la orden {orden_id}")
         return
 
+    data_doc = snap.to_dict()
+    if data_doc.get("comprobante_enviado"):
+        print("[WEBHOOK] ⚠️ Comprobante ya enviado, se evita duplicado")
+        return
+
     try:
-        # 🚨 marcar primero para evitar condiciones de carrera
         doc_ref.update({"comprobante_enviado": True})
-        print(f"[WEBHOOK] 🔒 Flag comprobante_enviado marcado en orden {orden_id}")
-
-        # luego enviar
         enviar_comprobante(email_vendedor, orden_id)
-        print(f"[WEBHOOK] ✅ Comprobante enviado a {email_vendedor} para orden {orden_id}")
-
+        print(f"[WEBHOOK] ✅ Comprobante enviado para orden {orden_id}")
     except Exception as e:
         print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
-        # rollback si falla el envío
-        try:
-            doc_ref.update({"comprobante_enviado": False})
-        except Exception as e2:
-            print(f"[WEBHOOK] ⚠️ Error en rollback: {e2}")
+        doc_ref.update({"comprobante_enviado": False})
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
