@@ -833,132 +833,116 @@ def procesar_webhook(data, topic):
         print(f"[WEBHOOK] ⚠️ Evento desconocido: {topic}")
 
 
-def procesar_webhook_pago(data, topic):
+def procesar_webhook_pago(data):
     orden_id = data.get("external_reference")
     estado = data.get("status")
-    email_vendedor = data.get("metadata", {}).get("email_vendedor")
-
-    print(f"[WEBHOOK] Pago recibido: orden={orden_id}, estado={estado}")
 
     if estado != "approved":
-        print("[WEBHOOK] ⚠️ Estado no aprobado, no se envía comprobante")
         return
 
     doc_ref = db.collection("ordenes").document(orden_id)
     snap = doc_ref.get()
     if not snap.exists:
-        print(f"[WEBHOOK] ❌ No se encontró la orden {orden_id}")
+        print(f"[WEBHOOK] ❌ Orden {orden_id} no encontrada")
         return
 
-    data_doc = snap.to_dict()
-    if data_doc.get("comprobante_enviado"):
-        print("[WEBHOOK] ⚠️ Comprobante ya enviado, se evita duplicado")
+    orden = snap.to_dict() or {}
+    if orden.get("comprobante_enviado"):
+        print(f"[WEBHOOK] ⚠️ Comprobante ya enviado para {orden_id}, no se reenvía")
         return
 
-    try:
-        doc_ref.update({"comprobante_enviado": True})
-        enviar_comprobante(email_vendedor, orden_id)
-        print(f"[WEBHOOK] ✅ Comprobante enviado para orden {orden_id}")
-    except Exception as e:
-        print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
-        doc_ref.update({"comprobante_enviado": False})
+    # 👉 Aquí tu lógica de armado y envío del comprobante por email
 
-# Webhook de Mercado Pago
+    # marcar como enviado
+    doc_ref.update({
+        "comprobante_enviado": True,
+        "actualizado": firestore.SERVER_TIMESTAMP
+    })
+    print(f"[WEBHOOK] ✅ Comprobante enviado para {orden_id}"
+
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
-    event = request.json or {}
-    print("\n[WEBHOOK] 🔔 Evento recibido:", event)
-    log_event("mp_webhook", event)
-
-    topic = event.get("type") or event.get("action") or event.get("topic")
-    payment_id = event.get("data", {}).get("id") or event.get("resource")
-    print(f"[WEBHOOK] topic={topic}, payment_id={payment_id}")
-
     try:
-        if topic == "payment" and payment_id:
-            # Consultar detalle del pago en Mercado Pago
-            resp = requests.get(
-                f"https://api.mercadopago.com/v1/payments/{payment_id}",
-                headers={"Authorization": f"Bearer {os.environ.get('MERCADO_PAGO_TOKEN')}"}
-            )
-            print(f"[WEBHOOK] 📡 Status code MP: {resp.status_code}")
-            detail = resp.json()
-            print("\n[WEBHOOK] 📦 Detalle del pago:", detail)
-            log_event("mp_payment_detail", detail)
+        evento = request.get_json(force=True) or {}
+        print(f"[WEBHOOK] 📥 Evento recibido: {evento}")
 
-            ext_ref = detail.get("external_reference")
-            status = detail.get("status")
-            metadata = detail.get("metadata", {}) or {}
-            pref_id = detail.get("preference_id")
+        # Identificar el tipo de evento
+        topic = evento.get("type") or evento.get("action") or evento.get("topic")
+        payment_id = None
 
-            # 📧 Datos del cliente desde Mercado Pago
-            payer = detail.get("payer", {}) or {}
-            cliente_email = payer.get("email")
-            cliente_nombre = f"{payer.get('first_name', '')} {payer.get('last_name', '')}".strip()
+        # Mercado Pago puede mandar el ID en distintos lugares
+        if "data" in evento and isinstance(evento["data"], dict):
+            payment_id = evento["data"].get("id")
+        if not payment_id and "resource" in evento:
+            # Ejemplo: https://api.mercadopago.com/v1/payments/123456789
+            payment_id = evento["resource"].split("/")[-1]
 
-            print(f"[WEBHOOK] external_reference={ext_ref}")
-            print(f"[WEBHOOK] status={status}")
-            print(f"[WEBHOOK] preference_id={pref_id}")
-            print(f"[WEBHOOK] metadata={metadata}")
-            print(f"[WEBHOOK] cliente_email={cliente_email}")
-            print(f"[WEBHOOK] cliente_nombre={cliente_nombre}")
+        if not payment_id:
+            print("[WEBHOOK] ❌ No se encontró payment_id en el evento")
+            return jsonify({"ok": False, "error": "payment_id faltante"}), 400
 
-            orden_id = ext_ref or pref_id
-            if orden_id:
-                print(f"[WEBHOOK] 🔎 Buscando orden global ordenes/{orden_id}")
-                orden_doc = db.collection("ordenes").document(orden_id).get()
+        # Obtener detalle del pago con el token global
+        access_token = os.getenv("MERCADO_PAGO_TOKEN")
+        headers = {"Authorization": f"Bearer {access_token}"}
+        r = requests.get(f"https://api.mercadopago.com/v1/payments/{payment_id}", headers=headers, timeout=15)
+        detalle = r.json()
+        print(f"[WEBHOOK] 🔎 Detalle del pago: {detalle}")
 
-                if orden_doc.exists:
-                    orden_data = orden_doc.to_dict()
-                    print("[WEBHOOK] ✅ Orden encontrada en Firestore:", orden_data)
+        if r.status_code != 200:
+            print(f"[WEBHOOK] ❌ Error al consultar pago {payment_id}: {r.text}")
+            return jsonify({"ok": False, "error": "No se pudo consultar pago"}), 500
 
-                    email_vendedor = orden_data.get("email_vendedor")
-                    numero_vendedor = orden_data.get("numero_vendedor")
+        estado = detalle.get("status")
+        orden_id = detalle.get("external_reference") or detalle.get("preference_id")
 
-                    # Actualizar estado de la orden con datos del cliente
-                    try:
-                        db.collection("ordenes").document(orden_id).update({
-                            "estado": status,
-                            "cliente_email": cliente_email,
-                            "cliente_nombre": cliente_nombre,
-                            "actualizado": firestore.SERVER_TIMESTAMP
-                        })
-                        print("[WEBHOOK] 🔄 Orden actualizada con estado:", status)
-                    except Exception as e:
-                        print("[WEBHOOK] ❌ Error actualizando orden:", e)
+        if not orden_id:
+            print("[WEBHOOK] ❌ No se encontró external_reference/preference_id en el pago")
+            return jsonify({"ok": False, "error": "orden_id faltante"}), 400
 
-                    # Guardar la venta confirmada en pedidos globales
-                    try:
-                        db.collection("pedidos").document(orden_id).set({
-                            "estado": status,
-                            "precio": detail.get("transaction_amount"),
-                            "items": orden_data.get("items"),
-                            "cliente_email": cliente_email,
-                            "cliente_nombre": cliente_nombre,
-                            "email_vendedor": email_vendedor,
-                            "numero_vendedor": numero_vendedor,
-                            "fecha": firestore.SERVER_TIMESTAMP
-                        }, merge=True)
-                        print("[WEBHOOK] 🛒 Pedido guardado en Firestore")
-                    except Exception as e:
-                        print("[WEBHOOK] ❌ Error guardando pedido:", e)
+        doc_ref = db.collection("ordenes").document(orden_id)
+        snap = doc_ref.get()
+        if not snap.exists:
+            print(f"[WEBHOOK] ❌ Orden {orden_id} no encontrada en Firestore")
+            return jsonify({"ok": False, "error": "orden no encontrada"}), 404
 
-                    # 🚀 Delegar notificación a la función que filtra duplicados
-                    procesar_webhook(detail, topic)
+        orden = snap.to_dict() or {}
 
-                else:
-                    print(f"[WEBHOOK] ❌ No se encontró la orden en Firestore: ordenes/{orden_id}")
+        # ⚠️ Control para evitar duplicados
+        if orden.get("comprobante_enviado"):
+            print(f"[WEBHOOK] ⚠️ Comprobante ya enviado para orden {orden_id}, no se reenvía")
+            return jsonify({"ok": True, "msg": "comprobante ya enviado"})
+
+        if estado == "approved":
+            # Actualizar estado y marcar comprobante enviado
+            doc_ref.update({
+                "estado": "approved",
+                "comprobante_enviado": True,
+                "actualizado": firestore.SERVER_TIMESTAMP
+            })
+            print(f"[WEBHOOK] ✅ Orden {orden_id} aprobada y comprobante marcado como enviado")
+
+            # 👉 Aquí llamás a tu función enviar_comprobante
+            try:
+                enviar_comprobante(destinatario=orden.get("cliente_email"), orden_id=orden_id)
+                print(f"[WEBHOOK] 📧 Comprobante enviado a {orden.get('cliente_email')}")
+            except Exception as e:
+                print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
 
         else:
-            print("[WEBHOOK] ⚠️ Evento ignorado, no es payment válido")
+            # Actualizar estado sin enviar comprobante
+            doc_ref.update({
+                "estado": estado,
+                "actualizado": firestore.SERVER_TIMESTAMP
+            })
+            print(f"[WEBHOOK] ℹ️ Orden {orden_id} actualizada a estado={estado}")
+
+        return jsonify({"ok": True})
 
     except Exception as e:
         tb = traceback.format_exc()
-        print("[WEBHOOK] 💥 Error inesperado:", e)
+        print("[WEBHOOK] 💥 Error general en webhook_mp:", e)
         print(tb)
-        log_event("mp_webhook_error", str(e))
-
-    return "OK", 200
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route('/crear-admin', methods=['POST'])
 def crear_admin():
