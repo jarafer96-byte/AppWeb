@@ -815,14 +815,14 @@ def enviar_comprobante(email_vendedor, orden_id):
     msg = MIMEText(html, "html")
     msg["Subject"] = f"Comprobante de compra #{orden_id}"
     msg["From"] = "ferj6009@gmail.com"  # remitente configurado
-    msg["To"] = cliente_email
+    msg["To"] =  email_vendedor
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
     try:
         service = get_gmail_service()
         service.users().messages().send(userId="me", body={"raw": raw}).execute()
-        print(f"[EMAIL] ✅ Comprobante enviado a {cliente_email}")
+        print(f"[EMAIL] ✅ Comprobante enviado a {email_vendedor}")
 
         # Marcar como enviado en Firestore
         doc_ref.update({
