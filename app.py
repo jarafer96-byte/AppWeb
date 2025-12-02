@@ -661,7 +661,36 @@ def guardar_orden(external_reference, pref_id, items, email_vendedor, numero_ven
     except Exception as e:
         print("[ORDEN] ❌ Error guardando en Firestore:", e)
         return False
-        
+
+@app.route("/preorden", methods=["POST"])
+def preorden():
+    data = request.get_json(force=True) or {}
+    email_vendedor = data.get("email_vendedor")
+    numero_vendedor = data.get("numero_vendedor")
+    items = data.get("items", [])
+
+    # Generar un ID único y estable para toda la compra
+    external_reference = f"pedido_{int(time.time())}_{shortuuid.uuid()[:6]}"
+
+    # Crear documento base en Firestore
+    db.collection("ordenes").document(external_reference).set({
+        "email_vendedor": email_vendedor,
+        "numero_vendedor": numero_vendedor,
+        "items": items,
+        "estado": "pendiente",
+        "external_reference": external_reference,
+        "preference_id": None,
+        "comprobante_enviado": False,
+        "cliente_nombre": None,
+        "cliente_email": None,
+        "cliente_telefono": None,
+        "creado": firestore.SERVER_TIMESTAMP
+    }, merge=True)
+
+    print(f"[PREORDEN] ✅ Orden creada con ID {external_reference}")
+
+    return jsonify({"external_reference": external_reference})
+
 @app.route("/guardar-cliente", methods=["POST"])
 def guardar_cliente():
     data = request.json or {}
