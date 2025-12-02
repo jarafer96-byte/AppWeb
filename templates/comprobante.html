@@ -3,50 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <title>Comprobante de venta</title>
-  <!-- Bootstrap Dark Theme -->
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      background-color: #121212; /* fondo oscuro */
-      color: #ffffff;            /* texto claro */
+      background-color: #121212;
+      color: #ffffff;
     }
     .card {
-      background-color: #1e1e1e; /* cards más claras que el fondo */
+      background-color: #1e1e1e;
       border: 1px solid #333;
-      max-width: 320px;          /* cards más chicas */
+      max-width: 320px;
       margin: auto;
     }
     .card img {
-      max-width: 300px;          /* limitar ancho */
-      max-height: 180px;         /* limitar alto */
-      object-fit: contain;       /* mantiene proporción y permite transparencias */
+      max-width: 300px;
+      max-height: 180px;
+      object-fit: contain;
       background-color: transparent;
       border-radius: 4px;
     }
-    .card-body {
-      color: #ffffff;            /* forzar texto blanco */
-    }
-    .card-title {
-      color: #ffffff;            /* título blanco */
-    }
+    .card-body,
+    .card-title,
     .card-text {
-      color: #ffffff;            /* texto blanco */
+      color: #ffffff;
     }
     .total {
       font-size: 20px;
       font-weight: bold;
       margin-top: 20px;
-      color: #00ff99; /* verde para destacar el total */
+      color: #00ff99;
+    }
+    .header {
+      max-width: 640px;
+      margin: 0 auto 24px;
     }
   </style>
 </head>
 <body class="container py-4">
 
   <!-- Encabezado con datos del cliente -->
-  <div class="mb-4 text-center">
-    <h2 class="text-success">Nueva venta ✅</h2>
-    <p>Cliente: <span class="fw-bold">{{ cliente_nombre }}</span></p>
-    <p>Email: <span class="fw-bold">{{ cliente_email }}</span></p>
+  <div class="header text-center">
+    <h2 class="text-success mb-3">Nueva venta ✅</h2>
+    <p>Cliente: <span class="fw-bold">{{ cliente_nombre|default('') }}</span></p>
+    <p>Email: <span class="fw-bold">{{ cliente_email|default('') }}</span></p>
     {% if cliente_telefono %}
       <p>Teléfono: <span class="fw-bold">{{ cliente_telefono }}</span></p>
     {% endif %}
@@ -55,21 +55,26 @@
   <!-- Productos -->
   <div class="row justify-content-center">
     {% for p in productos %}
+      {% set precio = p.unit_price|default(0) %}
+      {% set cantidad = p.quantity|default(1) %}
+      {% set subtotal = precio * cantidad %}
       <div class="col-md-4 mb-4">
         <div class="card h-100 shadow-sm">
           <div class="row g-0">
             <div class="col-12 text-center">
               {% if p.imagen_url %}
-                <img src="{{ p.imagen_url }}" class="img-fluid rounded-start" alt="{{ p.title }}">
+                <img src="{{ p.imagen_url }}" alt="{{ p.title|default('Producto') }}">
               {% endif %}
             </div>
             <div class="col-12">
               <div class="card-body">
-                <h5 class="card-title">{{ p.title }}</h5>
-                {% if p.talle %}<p class="card-text">Talle: {{ p.talle }}</p>{% endif %}
-                <p class="card-text">Precio: ${{ p.unit_price }}</p>
-                <p class="card-text">Cantidad: {{ p.quantity }}</p>
-                <p class="card-text"><strong>Subtotal: ${{ p.unit_price * p.quantity }}</strong></p>
+                <h5 class="card-title">{{ p.title|default('Producto') }}</h5>
+                {% if p.talle %}
+                  <p class="card-text">Talle: {{ p.talle }}</p>
+                {% endif %}
+                <p class="card-text">Precio: ${{ "%.2f"|format(precio) }}</p>
+                <p class="card-text">Cantidad: {{ cantidad }}</p>
+                <p class="card-text"><strong>Subtotal: ${{ "%.2f"|format(subtotal) }}</strong></p>
               </div>
             </div>
           </div>
@@ -80,7 +85,7 @@
 
   <!-- Total -->
   <div class="total text-center">
-    Total: ${{ total }}
+    Total: ${{ "%.2f"|format(total|default(0)) }}
   </div>
 
 </body>
