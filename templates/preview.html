@@ -1733,15 +1733,46 @@ function renderProducto(p) {
     
 // 👉 Función que arma el array de items reales desde el carrito
 function obtenerCarrito() {
-  return carrito.map(item => ({
-    title: item.nombre + (item.talle ? ` (${item.talle})` : ""),
-    quantity: item.cantidad,
-    unit_price: item.precio,
-    id_base: item.id_base,
-    grupo: item.grupo,
-    subgrupo: item.subgrupo
-  }));
-}    
+  console.log("🛒 [obtenerCarrito] Mapeando carrito a formato MP:");
+  
+  return carrito.map(item => {
+    // Debug: mostrar qué datos tenemos
+    console.log("  - Item original:", item);
+    
+    // Asegurar que precio sea número
+    let precio = item.precio;
+    if (typeof precio === 'string') {
+      // Remover símbolo $ y comas, convertir a float
+      precio = parseFloat(precio.replace(/[$,]/g, '').trim());
+      console.log(`  - Precio convertido de "${item.precio}" a ${precio}`);
+    } else if (typeof precio === 'number') {
+      console.log(`  - Precio ya es número: ${precio}`);
+    } else {
+      precio = 0;
+      console.warn(`  - ⚠️ Precio no válido: ${precio}, usando 0`);
+    }
+    
+    // Asegurar que cantidad sea número
+    let cantidad = parseInt(item.cantidad) || 1;
+    
+    const itemFormateado = {
+      title: item.nombre + (item.talle ? ` (${item.talle})` : ""),
+      quantity: cantidad,
+      unit_price: precio,
+      id_base: item.id_base,
+      grupo: item.grupo || "",
+      subgrupo: item.subgrupo || "",
+      // 👇 MANTENER también los campos originales para Firestore
+      nombre: item.nombre,
+      precio: precio,  // precio convertido a número
+      cantidad: cantidad,
+      talle: item.talle || ""
+    };
+    
+    console.log("  - Item formateado para MP:", itemFormateado);
+    return itemFormateado;
+  });
+}
     
 function ajustarPosicionesPaneles() {
   const panelGrupos = document.getElementById('panelGrupos');
