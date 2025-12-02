@@ -629,21 +629,40 @@ def get_mp_token(email: str):
 
     return None
 
-@app.route('/success')
-def pago_success():
-    return "✅ Pago aprobado correctamente. ¡Gracias por tu compra!"
-
-@app.route('/failure')
-def failure():
+# 👇 Endpoints especiales para checkout inline
+@app.route('/success_inline')
+def success_inline():
+    """Endpoint para cuando se completa un pago en modo inline"""
     orden_id = request.args.get('orden_id')
-    print(f"[FAILURE] ❌ Pago fallido para orden: {orden_id}")
-    return redirect("/?pago_fallido=true")
+    vendedor_email = request.args.get('vendedor')
+    
+    print(f"[SUCCESS_INLINE] ✅ Pago completado en modo inline:")
+    print(f"  - Orden: {orden_id}")
+    print(f"  - Vendedor: {vendedor_email}")
+    
+    # Enviar comprobante en background
+    if vendedor_email and orden_id:
+        import threading
+        thread = threading.Thread(
+            target=enviar_comprobante,
+            args=(vendedor_email, orden_id)
+        )
+        thread.start()
+    
+    # Mostrar página de éxito simple
+    return render_template('success_inline.html', orden_id=orden_id)
 
-@app.route('/pending')
-def pending():
+@app.route('/failure_inline')
+def failure_inline():
     orden_id = request.args.get('orden_id')
-    print(f"[PENDING] ⏳ Pago pendiente para orden: {orden_id}")
-    return redirect("/?pago_pendiente=true")
+    print(f"[FAILURE_INLINE] ❌ Pago fallido en modo inline: {orden_id}")
+    return "<h2>❌ El pago no pudo ser procesado</h2><p>Intenta con otro método de pago.</p>"
+
+@app.route('/pending_inline')
+def pending_inline():
+    orden_id = request.args.get('orden_id')
+    print(f"[PENDING_INLINE] ⏳ Pago pendiente en modo inline: {orden_id}")
+    return "<h2>⏳ Pago pendiente</h2><p>Tu pago está siendo procesado.</p>"
     
 def log_event(tag, data):
     print(f"[{tag}] {data}")
@@ -1021,7 +1040,7 @@ def webhook_mp():
 
 @app.route('/pagar', methods=['POST'])
 def pagar():
-    print("\n🚀 [PAGAR UNIFICADO] Nueva petición recibida")
+    print("\n🚀 [PAGAR] Nueva petición recibida")
     
     if not db:
         return jsonify({'error': 'Firestore no disponible'}), 503
@@ -1031,7 +1050,7 @@ def pagar():
         print(f"[PAGAR] Datos recibidos: {json.dumps(data, indent=2)}")
         
         # 1. Recibir TODOS los datos del frontend
-        carrito = data.get('carrito', [])  # Cambiar de 'items' a 'carrito'
+        carrito = data.get('carrito', [])
         items_mp = data.get('items_mp', [])
         email_vendedor = data.get('email_vendedor')
         numero_vendedor = data.get('numero_vendedor', '')
@@ -1040,14 +1059,13 @@ def pagar():
         cliente_telefono = data.get('cliente_telefono', '')
         orden_id = data.get('orden_id')
         total_recibido = data.get('total', 0)
+        checkout_mode = data.get('checkout_mode', 'redirect')  # 'inline' o 'redirect'
+        url_retorno = data.get('url_retorno', '')  # URL de la tienda para redirect
         
         print(f"[PAGAR] 📊 Resumen de datos:")
         print(f"  - Email vendedor: {email_vendedor}")
-        print(f"  - Cliente: {cliente_nombre}")
-        print(f"  - Carrito recibido: {len(carrito)} items")
-        print(f"  - Items_MP recibido: {len(items_mp)} items")
-        print(f"  - Total recibido: ${total_recibido}")
-        print(f"  - Orden ID recibido: {orden_id}")
+        print(f"  - Checkout mode: {checkout_mode}")
+        print(f"  - URL retorno: {url_retorno}")
         
         if not email_vendedor:
             return jsonify({'error': 'Falta email del vendedor'}), 400
@@ -1121,33 +1139,99 @@ def pagar():
         
         # 5. Calcular total
         total_calculado = sum(item.get('unit_price', 0) * item.get('quantity', 1) for item in items_para_mp)
-        print(f"[PAGAR] 💰 Total calculado: ${total_calculado:.2f}")
-        print(f"[PAGAR] 💰 Total recibido: ${total_recibido}")
-        
-        # Usar el mayor entre el calculado y el recibido
         total_final = max(total_calculado, float(total_recibido or 0))
-        print(f"[PAGAR] 💰 Total final a usar: ${total_final:.2f}")
+        print(f"[PAGAR] 💰 Total final: ${total_final:.2f}")
         
-        # 6. Crear preferencia con el MISMO external_reference
+        # 6. Crear preferencia según el modo
         base_url = "https://mpagina.onrender.com"
-        preference_data = {
-            "items": items_para_mp,
-            "back_urls": {
-                "success": f"{base_url}/success?orden_id={external_ref}",
-                "failure": f"{base_url}/failure?orden_id={external_ref}",
-                "pending": f"{base_url}/pending?orden_id={external_ref}"
-            },
-            "auto_return": "approved",
-            "external_reference": external_ref,  # 👈 MISMO ID QUE SE GUARDARÁ
-            "notification_url": f"{base_url}/webhook_mp",
-            "metadata": {
-                "email_vendedor": email_vendedor,
-                "numero_vendedor": numero_vendedor,
-                "cliente_nombre": cliente_nombre,
-                "cliente_email": cliente_email,
-                "cliente_telefono": cliente_telefono
+        
+        if checkout_mode == 'inline':
+            print(f"[PAGAR] 🎯 Modo INLINE - Creando preferencia para checkout flotante")
+            
+            # Para inline, podemos usar back_urls más simples o un success page intermedio
+            if url_retorno:
+                # Construir URLs de retorno dinámicas
+                success_url = f"{base_url}/success_inline?orden_id={external_ref}&vendedor={email_vendedor}"
+                failure_url = f"{base_url}/failure_inline?orden_id={external_ref}&vendedor={email_vendedor}"
+                pending_url = f"{base_url}/pending_inline?orden_id={external_ref}&vendedor={email_vendedor}"
+            else:
+                # URLs por defecto
+                success_url = f"{base_url}/success_inline?orden_id={external_ref}"
+                failure_url = f"{base_url}/failure_inline?orden_id={external_ref}"
+                pending_url = f"{base_url}/pending_inline?orden_id={external_ref}"
+            
+            preference_data = {
+                "items": items_para_mp,
+                "back_urls": {
+                    "success": success_url,
+                    "failure": failure_url,
+                    "pending": pending_url
+                },
+                "auto_return": "approved",
+                "external_reference": external_ref,
+                "notification_url": f"{base_url}/webhook_mp",
+                "metadata": {
+                    "email_vendedor": email_vendedor,
+                    "numero_vendedor": numero_vendedor,
+                    "cliente_nombre": cliente_nombre,
+                    "cliente_email": cliente_email,
+                    "cliente_telefono": cliente_telefono,
+                    "checkout_mode": "inline",
+                    "url_tienda": url_retorno
+                }
             }
-        }
+        else:
+            # Modo redirect (comportamiento original)
+            print(f"[PAGAR] 🔀 Modo REDIRECT - Creando preferencia con redirección")
+            
+            if url_retorno:
+                # Extraer parámetros de la URL de retorno para mantenerlos
+                from urllib.parse import urlparse, parse_qs
+                parsed = urlparse(url_retorno)
+                base_tienda_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+                
+                # Agregar parámetros existentes más los nuevos
+                params = parse_qs(parsed.query)
+                params['pago_exitoso'] = ['true']
+                params['orden_id'] = [external_ref]
+                
+                # Reconstruir query string
+                from urllib.parse import urlencode
+                query_string = urlencode(params, doseq=True)
+                redirect_success = f"{base_tienda_url}?{query_string}"
+                
+                print(f"[PAGAR] 🌐 URL de retorno personalizada: {redirect_success}")
+                
+                # Usar nuestro endpoint de success que redirigirá a la tienda
+                success_url = f"{base_url}/success?orden_id={external_ref}&url_retorno={redirect_success}"
+                failure_url = f"{base_url}/failure?orden_id={external_ref}&url_retorno={redirect_success}"
+                pending_url = f"{base_url}/pending?orden_id={external_ref}&url_retorno={redirect_success}"
+            else:
+                # URLs por defecto
+                success_url = f"{base_url}/success?orden_id={external_ref}"
+                failure_url = f"{base_url}/failure?orden_id={external_ref}"
+                pending_url = f"{base_url}/pending?orden_id={external_ref}"
+            
+            preference_data = {
+                "items": items_para_mp,
+                "back_urls": {
+                    "success": success_url,
+                    "failure": failure_url,
+                    "pending": pending_url
+                },
+                "auto_return": "approved",
+                "external_reference": external_ref,
+                "notification_url": f"{base_url}/webhook_mp",
+                "metadata": {
+                    "email_vendedor": email_vendedor,
+                    "numero_vendedor": numero_vendedor,
+                    "cliente_nombre": cliente_nombre,
+                    "cliente_email": cliente_email,
+                    "cliente_telefono": cliente_telefono,
+                    "checkout_mode": "redirect",
+                    "url_tienda": url_retorno
+                }
+            }
         
         print(f"[PAGAR] 📦 Enviando preferencia a Mercado Pago...")
         
@@ -1162,16 +1246,18 @@ def pagar():
         print(f"[PAGAR] ✅ Preferencia creada: ID={preference.get('id')}")
         print(f"[PAGAR] ✅ Punto de inicio: {preference.get('init_point')[:100]}...")
         
-        # 8. GUARDAR TODO EN UN SOLO DOCUMENTO CON DATOS COMPLETOS
+        # 8. GUARDAR TODO EN UN SOLO DOCUMENTO
         orden_doc = {
             "email_vendedor": email_vendedor,
             "numero_vendedor": numero_vendedor,
             "cliente_nombre": cliente_nombre,
             "cliente_email": cliente_email,
             "cliente_telefono": cliente_telefono,
-            "carrito": carrito,  # Items originales del frontend
-            "items_mp": items_para_mp,  # Items formateados para MP
-            "items": items_para_mp,  # Duplicado para compatibilidad
+            "url_tienda": url_retorno,
+            "checkout_mode": checkout_mode,
+            "carrito": carrito,
+            "items_mp": items_para_mp,
+            "items": items_para_mp,
             "total": total_final,
             "estado": "pendiente",
             "preference_id": preference.get("id"),
@@ -1183,16 +1269,11 @@ def pagar():
                 "cliente": cliente_nombre,
                 "email_cliente": cliente_email,
                 "telefono_cliente": cliente_telefono,
-                "total_items": len(items_para_mp)
+                "total_items": len(items_para_mp),
+                "url_tienda": url_retorno,
+                "checkout_mode": checkout_mode
             }
         }
-        
-        # Debug: mostrar qué se va a guardar
-        print(f"[PAGAR] 💾 Guardando en Firestore:")
-        print(f"  - Documento: {external_ref}")
-        print(f"  - Items en carrito: {len(carrito)}")
-        print(f"  - Items en items_mp: {len(items_para_mp)}")
-        print(f"  - Total: ${total_final}")
         
         # Guardar en colección global "ordenes"
         db.collection("ordenes").document(external_ref).set(orden_doc)
@@ -1210,23 +1291,25 @@ def pagar():
               "estado": "pendiente",
               "preference_id": preference.get("id"),
               "external_reference": external_ref,
+              "checkout_mode": checkout_mode,
               "fecha_creacion": firestore.SERVER_TIMESTAMP,
               "comprobante_enviado": False
           })
         print(f"[PAGAR] ✅ Orden guardada en subcolección del vendedor")
         
-        # 10. Devolver respuesta con TODOS los datos necesarios
+        # 10. Devolver respuesta según el modo
         response_data = {
             "preference_id": preference.get("id"),
             "init_point": preference.get("init_point"),
             "external_reference": external_ref,
             "orden_id": external_ref,
             "total": total_final,
-            "message": "Orden creada exitosamente",
+            "checkout_mode": checkout_mode,
+            "message": "Preferencia creada exitosamente",
             "detalle": f"Procesados {len(items_para_mp)} productos"
         }
         
-        print(f"[PAGAR] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
+        print(f"[PAGAR] 📤 Enviando respuesta: {response_data}")
         
         return jsonify(response_data)
         
