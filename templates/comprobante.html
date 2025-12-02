@@ -42,19 +42,26 @@
 </head>
 <body class="container py-4">
 
+  <!-- Encabezado con datos del cliente -->
   <div class="mb-4 text-center">
     <h2 class="text-success">Nueva venta ✅</h2>
     <p>Cliente: <span class="fw-bold">{{ cliente_nombre }}</span></p>
     <p>Email: <span class="fw-bold">{{ cliente_email }}</span></p>
+    {% if cliente_telefono %}
+      <p>Teléfono: <span class="fw-bold">{{ cliente_telefono }}</span></p>
+    {% endif %}
   </div>
 
+  <!-- Productos -->
   <div class="row justify-content-center">
     {% for p in productos %}
       <div class="col-md-4 mb-4">
         <div class="card h-100 shadow-sm">
           <div class="row g-0">
             <div class="col-12 text-center">
-              <img src="{{ p.imagen_url }}" class="img-fluid rounded-start" alt="{{ p.title }}">
+              {% if p.imagen_url %}
+                <img src="{{ p.imagen_url }}" class="img-fluid rounded-start" alt="{{ p.title }}">
+              {% endif %}
             </div>
             <div class="col-12">
               <div class="card-body">
@@ -71,6 +78,7 @@
     {% endfor %}
   </div>
 
+  <!-- Total -->
   <div class="total text-center">
     Total: ${{ total }}
   </div>
