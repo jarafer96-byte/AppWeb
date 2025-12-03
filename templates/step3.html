@@ -546,9 +546,9 @@ function leerArchivoProductos() {
         productos.push(`${base}${i}`);
       }
     }
-    // Caso 3: sin producto pero con cantidad → usar grupo/subgrupo como base
+    // Caso 3: sin producto pero con cantidad → usar grupo como base
     else if (productos.length === 0 && cantidad > 0) {
-      const base = subgrupo || grupo || "Genérico";
+      const base = grupo || "Genérico";   // ⚠️ corregido: ya no usa subgrupo
       productos = [];
       for (let i = 1; i <= cantidad; i++) {
         productos.push(`${base}${i}`);
