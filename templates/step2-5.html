@@ -104,61 +104,26 @@
       <a href="/contenido" class="btn-gradient">Continuar</a>
     </div>
 
-<div class="mt-4 card">
-  <h4>Ejemplo de salida en Excel (según lo que completes)</h4>
-
-  <!-- Caso 1 -->
-  <h5 class="mt-3">Caso 1: Producto único + Filas=2</h5>
-  <p><em>Entrada:</em> Grupo=Ropa Mujer, Subgrupo=Pantalones, Producto=Pantalón, Filas=2</p>
-  <table class="table table-dark table-striped">
-    <thead><tr><th>Grupo</th><th>Subgrupo</th><th>Producto</th></tr></thead>
-    <tbody>
-      <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalón1</td></tr>
-      <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalón2</td></tr>
-    </tbody>
-  </table>
-
-  <!-- Caso 2 -->
-  <h5 class="mt-3">Caso 2: Grupo sin subgrupo</h5>
-  <p><em>Entrada:</em> Grupo=Mochilas, Producto=Mochila, Filas=2</p>
-  <table class="table table-dark table-striped">
-    <tbody>
-      <tr><td>Mochilas</td><td>(vacío)</td><td>Mochila1</td></tr>
-      <tr><td>Mochilas</td><td>(vacío)</td><td>Mochila2</td></tr>
-    </tbody>
-  </table>
-
-  <!-- Caso 3 -->
-  <h5 class="mt-3">Caso 3: Lista explícita de productos</h5>
-  <p><em>Entrada:</em> Grupo=Mochilas, Subgrupo=Niños, Producto=Mochila,Mochila2,Mochila3, Filas=5</p>
-  <table class="table table-dark table-striped">
-    <tbody>
-      <tr><td>Mochilas</td><td>Niños</td><td>Mochila</td></tr>
-      <tr><td>Mochilas</td><td>Niños</td><td>Mochila2</td></tr>
-      <tr><td>Mochilas</td><td>Niños</td><td>Mochila3</td></tr>
-    </tbody>
-  </table>
-
-  <!-- Caso 4 -->
-  <h5 class="mt-3">Caso 4: Genérico</h5>
-  <p><em>Entrada:</em> Producto vacío, Filas=1</p>
-  <table class="table table-dark table-striped">
-    <tbody>
-      <tr><td>(vacío)</td><td>(vacío)</td><td>Genérico1</td></tr>
-    </tbody>
-  </table>
-
-  <!-- Caso 5 -->
-  <h5 class="mt-3">Caso 5: Con talles</h5>
-  <p><em>Entrada:</em> Grupo=Ropa Hombre, Subgrupo=Remeras, Producto=Remera, Filas=1, Talles=S,M,L</p>
-  <table class="table table-dark table-striped">
-    <tbody>
-      <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remera (S)</td></tr>
-      <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remera (M)</td></tr>
-      <tr><td>Ropa Hombre</td><td>Remeras</td><td>Remera (L)</td></tr>
-    </tbody>
-  </table>
-</div>
+   <!-- Muestra de cómo funcionaría -->
+    <div class="mt-4 card">
+      <h4>Ejemplo de salida en Excel:</h4>
+      <table class="table table-dark table-striped">
+        <thead>
+          <tr>
+            <th>Grupo</th>
+            <th>Subgrupo</th>
+            <th>Producto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalones1</td></tr>
+          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalones2</td></tr>
+          <tr><td>Mochilas</td><td>Mochilas</td><td>Mochilas1</td></tr>
+          <tr><td>Mochilas</td><td>Mochilas</td><td>Mochilas2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 
 <script>
@@ -171,7 +136,6 @@ function agregarFila() {
     <span class="fw-bold">#${index}</span>
     <input type="text" name="grupo_${index}" class="form-control" placeholder="Grupo (ej: Ropa Hombre)">
     <input type="text" name="subgrupo_${index}" class="form-control" placeholder="Subgrupo (ej: Pantalones)">
-    <input type="text" name="producto_${index}" class="form-control" placeholder="Producto base (ej: Pantalón)">
     <input type="number" name="filas_${index}" class="form-control" placeholder="Filas" min="1" value="1" style="width:100px;">
     <input type="text" name="talles_${index}" class="form-control" placeholder="Talles (ej: S,M,L,XL)" style="width:160px;">
   `;
@@ -187,7 +151,6 @@ function prepararStep3() {
   container.querySelectorAll('div').forEach((fila, idx) => {
     const grupo = fila.querySelector(`[name="grupo_${idx+1}"]`)?.value.trim() || "";
     const subgrupo = fila.querySelector(`[name="subgrupo_${idx+1}"]`)?.value.trim() || "";
-    const productoBase = fila.querySelector(`[name="producto_${idx+1}"]`)?.value.trim() || "";
     const cantidad = parseInt(fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1", 10);
     const talles = fila.querySelector(`[name="talles_${idx+1}"]`)?.value.trim() || "";
 
@@ -205,7 +168,6 @@ function prepararStep3() {
               filas.push({
                 grupo,
                 subgrupo,
-                producto: `${prod}${i}`,
                 cantidad: 1,
                 talles
               });
@@ -215,7 +177,6 @@ function prepararStep3() {
             filas.push({
               grupo,
               subgrupo,
-              producto: prod,
               cantidad: 1,
               talles
             });
@@ -229,7 +190,6 @@ function prepararStep3() {
             filas.push({
               grupo,
               subgrupo,
-              producto: `${productoBase}${i}`,
               cantidad: 1,
               talles
             });
@@ -239,7 +199,6 @@ function prepararStep3() {
           filas.push({
             grupo,
             subgrupo,
-            producto: productoBase,
             cantidad: 1,
             talles
           });
@@ -253,7 +212,6 @@ function prepararStep3() {
         filas.push({
           grupo,
           subgrupo,
-          producto: `${base}${i}`,
           cantidad: 1,
           talles
         });
