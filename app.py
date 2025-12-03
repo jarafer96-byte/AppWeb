@@ -1031,7 +1031,7 @@ def pagar():
         print(f"[PAGAR] Datos recibidos: {json.dumps(data, indent=2)}")
         
         # 1. Recibir TODOS los datos del frontend
-        carrito = data.get('carrito', [])  # Cambiar de 'items' a 'carrito'
+        carrito = data.get('carrito', [])
         items_mp = data.get('items_mp', [])
         email_vendedor = data.get('email_vendedor')
         numero_vendedor = data.get('numero_vendedor', '')
@@ -1040,6 +1040,7 @@ def pagar():
         cliente_telefono = data.get('cliente_telefono', '')
         orden_id = data.get('orden_id')
         total_recibido = data.get('total', 0)
+        url_retorno = data.get('url_retorno')  # 👈 ahora lo tomamos del payload
         
         print(f"[PAGAR] 📊 Resumen de datos:")
         print(f"  - Email vendedor: {email_vendedor}")
@@ -1048,6 +1049,7 @@ def pagar():
         print(f"  - Items_MP recibido: {len(items_mp)} items")
         print(f"  - Total recibido: ${total_recibido}")
         print(f"  - Orden ID recibido: {orden_id}")
+        print(f"  - URL retorno: {url_retorno}")
         
         if not email_vendedor:
             return jsonify({'error': 'Falta email del vendedor'}), 400
@@ -1072,7 +1074,7 @@ def pagar():
         
         sdk = mercadopago.SDK(access_token.strip())
         
-        # 4. Preparar items para Mercado Pago (usar items_mp si viene, sino convertir carrito)
+        # 4. Preparar items para Mercado Pago
         if items_mp and len(items_mp) > 0:
             print(f"[PAGAR] ✅ Usando items_mp proporcionados del frontend")
             items_para_mp = items_mp
@@ -1081,7 +1083,6 @@ def pagar():
             items_para_mp = []
             for item in carrito:
                 try:
-                    # Convertir precio a número
                     precio = item.get('precio', 0)
                     if isinstance(precio, str):
                         precio = float(precio.replace('$', '').replace(',', '.').strip())
@@ -1092,7 +1093,6 @@ def pagar():
                     nombre = item.get('nombre', 'Producto')
                     talle = item.get('talle', '')
                     
-                    # Crear título con talle si existe
                     titulo = nombre
                     if talle:
                         titulo = f"{nombre} (Talle: {talle})"
@@ -1107,7 +1107,6 @@ def pagar():
                     })
                     
                     print(f"  - Convertido: {nombre} - ${precio} x {cantidad}")
-                    
                 except Exception as e:
                     print(f"  - ❌ Error convirtiendo item: {e}")
                     continue
@@ -1121,25 +1120,23 @@ def pagar():
         
         # 5. Calcular total
         total_calculado = sum(item.get('unit_price', 0) * item.get('quantity', 1) for item in items_para_mp)
-        print(f"[PAGAR] 💰 Total calculado: ${total_calculado:.2f}")
-        print(f"[PAGAR] 💰 Total recibido: ${total_recibido}")
-        
-        # Usar el mayor entre el calculado y el recibido
         total_final = max(total_calculado, float(total_recibido or 0))
         print(f"[PAGAR] 💰 Total final a usar: ${total_final:.2f}")
         
-        # 6. Crear preferencia con el MISMO external_reference
+        # 6. Crear preferencia con external_reference
         base_url = "https://mpagina.onrender.com"
+        retorno = url_retorno or base_url  # 👈 si no viene, usa central
+        
         preference_data = {
             "items": items_para_mp,
             "back_urls": {
-                "success": f"{base_url}/success?orden_id={external_ref}",
-                "failure": f"{base_url}/failure?orden_id={external_ref}",
-                "pending": f"{base_url}/pending?orden_id={external_ref}"
+                "success": f"{retorno}?status=success&orden_id={external_ref}",
+                "failure": f"{retorno}?status=failure&orden_id={external_ref}",
+                "pending": f"{retorno}?status=pending&orden_id={external_ref}"
             },
             "auto_return": "approved",
-            "external_reference": external_ref,  # 👈 MISMO ID QUE SE GUARDARÁ
-            "notification_url": f"{base_url}/webhook_mp",
+            "external_reference": external_ref,
+            "notification_url": f"{base_url}/webhook_mp",  # webhook fijo en central
             "metadata": {
                 "email_vendedor": email_vendedor,
                 "numero_vendedor": numero_vendedor,
@@ -1150,8 +1147,6 @@ def pagar():
         }
         
         print(f"[PAGAR] 📦 Enviando preferencia a Mercado Pago...")
-        
-        # 7. Crear preferencia en Mercado Pago
         preference_response = sdk.preference().create(preference_data)
         preference = preference_response.get("response", {}) or {}
         
@@ -1160,18 +1155,17 @@ def pagar():
             return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
         
         print(f"[PAGAR] ✅ Preferencia creada: ID={preference.get('id')}")
-        print(f"[PAGAR] ✅ Punto de inicio: {preference.get('init_point')[:100]}...")
         
-        # 8. GUARDAR TODO EN UN SOLO DOCUMENTO CON DATOS COMPLETOS
+        # 8. Guardar en Firestore
         orden_doc = {
             "email_vendedor": email_vendedor,
             "numero_vendedor": numero_vendedor,
             "cliente_nombre": cliente_nombre,
             "cliente_email": cliente_email,
             "cliente_telefono": cliente_telefono,
-            "carrito": carrito,  # Items originales del frontend
-            "items_mp": items_para_mp,  # Items formateados para MP
-            "items": items_para_mp,  # Duplicado para compatibilidad
+            "carrito": carrito,
+            "items_mp": items_para_mp,
+            "items": items_para_mp,
             "total": total_final,
             "estado": "pendiente",
             "preference_id": preference.get("id"),
@@ -1187,18 +1181,7 @@ def pagar():
             }
         }
         
-        # Debug: mostrar qué se va a guardar
-        print(f"[PAGAR] 💾 Guardando en Firestore:")
-        print(f"  - Documento: {external_ref}")
-        print(f"  - Items en carrito: {len(carrito)}")
-        print(f"  - Items en items_mp: {len(items_para_mp)}")
-        print(f"  - Total: ${total_final}")
-        
-        # Guardar en colección global "ordenes"
         db.collection("ordenes").document(external_ref).set(orden_doc)
-        print(f"[PAGAR] ✅ Orden guardada en Firestore: {external_ref}")
-        
-        # 9. También guardar en colección del vendedor
         db.collection("usuarios").document(email_vendedor)\
           .collection("pedidos").document(external_ref).set({
               "cliente_nombre": cliente_nombre,
@@ -1213,9 +1196,10 @@ def pagar():
               "fecha_creacion": firestore.SERVER_TIMESTAMP,
               "comprobante_enviado": False
           })
-        print(f"[PAGAR] ✅ Orden guardada en subcolección del vendedor")
         
-        # 10. Devolver respuesta con TODOS los datos necesarios
+        print(f"[PAGAR] ✅ Orden guardada en Firestore: {external_ref}")
+        
+        # 10. Devolver respuesta
         response_data = {
             "preference_id": preference.get("id"),
             "init_point": preference.get("init_point"),
@@ -1225,8 +1209,6 @@ def pagar():
             "message": "Orden creada exitosamente",
             "detalle": f"Procesados {len(items_para_mp)} productos"
         }
-        
-        print(f"[PAGAR] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
         
         return jsonify(response_data)
         
