@@ -645,6 +645,7 @@ function leerArchivoProductos() {
 }
 
 function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
+  // Buscar o crear grupo
   let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
     c => c.querySelector("h4")?.textContent.trim() === grupo
   );
@@ -659,36 +660,51 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     }
   }
 
-  // Buscar o crear subgrupo
-  let subgrupoCard = grupoCard && [...grupoCard.querySelectorAll(".subgrupo")].find(
-    s => s.querySelector("strong")?.textContent.trim() === subgrupo
-  );
-  if (!subgrupoCard && grupoCard) {
-    const grupoIdx = grupoCard.id.split("_")[1];
-    const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
-    const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
-    if (inputSub && btnCrearSub) {
-      inputSub.value = subgrupo;
-      crearSubgrupo(btnCrearSub);
-      subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
-        s => s.querySelector("strong")?.textContent.trim() === subgrupo
-      );
+  // Buscar o crear subgrupo (solo si se especifica)
+  let subgrupoCard = null;
+  if (subgrupo) {
+    subgrupoCard = grupoCard && [...grupoCard.querySelectorAll(".subgrupo")].find(
+      s => s.querySelector("strong")?.textContent.trim() === subgrupo
+    );
+    if (!subgrupoCard && grupoCard) {
+      const grupoIdx = grupoCard.id.split("_")[1];
+      const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
+      const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
+      if (inputSub && btnCrearSub) {
+        inputSub.value = subgrupo;
+        crearSubgrupo(btnCrearSub);
+        subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+          s => s.querySelector("strong")?.textContent.trim() === subgrupo
+        );
+      }
     }
   }
 
+  // Si no hay subgrupo, usamos directamente el grupo como contenedor
   if (!subgrupoCard) {
-    console.warn("⚠️ No se pudo crear/ubicar subgrupo:", subgrupo);
+    subgrupoCard = grupoCard;
+  }
+
+  if (!subgrupoCard) {
+    console.warn("⚠️ No se pudo crear/ubicar grupo/subgrupo:", grupo, subgrupo);
     return;
   }
 
   // Crear fila y rellenar datos
-  const fila = crearFila(subgrupo, grupo);
+  const fila = crearFila(subgrupo || grupo, grupo);
   fila.querySelector("input[name='nombre']").value = nombre;
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
   fila.querySelector("input[name='talles']").value = talles;
 
-  subgrupoCard.querySelector(".productos").appendChild(fila);
+  // Si hay subgrupo, insertar en .productos; si no, insertar en el grupo directamente
+  const contenedor = subgrupoCard.querySelector(".productos") || subgrupoCard.querySelector(".productosGrupo");
+  if (contenedor) {
+    contenedor.appendChild(fila);
+  } else {
+    subgrupoCard.appendChild(fila);
+  }
+
   actualizarContador(subgrupoCard);
   saveStateDebounced();
 }
