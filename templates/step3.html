@@ -225,7 +225,7 @@ function generarFilasDesdeListas(listas) {
       return;
     }
     
-    console.log(`📝 [Step3] Procesando: ${grupo} | ${subgrupo || "(sin subgrupo)"} | ${producto || "(sin producto)"} | x${cantidad}`);
+    console.log(`📝 [Step3] Procesando: ${grupo} | ${subgrupo || "(vacío)"} | ${producto || "(sin producto)"} | x${cantidad}`);
     
     let productos = [];
     
@@ -257,6 +257,7 @@ function generarFilasDesdeListas(listas) {
     } 
     // Caso 3: Sin producto
     else {
+      // IMPORTANTE: Si no hay subgrupo, usar el grupo como base
       const base = subgrupo && subgrupo.trim() !== "" ? subgrupo : grupo;
       for (let i = 1; i <= cantidad; i++) {
         productos.push(`${base}${i}`);
@@ -282,7 +283,6 @@ function generarFilasDesdeListas(listas) {
   
   console.log("🎉 [Step3] Finalizado generarFilasDesdeListas");
 }
-
   
 function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
