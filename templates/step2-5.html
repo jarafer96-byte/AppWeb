@@ -85,7 +85,6 @@
       <span class="fw-bold">#{{ i }}</span>
       <input type="text" name="grupo_{{ i }}" class="form-control" placeholder="Grupo (ej: Ropa Hombre)">
       <input type="text" name="subgrupo_{{ i }}" class="form-control" placeholder="Subgrupo (ej: Pantalones)">
-      <input type="text" name="producto_{{ i }}" class="form-control" placeholder="Producto base (ej: Pantalón)">
       <input type="number" name="filas_{{ i }}" class="form-control" placeholder="Filas (ej: 10)" min="1" value="1" style="width:100px;">
       <input type="text" name="talles_{{ i }}" class="form-control" placeholder="Talles (ej: S,M,L,XL)" style="width:160px;">
     </div>
@@ -112,16 +111,17 @@
           <tr>
             <th>Grupo</th>
             <th>Subgrupo</th>
-            <th>Producto</th>
+            <th>Filas</th>
+            <th>Productos</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalones1</td></tr>
-          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalones2</td></tr>
-          <tr><td>Mochilas</td><td>Mochilas</td><td>Mochilas1</td></tr>
-          <tr><td>Mochilas</td><td>Mochilas</td><td>Mochilas2</td></tr>
-          <tr><td>Ropa Hombre</td><td>Zapatillas</td><td>Zapatillas1</td></tr>
-          <tr><td>Ropa Hombre</td><td>Zapatillas</td><td>Zapatillas2</td></tr>
+          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Filas2</td></tr>Pantalones1</td></tr>
+          <tr><td>Ropa Mujer</td><td>Pantalones</td><td></td></tr>Pantalones2</td></tr>
+          <tr><td>Mochilas</td><td>Mochilas</td><td>Filas2</td></tr>Mochilas1</td></tr>
+          <tr><td>Mochilas</td><td>Mochilas</td><td></td></tr>Mochilas2</td></tr>
+          <tr><td>Ropa Hombre</td><td>Zapatillas</td><td>Filas2</td></tr>Zapatillas1</td></tr>
+          <tr><td>Ropa Hombre</td><td>Zapatillas</td><td></td></tr>Zapatillas2</td></tr>
         </tbody>
       </table>
     </div>
