@@ -657,9 +657,7 @@ def get_platform_token():
 @app.route("/comprobante/<orden_id>")
 def comprobante(orden_id):
     """Renderizar comprobante con TODOS los datos unificados"""
-    # Buscar en la colección global
     doc = db.collection("ordenes").document(orden_id).get()
-    
     if not doc.exists:
         return "❌ Orden no encontrada", 404
     
@@ -668,47 +666,75 @@ def comprobante(orden_id):
     cliente_nombre = data.get("cliente_nombre", "Cliente")
     cliente_email = data.get("cliente_email", "Sin email")
     cliente_telefono = data.get("cliente_telefono", "Sin teléfono")
-    items = data.get("items", [])  # Los items originales del carrito
     email_vendedor = data.get("email_vendedor")
     
-    # Calcular total
+    # Tomar productos desde carrito/items/items_mp
+    productos_data = data.get("carrito") or data.get("items") or data.get("items_mp") or []
+    
     total = 0
     productos = []
     
-    for item in items:
+    for idx, p in enumerate(productos_data):
         try:
-            cantidad = int(item.get('cantidad', 1))
-            precio = float(item.get('precio', 0))
-            total += precio * cantidad
+            # Nombre / título
+            nombre = p.get("title") or p.get("nombre") or f"Producto {idx+1}"
             
-            # Buscar imagen del producto
-            imagen_url = None
-            id_base = item.get('id_base')
-            if email_vendedor and id_base:
+            # Precio
+            precio_raw = p.get("unit_price") or p.get("precio") or 0
+            try:
+                precio = float(precio_raw)
+            except:
+                precio = 0.0
+            
+            # Cantidad
+            cantidad_raw = p.get("quantity") or p.get("cantidad") or 1
+            try:
+                cantidad = int(cantidad_raw)
+            except:
+                cantidad = 1
+            
+            # Talle
+            talle = p.get("talle") or ""
+            
+            # Imagen
+            imagen_url = p.get("imagen_url") or ""
+            if not imagen_url and email_vendedor and p.get("id_base"):
                 prod_doc = db.collection("usuarios").document(email_vendedor)\
-                              .collection("productos").document(id_base).get()
+                              .collection("productos").document(p["id_base"]).get()
                 if prod_doc.exists:
-                    imagen_url = prod_doc.to_dict().get("imagen_url")
+                    imagen_url = prod_doc.to_dict().get("imagen_url", "")
+            
+            # Subtotal
+            subtotal = precio * cantidad
+            total += subtotal
             
             productos.append({
-                "nombre": item.get('nombre', 'Producto'),
-                "cantidad": cantidad,
-                "precio": precio,
-                "imagen_url": imagen_url,
-                "talle": item.get('talle', '')
+                "title": nombre,
+                "unit_price": precio,
+                "quantity": cantidad,
+                "subtotal": subtotal,
+                "talle": talle,
+                "imagen_url": imagen_url
             })
         except Exception as e:
-            print(f"[COMPROBANTE] ❌ Error procesando item: {e}")
+            print(f"[COMPROBANTE] ❌ Error procesando producto {idx+1}: {e}")
             continue
     
+    # Usar total de la orden si existe
+    if data.get("total"):
+        try:
+            total = float(data["total"])
+        except:
+            pass
+    
     return render_template("comprobante.html",
-                          orden_id=orden_id,
-                          cliente_nombre=cliente_nombre,
-                          cliente_email=cliente_email,
-                          cliente_telefono=cliente_telefono,
-                          productos=productos,
-                          total=total,
-                          fecha=data.get("creado"))
+                           orden_id=orden_id,
+                           cliente_nombre=cliente_nombre,
+                           cliente_email=cliente_email,
+                           cliente_telefono=cliente_telefono,
+                           productos=productos,
+                           total=total,
+                           fecha=data.get("fecha_creacion"))
 
 # Enviar comprobante por correo - VERSIÓN MEJORADA
 def enviar_comprobante(email_vendedor, orden_id):
