@@ -1203,8 +1203,8 @@ function loadState() {
       (g.productos || [])
         .sort((a, b) => (a.orden || 0) - (b.orden || 0))
         .forEach(p => {
-          const fila = crearFila("General", g.nombre);
-          hydrateFila(fila, p);
+          const fila = crearFila(p.nombre || g.nombre, g.nombre);
+          hydrateFila(p, fila);   // ⚠️ orden corregido: primero datos, luego elemento
           contGrupo.appendChild(fila);
         });
       actualizarContador(contGrupo);
@@ -1224,8 +1224,8 @@ function loadState() {
         (sg.productos || [])
           .sort((a, b) => (a.orden || 0) - (b.orden || 0))
           .forEach(p => {
-            const fila = crearFila(sg.nombre, g.nombre);
-            hydrateFila(fila, p);
+            const fila = crearFila(p.nombre || sg.nombre, g.nombre);
+            hydrateFila(p, fila);   // ⚠️ orden corregido
             contSub.appendChild(fila);
           });
         actualizarContador(subCard);
