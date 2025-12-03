@@ -197,6 +197,36 @@ const saveStateDebounced = (() => {
     t = setTimeout(() => saveState(), 200);
   }
 })();
+  
+function crearFilaProducto(producto, grupo, subgrupo, descripcion="", precio="", talles="") {
+  const fila = document.createElement("div");
+  fila.className = "fila-producto mb-2";
+
+  fila.innerHTML = `
+    <div class="row align-items-center">
+      <div class="col">
+        <input type="text" name="nombre" class="form-control" placeholder="Producto" value="${producto || ""}">
+      </div>
+      <div class="col">
+        <textarea name="descripcion" class="form-control" placeholder="Descripción">${descripcion}</textarea>
+      </div>
+      <div class="col">
+        <input type="number" name="precio" class="form-control" placeholder="Precio" value="${precio}">
+      </div>
+      <div class="col">
+        <input type="text" name="talles" class="form-control" placeholder="Talles" value="${talles}">
+      </div>
+      <div class="col preview-imagen"></div>
+      <div class="col">
+        <button type="button" class="btn-gradient btn-sm" onclick="abrirCarrusel(this)">📷 Imagen</button>
+      </div>
+    </div>
+    <input type="hidden" name="grupo" value="${grupo}">
+    <input type="hidden" name="subgrupo" value="${subgrupo || ""}">
+    <input type="hidden" name="imagen_elegida" value="">
+  `;
+  return fila;
+}
 
 function confirmarContinuar() {
   return confirm("Se enviarán los datos, ¿deseás continuar?");
@@ -217,71 +247,61 @@ function filaToObj(fila) {
   
 function generarFilasDesdeListas(listas) {
   console.log("🔄 [Step3] Generando filas desde listas_step2-5:", listas);
-  
+
   listas.forEach(item => {
     const { grupo, subgrupo, producto, cantidad = 1, talles = "" } = item;
-    
+    const nombreGrupo = grupo || "General";
+
     if (!grupo) {
       console.warn("⚠️ [Step3] Item sin grupo, omitiendo:", item);
       return;
     }
-    
-    console.log(`📝 [Step3] Procesando: ${grupo} | ${subgrupo || "(vacío)"} | ${producto || "(sin producto)"} | x${cantidad}`);
-    
-    let productos = [];
-    
-    // Lógica para generar nombres de productos
-    if (producto && producto.trim() !== "") {
-      // Caso 1: Múltiples productos separados por coma
-      if (producto.includes(",")) {
-        const productosRaw = producto.split(",").map(p => p.trim()).filter(Boolean);
-        productosRaw.forEach(prod => {
-          if (cantidad > 1) {
-            for (let i = 1; i <= cantidad; i++) {
-              productos.push(`${prod}${i}`);
-            }
-          } else {
-            productos.push(prod);
-          }
-        });
-      } 
-      // Caso 2: Producto único
-      else {
-        if (cantidad > 1) {
-          for (let i = 1; i <= cantidad; i++) {
-            productos.push(`${producto}${i}`);
-          }
-        } else {
-          productos.push(producto);
-        }
-      }
-    } 
-    // Caso 3: Sin producto
-    else {
-      // IMPORTANTE: Si no hay subgrupo, usar el grupo como base
-      const base = subgrupo && subgrupo.trim() !== "" ? subgrupo : grupo;
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
+
+    console.log(`📝 [Step3] Procesando: ${nombreGrupo} | ${subgrupo || "(vacío)"} | ${producto || "(sin producto)"} | x${cantidad}`);
+
+    // Crear grupo si no existe
+    let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+      c => c.querySelector("h4")?.textContent.trim() === nombreGrupo
+    );
+    if (!grupoCard) {
+      const inputGrupo = document.getElementById("nombreGrupo");
+      if (inputGrupo) {
+        inputGrupo.value = nombreGrupo;
+        crearGrupo();
+        grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+          c => c.querySelector("h4")?.textContent.trim() === nombreGrupo
+        );
       }
     }
-    
-    console.log(`✅ [Step3] Productos generados:`, productos);
-    
-    // Crear grupos/subgrupos y agregar filas
-    productos.forEach(prod => {
-      // Expandir talles si existen
-      const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
-      
-      if (listaTalles.length > 0) {
-        listaTalles.forEach(talle => {
-          agregarFilaImportada(prod, "", "", grupo, subgrupo, talle);
-        });
-      } else {
-        agregarFilaImportada(prod, "", "", grupo, subgrupo, "");
+
+    // Crear subgrupo si corresponde
+    let subgrupoCard = grupoCard;
+    if (subgrupo) {
+      const grupoIdx = grupoCard.id.split("_")[1];
+      const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
+      const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
+      if (inputSub && btnCrearSub) {
+        inputSub.value = subgrupo;
+        crearSubgrupo(btnCrearSub);
+        subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+          s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === subgrupo
+        );
       }
-    });
+    }
+
+    // Crear filas directamente con crearFilaProducto
+    const contenedor = subgrupoCard.querySelector(".productos");
+    const cant = parseInt(cantidad, 10) || 1;
+
+    for (let i = 0; i < cant; i++) {
+      const fila = crearFilaProducto(producto, nombreGrupo, subgrupo, "", "", talles);
+      contenedor.appendChild(fila);
+    }
+
+    actualizarContador(contenedor);
   });
-  
+
+  saveStateDebounced();
   console.log("🎉 [Step3] Finalizado generarFilasDesdeListas");
 }
   
@@ -583,7 +603,6 @@ function leerArchivoProductos() {
     // CASO 2: ProductoBase único
     else if (productoBase) {
       if (cantidad > 1) {
-        // Numerar: Producto1, Producto2, etc.
         for (let i = 1; i <= cantidad; i++) {
           productos.push(`${productoBase}${i}`);
         }
@@ -591,9 +610,9 @@ function leerArchivoProductos() {
         productos.push(productoBase);
       }
     }
-    // CASO 3: Sin productoBase
+    // CASO 3: Sin productoBase → usar grupo como base
     else {
-      const base = subgrupo || grupo;
+      const base = grupo || "Genérico";
       for (let i = 1; i <= cantidad; i++) {
         productos.push(`${base}${i}`);
       }
@@ -602,19 +621,43 @@ function leerArchivoProductos() {
     // Expandir talles si existen
     const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
 
-    if (listaTalles.length > 0) {
-      productos.forEach(prod => {
-        listaTalles.forEach(talle => {
-          agregarFilaImportada(prod, "", "", grupo, subgrupo, talle);
-          filasAgregadas++;
-        });
-      });
-    } else {
-      productos.forEach(prod => {
-        agregarFilaImportada(prod, "", "", grupo, subgrupo, "");
-        filasAgregadas++;
-      });
-    }
+    productos.forEach(prod => {
+      // Crear fila con producto como base
+      const fila = crearFilaProducto(prod, grupo, subgrupo, "", "", listaTalles.length ? listaTalles.join(",") : "");
+
+      // Buscar o crear grupo
+      let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+        c => c.querySelector("h4")?.textContent.trim() === grupo
+      );
+      if (!grupoCard) {
+        document.getElementById("nombreGrupo").value = grupo;
+        crearGrupo();
+        grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
+          c => c.querySelector("h4")?.textContent.trim() === grupo
+        );
+      }
+
+      // Buscar o crear subgrupo
+      let subgrupoCard = grupoCard;
+      if (subgrupo) {
+        const grupoIdx = grupoCard.id.split("_")[1];
+        const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
+        const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
+        if (inputSub && btnCrearSub) {
+          inputSub.value = subgrupo;
+          crearSubgrupo(btnCrearSub);
+          subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+            s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === subgrupo
+          );
+        }
+      }
+
+      // Insertar fila en el contenedor correcto
+      const contenedor = subgrupoCard.querySelector(".productos");
+      contenedor.appendChild(fila);
+      actualizarContador(subgrupoCard);
+      filasAgregadas++;
+    });
   };
 
   // 👉 CSV / TXT
@@ -634,7 +677,6 @@ function leerArchivoProductos() {
         const talles      = partes[4] || "";
 
         if (!grupo) return;
-
         procesarFila(grupo, subgrupo, producto, cantidad, talles);
       });
 
@@ -652,7 +694,7 @@ function leerArchivoProductos() {
       const data = new Uint8Array(e.target.result);
       const wb = XLSX.read(data, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }); // Usar array de arrays
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }); // array de arrays
 
       rows.forEach((row) => {
         const grupo       = row[0] || "";
@@ -662,7 +704,6 @@ function leerArchivoProductos() {
         const talles      = row[4] || "";
 
         if (!grupo) return;
-
         procesarFila(grupo, subgrupo, producto, cantidad, talles);
       });
 
@@ -677,6 +718,7 @@ function leerArchivoProductos() {
     alert("⚠️ Formato no soportado. Subí CSV, TXT o Excel (.xls/.xlsx)");
   }
 }
+
 
 function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
   console.log(`📥 [Step3] agregarFilaImportada: ${nombre} | Grupo:${grupo} | Subgrupo:${subgrupo || "(vacío)"}`);
@@ -746,7 +788,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
 
   // 4. Crear fila CORRECTAMENTE
   console.log(`✏️ [Step3] Creando fila para: ${nombre}`);
-  const fila = crearFila(nombre, grupo, subgrupoFinal); // Pasar subgrupoFinal
+  const fila = crearFilaProducto(nombre, grupo, subgrupo, descripcion, precio, talles);
   
   // Rellenar datos
   fila.querySelector("input[name='nombre']").value = nombre;
