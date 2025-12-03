@@ -215,30 +215,55 @@ function filaToObj(fila) {
 }
   
 function generarFilasDesdeListas(listas) {
+  console.log("🔄 [Step3] Generando filas desde listas_step2-5:", listas);
+  
   listas.forEach(item => {
     const { grupo, subgrupo, producto, cantidad = 1, talles = "" } = item;
     
-    if (!grupo) return;
+    if (!grupo) {
+      console.warn("⚠️ [Step3] Item sin grupo, omitiendo:", item);
+      return;
+    }
+    
+    console.log(`📝 [Step3] Procesando: ${grupo} | ${subgrupo || "(sin subgrupo)"} | ${producto || "(sin producto)"} | x${cantidad}`);
     
     let productos = [];
     
-    // Misma lógica que en leerArchivoProductos
-    if (producto && producto.includes(",")) {
-      productos = producto.split(",").map(p => p.trim()).filter(Boolean);
-    } else if (producto) {
-      if (cantidad > 1) {
-        for (let i = 1; i <= cantidad; i++) {
-          productos.push(`${producto}${i}`);
+    // Lógica para generar nombres de productos
+    if (producto && producto.trim() !== "") {
+      // Caso 1: Múltiples productos separados por coma
+      if (producto.includes(",")) {
+        const productosRaw = producto.split(",").map(p => p.trim()).filter(Boolean);
+        productosRaw.forEach(prod => {
+          if (cantidad > 1) {
+            for (let i = 1; i <= cantidad; i++) {
+              productos.push(`${prod}${i}`);
+            }
+          } else {
+            productos.push(prod);
+          }
+        });
+      } 
+      // Caso 2: Producto único
+      else {
+        if (cantidad > 1) {
+          for (let i = 1; i <= cantidad; i++) {
+            productos.push(`${producto}${i}`);
+          }
+        } else {
+          productos.push(producto);
         }
-      } else {
-        productos.push(producto);
       }
-    } else {
-      const base = subgrupo || grupo;
+    } 
+    // Caso 3: Sin producto
+    else {
+      const base = subgrupo && subgrupo.trim() !== "" ? subgrupo : grupo;
       for (let i = 1; i <= cantidad; i++) {
         productos.push(`${base}${i}`);
       }
     }
+    
+    console.log(`✅ [Step3] Productos generados:`, productos);
     
     // Crear grupos/subgrupos y agregar filas
     productos.forEach(prod => {
@@ -254,6 +279,8 @@ function generarFilasDesdeListas(listas) {
       }
     });
   });
+  
+  console.log("🎉 [Step3] Finalizado generarFilasDesdeListas");
 }
 
   
