@@ -1284,20 +1284,13 @@ function iniciarStep3() {
   localStorage.removeItem("step3_state");
   imagenesUsadas = [];
 
-  // 🔎 Log inicial: ver qué trae window.sessionEmail
-  console.log("📌 [Step3] Valor inicial window.sessionEmail:", window.sessionEmail);
-
-  // ✅ Guardar email de sesión en localStorage para que GCS use la carpeta correcta
+  // ✅ Guardar email de sesión
   if (window.sessionEmail) {
     localStorage.setItem("email", window.sessionEmail);
     console.log("🔑 [Step3] Email seteado en localStorage:", window.sessionEmail);
   } else {
-    console.warn("⚠️ [Step3] No se encontró sessionEmail, usando 'anonimo'");
     localStorage.setItem("email", "anonimo");
   }
-
-  // 🔎 Verificar inmediatamente qué quedó en localStorage
-  console.log("📌 [Step3] localStorage.email actual:", localStorage.getItem("email"));
 
   // 📦 Ver si existe estructura nueva desde Step2-5
   const listasStep2_5 = JSON.parse(localStorage.getItem("listas_step2-5") || "null");
@@ -1313,10 +1306,6 @@ function iniciarStep3() {
     console.log("🧹 [Step3] No hay listas_step2-5, empezando vacío");
     document.getElementById("grupos").innerHTML = "";
   }
-
-  // 🔎 Log final: confirmar estado después de iniciar
-  console.log("✅ [Step3] iniciarStep3 completado. Email en localStorage:", localStorage.getItem("email"), 
-              "imagenesUsadas:", imagenesUsadas);
 }
 
 
