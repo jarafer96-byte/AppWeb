@@ -530,28 +530,28 @@ function leerArchivoProductos() {
   const ext = file.name.toLowerCase().split('.').pop();
   let filasAgregadas = 0;
 
-  const procesarFila = (grupo, subgrupo, productoBase, descripcion, precio, talles, cantidadRaw) => {
+  const procesarFila = (grupo, subgrupo, productoBase, cantidadRaw, talles) => {
     const cantidad = parseInt(cantidadRaw || "1", 10);
+    let productos = [];
 
-    // Lista de productos separados por coma
-    let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
-
-    // Caso 1: varios productos explícitos → se respetan tal cual
-    if (productos.length > 1) {
-      // no se aplica cantidad
+    // CASO 1: ProductoBase tiene comas (múltiples productos)
+    if (productoBase && productoBase.includes(",")) {
+      productos = productoBase.split(",").map(p => p.trim()).filter(Boolean);
     }
-    // Caso 2: un solo producto + Filas > 1 → numerar
-    else if (productos.length === 1 && cantidad > 1) {
-      const base = productos[0];
-      productos = [];
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
+    // CASO 2: ProductoBase único
+    else if (productoBase) {
+      if (cantidad > 1) {
+        // Numerar: Producto1, Producto2, etc.
+        for (let i = 1; i <= cantidad; i++) {
+          productos.push(`${productoBase}${i}`);
+        }
+      } else {
+        productos.push(productoBase);
       }
     }
-    // Caso 3: sin producto pero con cantidad → usar grupo como base
-    else if (productos.length === 0 && cantidad > 0) {
-      const base = grupo || "Genérico";   // ⚠️ corregido: ya no usa subgrupo
-      productos = [];
+    // CASO 3: Sin productoBase
+    else {
+      const base = subgrupo || grupo;
       for (let i = 1; i <= cantidad; i++) {
         productos.push(`${base}${i}`);
       }
@@ -563,13 +563,13 @@ function leerArchivoProductos() {
     if (listaTalles.length > 0) {
       productos.forEach(prod => {
         listaTalles.forEach(talle => {
-          agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talle);
+          agregarFilaImportada(prod, "", "", grupo, subgrupo, talle);
           filasAgregadas++;
         });
       });
     } else {
       productos.forEach(prod => {
-        agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles);
+        agregarFilaImportada(prod, "", "", grupo, subgrupo, "");
         filasAgregadas++;
       });
     }
@@ -583,22 +583,17 @@ function leerArchivoProductos() {
       const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
       const sep = lineas.some(l => l.includes(";")) ? ";" : ",";
 
-      lineas.forEach((linea, idx) => {
+      lineas.forEach((linea) => {
         const partes = linea.split(sep).map(p => p.trim());
-        const nombre      = partes[0] || "";
-        const descripcion = partes[1] || "";
-        const precio      = partes[2] || "";
-        const grupo       = partes[3] || "";
-        const subgrupo    = partes[4] || "";
-        const talles      = partes[5] || "";
-        const filas       = partes[6] || "1"; // opcional columna Filas
+        const grupo       = partes[0] || "";
+        const subgrupo    = partes[1] || "";
+        const producto    = partes[2] || "";
+        const cantidad    = partes[3] || "1";
+        const talles      = partes[4] || "";
 
-        if (!grupo) {
-          console.warn("⚠️ Línea descartada por falta de grupo:", partes);
-          return;
-        }
+        if (!grupo) return;
 
-        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas);
+        procesarFila(grupo, subgrupo, producto, cantidad, talles);
       });
 
       alert(filasAgregadas > 0
@@ -615,23 +610,18 @@ function leerArchivoProductos() {
       const data = new Uint8Array(e.target.result);
       const wb = XLSX.read(data, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws);
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }); // Usar array de arrays
 
-      rows.forEach((obj, idx) => {
-        const grupo       = obj.Grupo       || obj.Categoria    || "";
-        const subgrupo    = obj.Subgrupo    || obj.Subcategoria || "";
-        const nombre      = obj.Nombre      || obj.Producto     || "";
-        const descripcion = obj.Descripcion || "";
-        const precio      = obj.Precio      || "";
-        const talles      = obj.Talles      || "";
-        const filas       = obj.Filas       || "1";
+      rows.forEach((row) => {
+        const grupo       = row[0] || "";
+        const subgrupo    = row[1] || "";
+        const producto    = row[2] || "";
+        const cantidad    = row[3] || "1";
+        const talles      = row[4] || "";
 
-        if (!grupo) {
-          console.warn("⚠️ Fila descartada por falta de grupo:", obj);
-          return;
-        }
+        if (!grupo) return;
 
-        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas);
+        procesarFila(grupo, subgrupo, producto, cantidad, talles);
       });
 
       alert(filasAgregadas > 0
