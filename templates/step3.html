@@ -919,6 +919,9 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2 fila-producto';
 
+  // Si nombreSubgrupo es undefined o vacío, usar "General"
+  const subgrupoFinal = nombreSubgrupo && nombreSubgrupo.trim() !== "" ? nombreSubgrupo : "General";
+  
   fila.innerHTML = `
     <div class="col-3">
       <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre">
@@ -939,7 +942,7 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
         <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
       </div>
       <input type="hidden" name="grupo" value="${nombreGrupo}">
-      <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
+      <input type="hidden" name="subgrupo" value="${subgrupoFinal}"> <!-- Usar subgrupoFinal -->
       <input type="hidden" name="orden" value="${contadorOrden++}">
       <input type="hidden" name="imagen_elegida" value="">
     </div>
