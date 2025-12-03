@@ -629,10 +629,11 @@ function leerArchivoProductos() {
 }
 
 function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
-  // Buscar o crear grupo
+  // 1. Buscar o crear grupo PRIMERO
   let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
     c => c.querySelector("h4")?.textContent.trim() === grupo
   );
+  
   if (!grupoCard) {
     const inputGrupo = document.getElementById("nombreGrupo");
     if (inputGrupo) {
@@ -644,16 +645,26 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     }
   }
 
-  // Buscar o crear subgrupo (solo si se especifica)
-  let subgrupoCard = null;
-  if (subgrupo) {
-    subgrupoCard = grupoCard && [...grupoCard.querySelectorAll(".subgrupo")].find(
+  if (!grupoCard) {
+    console.warn("⚠️ No se pudo crear/ubicar grupo:", grupo);
+    return;
+  }
+
+  // 2. Determinar contenedor FINAL
+  let contenedorFinal = null;
+  
+  // Si hay subgrupo específico
+  if (subgrupo && subgrupo.trim() !== "") {
+    let subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
       s => s.querySelector("strong")?.textContent.trim() === subgrupo
     );
-    if (!subgrupoCard && grupoCard) {
+    
+    // Si no existe el subgrupo, crearlo
+    if (!subgrupoCard) {
       const grupoIdx = grupoCard.id.split("_")[1];
       const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
       const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
+      
       if (inputSub && btnCrearSub) {
         inputSub.value = subgrupo;
         crearSubgrupo(btnCrearSub);
@@ -662,34 +673,39 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
         );
       }
     }
+    
+    if (subgrupoCard) {
+      contenedorFinal = subgrupoCard.querySelector(".productos");
+    }
+  }
+  
+  // Si no hay subgrupo o no se pudo crear, usar el grupo directamente
+  if (!contenedorFinal) {
+    contenedorFinal = grupoCard.querySelector(".productos");
+    // Asegurarse de que el subgrupo sea "General" cuando se usa el grupo
+    subgrupo = "General";
   }
 
-  // 👉 Si no hay subgrupo, usamos directamente el grupo como contenedor
-  if (!subgrupoCard) {
-    subgrupoCard = grupoCard;
-  }
-
-  if (!subgrupoCard) {
-    console.warn("⚠️ No se pudo crear/ubicar grupo/subgrupo:", grupo, subgrupo);
-    return;
-  }
-
-  // Crear fila y rellenar datos (⚠️ ahora usa producto como base)
-  const fila = crearFila(nombre || grupo, grupo);
+  // 3. Crear fila con datos correctos
+  const fila = crearFila(subgrupo, grupo); // IMPORTANTE: subgrupo como primer parámetro
   fila.querySelector("input[name='nombre']").value = nombre;
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
   fila.querySelector("input[name='talles']").value = talles;
+  
+  // Actualizar hidden inputs
+  fila.querySelector("input[name='subgrupo']").value = subgrupo;
+  fila.querySelector("input[name='grupo']").value = grupo;
 
-  // 👉 Insertar fila en el contenedor correcto
-  const contenedor = subgrupoCard.querySelector(".productos");
-  if (contenedor) {
-    contenedor.appendChild(fila);
+  // 4. Agregar al contenedor
+  if (contenedorFinal) {
+    contenedorFinal.appendChild(fila);
   } else {
-    subgrupoCard.appendChild(fila);
+    // Fallback: agregar directamente al grupo
+    grupoCard.querySelector(".productos").appendChild(fila);
   }
 
-  actualizarContador(subgrupoCard);
+  actualizarContador(grupoCard);
   saveStateDebounced();
 }
 
