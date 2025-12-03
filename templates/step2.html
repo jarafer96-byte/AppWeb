@@ -2,176 +2,106 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Seleccionar estilo visual</title>
+  <title>Step0 - Subir imágenes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {
-      background-color: #000;
-      font-family: sans-serif;
-      color: white;
-      margin: 0;
-      padding: 0;
-    }
-
-    h2 {
-      color: white;
-    }
-
-    .grupo-selector {
-      overflow-x: auto;
-      white-space: nowrap;
-      padding: 10px;
-      background-color: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      margin: 20px auto;
-      max-width: 1000px;
-    }
-
-    .grupo-selector button {
-      margin: 5px;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 50px;
-      background-color: #333;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background-color 0.2s ease;
-    }
-
-    .grupo-selector button:hover {
-      background-color: #555;
-    }
-
-    .preview-img {
-      width: 100%;
-      height: auto;
-      object-fit: cover;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-
-    .preview-img:hover {
-      transform: scale(1.05);
-    }
-
-    .preview-img.seleccionado {
-      outline: 3px solid limegreen;
-      outline-offset: 2px;
-    }
-
-    .continuar-btn {
-      margin-top: 40px;
-    }
-
-    .btn-gradient {
-      background: linear-gradient(135deg, #8e2de2, #ff6f61);
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 50px;
-      font-weight: bold;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .btn-gradient:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(255,255,255,0.5);
-    }
+    body { background:#000; color:#fff; font-family:sans-serif; }
+    h2 { color:#fff; }
+    .preview { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+    .preview img { max-width:120px; max-height:120px; border:2px solid #444; border-radius:6px; object-fit:contain; }
+    .btn-gradient { background:linear-gradient(135deg,#8e2de2,#ff6f61); color:#fff; border:none; padding:10px 20px; border-radius:50px; font-weight:bold; }
+    .btn-gradient:hover { transform:scale(1.05); }
   </style>
 </head>
 <body>
+<div class="container py-5">
+  <h2 class="mb-4 text-center">Step0 - Subí tus imágenes</h2>
 
-  <div class="grupo-selector d-flex justify-content-center flex-wrap">
-    <button onclick="mostrarGrupo('1')">Oscuro</button>
-    <button onclick="mostrarGrupo('2')">Natural</button>
-    <button onclick="mostrarGrupo('3')">Claro</button>
-    <button onclick="mostrarGrupo('4')">Varios</button>
-    <button onclick="mostrarGrupo('5')">Rojizo</button>
+  <div class="text-center mb-4">
+    <input type="file" id="inputImagenes" accept="image/*" multiple class="form-control w-50 mx-auto mb-2">
+    <button type="button" class="btn-gradient" onclick="procesarImagenes()">📂 Subir imágenes</button>
   </div>
 
-  <div class="container mt-3">
-    {% for grupo in ['1', '2', '3', '4', '5'] %}
-      <div id="grupo_{{ grupo }}" class="row g-3 d-none">
-        {% for imagen in imagenes %}
-          {% if imagen.endswith('.webp') and imagen.startswith('mini_' + grupo + '_') %}
-            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-              <img src="{{ url_for('static', filename='img/webp/' + imagen) }}"
-                   class="preview-img img-fluid"
-                   loading="lazy"
-                   onclick="seleccionarFondo('{{ imagen.replace('.webp', '.jpeg') }}')">
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    {% endfor %}
-  </div>
-  
-<form method="POST" class="text-center continuar-btn">
-  <input type="hidden" name="estilo_visual" id="estilo_visual_input" value="{{ config.estilo_visual }}">
-  <input type="hidden" name="modo_visual" id="modo_visual_input">
-  <button type="submit" class="btn-gradient">Continuar</button>
-</form>
+  <div id="preview" class="preview"></div>
+</div>
 
+<script>
+const MAX_FILES = 50;
+const MAX_SIZE_MB = 5;
+const bucket = "mpagina";
 
-  <script>
-  function mostrarGrupo(grupo) {
-    document.querySelectorAll('.row').forEach(div => div.classList.add('d-none'));
-    document.getElementById('grupo_' + grupo).classList.remove('d-none');
+async function procesarImagenes() {
+  const input = document.getElementById("inputImagenes");
+  if (!input.files.length) {
+    alert("⚠️ Seleccioná al menos una imagen");
+    return;
   }
 
-  function obtenerModoDesdeNombre(nombre) {
-    const grupo = nombre.split('_')[1]; // mini_2_ueud → '2'
+  const email = window.sessionEmail || localStorage.getItem("email") || "anonimo";
+  const email_encoded = email.replace("@","%40");
 
-    const oscurasGrupo2 = ['mini_2_ueud.jpeg', 'mini_2_jfjfjjd.jpeg', 'mini_2_83838.jpeg'];
-    const oscurasGrupo4 = ['mini_4_kfj8.jpeg', 'mini_4_kfk.jpeg', 'mini_4_psñqk.jpeg'];
-    const clarasGrupo5 = ['mini_5_bshs.jpeg'];
+  const archivos = Array.from(input.files);
+  const rutasFinales = [];
+  const nombresOriginales = [];
 
-    if (grupo === '1') return 'modo-oscuro';
-    if (grupo === '2') return oscurasGrupo2.includes(nombre) ? 'modo-oscuro' : 'modo-claro';
-    if (grupo === '3') return 'modo-claro';
-    if (grupo === '4') return oscurasGrupo4.includes(nombre) ? 'modo-oscuro' : 'modo-claro';
-    if (grupo === '5') return clarasGrupo5.includes(nombre) ? 'modo-claro' : 'modo-oscuro';
-
-    return 'modo-claro'; // fallback
+  if (archivos.length > MAX_FILES) {
+    alert(`⚠️ Máximo ${MAX_FILES} imágenes`);
+    return;
   }
 
-  function seleccionarFondo(nombre) {
-    document.body.style.backgroundImage = "url('/static/img/" + nombre + "')";
-    document.getElementById('estilo_visual_input').value = nombre.replace('.jpeg', '');
-
-    const modo = obtenerModoDesdeNombre(nombre);
-    document.body.classList.remove('modo-claro', 'modo-oscuro');
-    document.body.classList.add(modo);
-
-    // Quitar selección previa
-    document.querySelectorAll('.preview-img').forEach(img => {
-      img.classList.remove('seleccionado');
-    });
-
-    // Marcar imagen actual
-    const imagenes = document.querySelectorAll('.preview-img');
-    imagenes.forEach(img => {
-      if (img.src.includes(nombre.replace('.jpeg', '.webp'))) {
-        img.classList.add('seleccionado');
-      }
-    });
-
-    // Guardar modo en el formulario si lo usás en el backend
-    const modoInput = document.getElementById('modo_visual_input');
-    if (modoInput) {
-      modoInput.value = modo;
+  for (const file of archivos) {
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      alert(`⚠️ ${file.name} excede ${MAX_SIZE_MB}MB`);
+      continue;
     }
+
+    // Validar duplicados por nombre
+    if (nombresOriginales.includes(file.name)) {
+      console.warn("⚠️ Duplicado ignorado:", file.name);
+      continue;
+    }
+    nombresOriginales.push(file.name);
+
+    // Optimizar con WASM (ejemplo simplificado)
+    const optimizedBlob = await optimizarImagen(file);
+
+    // Generar UUID
+    const uuid = crypto.randomUUID() + ".webp";
+
+    // Subir a GCS vía backend
+    const formData = new FormData();
+    formData.append("file", optimizedBlob, uuid);
+    formData.append("email", email);
+
+    const resp = await fetch("/upload_gcs", { method:"POST", body:formData });
+    if (!resp.ok) {
+      console.error("❌ Error subiendo", file.name);
+      continue;
+    }
+
+    // Ruta pública final
+    const url = `https://storage.googleapis.com/${bucket}/${email_encoded}/${uuid}`;
+    rutasFinales.push(url);
+
+    // Mostrar preview
+    const img = document.createElement("img");
+    img.src = url;
+    document.getElementById("preview").appendChild(img);
   }
 
-  window.onload = function() {
-    mostrarGrupo('1');
-  };
+  // Guardar en localStorage
+  localStorage.setItem("imagenes_step0", JSON.stringify(rutasFinales));
+  localStorage.setItem("imagenesLista", JSON.stringify(nombresOriginales));
+
+  console.log("✅ Step0 completado. Rutas finales:", rutasFinales);
+}
+
+// Simulación de optimización WASM
+async function optimizarImagen(file) {
+  // Aquí iría la lógica real con WASM
+  return file;
+}
 </script>
-
-
 </body>
 </html>
