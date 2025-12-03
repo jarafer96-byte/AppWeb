@@ -2,38 +2,130 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Step2-5 - Armar catálogo</title>
+  <title>Step 2-5 - Armar catálogo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Raleway&family=Quicksand&display=swap" rel="stylesheet">
+
   <style>
-    body { background:#000; color:#fff; font-family:sans-serif; }
-    h2 { color:#fff; font-weight:bold; }
-    .card { background-color:rgba(255,255,255,0.05); border-radius:12px; padding:20px; }
-    .form-control { background-color:rgba(255,255,255,0.05); color:#fff; border:none; border-radius:8px; }
-    .form-control::placeholder { color:#aaa; }
-    .btn-gradient { background:linear-gradient(135deg,#8e2de2,#ff6f61); color:#fff; border:none; padding:10px 24px; border-radius:50px; font-weight:bold; }
-    .btn-gradient:hover { transform:scale(1.05); }
+    body {
+      background-color: #000;
+      font-family: 'Roboto', sans-serif;
+      color: white;
+    }
+
+    h2 {
+      color: white;
+      font-weight: bold;
+    }
+
+    .card {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .form-control {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+
+    .form-control::placeholder {
+      color: #aaa;
+    }
+
+    .btn-gradient {
+      background: linear-gradient(135deg, #8e2de2, #ff6f61);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: inline-block;
+    }
+
+    a {
+      text-decoration: none;
+    }
+
+    .btn-gradient:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    }
   </style>
 </head>
 <body>
-<div class="container py-5">
-  <h2 class="mb-4 text-center">Step2-5 - Armar catálogo</h2>
+  <div class="container py-5">
+    <h2 class="mb-4 text-center">Generar catálogo en Excel</h2>
 
-  <form class="card mb-4" onsubmit="prepararStep3DesdeForm()">
-    <div id="listas-container">
-      <!-- 5 filas iniciales -->
-      <div class="mb-2 d-flex flex-row align-items-center gap-3">
-        <span class="fw-bold">#1</span>
-        <input type="text" name="grupo_1" class="form-control" placeholder="Grupo (ej: Ropa Mujer)">
-        <input type="text" name="subgrupo_1" class="form-control" placeholder="Subgrupo (opcional)">
-        <input type="number" name="filas_1" class="form-control" min="1" value="1" style="width:100px;">
-        <input type="text" name="talles_1" class="form-control" placeholder="Talles (ej: S,M,L)" style="width:160px;">
+    <p>Si ya tenés tu archivo Excel con productos, podés <strong>subirlo en el paso siguiente</strong> y saltar este paso.</p>
+
+    <!-- Botón para saltar -->
+    <a href="/contenido" class="btn-gradient mb-4">Saltar este paso</a>
+
+    <!-- Texto separado con margen -->
+    <p class="mt-3">Si no tenés un Excel, completá las filas con tus grupos, subgrupos y productos base. Podés agregar más si lo necesitás:</p>
+    
+    <!-- Formulario con filas dinámicas -->
+    <form method="post" action="/step2-5" class="card mb-4" onsubmit="prepararStep3()">
+      <div id="listas-container">
+        <!-- 10 filas iniciales -->
+        {% for i in range(1,11) %}
+        <div class="mb-2 d-flex flex-row align-items-center gap-3">
+          <span class="fw-bold">#{{ i }}</span>
+          <input type="text" name="grupo_{{ i }}" class="form-control" placeholder="Grupo (ej: Ropa Hombre)">
+          <input type="text" name="subgrupo_{{ i }}" class="form-control" placeholder="Subgrupo (ej: Pantalones)">
+          <input type="text" name="producto_{{ i }}" class="form-control" placeholder="Producto base (ej: Pantalón)">
+          <input type="number" name="filas_{{ i }}" class="form-control" placeholder="Filas (ej: 10)" min="1" value="1" style="width:100px;">
+          <input type="text" name="talles_{{ i }}" class="form-control" placeholder="Talles (ej: S,M,L,XL)" style="width:160px;">
+        </div>
+        {% endfor %}
       </div>
+
+      <!-- Botón para agregar más filas -->
+      <button type="button" class="btn-gradient mt-2" onclick="agregarFila()">+ Agregar fila</button>
+
+      <!-- Botón para generar Excel -->
+      <button type="submit" class="btn-gradient mt-3">Generar XLS</button>
+    </form>
+
+    <!-- Botón continuar -->
+    <div class="mt-3">
+      <a href="/contenido" class="btn-gradient">Continuar</a>
     </div>
-    <button type="button" class="btn-gradient mt-2" onclick="agregarFila()">+ Agregar fila</button>
-    <button type="submit" class="btn-gradient mt-3">Guardar y continuar</button>
-  </form>
-</div>
+
+    <!-- Ejemplo de funcionamiento real -->
+    <div class="mt-4 card">
+      <h4>Ejemplo de salida en Excel / localStorage:</h4>
+      <table class="table table-dark table-striped">
+        <thead>
+          <tr>
+            <th>Grupo</th>
+            <th>Subgrupo</th>
+            <th>Producto</th>
+            <th>Talles</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalón1</td><td>S</td></tr>
+          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalón1</td><td>M</td></tr>
+          <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalón1</td><td>L</td></tr>
+          <tr><td>Mochilas</td><td></td><td>Mochila1</td><td>S</td></tr>
+          <tr><td>Mochilas</td><td></td><td>Mochila2</td><td>S-M-L</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 <script>
 function agregarFila() {
@@ -43,42 +135,52 @@ function agregarFila() {
   div.className = "mb-2 d-flex flex-row align-items-center gap-3";
   div.innerHTML = `
     <span class="fw-bold">#${index}</span>
-    <input type="text" name="grupo_${index}" class="form-control" placeholder="Grupo">
-    <input type="text" name="subgrupo_${index}" class="form-control" placeholder="Subgrupo (opcional)">
-    <input type="number" name="filas_${index}" class="form-control" min="1" value="1" style="width:100px;">
-    <input type="text" name="talles_${index}" class="form-control" placeholder="Talles (ej: S,M,L)" style="width:160px;">
+    <input type="text" name="grupo_${index}" class="form-control" placeholder="Grupo (ej: Ropa Hombre)">
+    <input type="text" name="subgrupo_${index}" class="form-control" placeholder="Subgrupo (ej: Pantalones)">
+    <input type="text" name="producto_${index}" class="form-control" placeholder="Producto base (ej: Pantalón)">
+    <input type="number" name="filas_${index}" class="form-control" placeholder="Filas" min="1" value="1" style="width:100px;">
+    <input type="text" name="talles_${index}" class="form-control" placeholder="Talles (ej: S,M,L,XL)" style="width:160px;">
   `;
   container.appendChild(div);
 }
 
-function prepararStep3DesdeForm() {
+function prepararStep3() {
+  localStorage.removeItem("step3_state"); // limpiar estado viejo
   const filas = [];
   const container = document.getElementById('listas-container');
 
   container.querySelectorAll('div').forEach((fila, idx) => {
     const grupo = fila.querySelector(`[name="grupo_${idx+1}"]`)?.value.trim() || "";
     const subgrupo = fila.querySelector(`[name="subgrupo_${idx+1}"]`)?.value.trim() || "";
+    const productoBase = fila.querySelector(`[name="producto_${idx+1}"]`)?.value.trim() || "";
     const cantidad = parseInt(fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1", 10);
     const tallesRaw = fila.querySelector(`[name="talles_${idx+1}"]`)?.value.trim() || "";
-    const productoBase = subgrupo || grupo;
 
-    if (!grupo) return;
+    if (!grupo) return; // grupo obligatorio
 
     let productos = [];
-    if (cantidad > 1) {
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${productoBase}${i}`);
+    if (productoBase) {
+      if (cantidad > 1) {
+        for (let i = 1; i <= cantidad; i++) {
+          productos.push(`${productoBase}${i}`);
+        }
+      } else {
+        productos.push(productoBase);
       }
     } else {
-      productos.push(productoBase);
+      // si no hay producto base, usar grupo/subgrupo como base
+      const base = subgrupo || grupo;
+      for (let i = 1; i <= cantidad; i++) {
+        productos.push(`${base}${i}`);
+      }
     }
 
-    // Manejo de talles → SOLO coma expande
+    // Manejo de talles → coma expande, guion se guarda junto
     let listaTalles = [];
     if (tallesRaw.includes(",")) {
       listaTalles = tallesRaw.split(",").map(t => t.trim()).filter(Boolean);
     } else {
-      listaTalles = [tallesRaw]; // texto plano
+      listaTalles = [tallesRaw];
     }
 
     productos.forEach(prod => {
@@ -98,7 +200,7 @@ function prepararStep3DesdeForm() {
   });
 
   localStorage.setItem("listas_step2-5", JSON.stringify(filas));
-  console.log("💾 [Step2-5] Guardada estructura:", filas);
+  console.log("💾 [Step2-5] Guardada estructura en listas_step2-5:", filas);
 
   alert("✅ Datos guardados. Ahora podés continuar a Step3.");
 }
