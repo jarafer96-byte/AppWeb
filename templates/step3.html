@@ -216,7 +216,7 @@ function filaToObj(fila) {
   
 function generarFilasDesdeListas(listas) {
   listas.forEach(item => {
-    const { grupo, subgrupo, cantidad, talles } = item;
+    const { grupo, subgrupo, producto, cantidad, talles } = item;
     const nombreGrupo = grupo || "General";
 
     // Crear grupo si no existe
@@ -249,11 +249,12 @@ function generarFilasDesdeListas(listas) {
       }
     }
 
-    // Crear filas según cantidad
+    // 👉 Crear filas usando producto como base
     const contenedor = subgrupoCard.querySelector(".productos");
     const cant = parseInt(cantidad, 10) || 1;
     for (let i = 0; i < cant; i++) {
-      const fila = crearFila(subgrupo || "General", nombreGrupo);
+      const baseNombre = producto || nombreGrupo;
+      const fila = crearFila(baseNombre, nombreGrupo);
       fila.querySelector("input[name='talles']").value = talles || "";
       contenedor.appendChild(fila);
     }
@@ -262,6 +263,7 @@ function generarFilasDesdeListas(listas) {
 
   saveStateDebounced();
 }
+
   
 function crearGrupo() {
   const nombre = document.getElementById('nombreGrupo').value.trim();
