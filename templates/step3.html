@@ -202,7 +202,6 @@ function confirmarContinuar() {
   return confirm("Se enviarán los datos, ¿deseás continuar?");
 }
   
-// Utilidad para convertir fila en objeto
 function filaToObj(fila) {
   return {
     nombre: fila.querySelector("input[name='nombre']")?.value || "",
@@ -210,7 +209,9 @@ function filaToObj(fila) {
     precio: fila.querySelector("input[name='precio']")?.value || "",
     talles: fila.querySelector("input[name='talles']")?.value || "",
     imagen_url: fila.querySelector("input[name='imagen_elegida']")?.value || "",
-    imagen_basename: fila.querySelector("input[name='imagen_basename']")?.value || ""
+    imagen_basename: fila.querySelector("input[name='imagen_basename']")?.value || "",
+    grupo: fila.querySelector("input[name='grupo']")?.value || "",
+    subgrupo: fila.querySelector("input[name='subgrupo']")?.value || "" // Puede estar vacío
   };
 }
   
