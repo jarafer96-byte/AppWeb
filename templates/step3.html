@@ -973,15 +973,16 @@ function agregarFila(btn) {
 
   if (subgrupo) {
     contenedor = subgrupo.querySelector('.productos');
-    nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || 'Sin subgrupo';
+    nombreSubgrupo = subgrupo.querySelector('strong')?.textContent?.trim() || '';
     nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
   } else {
     contenedor = grupo.querySelector('.productos');
-    nombreSubgrupo = 'General';
+    nombreSubgrupo = ''; // Vacío, no "General"
     nombreGrupo = grupo.querySelector('h4')?.textContent?.trim() || 'General';
   }
 
-  const fila = crearFila(nombreSubgrupo, nombreGrupo);
+  // Usar la nueva firma con 3 parámetros
+  const fila = crearFila('', nombreGrupo, nombreSubgrupo);
   contenedor.appendChild(fila);
 
   actualizarContador(contenedor);
