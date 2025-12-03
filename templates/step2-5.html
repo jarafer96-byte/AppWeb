@@ -2,125 +2,476 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Step 2-5 - Generar XLS</title>
+  <title>Armar plantilla de productos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <!-- XLSX -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
   <style>
-    body { background:#000; font-family:sans-serif; color:white; }
-    h2 { color:white; font-weight:bold; }
-    .card { background-color:rgba(255,255,255,0.05); border-radius:12px; padding:20px; }
-    .form-control { background-color:rgba(255,255,255,0.05); color:white; border:none; border-radius:8px; }
-    .form-control::placeholder { color:#aaa; }
-    .btn-gradient { background:linear-gradient(135deg,#8e2de2,#ff6f61); color:white; border:none; padding:10px 24px; border-radius:50px; font-weight:bold; }
-    .btn-gradient:hover { transform:scale(1.05); }
+    body {
+      background-color: #000;
+      font-family: sans-serif;
+      color: white;
+    }
+
+    h2 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+
+    .form-control {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+    }
+
+    .form-control::placeholder {
+      color: #aaa;
+    }
+
+    .form-control:focus {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: white;
+      box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.5);
+    }
+
+    .btn-gradient {
+      background: linear-gradient(135deg, #8e2de2, #ff6f61);
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: inline-block;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn-gradient:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+      color: white;
+    }
+
+    .btn-outline-light {
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      background: transparent;
+      padding: 8px 20px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-outline-light:hover {
+      background-color: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.5);
+    }
+
+    .btn-sm {
+      padding: 6px 15px;
+      font-size: 0.9em;
+    }
+
+    .table th {
+      background-color: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+      color: #ff6f61;
+    }
+
+    .table td {
+      border-color: rgba(255,255,255,0.1);
+      vertical-align: middle;
+    }
+
+    .badge {
+      background: linear-gradient(135deg, #8e2de2, #ff6f61);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8em;
+    }
+
+    .alert-custom {
+      background-color: rgba(13, 110, 253, 0.1);
+      border-left: 4px solid #0d6efd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .example-box {
+      background-color: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+      border-left: 3px solid #28a745;
+    }
   </style>
 </head>
 <body>
-<div class="container py-5">
-  <h2 class="mb-4 text-center">Generar catálogo en Excel</h2>
+  <div class="container py-5">
+    <h2>📋 Armar plantilla de productos</h2>
 
-  <form class="card mb-4" onsubmit="generarXLS(event)">
-    <div id="listas-container">
-      <!-- 5 filas iniciales -->
-      <div class="mb-2 d-flex flex-row align-items-center gap-3">
-        <span class="fw-bold">#1</span>
-        <input type="text" name="grupo_1" class="form-control" placeholder="Grupo (ej: Ropa Mujer)">
-        <input type="text" name="subgrupo_1" class="form-control" placeholder="Subgrupo (opcional)">
-        <input type="text" name="producto_1" class="form-control" placeholder="Producto base (ej: Pantalón)">
-        <input type="number" name="filas_1" class="form-control" min="1" value="1" style="width:100px;">
-        <input type="text" name="talles_1" class="form-control" placeholder="Talles (ej: S,M,L)" style="width:160px;">
+    <!-- Alerta informativa -->
+    <div class="alert-custom">
+      <strong>💡 ¿Ya tenés un Excel?</strong> Si ya tenés tu archivo con productos, podés subirlo directamente en el siguiente paso y saltar este.
+    </div>
+
+    <!-- Botón para saltar -->
+    <div class="text-center mb-4">
+      <a href="/contenido" class="btn-gradient mb-3">Saltar este paso e ir a cargar contenido</a>
+      <p class="text-muted">Si no tenés Excel, creá uno fácilmente aquí:</p>
+    </div>
+
+    <!-- Formulario principal -->
+    <div class="card">
+      <h4 class="mb-4">📝 Crear estructura de productos</h4>
+      
+      <!-- Instrucciones -->
+      <div class="mb-4">
+        <p>Completá cada fila para definir grupos, subgrupos y productos. Luego generá el Excel.</p>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="example-box">
+              <strong>Ejemplo 1 (sin subgrupo):</strong><br>
+              Grupo: <span class="badge">Mochilas</span><br>
+              Producto: <span class="badge">Mochila</span><br>
+              Filas: <span class="badge">2</span><br>
+              → Creará 2 productos en el grupo "Mochilas"
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="example-box">
+              <strong>Ejemplo 2 (con subgrupo):</strong><br>
+              Grupo: <span class="badge">Mochilas</span><br>
+              Subgrupo: <span class="badge">Niños</span><br>
+              Producto: <span class="badge">Mochila</span><br>
+              Filas: <span class="badge">2</span><br>
+              → Creará 2 productos en el subgrupo "Niños"
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filas de entrada -->
+      <div id="filas-container">
+        <!-- Fila inicial -->
+        <div class="row mb-3 align-items-center fila-entrada">
+          <div class="col-md-3">
+            <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
+          </div>
+          <div class="col-md-3">
+            <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
+          </div>
+          <div class="col-md-3">
+            <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
+          </div>
+          <div class="col-md-2">
+            <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
+          </div>
+          <div class="col-md-1">
+            <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)" style="display:none;">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones de acción -->
+      <div class="d-flex gap-3 mt-4">
+        <button type="button" class="btn-gradient" onclick="agregarFila()">+ Agregar otra fila</button>
+        <button type="button" class="btn btn-outline-light" onclick="limpiarFormulario()">Limpiar todo</button>
+        <button type="button" class="btn btn-outline-light" onclick="probarVistaPrevia()">Ver vista previa</button>
+      </div>
+
+      <!-- Botón para generar Excel -->
+      <div class="text-center mt-5">
+        <button type="button" class="btn-gradient px-5" onclick="generarExcel()">📥 Generar Excel</button>
+        <p class="mt-2 text-muted">El Excel generado será compatible con el importador del siguiente paso.</p>
       </div>
     </div>
-    <button type="button" class="btn-gradient mt-2" onclick="agregarFila()">+ Agregar fila</button>
-    <button type="submit" class="btn-gradient mt-3">Descargar XLS</button>
-  </form>
 
-  <!-- Ejemplo -->
-  <div class="mt-4 card">
-    <h4>Ejemplo de salida:</h4>
-    <table class="table table-dark table-striped">
-      <thead>
-        <tr><th>Grupo</th><th>Subgrupo</th><th>Producto</th><th>Talle</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalón1</td><td>S</td></tr>
-        <tr><td>Ropa Mujer</td><td>Pantalones</td><td>Pantalón1</td><td>M</td></tr>
-        <tr><td>Mochilas</td><td></td><td>Mochila1</td><td>S</td></tr>
-        <tr><td>Mochilas</td><td>Adulto</td><td>Mochila2</td><td>S-M-L</td></tr>
-      </tbody>
-    </table>
+    <!-- Vista previa (oculta inicialmente) -->
+    <div id="vista-previa-container" class="card" style="display:none;">
+      <h4 class="mb-3">👁️ Vista previa del Excel</h4>
+      <div class="table-responsive">
+        <table class="table table-dark">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Precio</th>
+              <th>Grupo</th>
+              <th>Subgrupo</th>
+              <th>Talles</th>
+              <th>Filas</th>
+            </tr>
+          </thead>
+          <tbody id="vista-previa-body">
+            <!-- Se llena dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <p class="text-center">✅ Este formato es exactamente lo que el siguiente paso necesita.</p>
+        <div class="text-center">
+          <button type="button" class="btn-gradient" onclick="continuarAlSiguientePaso()">Continuar al siguiente paso</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="card">
+      <h4 class="mb-3">ℹ️ ¿Cómo funciona?</h4>
+      <ol>
+        <li><strong>Grupo</strong>: Obligatorio. Es la categoría principal (ej: Mochilas, Ropa Mujer, Calzado).</li>
+        <li><strong>Subgrupo</strong>: Opcional. Para organizar dentro del grupo (ej: Niños, Adultos, Verano).</li>
+        <li><strong>Producto</strong>: Obligatorio. El nombre base del producto.</li>
+        <li><strong>Filas</strong>: Cantidad de veces que se repetirá este producto (ej: 2 → creará 2 productos iguales).</li>
+        <li><strong>Talles</strong>: Se completan después en el siguiente paso (opcional).</li>
+      </ol>
+      <p class="mt-3"><strong>💡 Tip:</strong> Podés dejar Descripción y Precio vacíos en el Excel, y llenarlos después en el paso 3 para cada producto individualmente.</p>
+    </div>
   </div>
-</div>
 
-<script>
-function agregarFila() {
-  const container = document.getElementById('listas-container');
-  const index = container.children.length + 1;
-  const div = document.createElement('div');
-  div.className = "mb-2 d-flex flex-row align-items-center gap-3";
-  div.innerHTML = `
-    <span class="fw-bold">#${index}</span>
-    <input type="text" name="grupo_${index}" class="form-control" placeholder="Grupo">
-    <input type="text" name="subgrupo_${index}" class="form-control" placeholder="Subgrupo (opcional)">
-    <input type="text" name="producto_${index}" class="form-control" placeholder="Producto base">
-    <input type="number" name="filas_${index}" class="form-control" min="1" value="1" style="width:100px;">
-    <input type="text" name="talles_${index}" class="form-control" placeholder="Talles (ej: S,M,L)" style="width:160px;">
-  `;
-  container.appendChild(div);
-}
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    let contadorFilas = 1;
 
-function generarXLS(e) {
-  e.preventDefault();
-  const container = document.getElementById('listas-container');
-  const rows = [];
+    // Agregar nueva fila
+    function agregarFila() {
+      contadorFilas++;
+      const container = document.getElementById('filas-container');
+      const nuevaFila = document.createElement('div');
+      nuevaFila.className = 'row mb-3 align-items-center fila-entrada';
+      nuevaFila.innerHTML = `
+        <div class="col-md-3">
+          <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
+        </div>
+        <div class="col-md-3">
+          <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
+        </div>
+        <div class="col-md-3">
+          <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
+        </div>
+        <div class="col-md-2">
+          <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
+        </div>
+        <div class="col-md-1">
+          <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)">✕</button>
+        </div>
+      `;
+      container.appendChild(nuevaFila);
+    }
 
-  container.querySelectorAll('div').forEach((fila, idx) => {
-    const grupo = fila.querySelector(`[name="grupo_${idx+1}"]`)?.value.trim() || "";
-    const subgrupo = fila.querySelector(`[name="subgrupo_${idx+1}"]`)?.value.trim() || "";
-    const productoBase = fila.querySelector(`[name="producto_${idx+1}"]`)?.value.trim() || "";
-    const cantidad = parseInt(fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1", 10);
-    const tallesRaw = fila.querySelector(`[name="talles_${idx+1}"]`)?.value.trim() || "";
-
-    if (!grupo) return;
-
-    let productos = [];
-    if (productoBase) {
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${productoBase}${i}`);
-      }
-    } else {
-      const base = subgrupo || grupo;
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
+    // Eliminar fila
+    function eliminarFila(btn) {
+      const filas = document.querySelectorAll('.fila-entrada');
+      if (filas.length > 1) {
+        btn.closest('.fila-entrada').remove();
       }
     }
 
-    let listaTalles = [];
-    if (tallesRaw.includes(",")) {
-      listaTalles = tallesRaw.split(",").map(t => t.trim()).filter(Boolean);
-    } else {
-      listaTalles = [tallesRaw];
+    // Limpiar formulario
+    function limpiarFormulario() {
+      document.querySelectorAll('.fila-entrada').forEach(fila => {
+        fila.querySelectorAll('input').forEach(input => {
+          if (input.dataset.field === 'filas') {
+            input.value = '1';
+          } else {
+            input.value = '';
+          }
+        });
+      });
     }
 
-    productos.forEach(prod => {
-      listaTalles.forEach(talle => {
-        rows.push({ Grupo: grupo, Subgrupo: subgrupo, Producto: prod, Talle: talle });
+    // Recolectar datos
+    function recolectarDatos() {
+      const datos = [];
+      document.querySelectorAll('.fila-entrada').forEach(fila => {
+        const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
+        const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
+        const producto = fila.querySelector('[data-field="producto"]').value.trim();
+        const filas = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
+
+        if (grupo && producto) {
+          // Crear una entrada por cada fila solicitada
+          for (let i = 0; i < filas; i++) {
+            datos.push({
+              grupo,
+              subgrupo, // Puede estar vacío
+              producto, // Mismo nombre para todas las filas (sin número)
+              filas: 1, // Siempre 1 porque cada entrada es una fila
+              talles: '' // Vacío, se completa después
+            });
+          }
+        }
+      });
+      return datos;
+    }
+
+    // Mostrar vista previa
+    function probarVistaPrevia() {
+      const datos = recolectarDatos();
+      if (datos.length === 0) {
+        alert('Por favor, completá al menos una fila con Grupo y Producto.');
+        return;
+      }
+
+      const tbody = document.getElementById('vista-previa-body');
+      tbody.innerHTML = '';
+
+      datos.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.producto}</td>
+          <td></td>
+          <td></td>
+          <td>${item.grupo}</td>
+          <td>${item.subgrupo || ''}</td>
+          <td>${item.talles || ''}</td>
+          <td>1</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('vista-previa-container').style.display = 'block';
+      
+      // Guardar datos para step3
+      localStorage.setItem('listas_step2-5', JSON.stringify(datos));
+      
+      // Scroll a la vista previa
+      document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Generar Excel
+    function generarExcel() {
+      const datos = recolectarDatos();
+      if (datos.length === 0) {
+        alert('No hay datos para generar el Excel. Completá al menos una fila.');
+        return;
+      }
+
+      // Crear hoja de cálculo
+      const hojaDatos = [
+        // Encabezados (EXACTAMENTE como step3 los espera)
+        ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Filas']
+      ];
+
+      // Agregar filas de datos
+      datos.forEach(item => {
+        hojaDatos.push([
+          item.producto,    // Nombre
+          '',               // Descripción (vacía)
+          '',               // Precio (vacío)
+          item.grupo,       // Grupo
+          item.subgrupo,    // Subgrupo (puede estar vacío)
+          '',               // Talles (vacío)
+          '1'               // Filas (siempre 1)
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+
+      // Formatear columnas
+      const colAnchos = [
+        { wch: 20 }, // Nombre
+        { wch: 30 }, // Descripción
+        { wch: 10 }, // Precio
+        { wch: 15 }, // Grupo
+        { wch: 15 }, // Subgrupo
+        { wch: 15 }, // Talles
+        { wch: 8 }   // Filas
+      ];
+      ws['!cols'] = colAnchos;
+
+      // Generar nombre de archivo
+      const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
+
+      // Guardar datos para step3 (mismo formato que necesita)
+      const datosParaStep3 = datos.map(item => ({
+        grupo: item.grupo,
+        subgrupo: item.subgrupo || "", // Subgrupo vacío si no se completó
+        productoBase: item.producto, // Producto base
+        cantidad: "1", // Cada producto es una fila
+        talles: "", // Vacío
+        descripcion: "", // Vacío
+        precio: "" // Vacío
+      }));
+
+      localStorage.setItem('listas_step2-5', JSON.stringify(datosParaStep3));
+      console.log('📊 Datos guardados para step3:', datosParaStep3);
+
+      // Mostrar vista previa
+      probarVistaPrevia();
+
+      // Mostrar mensaje de éxito
+      alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso o continuar directamente.`);
+    }
+
+    // Continuar al siguiente paso
+    function continuarAlSiguientePaso() {
+      // Asegurarse de que los datos estén guardados
+      const datos = recolectarDatos();
+      const datosParaStep3 = datos.map(item => ({
+        grupo: item.grupo,
+        subgrupo: item.subgrupo || "",
+        productoBase: item.producto,
+        cantidad: "1",
+        talles: "",
+        descripcion: "",
+        precio: ""
+      }));
+
+      localStorage.setItem('listas_step2-5', JSON.stringify(datosParaStep3));
+      
+      // Redirigir a step3
+      window.location.href = '/contenido';
+    }
+
+    // Inicializar con algunas filas
+    window.addEventListener('load', () => {
+      // Agregar 3 filas más
+      for (let i = 0; i < 3; i++) {
+        agregarFila();
+      }
+
+      // Mostrar botones de eliminar en todas las filas excepto la primera
+      document.querySelectorAll('.fila-entrada').forEach((fila, index) => {
+        if (index > 0) {
+          const btnEliminar = fila.querySelector('button');
+          if (btnEliminar) btnEliminar.style.display = 'inline-block';
+        }
       });
     });
-  });
 
-  // Crear XLS
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Catálogo");
-  XLSX.writeFile(wb, "catalogo.xlsx");
-}
-</script>
+    // Validar entrada en tiempo real
+    document.addEventListener('input', function(e) {
+      if (e.target.matches('[data-field="grupo"], [data-field="producto"]')) {
+        const fila = e.target.closest('.fila-entrada');
+        const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
+        const producto = fila.querySelector('[data-field="producto"]').value.trim();
+        
+        if (grupo && producto) {
+          e.target.style.border = '2px solid #28a745';
+        } else {
+          e.target.style.border = '';
+        }
+      }
+    });
+  </script>
 </body>
 </html>
