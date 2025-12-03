@@ -201,6 +201,37 @@ const saveStateDebounced = (() => {
 function confirmarContinuar() {
   return confirm("Se enviarán los datos, ¿deseás continuar?");
 }
+function crearFilaProducto(nombreProducto, grupo, subgrupo, descripcion = "", precio = "", talles = "") {
+  const fila = document.createElement("div");
+  fila.className = "fila-producto mb-2";
+
+  fila.innerHTML = `
+    <div class="row align-items-center">
+      <div class="col">
+        <input type="text" name="nombre" class="form-control" placeholder="Producto" value="${nombreProducto || ""}">
+      </div>
+      <div class="col">
+        <textarea name="descripcion" class="form-control" placeholder="Descripción">${descripcion}</textarea>
+      </div>
+      <div class="col">
+        <input type="number" name="precio" class="form-control" placeholder="Precio" value="${precio}">
+      </div>
+      <div class="col">
+        <input type="text" name="talles" class="form-control" placeholder="Talles" value="${talles}">
+      </div>
+      <div class="col preview-imagen"></div>
+      <div class="col">
+        <button type="button" class="btn-gradient btn-sm" onclick="abrirCarrusel(this)">📷 Imagen</button>
+      </div>
+    </div>
+    <input type="hidden" name="grupo" value="${grupo}">
+    <input type="hidden" name="subgrupo" value="${subgrupo || ""}">
+    <input type="hidden" name="imagen_elegida" value="">
+    <input type="hidden" name="imagen_basename" value="">
+  `;
+
+  return fila;
+}
   
 // Utilidad para convertir fila en objeto
 function filaToObj(fila) {
@@ -713,12 +744,8 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     return;
   }
 
-  // Crear fila y rellenar datos
-  const fila = crearFila(subgrupo || grupo, grupo);
-  fila.querySelector("input[name='nombre']").value = nombre;
-  fila.querySelector("textarea[name='descripcion']").value = descripcion;
-  fila.querySelector("input[name='precio']").value = precio;
-  fila.querySelector("input[name='talles']").value = talles;
+  // Crear fila con la nueva lógica (producto como base)
+  const fila = crearFilaProducto(nombre, grupo, subgrupo, descripcion, precio, talles);
 
   // 👉 Insertar fila en el contenedor correcto
   const contenedor = subgrupoCard.querySelector(".productos");
