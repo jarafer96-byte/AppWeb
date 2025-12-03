@@ -104,9 +104,12 @@
     }
     
     .product-image {
-      height: 160px;
-      object-fit: cover;
-      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      width: 180px;
+      height: 180px;
+      object-fit: contain;   /* 👈 asegura que la imagen se vea completa */
+      background-color: transparent; /* 👈 relleno transparente si sobra espacio */
+      display: block;
+      margin: 0 auto;
     }
     
     .product-header {
