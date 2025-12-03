@@ -191,45 +191,73 @@ function prepararStep3() {
     const cantidad = parseInt(fila.querySelector(`[name="filas_${idx+1}"]`)?.value || "1", 10);
     const talles = fila.querySelector(`[name="talles_${idx+1}"]`)?.value.trim() || "";
 
-    if (!grupo && !subgrupo && !productoBase) return;
+    if (!grupo) return; // Si no hay grupo, saltar
 
-    // Lista de productos separados por coma
-    let productos = productoBase.split(",").map(p => p.trim()).filter(Boolean);
-
-    // Caso 1: varios productos explícitos → se respetan tal cual
-    if (productos.length > 1) {
-      // no se aplica cantidad, se usan tal cual
-    }
-    // Caso 2: un solo producto + Filas > 1 → numerar
-    else if (productos.length === 1 && cantidad > 1) {
-      const base = productos[0];
-      productos = [];
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
-      }
-    }
-    // Caso 3: sin producto pero con cantidad → usar grupo/subgrupo como base
-    else if (productos.length === 0 && cantidad > 0) {
-      const base = subgrupo || grupo || "Genérico";
-      productos = [];
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
-      }
-    }
-
-    // Expandir talles si existen
-    const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
-
-    if (listaTalles.length > 0) {
-      productos.forEach(prod => {
-        listaTalles.forEach(talle => {
-          filas.push({ grupo, subgrupo, producto: prod, talle });
+    // CASO 1: Si hay productoBase explícito
+    if (productoBase) {
+      // Si productoBase tiene comas, son múltiples productos
+      if (productoBase.includes(",")) {
+        const productos = productoBase.split(",").map(p => p.trim()).filter(Boolean);
+        productos.forEach(prod => {
+          if (cantidad > 1) {
+            // Si hay cantidad > 1, numerar cada producto
+            for (let i = 1; i <= cantidad; i++) {
+              filas.push({
+                grupo,
+                subgrupo,
+                producto: `${prod}${i}`,
+                cantidad: 1,
+                talles
+              });
+            }
+          } else {
+            // Si cantidad = 1, usar producto tal cual
+            filas.push({
+              grupo,
+              subgrupo,
+              producto: prod,
+              cantidad: 1,
+              talles
+            });
+          }
         });
-      });
-    } else {
-      productos.forEach(prod => {
-        filas.push({ grupo, subgrupo, producto: prod });
-      });
+      } else {
+        // Producto único
+        if (cantidad > 1) {
+          // Numerar: Producto1, Producto2, etc.
+          for (let i = 1; i <= cantidad; i++) {
+            filas.push({
+              grupo,
+              subgrupo,
+              producto: `${productoBase}${i}`,
+              cantidad: 1,
+              talles
+            });
+          }
+        } else {
+          // Cantidad = 1
+          filas.push({
+            grupo,
+            subgrupo,
+            producto: productoBase,
+            cantidad: 1,
+            talles
+          });
+        }
+      }
+    } 
+    // CASO 2: No hay productoBase pero sí grupo
+    else {
+      const base = subgrupo || grupo;
+      for (let i = 1; i <= cantidad; i++) {
+        filas.push({
+          grupo,
+          subgrupo,
+          producto: `${base}${i}`,
+          cantidad: 1,
+          talles
+        });
+      }
     }
   });
 
