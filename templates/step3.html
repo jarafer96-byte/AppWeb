@@ -107,9 +107,9 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
   <!-- Mensaje final -->
   <div class="mensaje-final text-center mt-3">
     ¿Tenés mucho contenido? 
-    <a href="#" style="color: #00c853; text-decoration: underline;">Contactanos para ayudarte</a>
+    <a href="#" style="color: #00c853; text-decoration: underline;">Contáctanos para ayudarte</a>
     <br>
-    <span>⚠️ Si continuás, podrías perder todo el contenido si intentás volver a esta página.</span>
+    <span>⚠️ Si continúas, podrías perder todo el contenido al intentar volver a esta página.</span>
   </div>
 </div>
 
@@ -680,7 +680,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     }
   }
 
-  // Si no hay subgrupo, usamos directamente el grupo como contenedor
+  // 👉 Si no hay subgrupo, usamos directamente el grupo como contenedor
   if (!subgrupoCard) {
     subgrupoCard = grupoCard;
   }
@@ -697,8 +697,8 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   fila.querySelector("input[name='precio']").value = precio;
   fila.querySelector("input[name='talles']").value = talles;
 
-  // Si hay subgrupo, insertar en .productos; si no, insertar en el grupo directamente
-  const contenedor = subgrupoCard.querySelector(".productos") || subgrupoCard.querySelector(".productosGrupo");
+  // 👉 Insertar fila en el contenedor correcto
+  const contenedor = subgrupoCard.querySelector(".productos");
   if (contenedor) {
     contenedor.appendChild(fila);
   } else {
