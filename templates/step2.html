@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Seleccionar estilo visual</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #000;
+      font-family: sans-serif;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
+
+    h2 {
+      color: white;
+    }
+
+    .grupo-selector {
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 10px;
+      background-color: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      margin: 20px auto;
+      max-width: 1000px;
+    }
+
+    .grupo-selector button {
+      margin: 5px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 50px;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s ease;
+    }
+
+    .grupo-selector button:hover {
+      background-color: #555;
+    }
+
+    .preview-img {
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .preview-img:hover {
+      transform: scale(1.05);
+    }
+
+    .preview-img.seleccionado {
+      outline: 3px solid limegreen;
+      outline-offset: 2px;
+    }
+
+    .continuar-btn {
+      margin-top: 40px;
+    }
+
+    .btn-gradient {
+      background: linear-gradient(135deg, #8e2de2, #ff6f61);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-gradient:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grupo-selector d-flex justify-content-center flex-wrap">
+    <button onclick="mostrarGrupo('1')">Oscuro</button>
+    <button onclick="mostrarGrupo('2')">Natural</button>
+    <button onclick="mostrarGrupo('3')">Claro</button>
+    <button onclick="mostrarGrupo('4')">Varios</button>
+    <button onclick="mostrarGrupo('5')">Rojizo</button>
+  </div>
+
+  <div class="container mt-3">
+    {% for grupo in ['1', '2', '3', '4', '5'] %}
+      <div id="grupo_{{ grupo }}" class="row g-3 d-none">
+        {% for imagen in imagenes %}
+          {% if imagen.endswith('.webp') and imagen.startswith('mini_' + grupo + '_') %}
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+              <img src="{{ url_for('static', filename='img/webp/' + imagen) }}"
+                   class="preview-img img-fluid"
+                   loading="lazy"
+                   onclick="seleccionarFondo('{{ imagen.replace('.webp', '.jpeg') }}')">
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+  
+<form method="POST" class="text-center continuar-btn">
+  <input type="hidden" name="estilo_visual" id="estilo_visual_input" value="{{ config.estilo_visual }}">
+  <input type="hidden" name="modo_visual" id="modo_visual_input">
+  <button type="submit" class="btn-gradient">Continuar</button>
+</form>
+
+
+  <script>
+  function mostrarGrupo(grupo) {
+    document.querySelectorAll('.row').forEach(div => div.classList.add('d-none'));
+    document.getElementById('grupo_' + grupo).classList.remove('d-none');
+  }
+
+  function obtenerModoDesdeNombre(nombre) {
+    const grupo = nombre.split('_')[1]; // mini_2_ueud → '2'
+
+    const oscurasGrupo2 = ['mini_2_ueud.jpeg', 'mini_2_jfjfjjd.jpeg', 'mini_2_83838.jpeg'];
+    const oscurasGrupo4 = ['mini_4_kfj8.jpeg', 'mini_4_kfk.jpeg', 'mini_4_psñqk.jpeg'];
+    const clarasGrupo5 = ['mini_5_bshs.jpeg'];
+
+    if (grupo === '1') return 'modo-oscuro';
+    if (grupo === '2') return oscurasGrupo2.includes(nombre) ? 'modo-oscuro' : 'modo-claro';
+    if (grupo === '3') return 'modo-claro';
+    if (grupo === '4') return oscurasGrupo4.includes(nombre) ? 'modo-oscuro' : 'modo-claro';
+    if (grupo === '5') return clarasGrupo5.includes(nombre) ? 'modo-claro' : 'modo-oscuro';
+
+    return 'modo-claro'; // fallback
+  }
+
+  function seleccionarFondo(nombre) {
+    document.body.style.backgroundImage = "url('/static/img/" + nombre + "')";
+    document.getElementById('estilo_visual_input').value = nombre.replace('.jpeg', '');
+
+    const modo = obtenerModoDesdeNombre(nombre);
+    document.body.classList.remove('modo-claro', 'modo-oscuro');
+    document.body.classList.add(modo);
+
+    // Quitar selección previa
+    document.querySelectorAll('.preview-img').forEach(img => {
+      img.classList.remove('seleccionado');
+    });
+
+    // Marcar imagen actual
+    const imagenes = document.querySelectorAll('.preview-img');
+    imagenes.forEach(img => {
+      if (img.src.includes(nombre.replace('.jpeg', '.webp'))) {
+        img.classList.add('seleccionado');
+      }
+    });
+
+    // Guardar modo en el formulario si lo usás en el backend
+    const modoInput = document.getElementById('modo_visual_input');
+    if (modoInput) {
+      modoInput.value = modo;
+    }
+  }
+
+  window.onload = function() {
+    mostrarGrupo('1');
+  };
+</script>
+
+
+</body>
+</html>
