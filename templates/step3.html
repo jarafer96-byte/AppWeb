@@ -557,10 +557,8 @@ function leerArchivoProductos() {
 
     // Expandir talles si existen
     // Ahora acepta coma (,) y guion (-) como separadores
-    const listaTalles = talles 
-      ? talles.split(/[, -]/).map(t => t.trim()).filter(Boolean) 
-      : [];
-
+    const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
+    
     if (listaTalles.length > 0) {
       productos.forEach(prod => {
         listaTalles.forEach(talle => {
