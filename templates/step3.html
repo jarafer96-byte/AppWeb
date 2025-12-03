@@ -863,6 +863,7 @@ function crearSubgrupo(btn) {
   const subgruposContenedor = grupo.querySelector('.subgrupos');
   const input = grupo.querySelector('input[id^="inputSubgrupo"]');
   const nombreSubgrupo = input.value.trim();
+  
   if (!nombreSubgrupo) return alert("Ingresá un nombre para el subgrupo");
 
   const subgrupo = document.createElement('div');
@@ -885,12 +886,12 @@ function crearSubgrupo(btn) {
   input.value = '';
 
   const contenedor = subgrupo.querySelector('.productos');
-  const fila = crearFila(nombreSubgrupo, nombreGrupo);
+  
+  // Usar la nueva firma: crearFila(nombreProducto, nombreGrupo, nombreSubgrupo)
+  const fila = crearFila(nombreSubgrupo, nombreGrupo, nombreSubgrupo);
   contenedor.appendChild(fila);
 
   actualizarContador(subgrupo);
-
-  // ✅ Guardar estado después de crear el subgrupo y su primera fila
   saveStateDebounced();
 }
 
