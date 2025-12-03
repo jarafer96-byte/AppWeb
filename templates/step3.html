@@ -216,52 +216,44 @@ function filaToObj(fila) {
   
 function generarFilasDesdeListas(listas) {
   listas.forEach(item => {
-    const { grupo, subgrupo, producto, cantidad, talles } = item;
-    const nombreGrupo = grupo || "General";
-
-    // Crear grupo si no existe
-    let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
-      c => c.querySelector("h4")?.textContent.trim() === nombreGrupo
-    );
-    if (!grupoCard) {
-      const inputGrupo = document.getElementById("nombreGrupo");
-      if (inputGrupo) {
-        inputGrupo.value = nombreGrupo;
-        crearGrupo();
-        grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
-          c => c.querySelector("h4")?.textContent.trim() === nombreGrupo
-        );
+    const { grupo, subgrupo, producto, cantidad = 1, talles = "" } = item;
+    
+    if (!grupo) return;
+    
+    let productos = [];
+    
+    // Misma lógica que en leerArchivoProductos
+    if (producto && producto.includes(",")) {
+      productos = producto.split(",").map(p => p.trim()).filter(Boolean);
+    } else if (producto) {
+      if (cantidad > 1) {
+        for (let i = 1; i <= cantidad; i++) {
+          productos.push(`${producto}${i}`);
+        }
+      } else {
+        productos.push(producto);
+      }
+    } else {
+      const base = subgrupo || grupo;
+      for (let i = 1; i <= cantidad; i++) {
+        productos.push(`${base}${i}`);
       }
     }
-
-    // Crear subgrupo si corresponde
-    let subgrupoCard = grupoCard;
-    if (subgrupo) {
-      const grupoIdx = grupoCard.id.split("_")[1];
-      const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
-      const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
-      if (inputSub && btnCrearSub) {
-        inputSub.value = subgrupo;
-        crearSubgrupo(btnCrearSub);
-        subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
-          s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === subgrupo
-        );
+    
+    // Crear grupos/subgrupos y agregar filas
+    productos.forEach(prod => {
+      // Expandir talles si existen
+      const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
+      
+      if (listaTalles.length > 0) {
+        listaTalles.forEach(talle => {
+          agregarFilaImportada(prod, "", "", grupo, subgrupo, talle);
+        });
+      } else {
+        agregarFilaImportada(prod, "", "", grupo, subgrupo, "");
       }
-    }
-
-    // 👉 Crear filas usando producto como base
-    const contenedor = subgrupoCard.querySelector(".productos");
-    const cant = parseInt(cantidad, 10) || 1;
-    for (let i = 0; i < cant; i++) {
-      const baseNombre = producto || nombreGrupo;
-      const fila = crearFila(baseNombre, nombreGrupo);
-      fila.querySelector("input[name='talles']").value = talles || "";
-      contenedor.appendChild(fila);
-    }
-    actualizarContador(contenedor);
+    });
   });
-
-  saveStateDebounced();
 }
 
   
