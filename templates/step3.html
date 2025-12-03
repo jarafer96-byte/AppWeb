@@ -690,8 +690,8 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     return;
   }
 
-  // Crear fila y rellenar datos
-  const fila = crearFila(subgrupo || grupo, grupo);
+  // Crear fila y rellenar datos (⚠️ ahora usa producto como base)
+  const fila = crearFila(nombre || grupo, grupo);
   fila.querySelector("input[name='nombre']").value = nombre;
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
