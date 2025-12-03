@@ -656,12 +656,15 @@ function leerArchivoProductos() {
 }
 
 function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
-  // 1. Buscar o crear grupo PRIMERO
+  console.log(`📥 [Step3] agregarFilaImportada: ${nombre} | Grupo:${grupo} | Subgrupo:${subgrupo || "(vacío)"}`);
+  
+  // 1. Buscar o crear grupo
   let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
     c => c.querySelector("h4")?.textContent.trim() === grupo
   );
   
   if (!grupoCard) {
+    console.log(`➕ [Step3] Creando grupo: ${grupo}`);
     const inputGrupo = document.getElementById("nombreGrupo");
     if (inputGrupo) {
       inputGrupo.value = grupo;
@@ -673,21 +676,23 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   }
 
   if (!grupoCard) {
-    console.warn("⚠️ No se pudo crear/ubicar grupo:", grupo);
+    console.warn("❌ [Step3] No se pudo crear/ubicar grupo:", grupo);
     return;
   }
 
-  // 2. Determinar contenedor FINAL
-  let contenedorFinal = null;
+  // 2. IMPORTANTE: Si subgrupo está vacío, NULL o "General", NO crear subgrupo
+  let subgrupoCard = null;
+  let subgrupoFinal = "";
   
-  // Si hay subgrupo específico
-  if (subgrupo && subgrupo.trim() !== "") {
-    let subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+  if (subgrupo && subgrupo.trim() !== "" && subgrupo.trim() !== "General") {
+    console.log(`🔍 [Step3] Buscando subgrupo existente: ${subgrupo}`);
+    subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
       s => s.querySelector("strong")?.textContent.trim() === subgrupo
     );
     
-    // Si no existe el subgrupo, crearlo
+    // Solo crear subgrupo si no existe
     if (!subgrupoCard) {
+      console.log(`➕ [Step3] Creando subgrupo: ${subgrupo}`);
       const grupoIdx = grupoCard.id.split("_")[1];
       const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
       const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
@@ -700,36 +705,43 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
         );
       }
     }
-    
-    if (subgrupoCard) {
-      contenedorFinal = subgrupoCard.querySelector(".productos");
-    }
-  }
-  
-  // Si no hay subgrupo o no se pudo crear, usar el grupo directamente
-  if (!contenedorFinal) {
-    contenedorFinal = grupoCard.querySelector(".productos");
-    // Asegurarse de que el subgrupo sea "General" cuando se usa el grupo
-    subgrupo = "General";
+    subgrupoFinal = subgrupo;
+  } else {
+    console.log(`📌 [Step3] Subgrupo vacío o "General", usando grupo directo`);
+    subgrupoFinal = ""; // Dejar vacío, no "General"
   }
 
-  // 3. Crear fila con datos correctos
-  const fila = crearFila(subgrupo, grupo); // IMPORTANTE: subgrupo como primer parámetro
+  // 3. Determinar contenedor final
+  let contenedorFinal = null;
+  if (subgrupoCard) {
+    contenedorFinal = subgrupoCard.querySelector(".productos");
+    console.log(`📦 [Step3] Usando contenedor de subgrupo`);
+  } else {
+    contenedorFinal = grupoCard.querySelector(".productos");
+    console.log(`📦 [Step3] Usando contenedor de grupo directo (sin subgrupo)`);
+  }
+
+  // 4. Crear fila CORRECTAMENTE
+  console.log(`✏️ [Step3] Creando fila para: ${nombre}`);
+  const fila = crearFila(nombre, grupo, subgrupoFinal); // Pasar subgrupoFinal
+  
+  // Rellenar datos
   fila.querySelector("input[name='nombre']").value = nombre;
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
   fila.querySelector("input[name='talles']").value = talles;
   
-  // Actualizar hidden inputs
-  fila.querySelector("input[name='subgrupo']").value = subgrupo;
+  // Actualizar hidden inputs (IMPORTANTE: subgrupo puede estar vacío)
   fila.querySelector("input[name='grupo']").value = grupo;
+  fila.querySelector("input[name='subgrupo']").value = subgrupoFinal;
 
-  // 4. Agregar al contenedor
+  // 5. Agregar al contenedor
   if (contenedorFinal) {
     contenedorFinal.appendChild(fila);
+    console.log(`✅ [Step3] Fila agregada: ${nombre}`);
   } else {
-    // Fallback: agregar directamente al grupo
-    grupoCard.querySelector(".productos").appendChild(fila);
+    console.error("❌ [Step3] No se encontró contenedor para la fila");
+    return;
   }
 
   actualizarContador(grupoCard);
