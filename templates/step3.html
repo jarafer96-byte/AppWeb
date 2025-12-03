@@ -528,6 +528,51 @@ function leerArchivoProductos() {
   const ext = file.name.toLowerCase().split('.').pop();
   let filasAgregadas = 0;
 
+  const procesarFila = (grupo, subgrupo, productoBase, descripcion, precio, talles, cantidadRaw) => {
+    const cantidad = parseInt(cantidadRaw || "1", 10);
+
+    // Lista de productos separados por coma
+    let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
+
+    // Caso 1: varios productos explícitos → se respetan tal cual
+    if (productos.length > 1) {
+      // no se aplica cantidad
+    }
+    // Caso 2: un solo producto + Filas > 1 → numerar
+    else if (productos.length === 1 && cantidad > 1) {
+      const base = productos[0];
+      productos = [];
+      for (let i = 1; i <= cantidad; i++) {
+        productos.push(`${base}${i}`);
+      }
+    }
+    // Caso 3: sin producto pero con cantidad → usar grupo/subgrupo como base
+    else if (productos.length === 0 && cantidad > 0) {
+      const base = subgrupo || grupo || "Genérico";
+      productos = [];
+      for (let i = 1; i <= cantidad; i++) {
+        productos.push(`${base}${i}`);
+      }
+    }
+
+    // Expandir talles si existen
+    const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+    if (listaTalles.length > 0) {
+      productos.forEach(prod => {
+        listaTalles.forEach(talle => {
+          agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talle);
+          filasAgregadas++;
+        });
+      });
+    } else {
+      productos.forEach(prod => {
+        agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles);
+        filasAgregadas++;
+      });
+    }
+  };
+
   // 👉 CSV / TXT
   if (ext === "csv" || ext === "txt") {
     const reader = new FileReader();
@@ -536,34 +581,22 @@ function leerArchivoProductos() {
       const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
       const sep = lineas.some(l => l.includes(";")) ? ";" : ",";
 
-      console.log("📄 Total líneas CSV/TXT:", lineas.length);
-      console.log("📄 Primeras líneas:", lineas.slice(0, 5));
-
       lineas.forEach((linea, idx) => {
         const partes = linea.split(sep).map(p => p.trim());
-        console.log(`➡️ Línea #${idx}:`, partes);
-
-        if (partes.length < 2) {
-          console.warn("⚠️ Línea descartada por tener menos de 2 columnas:", partes);
-          return;
-        }
-
         const nombre      = partes[0] || "";
         const descripcion = partes[1] || "";
         const precio      = partes[2] || "";
         const grupo       = partes[3] || "";
         const subgrupo    = partes[4] || "";
         const talles      = partes[5] || "";
+        const filas       = partes[6] || "1"; // opcional columna Filas
 
-        console.log("🧩 Valores parseados:", { nombre, descripcion, precio, grupo, subgrupo, talles });
-
-        if (!(grupo && subgrupo)) {
-          console.warn("⚠️ Línea descartada por falta de grupo/subgrupo:", partes);
+        if (!grupo) {
+          console.warn("⚠️ Línea descartada por falta de grupo:", partes);
           return;
         }
 
-        agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
-        filasAgregadas++;
+        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas);
       });
 
       alert(filasAgregadas > 0
@@ -575,46 +608,36 @@ function leerArchivoProductos() {
 
   // 👉 Excel XLS / XLSX
   else if (ext === "xls" || ext === "xlsx") {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const data = new Uint8Array(e.target.result);
-    const wb = XLSX.read(data, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws); // usa encabezados
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws);
 
-    console.log("📊 Total filas Excel:", rows.length);
-    console.log("📊 Primeras filas:", rows.slice(0, 5));
+      rows.forEach((obj, idx) => {
+        const grupo       = obj.Grupo       || obj.Categoria    || "";
+        const subgrupo    = obj.Subgrupo    || obj.Subcategoria || "";
+        const nombre      = obj.Nombre      || obj.Producto     || "";
+        const descripcion = obj.Descripcion || "";
+        const precio      = obj.Precio      || "";
+        const talles      = obj.Talles      || "";
+        const filas       = obj.Filas       || "1";
 
-    rows.forEach((obj, idx) => {
-      console.log(`➡️ Fila #${idx}:`, obj);
+        if (!grupo) {
+          console.warn("⚠️ Fila descartada por falta de grupo:", obj);
+          return;
+        }
 
-      // 👉 acepta tanto "Grupo" como "Categoria"
-      const grupo       = obj.Grupo       || obj.Categoria    || "";
-      // 👉 acepta tanto "Subgrupo" como "Subcategoria"
-      const subgrupo    = obj.Subgrupo    || obj.Subcategoria || "";
-      // 👉 acepta tanto "Nombre" como "Producto"
-      const nombre      = obj.Nombre      || obj.Producto     || "";
-      const descripcion = obj.Descripcion || "";
-      const precio      = obj.Precio      || "";
-      const talles      = obj.Talles      || "";
+        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas);
+      });
 
-      console.log("🧩 Valores parseados:", { nombre, descripcion, precio, grupo, subgrupo, talles });
-
-      if (!(grupo && subgrupo)) {
-        console.warn("⚠️ Fila descartada por falta de grupo/subgrupo:", obj);
-        return;
-      }
-
-      agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles);
-      filasAgregadas++;
-    });
-
-    alert(filasAgregadas > 0
-      ? `✅ Productos importados desde Excel: ${filasAgregadas}`
-      : "❌ No se importaron filas desde Excel");
-  };
-  reader.readAsArrayBuffer(file);
-}
+      alert(filasAgregadas > 0
+        ? `✅ Productos importados desde Excel: ${filasAgregadas}`
+        : "❌ No se importaron filas desde Excel");
+    };
+    reader.readAsArrayBuffer(file);
+  }
 
   else {
     alert("⚠️ Formato no soportado. Subí CSV, TXT o Excel (.xls/.xlsx)");
