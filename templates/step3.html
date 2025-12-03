@@ -1224,8 +1224,15 @@ function loadState() {
       (g.productos || [])
         .sort((a, b) => (a.orden || 0) - (b.orden || 0))
         .forEach(p => {
-          const fila = crearFila("General", g.nombre);
-          hydrateFila(fila, p);
+          const fila = crearFilaProducto(
+            p.nombre || g.nombre,   // base del producto
+            g.nombre,               // grupo
+            "",                     // sin subgrupo
+            p.descripcion || "",
+            p.precio || "",
+            p.talles || ""
+          );
+          hydrateFila(p, fila);     // ⚠️ orden corregido
           contGrupo.appendChild(fila);
         });
       actualizarContador(contGrupo);
@@ -1245,8 +1252,15 @@ function loadState() {
         (sg.productos || [])
           .sort((a, b) => (a.orden || 0) - (b.orden || 0))
           .forEach(p => {
-            const fila = crearFila(sg.nombre, g.nombre);
-            hydrateFila(fila, p);
+            const fila = crearFilaProducto(
+              p.nombre || sg.nombre, // base del producto
+              g.nombre,              // grupo
+              sg.nombre,             // subgrupo
+              p.descripcion || "",
+              p.precio || "",
+              p.talles || ""
+            );
+            hydrateFila(p, fila);   // ⚠️ orden corregido
             contSub.appendChild(fila);
           });
         actualizarContador(subCard);
