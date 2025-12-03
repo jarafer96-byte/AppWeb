@@ -927,16 +927,19 @@ function guardarNombreSubgrupo(card, nuevoNombre) {
   saveStateDebounced();
 }
 
-function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
+function crearFila(nombreProducto, nombreGrupo = 'General', nombreSubgrupo = '') {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2 fila-producto';
 
-  // Si nombreSubgrupo es undefined o vacío, usar "General"
-  const subgrupoFinal = nombreSubgrupo && nombreSubgrupo.trim() !== "" ? nombreSubgrupo : "General";
+  // Si no hay nombreProducto, usar un placeholder
+  const nombreFinal = nombreProducto || "Producto";
+  
+  // Si nombreSubgrupo está vacío, dejarlo vacío (no poner "General")
+  const subgrupoFinal = nombreSubgrupo || "";
   
   fila.innerHTML = `
     <div class="col-3">
-      <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre">
+      <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre" value="${nombreFinal}">
     </div>
     <div class="col-3">
       <textarea name="descripcion" class="form-control form-control-sm" rows="1" placeholder="Descripción (Opcional)"></textarea>
@@ -954,7 +957,7 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
         <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
       </div>
       <input type="hidden" name="grupo" value="${nombreGrupo}">
-      <input type="hidden" name="subgrupo" value="${subgrupoFinal}"> <!-- Usar subgrupoFinal -->
+      <input type="hidden" name="subgrupo" value="${subgrupoFinal}">
       <input type="hidden" name="orden" value="${contadorOrden++}">
       <input type="hidden" name="imagen_elegida" value="">
     </div>
