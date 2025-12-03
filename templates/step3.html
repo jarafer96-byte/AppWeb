@@ -329,6 +329,28 @@ function crearGrupo() {
 function hydrateFila(filaData, filaEl) {
   console.log("🟢 [Step3] hydrateFila →", filaData);
 
+  // Restaurar valores básicos
+  if (filaData.nombre) {
+    filaEl.querySelector("input[name='nombre']").value = filaData.nombre;
+  }
+  if (filaData.descripcion) {
+    filaEl.querySelector("textarea[name='descripcion']").value = filaData.descripcion;
+  }
+  if (filaData.precio) {
+    filaEl.querySelector("input[name='precio']").value = filaData.precio;
+  }
+  if (filaData.talles) {
+    filaEl.querySelector("input[name='talles']").value = filaData.talles;
+  }
+
+  // Restaurar grupo y subgrupo (subgrupo puede estar vacío)
+  if (filaData.grupo) {
+    filaEl.querySelector("input[name='grupo']").value = filaData.grupo;
+  }
+  if (filaData.subgrupo !== undefined) { // Incluye cadenas vacías
+    filaEl.querySelector("input[name='subgrupo']").value = filaData.subgrupo;
+  }
+
   // Restaurar imagen elegida
   if (filaData.imagen_elegida) {
     filaEl.querySelector("input[name='imagen_elegida']").value = filaData.imagen_elegida;
