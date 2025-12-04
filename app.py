@@ -1025,7 +1025,7 @@ def pagar():
     
     if not db:
         return jsonify({'error': 'Firestore no disponible'}), 503
-        
+
     try:
         data = request.get_json(silent=True) or {}
         print(f"[PAGAR] Datos recibidos: {json.dumps(data, indent=2)}")
@@ -1217,7 +1217,7 @@ def pagar():
         print(f"[PAGAR] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
         return jsonify(response_data)
 
-        except Exception as e:
+    except Exception as e:
         print(f"[PAGAR] ❌ Error interno: {e}")
         import traceback
         traceback.print_exc()
