@@ -632,25 +632,20 @@ def get_mp_token(email: str):
 @app.route('/success')
 def pago_success():
     orden_id = request.args.get('orden_id')
-    url_retorno = request.args.get('retorno')  # URL codificada del usuario
+    url_retorno = request.args.get('retorno')
     email_vendedor = request.args.get('email')
     
     print(f"[SUCCESS] ✅ Pago aprobado para orden: {orden_id}")
     print(f"[SUCCESS] 📍 URL de retorno: {url_retorno}")
     print(f"[SUCCESS] 👤 Email vendedor: {email_vendedor}")
     
-    # Si tenemos URL de retorno, redirigir a ella con parámetros
     if url_retorno:
         try:
-            # Decodificar la URL
-            url_retorno_decoded = urllib.parse.unquote(url_retorno)
-            
-            # Construir URL con parámetros
-            params = f"?pago=success&orden_id={orden_id}"
+            url_retorno_decoded = unquote(url_retorno)  # 👈 CAMBIADO: solo unquote()
+            params = f"pago=success&orden_id={orden_id}"
             if email_vendedor:
                 params += f"&email={email_vendedor}"
             
-            # Agregar parámetros a la URL de retorno
             separator = '&' if '?' in url_retorno_decoded else '?'
             redirect_url = f"{url_retorno_decoded}{separator}{params}"
             
@@ -659,7 +654,6 @@ def pago_success():
         except Exception as e:
             print(f"[SUCCESS] ❌ Error procesando URL de retorno: {e}")
     
-    # Fallback: redirigir a la página del vendedor
     if email_vendedor:
         return redirect(f"/preview?email={email_vendedor}&pago=success&orden_id={orden_id}")
     
@@ -677,8 +671,8 @@ def failure():
     
     if url_retorno:
         try:
-            url_retorno_decoded = urllib.parse.unquote(url_retorno)
-            params = f"?pago=failure&orden_id={orden_id}"
+            url_retorno_decoded = unquote(url_retorno)  # 👈 CAMBIADO: solo unquote()
+            params = f"pago=failure&orden_id={orden_id}"
             if email_vendedor:
                 params += f"&email={email_vendedor}"
             
@@ -707,8 +701,8 @@ def pending():
     
     if url_retorno:
         try:
-            url_retorno_decoded = urllib.parse.unquote(url_retorno)
-            params = f"?pago=pending&orden_id={orden_id}"
+            url_retorno_decoded = unquote(url_retorno)  # 👈 CAMBIADO: solo unquote()
+            params = f"pago=pending&orden_id={orden_id}"
             if email_vendedor:
                 params += f"&email={email_vendedor}"
             
