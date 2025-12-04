@@ -1931,6 +1931,9 @@ def conectar_mp():
 
     return redirect(auth_url)
 
+def normalize_email(email: str) -> str:
+    return email.replace("%40", "@")
+
 @app.route('/callback_mp')
 def callback_mp():
     print("\n[MP-CALLBACK] 🚀 Callback de Mercado Pago recibido")
