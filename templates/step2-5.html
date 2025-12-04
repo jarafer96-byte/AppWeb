@@ -126,6 +126,168 @@
     .col-filas {
       width: 100px;
     }
+    /* 🔥 RESPONSIVO PARA MÓVIL - PLANTILLA DE PRODUCTOS */
+@media (max-width: 768px) {
+  /* Contenedor principal */
+  .container {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+
+  /* Título más pequeño */
+  h2 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+  }
+
+  /* Card padding reducido */
+  .card {
+    padding: 15px !important;
+    margin-bottom: 15px;
+  }
+
+  /* Ejemplos en columna */
+  .row .col-md-6 {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+
+  /* Tabla vista previa responsiva */
+  .table-responsive {
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+
+  .table {
+    font-size: 13px;
+    margin-bottom: 0;
+  }
+
+  .table th,
+  .table td {
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+
+  /* Filas de entrada en columna */
+  .fila-entrada {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    background: rgba(255,255,255,0.03);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px !important;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .fila-entrada > div {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* Inputs al 100% */
+  .fila-entrada input {
+    width: 100% !important;
+    padding: 10px 12px;
+    font-size: 16px; /* Evita zoom en iOS */
+    margin-bottom: 8px;
+  }
+
+  /* Botón eliminar */
+  .fila-entrada .col-md-1 {
+    text-align: right;
+    margin-top: 5px;
+  }
+
+  .fila-entrada button.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.9em;
+  }
+
+  /* Botones de acción en columna */
+  .d-flex.gap-3 {
+    flex-direction: column;
+    gap: 12px !important;
+  }
+
+  .d-flex.gap-3 button {
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+  }
+
+  /* Botón generar Excel */
+  .text-center .btn-gradient {
+    width: 100%;
+    padding: 14px;
+    font-size: 1.1em;
+  }
+
+  /* Ajustes específicos para columnas */
+  .col-talle,
+  .col-filas {
+    width: 100% !important;
+  }
+
+  /* Badges más pequeños */
+  .badge {
+    font-size: 0.7em;
+    padding: 4px 8px;
+  }
+
+  /* Alert personalizado */
+  .alert-custom {
+    padding: 12px;
+    font-size: 0.9em;
+  }
+
+  /* Botón saltar paso */
+  .text-center .btn-gradient.mb-3 {
+    width: 100%;
+    padding: 12px;
+  }
+
+  /* Información adicional */
+  ol {
+    padding-left: 20px;
+  }
+
+  ol li {
+    margin-bottom: 10px;
+    font-size: 0.9em;
+  }
+
+  /* Inputs con mejor espaciado */
+  .form-control {
+    margin-bottom: 10px;
+  }
+}
+
+/* Para pantallas muy pequeñas (iPhone SE, etc) */
+@media (max-width: 360px) {
+  .container {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  
+  h2 {
+    font-size: 1.3rem;
+  }
+  
+  h4 {
+    font-size: 1.1rem;
+  }
+  
+  .fila-entrada {
+    padding: 12px;
+  }
+  
+  .table {
+    font-size: 12px;
+  }
+}
   </style>
 </head>
 <body>
@@ -423,7 +585,7 @@
       alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso.`);
     }
 
-    // Inicializar con algunas filas
+    // Inicializar con algunas filas y mejoras para móvil
     window.addEventListener('load', () => {
       // Agregar 3 filas más
       for (let i = 0; i < 3; i++) {
@@ -437,9 +599,69 @@
           if (btnEliminar) btnEliminar.style.display = 'inline-block';
         }
       });
+
+      // 🔥 MEJORAS ESPECÍFICAS PARA MÓVIL
+      const isMobile = window.innerWidth <= 768;
+      
+      if (isMobile) {
+        console.log("📱 Modo móvil activado - Ajustando interfaz...");
+        
+        // Ajustar placeholder más cortos para móvil
+        document.querySelectorAll('.fila-entrada input[placeholder]').forEach(input => {
+          const placeholder = input.getAttribute('placeholder');
+          if (placeholder && placeholder.length > 20) {
+            // Acortar placeholders largos
+            if (placeholder.includes('Grupo')) input.setAttribute('placeholder', 'Grupo');
+            if (placeholder.includes('Subgrupo')) input.setAttribute('placeholder', 'Subgrupo (opc)');
+            if (placeholder.includes('Producto')) input.setAttribute('placeholder', 'Producto');
+            if (placeholder.includes('Talle')) input.setAttribute('placeholder', 'Talles (opc)');
+            if (placeholder.includes('Filas')) input.setAttribute('placeholder', 'Cantidad');
+          }
+        });
+        
+        // Mostrar menos filas iniciales en móvil
+        const filasIniciales = document.querySelectorAll('.fila-entrada');
+        if (filasIniciales.length > 2) {
+          // Ocultar filas extras (mantener solo 2 visibles)
+          for (let i = 2; i < filasIniciales.length; i++) {
+            filasIniciales[i].style.display = 'none';
+          }
+          
+          // Agregar mensaje para agregar más filas
+          const container = document.getElementById('filas-container');
+          const msg = document.createElement('div');
+          msg.className = 'text-center mt-3 mb-4';
+          msg.innerHTML = '<p class="text-white-50" style="font-size: 0.9em;">Hay ' + (filasIniciales.length - 2) + ' filas ocultas. Usá "Agregar otra fila" cuando necesites más.</p>';
+          container.appendChild(msg);
+          
+          // Ajustar la función agregarFila() para mostrar filas ocultas
+          const originalAgregarFila = agregarFila;
+          agregarFila = function() {
+            // Primero verificar si hay filas ocultas
+            const filasOcultas = document.querySelectorAll('.fila-entrada[style*="display: none"]');
+            if (filasOcultas.length > 0) {
+              // Mostrar la primera fila oculta
+              filasOcultas[0].style.display = '';
+              
+              // Si era la última fila oculta, remover el mensaje
+              if (filasOcultas.length === 1) {
+                const msg = container.querySelector('.text-center.mt-3');
+                if (msg) msg.remove();
+              } else {
+                // Actualizar el mensaje
+                const msg = container.querySelector('.text-center.mt-3 p');
+                if (msg) msg.textContent = 'Hay ' + (filasOcultas.length - 1) + ' filas ocultas. Usá "Agregar otra fila" cuando necesites más.';
+              }
+            } else {
+              // Si no hay filas ocultas, usar la función original
+              originalAgregarFila();
+            }
+          };
+        }
+      }
     });
 
-    // Validar entrada en tiempo real
+    // Validar entrada en tiempo real (mejorado para móvil/desktop)
     document.addEventListener('input', function(e) {
       if (e.target.matches('[data-field="grupo"], [data-field="producto"]')) {
         const fila = e.target.closest('.fila-entrada');
@@ -448,8 +670,13 @@
         
         if (grupo && producto) {
           e.target.style.border = '2px solid #28a745';
+          // Solo agregar fondo en móvil para mejor visibilidad
+          if (window.innerWidth <= 768) {
+            e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+          }
         } else {
           e.target.style.border = '';
+          e.target.style.backgroundColor = '';
         }
       }
     });
