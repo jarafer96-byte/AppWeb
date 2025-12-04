@@ -230,21 +230,23 @@ def subir_a_firestore(producto, email):
         print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
         return {"status": "error", "error": str(e), "trace": tb}
 
+# Health check para mantener vivo el servidor en Render
+def keep_alive():
+    while True:
+        time.sleep(300)  # 5 minutos
+        try:
+            # Hace un ping a la propia app
+            response = requests.get("https://mpagina.onrender.com/", timeout=10)
+            print(f"🫀 Health check ejecutado: {response.status_code}")
+        except Exception as e:
+            print(f"⚠️ Health check falló: {e}")
+
 # Solo en producción (Render)
 if os.getenv("RENDER"):
     thread = threading.Thread(target=keep_alive)
     thread.daemon = True
     thread.start()
-    
-    def keep_alive():
-        while True:
-            time.sleep(300)  # 5 minutos
-            try:
-                # Hace un ping a la propia app
-                requests.get("https://mpagina.onrender.com/", timeout=10)
-                print("🫀 Health check ejecutado")
-            except:
-                print("⚠️ Health check falló")
+    print("✅ Health check iniciado para Render")
     
 @app.route("/authorize")
 def authorize():
