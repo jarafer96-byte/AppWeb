@@ -29,6 +29,7 @@ from email.mime.text import MIMEText
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+import threading
 ##################
 # 🔐 Inicialización segura de Firebase con logs
 db = None
