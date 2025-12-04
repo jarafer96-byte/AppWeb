@@ -276,7 +276,7 @@
       {% for p in productos %}
         <div class="product-card">
           <div class="product-header">
-            <div class="product-title">{{ p.title|default('Producto') }}</div>
+            <div class="product-title">{{ p.nombre|default('Producto') }}</div>
             {% if p.talle %}
               <span class="talle-badge">Talle: {{ p.talle }}</span>
             {% endif %}
@@ -285,7 +285,7 @@
           <div class="row g-0">
             {% if p.imagen_url %}
               <div class="col-md-4">
-                <img src="{{ p.imagen_url }}" alt="{{ p.title|default('Producto') }}" class="product-image">
+                <img src="{{ p.imagen_url }}" alt="{{ p.nombre|default('Producto') }}" class="product-image">
               </div>
             {% endif %}
             
@@ -293,18 +293,18 @@
               <div class="product-details">
                 <div class="detail-row">
                   <span class="detail-label">Precio unitario</span>
-                  <span class="detail-value">${{ "%.2f"|format(p.unit_price|default(0)) }}</span>
+                  <span class="detail-value">${{ "%.2f"|format(p.precio|default(0)) }}</span>
                 </div>
                 
                 <div class="detail-row">
                   <span class="detail-label">Cantidad</span>
-                  <span class="detail-value">{{ p.quantity|default(1) }}</span>
+                  <span class="detail-value">{{ p.cantidad|default(1) }}</span>
                 </div>
                 
                 <div class="detail-row" style="border-bottom: none;">
                   <span class="detail-label">Subtotal</span>
                   <span class="detail-value" style="color: #10b981; font-weight: 600;">
-                    ${{ "%.2f"|format((p.unit_price|default(0)) * (p.quantity|default(1))) }}
+                    ${{ "%.2f"|format((p.precio|default(0)) * (p.cantidad|default(1))) }}
                   </span>
                 </div>
               </div>
@@ -326,7 +326,7 @@
       <p>Este es un comprobante automático generado por tu tienda online.</p>
       <p>📧 No responder a este correo - Contacta directamente al cliente si es necesario.</p>
       <p class="mt-3" style="font-size: 12px; color: #475569;">
-        Fecha de generación: {{ fecha_actual|default('') }}
+        Fecha de generación: {{ fecha|default('') }}
       </p>
     </div>
     
