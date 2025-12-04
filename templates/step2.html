@@ -17,147 +17,148 @@
     h2 {
       color: white;
       text-align: center;
-      margin: 20px 0;
+      margin: 15px 0 10px 0;
+      font-size: 1.4rem;
     }
 
     .grupo-selector {
       overflow-x: auto;
       white-space: nowrap;
-      padding: 10px;
+      padding: 8px 5px;
       background-color: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      margin: 20px auto;
-      max-width: 1000px;
-      -webkit-overflow-scrolling: touch; /* Suave en iOS */
+      border-radius: 8px;
+      margin: 0 5px 10px 5px;
+      -webkit-overflow-scrolling: touch;
     }
 
     .grupo-selector button {
-      margin: 5px;
-      padding: 10px 20px;
+      margin: 2px;
+      padding: 8px 12px;
       border: none;
-      border-radius: 50px;
+      border-radius: 20px;
       background-color: #333;
       color: white;
       cursor: pointer;
       font-weight: bold;
       transition: all 0.2s ease;
-      min-width: 90px; /* Ancho mínimo para fácil tapping */
+      font-size: 0.85rem;
+      min-width: 70px;
     }
 
     .grupo-selector button:hover,
     .grupo-selector button.active {
       background-color: #8e2de2;
-      transform: scale(1.05);
     }
 
     .preview-img {
       width: 100%;
-      height: 180px;
+      height: 140px;
       object-fit: cover;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s ease;
-      border: 2px solid transparent;
+      border: 1px solid rgba(255,255,255,0.1);
     }
 
-    .preview-img:hover {
-      transform: scale(1.05);
+    .preview-img:hover,
+    .preview-img:active {
+      transform: scale(1.02);
     }
 
     .preview-img.seleccionado {
-      outline: 3px solid limegreen;
-      outline-offset: 2px;
+      outline: 2px solid limegreen;
+      outline-offset: 1px;
       border-color: limegreen;
-      box-shadow: 0 0 15px rgba(50, 205, 50, 0.5);
+      box-shadow: 0 0 8px rgba(50, 205, 50, 0.4);
     }
 
     .continuar-btn {
-      margin-top: 40px;
-      padding: 0 15px;
+      margin-top: 20px;
+      padding: 0 10px;
     }
 
     .btn-gradient {
       background: linear-gradient(135deg, #8e2de2, #ff6f61);
       color: white;
       border: none;
-      padding: 14px 28px;
-      border-radius: 50px;
+      padding: 12px 20px;
+      border-radius: 25px;
       font-weight: bold;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      box-shadow: 0 0 8px rgba(255,255,255,0.2);
       transition: all 0.2s ease;
       display: inline-block;
       width: 100%;
-      max-width: 300px;
-      font-size: 1.1em;
+      font-size: 1rem;
     }
 
-    .btn-gradient:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    .btn-gradient:hover,
+    .btn-gradient:active {
+      transform: scale(1.02);
+      box-shadow: 0 0 12px rgba(255,255,255,0.3);
     }
 
-    /* 🔥 RESPONSIVO PARA MÓVIL */
+    /* 🔥 RESPONSIVO COMPACTO PARA MÓVIL */
     @media (max-width: 768px) {
-      /* Ajustar scroll horizontal en botones */
+      body {
+        padding: 0;
+      }
+      
+      h2 {
+        font-size: 1.3rem;
+        margin: 12px 0 8px 0;
+        padding: 0 10px;
+      }
+
       .grupo-selector {
-        padding: 12px 8px;
-        margin: 15px 10px;
+        padding: 8px 8px;
+        margin: 0 8px 12px 8px;
         border-radius: 10px;
       }
 
       .grupo-selector button {
-        padding: 12px 16px;
-        font-size: 0.9em;
-        margin: 3px;
-        min-width: 80px;
+        padding: 7px 10px;
+        font-size: 0.82rem;
+        min-width: 65px;
+        margin: 1px;
       }
 
-      /* Grid de imágenes responsivo */
+      /* Grid más compacto */
       .container {
-        padding-left: 10px;
-        padding-right: 10px;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
       }
 
       .row.g-3 {
-        margin-left: -5px;
-        margin-right: -5px;
+        margin-left: -3px;
+        margin-right: -3px;
       }
 
       .row.g-3 > div {
-        padding-left: 5px;
-        padding-right: 5px;
+        padding-left: 3px;
+        padding-right: 3px;
+        margin-bottom: 6px;
       }
 
-      /* Imágenes más grandes en móvil (2 por fila) */
+      /* Imágenes más grandes pero sin perder densidad */
       .col-6 {
         width: 50% !important;
       }
 
       .preview-img {
-        height: 150px; /* Más bajo para móvil */
-      }
-
-      /* Títulos */
-      h2 {
-        font-size: 1.4rem;
-        margin: 15px 0;
-        padding: 0 10px;
-      }
-
-      /* Botón continuar más grande para móvil */
-      .btn-gradient {
-        padding: 16px 32px;
-        font-size: 1.2em;
-        max-width: 100%;
-        border-radius: 12px;
+        height: 130px; /* Más compacto */
       }
 
       .continuar-btn {
-        margin-top: 30px;
-        padding: 0 20px;
+        margin-top: 15px;
+        padding: 0 10px;
       }
 
-      /* Feedback táctil mejorado */
+      .btn-gradient {
+        padding: 12px 18px;
+        font-size: 0.95rem;
+      }
+
+      /* Feedback táctil más sutil */
       .preview-img:active {
         transform: scale(0.98);
       }
@@ -167,29 +168,94 @@
       }
     }
 
-    /* Para pantallas muy pequeñas (iPhone SE) */
+    /* Para pantallas muy pequeñas (iPhone SE) - EXTRA COMPACTO */
     @media (max-width: 360px) {
-      .preview-img {
-        height: 130px;
+      h2 {
+        font-size: 1.2rem;
+        margin: 10px 0 6px 0;
+      }
+
+      .grupo-selector {
+        padding: 6px 5px;
+        margin: 0 5px 10px 5px;
       }
 
       .grupo-selector button {
-        padding: 10px 14px;
-        font-size: 0.85em;
-        min-width: 70px;
+        padding: 6px 8px;
+        font-size: 0.78rem;
+        min-width: 60px;
+      }
+
+      .preview-img {
+        height: 120px;
+      }
+
+      .row.g-3 {
+        margin-left: -2px;
+        margin-right: -2px;
+      }
+
+      .row.g-3 > div {
+        padding-left: 2px;
+        padding-right: 2px;
+        margin-bottom: 4px;
       }
 
       .btn-gradient {
-        padding: 14px 24px;
-        font-size: 1.1em;
+        padding: 10px 16px;
+        font-size: 0.9rem;
       }
     }
 
-    /* Para tablets */
+    /* Para tablets - un poco más de espacio pero no excesivo */
     @media (min-width: 769px) and (max-width: 1024px) {
+      .preview-img {
+        height: 150px;
+      }
+      
+      .grupo-selector {
+        margin: 0 15px 15px 15px;
+        padding: 10px 8px;
+      }
+      
+      .grupo-selector button {
+        padding: 9px 14px;
+        min-width: 75px;
+      }
+    }
+
+    /* Para escritorio - layout más espaciado */
+    @media (min-width: 1025px) {
       .preview-img {
         height: 160px;
       }
+      
+      .grupo-selector {
+        max-width: 900px;
+        margin: 0 auto 20px auto;
+        padding: 10px;
+      }
+      
+      .grupo-selector button {
+        padding: 10px 18px;
+        min-width: 85px;
+      }
+      
+      .container {
+        max-width: 1200px;
+      }
+    }
+
+    /* Asegurar que todo use el ancho completo */
+    .container-fluid {
+      padding-left: 0;
+      padding-right: 0;
+    }
+    
+    /* Sin márgenes excesivos entre filas */
+    .row {
+      --bs-gutter-x: 0.5rem;
+      --bs-gutter-y: 0.5rem;
     }
   </style>
 </head>
@@ -208,9 +274,9 @@
   </div>
 
   <!-- Contenedor de imágenes -->
-  <div class="container mt-3">
+  <div class="container mt-2">
     {% for grupo in ['1', '2', '3', '4', '5'] %}
-      <div id="grupo_{{ grupo }}" class="row g-3 d-none">
+      <div id="grupo_{{ grupo }}" class="row g-2 d-none">
         {% for imagen in imagenes %}
           {% if imagen.endswith('.webp') and imagen.startswith('mini_' + grupo + '_') %}
             <div class="col-6 col-sm-4 col-md-3 col-lg-2">
@@ -249,10 +315,13 @@
     
     // Scroll suave al grupo en móvil
     if (window.innerWidth <= 768) {
-      document.getElementById('grupo_' + grupo).scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
+      setTimeout(() => {
+        document.getElementById('grupo_' + grupo).scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest'
+        });
+      }, 100);
     }
   }
 
@@ -298,9 +367,10 @@
           setTimeout(() => {
             img.scrollIntoView({ 
               behavior: 'smooth', 
-              block: 'center' 
+              block: 'center',
+              inline: 'nearest'
             });
-          }, 300);
+          }, 150);
         }
       }
     });
@@ -315,7 +385,7 @@
     if (window.innerWidth <= 768) {
       const imgSeleccionada = document.querySelector('.preview-img.seleccionado');
       if (imgSeleccionada) {
-        imgSeleccionada.style.transform = 'scale(0.95)';
+        imgSeleccionada.style.transform = 'scale(0.96)';
         setTimeout(() => {
           imgSeleccionada.style.transform = '';
         }, 200);
@@ -334,25 +404,25 @@
         img.style.cursor = 'pointer';
       });
       
-      // Asegurar que el scroll horizontal sea suave
+      // Scroll horizontal más suave
       const grupoSelector = document.querySelector('.grupo-selector');
       if (grupoSelector) {
-        grupoSelector.addEventListener('touchmove', function(e) {
-          e.stopPropagation();
-        }, { passive: true });
+        grupoSelector.style.overflowX = 'auto';
+        grupoSelector.style.WebkitOverflowScrolling = 'touch';
       }
     }
   };
 
-  // Detectar cambios de tamaño de pantalla
+  // Optimizar redimensionamiento
   window.addEventListener('resize', function() {
-    // Reaplicar estilos si cambia de móvil a desktop o viceversa
+    const isMobile = window.innerWidth <= 768;
     const imagenes = document.querySelectorAll('.preview-img');
+    
     imagenes.forEach(img => {
-      if (window.innerWidth <= 768) {
-        img.style.height = '150px';
+      if (isMobile) {
+        img.style.height = '130px';
       } else {
-        img.style.height = '180px';
+        img.style.height = '140px';
       }
     });
   });
