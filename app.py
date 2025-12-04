@@ -1216,16 +1216,16 @@ def pagar():
         
         print(f"[PAGAR] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
         return jsonify(response_data)
-        
+
         except Exception as e:
-            print(f"[PAGAR] ❌ Error interno: {e}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({
-                'error': 'Error interno al generar el pago', 
-                'message': str(e),
-                'detalle': 'Revisa los logs del servidor'
-            }), 500
+        print(f"[PAGAR] ❌ Error interno: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': 'Error interno al generar el pago',
+            'message': str(e),
+            'detalle': 'Revisa los logs del servidor'
+        }), 500
 
 @app.route('/crear-admin', methods=['POST'])
 def crear_admin():
