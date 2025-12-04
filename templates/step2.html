@@ -16,6 +16,8 @@
 
     h2 {
       color: white;
+      text-align: center;
+      margin: 20px 0;
     }
 
     .grupo-selector {
@@ -26,6 +28,7 @@
       border-radius: 12px;
       margin: 20px auto;
       max-width: 1000px;
+      -webkit-overflow-scrolling: touch; /* Suave en iOS */
     }
 
     .grupo-selector button {
@@ -37,20 +40,24 @@
       color: white;
       cursor: pointer;
       font-weight: bold;
-      transition: background-color 0.2s ease;
+      transition: all 0.2s ease;
+      min-width: 90px; /* Ancho mínimo para fácil tapping */
     }
 
-    .grupo-selector button:hover {
-      background-color: #555;
+    .grupo-selector button:hover,
+    .grupo-selector button.active {
+      background-color: #8e2de2;
+      transform: scale(1.05);
     }
 
     .preview-img {
       width: 100%;
-      height: auto;
+      height: 180px;
       object-fit: cover;
       border-radius: 8px;
       cursor: pointer;
-      transition: transform 0.2s ease;
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
     }
 
     .preview-img:hover {
@@ -60,39 +67,147 @@
     .preview-img.seleccionado {
       outline: 3px solid limegreen;
       outline-offset: 2px;
+      border-color: limegreen;
+      box-shadow: 0 0 15px rgba(50, 205, 50, 0.5);
     }
 
     .continuar-btn {
       margin-top: 40px;
+      padding: 0 15px;
     }
 
     .btn-gradient {
       background: linear-gradient(135deg, #8e2de2, #ff6f61);
       color: white;
       border: none;
-      padding: 10px 24px;
+      padding: 14px 28px;
       border-radius: 50px;
       font-weight: bold;
       box-shadow: 0 0 10px rgba(255,255,255,0.3);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: all 0.2s ease;
+      display: inline-block;
+      width: 100%;
+      max-width: 300px;
+      font-size: 1.1em;
     }
 
     .btn-gradient:hover {
       transform: scale(1.05);
       box-shadow: 0 0 15px rgba(255,255,255,0.5);
     }
+
+    /* 🔥 RESPONSIVO PARA MÓVIL */
+    @media (max-width: 768px) {
+      /* Ajustar scroll horizontal en botones */
+      .grupo-selector {
+        padding: 12px 8px;
+        margin: 15px 10px;
+        border-radius: 10px;
+      }
+
+      .grupo-selector button {
+        padding: 12px 16px;
+        font-size: 0.9em;
+        margin: 3px;
+        min-width: 80px;
+      }
+
+      /* Grid de imágenes responsivo */
+      .container {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      .row.g-3 {
+        margin-left: -5px;
+        margin-right: -5px;
+      }
+
+      .row.g-3 > div {
+        padding-left: 5px;
+        padding-right: 5px;
+      }
+
+      /* Imágenes más grandes en móvil (2 por fila) */
+      .col-6 {
+        width: 50% !important;
+      }
+
+      .preview-img {
+        height: 150px; /* Más bajo para móvil */
+      }
+
+      /* Títulos */
+      h2 {
+        font-size: 1.4rem;
+        margin: 15px 0;
+        padding: 0 10px;
+      }
+
+      /* Botón continuar más grande para móvil */
+      .btn-gradient {
+        padding: 16px 32px;
+        font-size: 1.2em;
+        max-width: 100%;
+        border-radius: 12px;
+      }
+
+      .continuar-btn {
+        margin-top: 30px;
+        padding: 0 20px;
+      }
+
+      /* Feedback táctil mejorado */
+      .preview-img:active {
+        transform: scale(0.98);
+      }
+
+      .grupo-selector button:active {
+        transform: scale(0.95);
+      }
+    }
+
+    /* Para pantallas muy pequeñas (iPhone SE) */
+    @media (max-width: 360px) {
+      .preview-img {
+        height: 130px;
+      }
+
+      .grupo-selector button {
+        padding: 10px 14px;
+        font-size: 0.85em;
+        min-width: 70px;
+      }
+
+      .btn-gradient {
+        padding: 14px 24px;
+        font-size: 1.1em;
+      }
+    }
+
+    /* Para tablets */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .preview-img {
+        height: 160px;
+      }
+    }
   </style>
 </head>
 <body>
 
+  <!-- Título principal -->
+  <h2>🎨 Elegí el fondo de tu página</h2>
+
+  <!-- Selector de grupos -->
   <div class="grupo-selector d-flex justify-content-center flex-wrap">
-    <button onclick="mostrarGrupo('1')">Oscuro</button>
-    <button onclick="mostrarGrupo('2')">Natural</button>
-    <button onclick="mostrarGrupo('3')">Claro</button>
-    <button onclick="mostrarGrupo('4')">Varios</button>
-    <button onclick="mostrarGrupo('5')">Rojizo</button>
+    <button onclick="mostrarGrupo('1')" id="btn-grupo-1" class="active">Oscuro</button>
+    <button onclick="mostrarGrupo('2')" id="btn-grupo-2">Natural</button>
+    <button onclick="mostrarGrupo('3')" id="btn-grupo-3">Claro</button>
+    <button onclick="mostrarGrupo('4')" id="btn-grupo-4">Varios</button>
+    <button onclick="mostrarGrupo('5')" id="btn-grupo-5">Rojizo</button>
   </div>
 
+  <!-- Contenedor de imágenes -->
   <div class="container mt-3">
     {% for grupo in ['1', '2', '3', '4', '5'] %}
       <div id="grupo_{{ grupo }}" class="row g-3 d-none">
@@ -102,7 +217,8 @@
               <img src="{{ url_for('static', filename='img/webp/' + imagen) }}"
                    class="preview-img img-fluid"
                    loading="lazy"
-                   onclick="seleccionarFondo('{{ imagen.replace('.webp', '.jpeg') }}')">
+                   onclick="seleccionarFondo('{{ imagen.replace('.webp', '.jpeg') }}')"
+                   alt="Estilo {{ grupo }}">
             </div>
           {% endif %}
         {% endfor %}
@@ -110,21 +226,38 @@
     {% endfor %}
   </div>
   
-<form method="POST" class="text-center continuar-btn">
-  <input type="hidden" name="estilo_visual" id="estilo_visual_input" value="{{ config.estilo_visual }}">
-  <input type="hidden" name="modo_visual" id="modo_visual_input">
-  <button type="submit" class="btn-gradient">Continuar</button>
-</form>
-
+  <!-- Formulario -->
+  <form method="POST" class="text-center continuar-btn">
+    <input type="hidden" name="estilo_visual" id="estilo_visual_input" value="{{ config.estilo_visual }}">
+    <input type="hidden" name="modo_visual" id="modo_visual_input">
+    <button type="submit" class="btn-gradient">🎯 Continuar</button>
+  </form>
 
   <script>
   function mostrarGrupo(grupo) {
+    // Ocultar todos los grupos
     document.querySelectorAll('.row').forEach(div => div.classList.add('d-none'));
+    
+    // Mostrar grupo seleccionado
     document.getElementById('grupo_' + grupo).classList.remove('d-none');
+    
+    // Actualizar botones activos
+    document.querySelectorAll('.grupo-selector button').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.getElementById('btn-grupo-' + grupo).classList.add('active');
+    
+    // Scroll suave al grupo en móvil
+    if (window.innerWidth <= 768) {
+      document.getElementById('grupo_' + grupo).scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
   }
 
   function obtenerModoDesdeNombre(nombre) {
-    const grupo = nombre.split('_')[1]; // mini_2_ueud → '2'
+    const grupo = nombre.split('_')[1];
 
     const oscurasGrupo2 = ['mini_2_ueud.jpeg', 'mini_2_jfjfjjd.jpeg', 'mini_2_83838.jpeg'];
     const oscurasGrupo4 = ['mini_4_kfj8.jpeg', 'mini_4_kfk.jpeg', 'mini_4_psñqk.jpeg'];
@@ -136,13 +269,15 @@
     if (grupo === '4') return oscurasGrupo4.includes(nombre) ? 'modo-oscuro' : 'modo-claro';
     if (grupo === '5') return clarasGrupo5.includes(nombre) ? 'modo-claro' : 'modo-oscuro';
 
-    return 'modo-claro'; // fallback
+    return 'modo-claro';
   }
 
   function seleccionarFondo(nombre) {
+    // Aplicar fondo
     document.body.style.backgroundImage = "url('/static/img/" + nombre + "')";
     document.getElementById('estilo_visual_input').value = nombre.replace('.jpeg', '');
 
+    // Determinar modo (oscuro/claro)
     const modo = obtenerModoDesdeNombre(nombre);
     document.body.classList.remove('modo-claro', 'modo-oscuro');
     document.body.classList.add(modo);
@@ -152,26 +287,76 @@
       img.classList.remove('seleccionado');
     });
 
-    // Marcar imagen actual
+    // Marcar imagen actual seleccionada
     const imagenes = document.querySelectorAll('.preview-img');
     imagenes.forEach(img => {
       if (img.src.includes(nombre.replace('.jpeg', '.webp'))) {
         img.classList.add('seleccionado');
+        
+        // Scroll suave a la imagen seleccionada en móvil
+        if (window.innerWidth <= 768) {
+          setTimeout(() => {
+            img.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
+          }, 300);
+        }
       }
     });
 
-    // Guardar modo en el formulario si lo usás en el backend
+    // Guardar modo en el formulario
     const modoInput = document.getElementById('modo_visual_input');
     if (modoInput) {
       modoInput.value = modo;
     }
+
+    // Feedback visual en móvil
+    if (window.innerWidth <= 768) {
+      const imgSeleccionada = document.querySelector('.preview-img.seleccionado');
+      if (imgSeleccionada) {
+        imgSeleccionada.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          imgSeleccionada.style.transform = '';
+        }, 200);
+      }
+    }
   }
 
+  // Inicialización
   window.onload = function() {
     mostrarGrupo('1');
+    
+    // Ajustes específicos para móvil
+    if (window.innerWidth <= 768) {
+      // Mejorar accesibilidad táctil
+      document.querySelectorAll('.preview-img').forEach(img => {
+        img.style.cursor = 'pointer';
+      });
+      
+      // Asegurar que el scroll horizontal sea suave
+      const grupoSelector = document.querySelector('.grupo-selector');
+      if (grupoSelector) {
+        grupoSelector.addEventListener('touchmove', function(e) {
+          e.stopPropagation();
+        }, { passive: true });
+      }
+    }
   };
-</script>
 
+  // Detectar cambios de tamaño de pantalla
+  window.addEventListener('resize', function() {
+    // Reaplicar estilos si cambia de móvil a desktop o viceversa
+    const imagenes = document.querySelectorAll('.preview-img');
+    imagenes.forEach(img => {
+      if (window.innerWidth <= 768) {
+        img.style.height = '150px';
+      } else {
+        img.style.height = '180px';
+      }
+    });
+  });
+  </script>
 
 </body>
 </html>
