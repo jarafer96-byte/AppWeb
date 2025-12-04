@@ -230,16 +230,24 @@ def subir_a_firestore(producto, email):
         print(f"[FIRESTORE] ❌ Error general al subir producto para {email}: {e}\n{tb}")
         return {"status": "error", "error": str(e), "trace": tb}
 
-# Health check para mantener vivo el servidor en Render
 def keep_alive():
     while True:
-        time.sleep(300)  # 5 minutos
+        time.sleep(30)  # 30 segundos
         try:
-            # Hace un ping a la propia app
-            response = requests.get("https://mpagina.onrender.com/", timeout=10)
+            # Usar la ruta /health que es más rápida
+            response = requests.get("https://mpagina.onrender.com/health", timeout=5)
             print(f"🫀 Health check ejecutado: {response.status_code}")
         except Exception as e:
             print(f"⚠️ Health check falló: {e}")
+
+@app.route('/health')
+def health_check():
+    """Ruta específica para health checks de Render"""
+    return jsonify({
+        "status": "ok", 
+        "service": "mpagina",
+        "timestamp": datetime.now().isoformat()
+    }), 200
     
 @app.route("/authorize")
 def authorize():
