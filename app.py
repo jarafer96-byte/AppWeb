@@ -1120,7 +1120,7 @@ def pagar():
         cliente_telefono = data.get('cliente_telefono', '')
         orden_id = data.get('orden_id')
         total_recibido = data.get('total', 0)
-        url_retorno = data.get('url_retorno')  # 👈 URL del usuario (para redirigir después)
+        url_retorno = data.get('url_retorno')
         
         print(f"[PAGAR] 📊 Resumen de datos:")
         print(f"  - Email vendedor: {email_vendedor}")
@@ -1208,26 +1208,25 @@ def pagar():
         base_url = "https://mpagina.onrender.com"
         
         # Usar url_retorno para pasar como parámetro, no como base
-        url_retorno_encoded = urllib.parse.quote(url_retorno or "", safe='')
+        url_retorno_encoded = quote(url_retorno or "", safe='')  # 👈 CAMBIADO: solo quote()
         
         preference_data = {
             "items": items_para_mp,
             "back_urls": {
-                # 👇 Siempre apuntar a TU backend, pasando la URL de retorno como parámetro
                 "success": f"{base_url}/success?orden_id={external_ref}&retorno={url_retorno_encoded}&email={email_vendedor}",
                 "failure": f"{base_url}/failure?orden_id={external_ref}&retorno={url_retorno_encoded}&email={email_vendedor}",
                 "pending": f"{base_url}/pending?orden_id={external_ref}&retorno={url_retorno_encoded}&email={email_vendedor}"
             },
             "auto_return": "approved",
             "external_reference": external_ref,
-            "notification_url": f"{base_url}/webhook_mp",  # webhook siempre a tu servidor
+            "notification_url": f"{base_url}/webhook_mp",
             "metadata": {
                 "email_vendedor": email_vendedor,
                 "numero_vendedor": numero_vendedor,
                 "cliente_nombre": cliente_nombre,
                 "cliente_email": cliente_email,
                 "cliente_telefono": cliente_telefono,
-                "url_retorno": url_retorno  # 👈 Guardar para referencia
+                "url_retorno": url_retorno
             }
         }
         
@@ -1268,7 +1267,7 @@ def pagar():
                 "email_cliente": cliente_email,
                 "telefono_cliente": cliente_telefono,
                 "total_items": len(items_para_mp),
-                "url_retorno": url_retorno  # 👈 Guardar URL de retorno
+                "url_retorno": url_retorno
             }
         }
         
@@ -1288,7 +1287,7 @@ def pagar():
             "external_reference": external_ref,
             "fecha_creacion": firestore.SERVER_TIMESTAMP,
             "comprobante_enviado": False,
-            "url_retorno": url_retorno  # 👈 También guardar en pedido del vendedor
+            "url_retorno": url_retorno
         }
         
         db.collection("usuarios").document(email_vendedor)\
@@ -1304,7 +1303,7 @@ def pagar():
             "total": total_final,
             "message": "Orden creada exitosamente",
             "detalle": f"Procesados {len(items_para_mp)} productos",
-            "url_retorno": url_retorno  # 👈 Devolver también al frontend
+            "url_retorno": url_retorno
         }
         
         print(f"[PAGAR] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
