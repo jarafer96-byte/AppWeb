@@ -1962,7 +1962,7 @@ def conectar_mp():
     print("\n[MP-CONNECT] 🚀 Nueva petición de conexión a Mercado Pago")
 
     email = request.args.get("email")
-    url_retorno = request.args.get("url_retorno")  # URL de la página del vendedor
+    url_retorno = request.args.get("url_retorno")
     print(f"[MP-CONNECT] Email recibido: {email}, url_retorno={url_retorno}")
 
     if not email:
@@ -1989,26 +1989,22 @@ def conectar_mp():
     redirect_uri = url_for("callback_mp", _external=True)
     print(f"[MP-CONNECT] Redirect URI generada: {redirect_uri}")
 
-    # Usar 'state' para transportar email + url_retorno
-    import json
-    state_data = {
-        "email": email,
-        "url_retorno": url_retorno or f"https://mpagina.onrender.com/preview?email={email}"
-    }
-    
-    # Codificar el estado como JSON en URL
-    state_encoded = quote(json.dumps(state_data))
+    # 🔴 PROBLEMA: NO usar quote() aquí, solo JSON
+    # Mercado Pago espera un string simple, no un JSON codificado
+    # Si queremos pasar email y url_retorno, mejor usar un separador simple
+    state_data = f"{email}|{url_retorno or ''}"
     
     query = urlencode({
         "client_id": client_id,
         "response_type": "code",
         "redirect_uri": redirect_uri,
         "scope": "read write offline_access",
-        "state": state_encoded
+        "state": state_data  # 👈 String simple, no JSON codificado
     })
     auth_url = f"https://auth.mercadopago.com/authorization?{query}"
 
     print(f"[MP-CONNECT] 🔗 URL de autorización construida: {auth_url}")
+    print(f"[MP-CONNECT] 🔗 State enviado: {state_data}")
     return redirect(auth_url)
 
 @app.route('/callback_mp')
@@ -2017,27 +2013,28 @@ def callback_mp():
 
     # 🔑 Validar credenciales recibidas en query
     code = request.args.get('code')
-    state_raw = request.args.get('state')
+    state_data = request.args.get('state')  # Ahora es un string simple
 
-    print(f"[MP-CALLBACK] Parámetros recibidos → code={code}, state={state_raw}")
+    print(f"[MP-CALLBACK] Parámetros recibidos → code={code}, state={state_data}")
 
-    if not state_raw:
+    if not state_data:
         print("[MP-CALLBACK] ❌ Falta parámetro state")
         return "Error: falta parámetro state", 403
     if not code:
         print("[MP-CALLBACK] ❌ No se recibió código de autorización")
         return "❌ No se recibió código de autorización", 400
 
-    # Decodificar el state
-    try:
-        state_data = json.loads(unquote(state_raw))
-        email = state_data.get("email")
-        url_retorno = state_data.get("url_retorno")
-    except Exception as e:
-        print(f"[MP-CALLBACK] ❌ Error decodificando state: {e}")
-        # fallback: si state era solo el email
-        email = state_raw.strip()
+    # Parsear el state simple: "email|url_retorno"
+    parts = state_data.split('|')
+    email = parts[0] if len(parts) > 0 else ""
+    url_retorno = parts[1] if len(parts) > 1 else None
+
+    # Si url_retorno está vacío, usar None
+    if url_retorno == "":
         url_retorno = None
+
+    print(f"[MP-CALLBACK] Email obtenido: {email}")
+    print(f"[MP-CALLBACK] URL retorno obtenida: {url_retorno}")
 
     if not email:
         print("[MP-CALLBACK] ❌ No se pudo obtener email del state")
@@ -2048,7 +2045,7 @@ def callback_mp():
     redirect_uri = url_for('callback_mp', _external=True)
 
     print(f"[MP-CALLBACK] Procesando para email: {email}")
-    print(f"[MP-CALLBACK] URL de retorno recibida: {url_retorno}")
+    print(f"[MP-CALLBACK] URL de retorno: {url_retorno}")
 
     token_url = "https://api.mercadopago.com/oauth/token"
     payload = {
@@ -2122,6 +2119,8 @@ def callback_mp():
         if url_retorno:
             # Asegurar que la URL tenga el parámetro de configuración exitosa
             destino = url_retorno.rstrip("/")
+            
+            # Construir URL con parámetros
             if "?" in destino:
                 redirect_url = f"{destino}&mp_configurado=true&email={email}"
             else:
