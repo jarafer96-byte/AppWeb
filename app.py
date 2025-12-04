@@ -1345,17 +1345,18 @@ def guardar_producto():
         # 3) Guardar usando función robusta
         print("[GUARDAR_PRODUCTO] → Llamando a subir_a_firestore()")
         resultado = subir_a_firestore(producto, email)
-        print(f"[GUARDAR_PRODUCTO] Resultado de subida: {resultado}")
+        print(f"[PAGAR] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
+        return jsonify(response_data)
 
-        # 4) Respuesta normalizada
-        return jsonify(resultado)
-
-    except Exception as e:
+    except Exception as e:   # 👈 alineado con el try
+        print(f"[PAGAR] ❌ Error interno: {e}")
         import traceback
-        tb = traceback.format_exc()
-        print("[GUARDAR_PRODUCTO] 💥 Error inesperado:", e)
-        print("[GUARDAR_PRODUCTO][TRACEBACK]\n", tb)
-        return jsonify({"status": "error", "error": str(e), "trace": tb}), 500
+        traceback.print_exc()
+        return jsonify({
+            'error': 'Error interno al generar el pago',
+            'message': str(e),
+            'detalle': 'Revisa los logs del servidor'
+        }), 500
 
 # --- Agregar en app.py (temporal, para debug) ---
 @app.route('/debug/session')
