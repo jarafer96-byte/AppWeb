@@ -964,6 +964,19 @@ function salirAdmin() {
   } else {
     console.warn("⚠️ No se encontró #logoutAdminWrapper en el DOM");
   }
+
+  // Ocultar paneles de administración
+  const adminCard = document.getElementById("adminCard");
+  if (adminCard) {
+    adminCard.classList.add("d-none");
+    console.log("✅ adminCard ocultado");
+  }
+
+  const configurarMP = document.getElementById("configurarMP");
+  if (configurarMP) {
+    configurarMP.classList.add("d-none");
+    console.log("✅ configurarMP ocultado");
+  }
 }
 
 // Mostrar el botón solo si modoAdmin está activo
@@ -972,6 +985,19 @@ if (window.modoAdmin) {
   if (logoutWrapper) {
     logoutWrapper.style.display = "block";
     console.log("🔑 Modo admin activo, mostrando botón de logout");
+  }
+
+  // Mostrar paneles de administración
+  const adminCard = document.getElementById("adminCard");
+  if (adminCard) {
+    adminCard.classList.remove("d-none");
+    console.log("🔑 adminCard mostrado");
+  }
+
+  const configurarMP = document.getElementById("configurarMP");
+  if (configurarMP) {
+    configurarMP.classList.remove("d-none");
+    console.log("🔑 configurarMP mostrado");
   }
 }
     
