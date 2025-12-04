@@ -222,7 +222,7 @@ def subir_a_firestore(producto, email):
         db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
         print(f"[FIRESTORE] ✅ Producto guardado correctamente en Firestore: {custom_id} para {email}")
 
-        return {"ok": True, "id_base": custom_id}
+        return {"status": "ok", "ok": True, "id_base": custom_id}
 
     except Exception as e:
         tb = traceback.format_exc()
