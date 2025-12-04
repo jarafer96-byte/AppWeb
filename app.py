@@ -962,7 +962,7 @@ def webhook_mp():
         return jsonify({"ok": False}), 400
     
     # Consultar detalle del pago
-    access_token = os.getenv("MERCADO_PAGO_TOKEN")  # Token global de la plataforma
+    access_token = os.getenv("MERCADO_PAGO_TOKEN")
     headers = {"Authorization": f"Bearer {access_token}"}
     
     try:
@@ -1000,10 +1000,18 @@ def webhook_mp():
             "actualizado": firestore.SERVER_TIMESTAMP
         })
         
+        # También actualizar en pedidos del vendedor
+        email_vendedor = orden_data.get("email_vendedor")
+        if email_vendedor:
+            vendedor_ref = db.collection("usuarios").document(email_vendedor)
+            vendedor_ref.collection("pedidos").document(external_ref).update({
+                "estado": estado,
+                "payment_id": payment_id,
+                "actualizado": firestore.SERVER_TIMESTAMP
+            })
+        
         # Si el pago fue aprobado, enviar comprobante
         if estado == "approved":
-            email_vendedor = orden_data.get("email_vendedor")
-            
             if email_vendedor:
                 # Verificar si ya se envió comprobante
                 if not orden_data.get("comprobante_enviado", False):
