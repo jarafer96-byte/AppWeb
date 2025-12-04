@@ -29,6 +29,7 @@ from email.mime.text import MIMEText
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from urllib.parse import urlencode, quote, unquote
 ##################
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -1040,7 +1041,7 @@ def pagar():
         cliente_telefono = data.get('cliente_telefono', '')
         orden_id = data.get('orden_id')
         total_recibido = data.get('total', 0)
-        url_retorno = data.get('url_retorno')  # 👈 nueva: URL del usuario
+        url_retorno = data.get('url_retorno')  # 👈 URL del usuario (para redirigir después)
         
         print(f"[PAGAR] 📊 Resumen de datos:")
         print(f"  - Email vendedor: {email_vendedor}")
@@ -1049,7 +1050,7 @@ def pagar():
         print(f"  - Items_MP recibido: {len(items_mp)} items")
         print(f"  - Total recibido: ${total_recibido}")
         print(f"  - Orden ID recibido: {orden_id}")
-        print(f"  - URL retorno: {url_retorno}")
+        print(f"  - URL retorno (usuario): {url_retorno}")
         
         if not email_vendedor:
             return jsonify({'error': 'Falta email del vendedor'}), 400
@@ -1124,16 +1125,19 @@ def pagar():
         total_final = max(total_calculado, float(total_recibido or 0))
         print(f"[PAGAR] 💰 Total final a usar: ${total_final:.2f}")
         
-        # 6. Crear preferencia con back_urls dinámicos
+        # 6. Crear preferencia con back_urls a TU backend
         base_url = "https://mpagina.onrender.com"
-        destino = (url_retorno or base_url).rstrip("/")
+        
+        # Usar url_retorno para pasar como parámetro, no como base
+        url_retorno_encoded = urllib.parse.quote(url_retorno or "", safe='')
         
         preference_data = {
             "items": items_para_mp,
             "back_urls": {
-                "success": f"{destino}/success?orden_id={external_ref}",
-                "failure": f"{destino}/failure?orden_id={external_ref}",
-                "pending": f"{destino}/pending?orden_id={external_ref}"
+                # 👇 Siempre apuntar a TU backend, pasando la URL de retorno como parámetro
+                "success": f"{base_url}/success?orden_id={external_ref}&retorno={url_retorno_encoded}&email={email_vendedor}",
+                "failure": f"{base_url}/failure?orden_id={external_ref}&retorno={url_retorno_encoded}&email={email_vendedor}",
+                "pending": f"{base_url}/pending?orden_id={external_ref}&retorno={url_retorno_encoded}&email={email_vendedor}"
             },
             "auto_return": "approved",
             "external_reference": external_ref,
@@ -1143,11 +1147,15 @@ def pagar():
                 "numero_vendedor": numero_vendedor,
                 "cliente_nombre": cliente_nombre,
                 "cliente_email": cliente_email,
-                "cliente_telefono": cliente_telefono
+                "cliente_telefono": cliente_telefono,
+                "url_retorno": url_retorno  # 👈 Guardar para referencia
             }
         }
         
         print(f"[PAGAR] 📦 Enviando preferencia a Mercado Pago...")
+        print(f"[PAGAR] ✅ Success URL: {preference_data['back_urls']['success']}")
+        print(f"[PAGAR] ✅ Failure URL: {preference_data['back_urls']['failure']}")
+        print(f"[PAGAR] ✅ Pending URL: {preference_data['back_urls']['pending']}")
         
         preference_response = sdk.preference().create(preference_data)
         preference = preference_response.get("response", {}) or {}
@@ -1180,27 +1188,32 @@ def pagar():
                 "cliente": cliente_nombre,
                 "email_cliente": cliente_email,
                 "telefono_cliente": cliente_telefono,
-                "total_items": len(items_para_mp)
+                "total_items": len(items_para_mp),
+                "url_retorno": url_retorno  # 👈 Guardar URL de retorno
             }
         }
         
         db.collection("ordenes").document(external_ref).set(orden_doc)
         print(f"[PAGAR] ✅ Orden guardada en Firestore: {external_ref}")
         
+        # 9. Guardar en la subcolección de pedidos del VENDEDOR
+        pedido_data = {
+            "cliente_nombre": cliente_nombre,
+            "cliente_email": cliente_email,
+            "cliente_telefono": cliente_telefono,
+            "carrito": carrito,
+            "items_mp": items_para_mp,
+            "total": total_final,
+            "estado": "pendiente",
+            "preference_id": preference.get("id"),
+            "external_reference": external_ref,
+            "fecha_creacion": firestore.SERVER_TIMESTAMP,
+            "comprobante_enviado": False,
+            "url_retorno": url_retorno  # 👈 También guardar en pedido del vendedor
+        }
+        
         db.collection("usuarios").document(email_vendedor)\
-          .collection("pedidos").document(external_ref).set({
-              "cliente_nombre": cliente_nombre,
-              "cliente_email": cliente_email,
-              "cliente_telefono": cliente_telefono,
-              "carrito": carrito,
-              "items_mp": items_para_mp,
-              "total": total_final,
-              "estado": "pendiente",
-              "preference_id": preference.get("id"),
-              "external_reference": external_ref,
-              "fecha_creacion": firestore.SERVER_TIMESTAMP,
-              "comprobante_enviado": False
-          })
+          .collection("pedidos").document(external_ref).set(pedido_data)
         print(f"[PAGAR] ✅ Orden guardada en subcolección del vendedor")
         
         # 10. Devolver respuesta
@@ -1211,7 +1224,8 @@ def pagar():
             "orden_id": external_ref,
             "total": total_final,
             "message": "Orden creada exitosamente",
-            "detalle": f"Procesados {len(items_para_mp)} productos"
+            "detalle": f"Procesados {len(items_para_mp)} productos",
+            "url_retorno": url_retorno  # 👈 Devolver también al frontend
         }
         
         print(f"[PAGAR] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
