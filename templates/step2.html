@@ -17,148 +17,141 @@
     h2 {
       color: white;
       text-align: center;
-      margin: 15px 0 10px 0;
-      font-size: 1.4rem;
+      margin: 20px 0 15px 0;
     }
 
     .grupo-selector {
       overflow-x: auto;
       white-space: nowrap;
-      padding: 8px 5px;
+      padding: 10px;
       background-color: rgba(255,255,255,0.05);
-      border-radius: 8px;
-      margin: 0 5px 10px 5px;
+      border-radius: 12px;
+      margin: 0 auto 20px auto;
+      max-width: 900px;
       -webkit-overflow-scrolling: touch;
     }
 
     .grupo-selector button {
-      margin: 2px;
-      padding: 8px 12px;
+      margin: 5px;
+      padding: 10px 20px;
       border: none;
-      border-radius: 20px;
+      border-radius: 50px;
       background-color: #333;
       color: white;
       cursor: pointer;
       font-weight: bold;
       transition: all 0.2s ease;
-      font-size: 0.85rem;
-      min-width: 70px;
+      min-width: 90px;
     }
 
     .grupo-selector button:hover,
     .grupo-selector button.active {
       background-color: #8e2de2;
+      transform: scale(1.05);
     }
 
     .preview-img {
       width: 100%;
-      height: 140px;
+      height: 180px;
       object-fit: cover;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 2px solid transparent;
     }
 
-    .preview-img:hover,
-    .preview-img:active {
-      transform: scale(1.02);
+    .preview-img:hover {
+      transform: scale(1.05);
     }
 
     .preview-img.seleccionado {
-      outline: 2px solid limegreen;
-      outline-offset: 1px;
+      outline: 3px solid limegreen;
+      outline-offset: 2px;
       border-color: limegreen;
-      box-shadow: 0 0 8px rgba(50, 205, 50, 0.4);
+      box-shadow: 0 0 15px rgba(50, 205, 50, 0.5);
     }
 
     .continuar-btn {
-      margin-top: 20px;
-      padding: 0 10px;
+      margin-top: 40px;
+      text-align: center;
     }
 
     .btn-gradient {
       background: linear-gradient(135deg, #8e2de2, #ff6f61);
       color: white;
       border: none;
-      padding: 12px 20px;
-      border-radius: 25px;
+      padding: 12px 28px;
+      border-radius: 50px;
       font-weight: bold;
-      box-shadow: 0 0 8px rgba(255,255,255,0.2);
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
       transition: all 0.2s ease;
       display: inline-block;
-      width: 100%;
-      font-size: 1rem;
+      font-size: 1em;
+      /* En PC se mantiene tamaño normal */
+      width: auto;
+      max-width: none;
     }
 
-    .btn-gradient:hover,
-    .btn-gradient:active {
-      transform: scale(1.02);
-      box-shadow: 0 0 12px rgba(255,255,255,0.3);
+    .btn-gradient:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.5);
     }
 
-    /* 🔥 RESPONSIVO COMPACTO PARA MÓVIL */
+    /* 🔥 NUEVO: Grid adaptable en lugar de columnas fijas */
+    .imagenes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      padding: 0 10px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* 🔥 RESPONSIVO PARA MÓVIL */
     @media (max-width: 768px) {
-      body {
-        padding: 0;
-      }
-      
       h2 {
         font-size: 1.3rem;
-        margin: 12px 0 8px 0;
-        padding: 0 10px;
+        margin: 15px 0 10px 0;
       }
 
       .grupo-selector {
-        padding: 8px 8px;
-        margin: 0 8px 12px 8px;
+        padding: 8px 6px;
+        margin: 0 8px 15px 8px;
         border-radius: 10px;
       }
 
       .grupo-selector button {
-        padding: 7px 10px;
-        font-size: 0.82rem;
-        min-width: 65px;
-        margin: 1px;
+        padding: 8px 14px;
+        font-size: 0.85em;
+        min-width: 75px;
+        margin: 3px;
       }
 
-      /* Grid más compacto */
-      .container {
-        padding-left: 8px !important;
-        padding-right: 8px !important;
-      }
-
-      .row.g-3 {
-        margin-left: -3px;
-        margin-right: -3px;
-      }
-
-      .row.g-3 > div {
-        padding-left: 3px;
-        padding-right: 3px;
-        margin-bottom: 6px;
-      }
-
-      /* Imágenes más grandes pero sin perder densidad */
-      .col-6 {
-        width: 50% !important;
+      /* Grid más compacto en móvil */
+      .imagenes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 8px;
+        padding: 0 8px;
       }
 
       .preview-img {
-        height: 130px; /* Más compacto */
+        height: 160px; /* Más alto para aprovechar espacio */
+      }
+
+      /* 🔥 Botón al 100% solo en móvil */
+      .btn-gradient {
+        width: 100%;
+        max-width: 300px;
+        padding: 14px 28px;
+        font-size: 1em;
       }
 
       .continuar-btn {
-        margin-top: 15px;
-        padding: 0 10px;
+        margin-top: 30px;
+        padding: 0 15px;
       }
 
-      .btn-gradient {
-        padding: 12px 18px;
-        font-size: 0.95rem;
-      }
-
-      /* Feedback táctil más sutil */
+      /* Feedback táctil */
       .preview-img:active {
         transform: scale(0.98);
       }
@@ -168,101 +161,62 @@
       }
     }
 
-    /* Para pantallas muy pequeñas (iPhone SE) - EXTRA COMPACTO */
+    /* Para pantallas muy pequeñas (iPhone SE) */
     @media (max-width: 360px) {
-      h2 {
-        font-size: 1.2rem;
-        margin: 10px 0 6px 0;
-      }
-
-      .grupo-selector {
-        padding: 6px 5px;
-        margin: 0 5px 10px 5px;
-      }
-
-      .grupo-selector button {
-        padding: 6px 8px;
-        font-size: 0.78rem;
-        min-width: 60px;
+      .imagenes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 6px;
+        padding: 0 6px;
       }
 
       .preview-img {
-        height: 120px;
+        height: 140px;
       }
 
-      .row.g-3 {
-        margin-left: -2px;
-        margin-right: -2px;
-      }
-
-      .row.g-3 > div {
-        padding-left: 2px;
-        padding-right: 2px;
-        margin-bottom: 4px;
-      }
-
-      .btn-gradient {
-        padding: 10px 16px;
-        font-size: 0.9rem;
+      .grupo-selector button {
+        padding: 7px 10px;
+        font-size: 0.8em;
+        min-width: 65px;
       }
     }
 
-    /* Para tablets - un poco más de espacio pero no excesivo */
+    /* Para tablets - más columnas */
     @media (min-width: 769px) and (max-width: 1024px) {
+      .imagenes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 12px;
+      }
+      
       .preview-img {
-        height: 150px;
-      }
-      
-      .grupo-selector {
-        margin: 0 15px 15px 15px;
-        padding: 10px 8px;
-      }
-      
-      .grupo-selector button {
-        padding: 9px 14px;
-        min-width: 75px;
+        height: 170px;
       }
     }
 
-    /* Para escritorio - layout más espaciado */
+    /* Para escritorio - máximo aprovechamiento */
     @media (min-width: 1025px) {
+      .imagenes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 15px;
+        padding: 0 15px;
+      }
+      
       .preview-img {
-        height: 160px;
-      }
-      
-      .grupo-selector {
-        max-width: 900px;
-        margin: 0 auto 20px auto;
-        padding: 10px;
-      }
-      
-      .grupo-selector button {
-        padding: 10px 18px;
-        min-width: 85px;
-      }
-      
-      .container {
-        max-width: 1200px;
+        height: 200px; /* Más alto en desktop */
       }
     }
 
-    /* Asegurar que todo use el ancho completo */
+    /* Eliminar el contenedor Bootstrap que limita el ancho */
     .container-fluid {
       padding-left: 0;
       padding-right: 0;
-    }
-    
-    /* Sin márgenes excesivos entre filas */
-    .row {
-      --bs-gutter-x: 0.5rem;
-      --bs-gutter-y: 0.5rem;
+      max-width: 100%;
     }
   </style>
 </head>
 <body>
 
   <!-- Título principal -->
-  <h2> Elegí el fondo de tu página</h2>
+  <h2>🎨 Elegí el fondo de tu página</h2>
 
   <!-- Selector de grupos -->
   <div class="grupo-selector d-flex justify-content-center flex-wrap">
@@ -273,15 +227,15 @@
     <button onclick="mostrarGrupo('5')" id="btn-grupo-5">Rojizo</button>
   </div>
 
-  <!-- Contenedor de imágenes -->
-  <div class="container mt-2">
+  <!-- Contenedor de imágenes CON GRID ADAPTATIVO -->
+  <div class="container-fluid">
     {% for grupo in ['1', '2', '3', '4', '5'] %}
-      <div id="grupo_{{ grupo }}" class="row g-2 d-none">
+      <div id="grupo_{{ grupo }}" class="imagenes-grid d-none">
         {% for imagen in imagenes %}
           {% if imagen.endswith('.webp') and imagen.startswith('mini_' + grupo + '_') %}
-            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+            <div class="grid-item">
               <img src="{{ url_for('static', filename='img/webp/' + imagen) }}"
-                   class="preview-img img-fluid"
+                   class="preview-img"
                    loading="lazy"
                    onclick="seleccionarFondo('{{ imagen.replace('.webp', '.jpeg') }}')"
                    alt="Estilo {{ grupo }}">
@@ -293,16 +247,16 @@
   </div>
   
   <!-- Formulario -->
-  <form method="POST" class="text-center continuar-btn">
+  <form method="POST" class="continuar-btn">
     <input type="hidden" name="estilo_visual" id="estilo_visual_input" value="{{ config.estilo_visual }}">
     <input type="hidden" name="modo_visual" id="modo_visual_input">
-    <button type="submit" class="btn-gradient"> Continuar</button>
+    <button type="submit" class="btn-gradient">🎯 Continuar</button>
   </form>
 
   <script>
   function mostrarGrupo(grupo) {
     // Ocultar todos los grupos
-    document.querySelectorAll('.row').forEach(div => div.classList.add('d-none'));
+    document.querySelectorAll('.imagenes-grid').forEach(div => div.classList.add('d-none'));
     
     // Mostrar grupo seleccionado
     document.getElementById('grupo_' + grupo).classList.remove('d-none');
@@ -318,8 +272,7 @@
       setTimeout(() => {
         document.getElementById('grupo_' + grupo).scrollIntoView({ 
           behavior: 'smooth', 
-          block: 'start',
-          inline: 'nearest'
+          block: 'start'
         });
       }, 100);
     }
@@ -367,8 +320,7 @@
           setTimeout(() => {
             img.scrollIntoView({ 
               behavior: 'smooth', 
-              block: 'center',
-              inline: 'nearest'
+              block: 'center'
             });
           }, 150);
         }
@@ -380,52 +332,12 @@
     if (modoInput) {
       modoInput.value = modo;
     }
-
-    // Feedback visual en móvil
-    if (window.innerWidth <= 768) {
-      const imgSeleccionada = document.querySelector('.preview-img.seleccionado');
-      if (imgSeleccionada) {
-        imgSeleccionada.style.transform = 'scale(0.96)';
-        setTimeout(() => {
-          imgSeleccionada.style.transform = '';
-        }, 200);
-      }
-    }
   }
 
   // Inicialización
   window.onload = function() {
     mostrarGrupo('1');
-    
-    // Ajustes específicos para móvil
-    if (window.innerWidth <= 768) {
-      // Mejorar accesibilidad táctil
-      document.querySelectorAll('.preview-img').forEach(img => {
-        img.style.cursor = 'pointer';
-      });
-      
-      // Scroll horizontal más suave
-      const grupoSelector = document.querySelector('.grupo-selector');
-      if (grupoSelector) {
-        grupoSelector.style.overflowX = 'auto';
-        grupoSelector.style.WebkitOverflowScrolling = 'touch';
-      }
-    }
   };
-
-  // Optimizar redimensionamiento
-  window.addEventListener('resize', function() {
-    const isMobile = window.innerWidth <= 768;
-    const imagenes = document.querySelectorAll('.preview-img');
-    
-    imagenes.forEach(img => {
-      if (isMobile) {
-        img.style.height = '130px';
-      } else {
-        img.style.height = '140px';
-      }
-    });
-  });
   </script>
 
 </body>
