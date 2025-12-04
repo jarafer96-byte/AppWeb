@@ -23,7 +23,6 @@ from flask_cors import CORS, cross_origin
 from google.cloud import storage
 from google.oauth2 import service_account
 import secrets
-from urllib.parse import urlencode
 import smtplib
 from email.mime.text import MIMEText
 from google_auth_oauthlib.flow import Flow
