@@ -1024,6 +1024,9 @@ function eliminarFila(btn) {
 function eliminarGrupo(btn) {
   const grupo = btn.closest('.card');
 
+  // Obtener array actual de imágenes usadas
+  let usadasActuales = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+  
   // 🔎 Buscar todas las filas dentro del grupo
   grupo.querySelectorAll('.fila-producto').forEach(fila => {
     const hiddenBase = fila.querySelector('input[name="imagen_basename"]');
@@ -1041,14 +1044,14 @@ function eliminarGrupo(btn) {
         }
       });
 
-      // Quitar de la lista global
-      imagenesUsadas = imagenesUsadas.filter(n => n !== basename);
+      // Quitar de la lista local
+      usadasActuales = usadasActuales.filter(n => n !== basename);
     }
   });
 
-  // 📝 Actualizar localStorage y refrescar carrusel
-  localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
-  marcarImagenesUsadas();
+  // 🔧 Actualizar tanto localStorage como variable global
+  localStorage.setItem("imagenesUsadas", JSON.stringify(usadasActuales));
+  imagenesUsadas = usadasActuales; // Sincronizar variable global
 
   // 🗑️ Eliminar el grupo
   grupo.remove();
