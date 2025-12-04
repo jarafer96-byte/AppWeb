@@ -730,7 +730,10 @@ def get_platform_token():
 
 @app.route("/comprobante/<orden_id>")
 def comprobante(orden_id):
-    """Renderizar comprobante con TODOS los datos unificados"""
+    """Renderizar comprobante con TODOS los datos unificados - VERSIÓN MEJORADA"""
+    import json
+    from datetime import datetime
+    
     # Buscar en la colección global
     doc = db.collection("ordenes").document(orden_id).get()
     
@@ -739,41 +742,204 @@ def comprobante(orden_id):
     
     data = doc.to_dict()
     
-    cliente_nombre = data.get("cliente_nombre", "Cliente")
-    cliente_email = data.get("cliente_email", "Sin email")
-    cliente_telefono = data.get("cliente_telefono", "Sin teléfono")
-    items = data.get("items", [])  # Los items originales del carrito
+    cliente_nombre = data.get("cliente_nombre", "Cliente").strip()
+    cliente_email = data.get("cliente_email", "Sin email").strip()
+    cliente_telefono = data.get("cliente_telefono", "Sin teléfono").strip()
     email_vendedor = data.get("email_vendedor")
     
-    # Calcular total
+    print(f"[COMPROBANTE] 🔍 Procesando orden {orden_id}")
+    print(f"[COMPROBANTE] Cliente: {cliente_nombre}")
+    print(f"[COMPROBANTE] Vendedor: {email_vendedor}")
+    
+    # Obtener productos usando la misma lógica que enviar_comprobante
+    productos_data = data.get("carrito") or data.get("items") or data.get("items_mp") or []
+    
+    # Si productos_data es string, convertirlo a lista
+    if isinstance(productos_data, str):
+        try:
+            productos_data = json.loads(productos_data)
+        except:
+            productos_data = []
+            print(f"[COMPROBANTE] ⚠️ No se pudo convertir string a JSON")
+    
+    print(f"[COMPROBANTE] 📦 Productos encontrados: {len(productos_data)}")
+    
     total = 0
     productos = []
     
-    for item in items:
+    for idx, p in enumerate(productos_data):
         try:
-            cantidad = int(item.get('cantidad', 1))
-            precio = float(item.get('precio', 0))
-            total += precio * cantidad
+            print(f"[COMPROBANTE] 🔍 Procesando producto {idx+1}:")
             
-            # Buscar imagen del producto
+            # Verificar que sea un diccionario
+            if not isinstance(p, dict):
+                print(f"[COMPROBANTE] ⚠️ Producto no es diccionario: {type(p)}")
+                continue
+            
+            # Extraer datos con múltiples intentos
+            # 1. Buscar nombre/title
+            nombre = p.get("title") or p.get("nombre") or p.get("name") or f"Producto {idx+1}"
+            
+            # 2. Buscar precio
+            precio_raw = None
+            for key in ["unit_price", "precio", "price", "unit_price"]:
+                if key in p:
+                    precio_raw = p[key]
+                    break
+            
+            # Convertir precio a float
+            precio = 0.0
+            if precio_raw is not None:
+                if isinstance(precio_raw, (int, float)):
+                    precio = float(precio_raw)
+                elif isinstance(precio_raw, str):
+                    # Limpiar string: quitar $, comas, espacios
+                    limpio = precio_raw.replace('$', '').replace(',', '.').strip()
+                    try:
+                        precio = float(limpio)
+                    except:
+                        print(f"[COMPROBANTE] ⚠️ No se pudo convertir precio: {precio_raw}")
+                        precio = 0.0
+            else:
+                print(f"[COMPROBANTE] ⚠️ Precio no encontrado en producto")
+            
+            # 3. Buscar cantidad
+            cantidad_raw = None
+            for key in ["quantity", "cantidad", "qty"]:
+                if key in p:
+                    cantidad_raw = p[key]
+                    break
+            
+            # Convertir cantidad a int
+            cantidad = 1
+            if cantidad_raw is not None:
+                if isinstance(cantidad_raw, (int, float)):
+                    cantidad = int(cantidad_raw)
+                elif isinstance(cantidad_raw, str):
+                    try:
+                        cantidad = int(cantidad_raw)
+                    except:
+                        print(f"[COMPROBANTE] ⚠️ No se pudo convertir cantidad: {cantidad_raw}")
+                        cantidad = 1
+            else:
+                print(f"[COMPROBANTE] ⚠️ Cantidad no encontrada, usando 1")
+            
+            # 4. Buscar talle
+            talle = p.get("talle") or p.get("size") or ""
+            
+            # 5. Buscar imagen_url - MÉTODO MEJORADO
             imagen_url = None
-            id_base = item.get('id_base')
-            if email_vendedor and id_base:
-                prod_doc = db.collection("usuarios").document(email_vendedor)\
-                              .collection("productos").document(id_base).get()
-                if prod_doc.exists:
-                    imagen_url = prod_doc.to_dict().get("imagen_url")
             
-            productos.append({
-                "nombre": item.get('nombre', 'Producto'),
+            # Intentar múltiples fuentes para la imagen
+            for key in ["imagen_url", "image_url", "picture_url", "img_url"]:
+                if key in p and p[key]:
+                    imagen_url = p[key]
+                    break
+            
+            # Si no encontramos imagen en los datos del producto, buscar en Firestore
+            if not imagen_url and email_vendedor:
+                # Buscar por id_base
+                id_base = p.get("id_base") or p.get("id") or p.get("product_id")
+                if id_base:
+                    try:
+                        prod_doc = db.collection("usuarios").document(email_vendedor)\
+                                      .collection("productos").document(id_base).get()
+                        if prod_doc.exists:
+                            prod_data = prod_doc.to_dict()
+                            imagen_url = prod_data.get("imagen_url")
+                            print(f"[COMPROBANTE] ✅ Imagen encontrada en Firestore: {imagen_url[:50] if imagen_url else 'None'}...")
+                    except Exception as e:
+                        print(f"[COMPROBANTE] ❌ Error buscando imagen en Firestore: {e}")
+            
+            # Si aún no hay imagen, intentar con nombre
+            if not imagen_url and email_vendedor and nombre:
+                try:
+                    # Buscar producto por nombre (aproximado)
+                    productos_ref = db.collection("usuarios").document(email_vendedor)\
+                                      .collection("productos")
+                    query = productos_ref.where("nombre", "==", nombre).limit(1).get()
+                    if query:
+                        prod_data = query[0].to_dict()
+                        imagen_url = prod_data.get("imagen_url")
+                        print(f"[COMPROBANTE] ✅ Imagen encontrada por nombre: {imagen_url[:50] if imagen_url else 'None'}...")
+                except Exception as e:
+                    print(f"[COMPROBANTE] ❌ Error buscando por nombre: {e}")
+            
+            # Optimizar imagen si es de Cloudinary o Firebase
+            if imagen_url:
+                # Cloudinary: optimizar a tamaño razonable
+                if "cloudinary" in imagen_url or "res.cloudinary.com" in imagen_url:
+                    if "/image/upload/" in imagen_url:
+                        parts = imagen_url.split("/image/upload/")
+                        if len(parts) == 2:
+                            imagen_url = f"{parts[0]}/image/upload/w_300,h_180,c_fill/{parts[1]}"
+                
+                # Firebase Storage: agregar parámetro de tamaño
+                elif "firebasestorage.googleapis.com" in imagen_url:
+                    # Para Firebase, podemos usar parámetros de transformación si están habilitados
+                    # O simplemente usar la URL base
+                    imagen_url = f"{imagen_url}?alt=media"
+            
+            # Calcular subtotal
+            subtotal = precio * cantidad
+            total += subtotal
+            
+            producto = {
+                "nombre": nombre,
                 "cantidad": cantidad,
                 "precio": precio,
+                "subtotal": subtotal,
                 "imagen_url": imagen_url,
-                "talle": item.get('talle', '')
-            })
+                "talle": talle
+            }
+            
+            productos.append(producto)
+            
+            print(f"[COMPROBANTE]   ✓ {nombre}")
+            print(f"      Precio: ${precio:.2f}")
+            print(f"      Cantidad: {cantidad}")
+            print(f"      Subtotal: ${subtotal:.2f}")
+            print(f"      Talle: {talle}")
+            print(f"      Imagen: {imagen_url[:50]}..." if imagen_url else "      Imagen: No")
+            
         except Exception as e:
-            print(f"[COMPROBANTE] ❌ Error procesando item: {e}")
+            print(f"[COMPROBANTE] ❌ Error procesando producto {idx+1}: {e}")
+            import traceback
+            traceback.print_exc()
             continue
+    
+    # Usar el total de la orden si lo tenemos, o usar el calculado
+    orden_total = data.get("total")
+    if orden_total:
+        try:
+            total = float(orden_total)
+            print(f"[COMPROBANTE] 💰 Usando total de orden: ${total:.2f}")
+        except Exception as e:
+            print(f"[COMPROBANTE] ⚠️ No se pudo convertir total de orden: {orden_total}, usando calculado")
+    else:
+        print(f"[COMPROBANTE] 💰 Total calculado: ${total:.2f}")
+    
+    # Verificar si hay productos procesados
+    if len(productos) == 0:
+        print(f"[COMPROBANTE] ⚠️ No se procesaron productos, usando datos mínimos")
+        productos.append({
+            "nombre": "Productos varios",
+            "cantidad": 1,
+            "precio": total if total > 0 else 1.0,
+            "subtotal": total if total > 0 else 1.0,
+            "imagen_url": "",
+            "talle": ""
+        })
+    
+    # Obtener fecha
+    fecha_creacion = data.get("fecha_creacion") or data.get("timestamp") or datetime.now()
+    if isinstance(fecha_creacion, datetime):
+        fecha_str = fecha_creacion.strftime("%d/%m/%Y %H:%M")
+    else:
+        fecha_str = str(fecha_creacion)
+    
+    print(f"[COMPROBANTE] ✅ Total productos procesados: {len(productos)}")
+    print(f"[COMPROBANTE] ✅ Total: ${total:.2f}")
     
     return render_template("comprobante.html",
                           orden_id=orden_id,
@@ -782,7 +948,7 @@ def comprobante(orden_id):
                           cliente_telefono=cliente_telefono,
                           productos=productos,
                           total=total,
-                          fecha=data.get("creado"))
+                          fecha=fecha_str)
 
 # Enviar comprobante por correo - VERSIÓN MEJORADA
 def enviar_comprobante(email_vendedor, orden_id):
