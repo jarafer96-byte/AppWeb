@@ -240,13 +240,6 @@ def keep_alive():
             print(f"🫀 Health check ejecutado: {response.status_code}")
         except Exception as e:
             print(f"⚠️ Health check falló: {e}")
-
-# Solo en producción (Render)
-if os.getenv("RENDER"):
-    thread = threading.Thread(target=keep_alive)
-    thread.daemon = True
-    thread.start()
-    print("✅ Health check iniciado para Render")
     
 @app.route("/authorize")
 def authorize():
@@ -2257,6 +2250,13 @@ def cache(response):
         response.headers["Cache-Control"] = "public, max-age=31536000"
     return response
 
+# Solo en producción (Render)
+if os.getenv("RENDER"):
+    thread = threading.Thread(target=keep_alive)
+    thread.daemon = True
+    thread.start()
+    print("✅ Health check iniciado para Render")
+    
 if __name__ == '__main__':
     limpiar_imagenes_usuario()
     port = int(os.environ.get('PORT', 5000))
