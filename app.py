@@ -1126,7 +1126,7 @@ def pagar():
         
         # 6. Crear preferencia con back_urls dinámicos
         base_url = "https://mpagina.onrender.com"
-        destino = url_retorno or base_url  # 👈 usa la URL del usuario si viene
+        destino = (url_retorno or base_url).rstrip("/")
         
         preference_data = {
             "items": items_para_mp,
