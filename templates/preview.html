@@ -458,6 +458,10 @@ const configWhatsApp = "{{ config.whatsapp }}";
 const email = "{{ session.get('email') or '' }}";
 const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
 
+if (window.email) {
+    email = window.email;
+}
+    
   // Mostrar/ocultar botón volver arriba
   window.addEventListener('scroll', () => {
     const btn = document.getElementById('volverArriba');
@@ -733,11 +737,20 @@ function toggleModoAdmin(activo) {
   });
 }
     
-  function abrirConfigMercadoPago() {
+function abrirConfigMercadoPago() {
     console.log("⚙️ Redirigiendo a configuración de Mercado Pago...");
+    
+    // 👉 Obtener la URL actual del vendedor (SU página)
+    const urlRetorno = window.location.href;
+    
     // 👉 Usamos URL_BACKEND para que siempre apunte al backend correcto
-    window.location.href = `${URL_BACKEND}/conectar_mp?email=${email}`;
-  }
+    const configUrl = `${URL_BACKEND}/conectar_mp?email=${encodeURIComponent(email)}&url_retorno=${encodeURIComponent(urlRetorno)}`;
+    
+    console.log("🔗 Redirigiendo a:", configUrl);
+    console.log("📍 URL de retorno (página del vendedor):", urlRetorno);
+    
+    window.location.href = configUrl;
+}
     
 async function eliminarProducto(id_base) {
   console.log("[ELIMINAR_PRODUCTO] 🔔 Click en botón eliminar → id_base:", id_base);
@@ -2104,6 +2117,37 @@ document.addEventListener("DOMContentLoaded", () => {
   if (pagarBtn) {
     pagarBtn.addEventListener("click", pagarConMercadoPago);
   }
+
+  // 👉 VERIFICAR SI VENIMOS DE CONFIGURACIÓN EXITOSA DE MERCADO PAGO
+  // Esto debe ejecutarse después de todo lo anterior
+  setTimeout(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.get('mp_configurado') === 'true') {
+        const emailVendedor = urlParams.get('email');
+        console.log('✅ Mercado Pago configurado exitosamente para:', emailVendedor);
+        
+        // Mostrar mensaje de éxito
+        alert('✅ ¡Mercado Pago configurado exitosamente! Ahora puedes recibir pagos.');
+        
+        // Limpiar la URL (quitar parámetros)
+        const nuevaURL = window.location.pathname + '?email=' + encodeURIComponent(emailVendedor);
+        window.history.replaceState({}, document.title, nuevaURL);
+        
+        // Recargar para actualizar el estado (mostrar botón de pago, etc.)
+        setTimeout(() => {
+            location.reload();
+        }, 1500);
+    }
+    
+    if (urlParams.get('mp_error') === '1') {
+        alert('❌ Hubo un error al configurar Mercado Pago. Por favor, intenta nuevamente.');
+        
+        // Limpiar la URL
+        const nuevaURL = window.location.pathname;
+        window.history.replaceState({}, document.title, nuevaURL);
+    }
+  }, 100);
 });
 
 // 👉 Nueva función ordenarGrupo
