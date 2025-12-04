@@ -976,16 +976,30 @@ def webhook_mp():
     evento = request.get_json(force=True) or {}
     print(f"[WEBHOOK] 📥 Evento recibido")
     
-    # Extraer payment_id
+    # Extraer payment_id - MÚLTIPLES FORMATOS DE MERCADOPAGO
     payment_id = None
+    
+    # Formato 1: data.id (formato común)
     if "data" in evento and isinstance(evento["data"], dict):
         payment_id = evento["data"].get("id")
+    
+    # Formato 2: resource (URL)
+    elif "resource" in evento:
+        # Extraer ID de la URL (ej: "https://api.mercadopago.com/v1/payments/123456789")
+        resource = evento["resource"]
+        if "/payments/" in resource:
+            payment_id = resource.split("/payments/")[-1].split("?")[0]
+    
+    # Formato 3: id directo
     elif "id" in evento:
         payment_id = evento.get("id")
     
     if not payment_id:
         print("[WEBHOOK] ❌ No se encontró payment_id")
+        print(f"[WEBHOOK] Estructura recibida: {evento}")
         return jsonify({"ok": False}), 400
+    
+    print(f"[WEBHOOK] 🔎 Payment ID encontrado: {payment_id}")
     
     # Consultar detalle del pago
     access_token = os.getenv("MERCADO_PAGO_TOKEN")  # Token global de la plataforma
