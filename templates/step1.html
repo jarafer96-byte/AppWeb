@@ -40,6 +40,98 @@ h2 { color: white; }
 
 .fuente-opcion input[type="radio"] { margin-right: 6px; vertical-align: middle; }
 
+/* 🔥 RESPONSIVO PARA MÓVIL */
+@media (max-width: 768px) {
+  /* Paso 1 y Paso 2 en columna */
+  #form-crear-admin,
+  .container > div:has(#btn-repo) {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  /* Etiquetas "Paso X:" más compactas */
+  #form-crear-admin label,
+  .container > div:has(#btn-repo) label {
+    width: 100%;
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+
+  /* Inputs al 100% */
+  #usuario_admin,
+  #clave_admin,
+  #email {
+    width: 100% !important;
+    padding: 10px;
+    font-size: 16px; /* Para evitar zoom en iOS */
+  }
+
+  /* Botones más anchos */
+  .btn-gradient {
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+    margin-top: 8px;
+  }
+
+  /* Fuentes en columna */
+  .fuente-opcion {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 12px;
+    padding: 8px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+  }
+
+  /* Mensajes inline en nueva línea */
+  #msg-admin,
+  #msg-repo {
+    display: block;
+    margin-left: 0 !important;
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  /* Iconos más grandes para táctil */
+  .icono {
+    height: 24px;
+  }
+
+  /* Card padding reducido */
+  .card {
+    padding: 16px !important;
+  }
+
+  /* Ayuda de Facebook/Maps */
+  #infoFacebook,
+  #infoMapa {
+    padding: 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  /* Imágenes de ayuda responsivas */
+  #infoFacebook img,
+  #infoMapa img {
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* Para pantallas muy pequeñas (iPhone SE, etc) */
+@media (max-width: 360px) {
+  .container {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+}  
   </style>
 </head>
 <body>
