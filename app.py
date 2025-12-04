@@ -1962,7 +1962,8 @@ def conectar_mp():
     print("\n[MP-CONNECT] 🚀 Nueva petición de conexión a Mercado Pago")
 
     email = request.args.get("email")
-    print(f"[MP-CONNECT] Email recibido en query: {email}")
+    url_retorno = request.args.get("url_retorno")
+    print(f"[MP-CONNECT] Email recibido: {email}, url_retorno={url_retorno}")
 
     if not email:
         print("[MP-CONNECT] ❌ Falta email en la query")
@@ -1980,29 +1981,31 @@ def conectar_mp():
         print(f"[MP-CONNECT] 💥 Error validando usuario en Firestore: {e}")
         return "Error interno", 500
 
-    # ✅ Si pasa la validación, armar URL de autorización
     client_id = os.getenv("MP_CLIENT_ID")
     if not client_id:
         print("[MP-CONNECT] ❌ Falta configurar MP_CLIENT_ID en entorno")
         return "❌ Falta configurar MP_CLIENT_ID en entorno", 500
 
-    # Redirect URI fija (debe coincidir EXACTAMENTE con la registrada en el panel de Mercado Pago)
     redirect_uri = url_for("callback_mp", _external=True)
     print(f"[MP-CONNECT] Redirect URI generada: {redirect_uri}")
 
-    # Usar 'state' para transportar el email
+    # Usar 'state' para transportar email + url_retorno
+    import json, urllib.parse
+    state_data = {"email": email}
+    if url_retorno:
+        state_data["url_retorno"] = url_retorno
+    state_encoded = urllib.parse.quote(json.dumps(state_data))
+
     query = urlencode({
         "client_id": client_id,
         "response_type": "code",
         "redirect_uri": redirect_uri,
         "scope": "read write offline_access",
-        "state": email
+        "state": state_encoded
     })
     auth_url = f"https://auth.mercadopago.com/authorization?{query}"
 
     print(f"[MP-CONNECT] 🔗 URL de autorización construida: {auth_url}")
-    print("[MP-CONNECT] ✅ Redirigiendo al flujo OAuth de Mercado Pago...")
-
     return redirect(auth_url)
 
 @app.route('/callback_mp')
@@ -2011,20 +2014,30 @@ def callback_mp():
 
     # 🔑 Validar credenciales recibidas en query
     code = request.args.get('code')
-    email = request.args.get('state')  # ← ahora se recupera desde 'state'
+    state_raw = request.args.get('state')  # ahora puede traer JSON con email + url_retorno
 
-    print(f"[MP-CALLBACK] Parámetros recibidos → code={code}, state(email)={email}")
+    print(f"[MP-CALLBACK] Parámetros recibidos → code={code}, state={state_raw}")
 
-    if not email:
-        print("[MP-CALLBACK] ❌ Falta email en state")
-        return "Error: falta email (state)", 403
+    if not state_raw:
+        print("[MP-CALLBACK] ❌ Falta parámetro state")
+        return "Error: falta parámetro state", 403
     if not code:
         print("[MP-CALLBACK] ❌ No se recibió código de autorización")
         return "❌ No se recibió código de autorización", 400
 
+    # Decodificar el state
+    try:
+        state_data = json.loads(urllib.parse.unquote(state_raw))
+        email = state_data.get("email")
+        url_retorno = state_data.get("url_retorno")
+    except Exception:
+        # fallback: si state era solo el email
+        email = state_raw.strip()
+        url_retorno = None
+
     client_id = os.getenv("MP_CLIENT_ID")
     client_secret = os.getenv("MP_CLIENT_SECRET")
-    redirect_uri = url_for('callback_mp', _external=True)  # ← redirect URI fija
+    redirect_uri = url_for('callback_mp', _external=True)  # redirect URI fija
 
     print(f"[MP-CALLBACK] Usando redirect_uri: {redirect_uri}")
 
@@ -2051,7 +2064,7 @@ def callback_mp():
             print("[MP-CALLBACK] ❌ No se obtuvo access_token")
             return "❌ Error al obtener token de Mercado Pago", 400
 
-        # ✅ Obtener la public_key
+        # ✅ Obtener la public_key (igual que antes)
         public_key = data.get("public_key")
         if not public_key:
             try:
@@ -2060,7 +2073,6 @@ def callback_mp():
                     headers={"Authorization": f"Bearer {access_token}"},
                     timeout=10
                 )
-                print(f"[MP-CALLBACK] Status account/credentials={cred_resp.status_code}")
                 if cred_resp.status_code == 200:
                     cred_data = cred_resp.json() or {}
                     public_key = cred_data.get("public_key") or cred_data.get("web", {}).get("public_key")
@@ -2070,7 +2082,6 @@ def callback_mp():
                         headers={"Authorization": f"Bearer {access_token}"},
                         timeout=10
                     )
-                    print(f"[MP-CALLBACK] Status users/me={user_resp.status_code}")
                     if user_resp.status_code == 200:
                         user_data = user_resp.json() or {}
                         public_key = user_data.get("public_key")
@@ -2098,8 +2109,13 @@ def callback_mp():
         )
         print(f"[MP-CALLBACK] ✅ Credenciales guardadas en Firestore para {email}")
 
-        # 🔄 Redirigir al preview solo con email
-        return redirect(url_for('preview', email=email))
+        # 🔄 Redirigir al dominio del usuario si vino en state
+        if url_retorno:
+            destino = url_retorno.rstrip("/")
+            return redirect(f"{destino}?mp_configurado=true&email={email}")
+        else:
+            # fallback: preview interno
+            return redirect(url_for('preview', email=email))
 
     except Exception as e:
         print("[MP-CALLBACK] 💥 Error general en callback_mp:", e)
