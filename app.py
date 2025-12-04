@@ -1962,7 +1962,7 @@ def conectar_mp():
     print("\n[MP-CONNECT] 🚀 Nueva petición de conexión a Mercado Pago")
 
     email = request.args.get("email")
-    url_retorno = request.args.get("url_retorno")
+    url_retorno = request.args.get("url_retorno")  # URL de la página del vendedor
     print(f"[MP-CONNECT] Email recibido: {email}, url_retorno={url_retorno}")
 
     if not email:
@@ -1990,12 +1990,15 @@ def conectar_mp():
     print(f"[MP-CONNECT] Redirect URI generada: {redirect_uri}")
 
     # Usar 'state' para transportar email + url_retorno
-    import json, urllib.parse
-    state_data = {"email": email}
-    if url_retorno:
-        state_data["url_retorno"] = url_retorno
-    state_encoded = urllib.parse.quote(json.dumps(state_data))
-
+    import json
+    state_data = {
+        "email": email,
+        "url_retorno": url_retorno or f"https://mpagina.onrender.com/preview?email={email}"
+    }
+    
+    # Codificar el estado como JSON en URL
+    state_encoded = quote(json.dumps(state_data))
+    
     query = urlencode({
         "client_id": client_id,
         "response_type": "code",
@@ -2014,7 +2017,7 @@ def callback_mp():
 
     # 🔑 Validar credenciales recibidas en query
     code = request.args.get('code')
-    state_raw = request.args.get('state')  # ahora puede traer JSON con email + url_retorno
+    state_raw = request.args.get('state')
 
     print(f"[MP-CALLBACK] Parámetros recibidos → code={code}, state={state_raw}")
 
@@ -2027,19 +2030,25 @@ def callback_mp():
 
     # Decodificar el state
     try:
-        state_data = json.loads(urllib.parse.unquote(state_raw))
+        state_data = json.loads(unquote(state_raw))
         email = state_data.get("email")
         url_retorno = state_data.get("url_retorno")
-    except Exception:
+    except Exception as e:
+        print(f"[MP-CALLBACK] ❌ Error decodificando state: {e}")
         # fallback: si state era solo el email
         email = state_raw.strip()
         url_retorno = None
 
+    if not email:
+        print("[MP-CALLBACK] ❌ No se pudo obtener email del state")
+        return "❌ Error: email no encontrado en state", 400
+
     client_id = os.getenv("MP_CLIENT_ID")
     client_secret = os.getenv("MP_CLIENT_SECRET")
-    redirect_uri = url_for('callback_mp', _external=True)  # redirect URI fija
+    redirect_uri = url_for('callback_mp', _external=True)
 
-    print(f"[MP-CALLBACK] Usando redirect_uri: {redirect_uri}")
+    print(f"[MP-CALLBACK] Procesando para email: {email}")
+    print(f"[MP-CALLBACK] URL de retorno recibida: {url_retorno}")
 
     token_url = "https://api.mercadopago.com/oauth/token"
     payload = {
@@ -2051,11 +2060,11 @@ def callback_mp():
     }
 
     try:
-        print(f"[MP-CALLBACK] 📡 Enviando payload a {token_url}: {payload}")
+        print(f"[MP-CALLBACK] 📡 Enviando payload a {token_url}")
         response = requests.post(token_url, data=payload, timeout=10)
         response.raise_for_status()
         data = response.json()
-        print(f"[MP-CALLBACK] ✅ Respuesta token: {data}")
+        print(f"[MP-CALLBACK] ✅ Token obtenido exitosamente")
 
         access_token = data.get("access_token")
         refresh_token = data.get("refresh_token")
@@ -2064,7 +2073,7 @@ def callback_mp():
             print("[MP-CALLBACK] ❌ No se obtuvo access_token")
             return "❌ Error al obtener token de Mercado Pago", 400
 
-        # ✅ Obtener la public_key (igual que antes)
+        # ✅ Obtener la public_key
         public_key = data.get("public_key")
         if not public_key:
             try:
@@ -2090,7 +2099,7 @@ def callback_mp():
 
         if public_key and isinstance(public_key, str):
             public_key = public_key.strip()
-            print(f"[MP-CALLBACK] ✅ Public key obtenida: {public_key}")
+            print(f"[MP-CALLBACK] ✅ Public key obtenida: {public_key[:30]}...")
 
         # ✅ Guardar credenciales en Firestore
         doc_data = {
@@ -2111,16 +2120,32 @@ def callback_mp():
 
         # 🔄 Redirigir al dominio del usuario si vino en state
         if url_retorno:
+            # Asegurar que la URL tenga el parámetro de configuración exitosa
             destino = url_retorno.rstrip("/")
-            return redirect(f"{destino}?mp_configurado=true&email={email}")
+            if "?" in destino:
+                redirect_url = f"{destino}&mp_configurado=true&email={email}"
+            else:
+                redirect_url = f"{destino}?mp_configurado=true&email={email}"
+            
+            print(f"[MP-CALLBACK] ➡️ Redirigiendo a la página del usuario: {redirect_url}")
+            return redirect(redirect_url)
         else:
             # fallback: preview interno
-            return redirect(url_for('preview', email=email))
+            preview_url = f"https://mpagina.onrender.com/preview?email={email}&mp_configurado=true"
+            print(f"[MP-CALLBACK] ➡️ Redirigiendo a preview interno: {preview_url}")
+            return redirect(preview_url)
 
     except Exception as e:
         print("[MP-CALLBACK] 💥 Error general en callback_mp:", e)
-        import traceback; print(traceback.format_exc())
-        return "Error al conectar con Mercado Pago", 500
+        import traceback
+        traceback.print_exc()
+        
+        # Intentar redirigir de todos modos con mensaje de error
+        if url_retorno:
+            error_url = f"{url_retorno}?mp_error=1&email={email}"
+            return redirect(error_url)
+        else:
+            return "Error al conectar con Mercado Pago", 500
         
 @app.route("/api/mp_public_key")
 def api_mp_public_key():
