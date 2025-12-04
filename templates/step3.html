@@ -994,18 +994,24 @@ function eliminarFila(btn) {
       }
     });
 
-    // Quitar de la lista global y actualizar localStorage
-    imagenesUsadas = imagenesUsadas.filter(n => n !== basename);
-    localStorage.setItem("imagenesUsadas", JSON.stringify(imagenesUsadas));
+    // 🔧 CORRECCIÓN: Actualizar la variable GLOBAL `imagenesUsadas`
+    // Primero obtener el array actual
+    let usadasActuales = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
+    
+    // Filtrar para quitar la imagen eliminada
+    usadasActuales = usadasActuales.filter(n => n !== basename);
+    
+    // 🔧 Actualizar tanto localStorage como la variable global
+    localStorage.setItem("imagenesUsadas", JSON.stringify(usadasActuales));
+    imagenesUsadas = usadasActuales; // Esto sincroniza la variable global
 
-    // Refrescar carrusel
-    marcarImagenesUsadas();
+    console.log(`🔄 [Step3] imagenesUsadas actualizado (quitado ${basename}):`, imagenesUsadas);
   }
 
   // Eliminar fila si hay más de una
   if (contenedor.querySelectorAll('.fila-producto').length > 1) {
     fila.remove();
-    actualizarContador(contenedor); // usa la versión unificada
+    actualizarContador(contenedor);
     console.log("✅ [Step3] Fila eliminada");
   } else {
     alert("No se puede eliminar la última fila");
