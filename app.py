@@ -1431,16 +1431,24 @@ def guardar_producto():
         # 3) Guardar usando función robusta
         print("[GUARDAR_PRODUCTO] → Llamando a subir_a_firestore()")
         resultado = subir_a_firestore(producto, email)
-        print(f"[PAGAR] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
+
+        # 4) Respuesta normalizada
+        response_data = {
+            "status": "ok",
+            "email": email,
+            "producto_id": producto.get("id_base"),
+            "resultado": resultado
+        }
+        print(f"[GUARDAR_PRODUCTO] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
         return jsonify(response_data)
 
     except Exception as e:   # 👈 alineado con el try
-        print(f"[PAGAR] ❌ Error interno: {e}")
+        print(f"[GUARDAR_PRODUCTO] ❌ Error interno: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
-            'error': 'Error interno al generar el pago',
-            'message': str(e),
+            'status': 'error',
+            'error': str(e),
             'detalle': 'Revisa los logs del servidor'
         }), 500
 
