@@ -54,6 +54,12 @@ body {
     background-position: center;
   }
 }
+/* 📱 Solo en pantallas chicas (ej: móviles) */
+@media (max-width: 768px) {
+  .barra-navegacion {
+    border: 1px solid #000000f5; /* borde solo en móvil */
+  }
+}  
 h1, h2, h3, .btn, .card { font-family: {{ config.fuente | safe }}; }
 
 body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: -1; }
