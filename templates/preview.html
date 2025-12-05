@@ -723,7 +723,7 @@ async function pagarTodoJunto() {
     });
     
     const payload = {
-        email_vendedor: window.email || "ferj.9622@gmail.com",
+        email_vendedor: email
         carrito: itemsCarrito,  // Enviar carrito completo con precios convertidos
         items_mp: itemsMP,      // Enviar también items formateados para MP
         total: totalCalculado,
