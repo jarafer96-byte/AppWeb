@@ -119,6 +119,19 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
 
   .talles-section { margin-bottom: 20px; }
 }
+@media (max-width: 576px) {
+  input[name="talles"] {
+    width: 100% !important; /* ocupa todo el ancho en móvil */
+  }
+}
+.campo-nombre { width: 100%; } /* por defecto ocupa todo el ancho del col-3 */
+
+@media (max-width: 576px) {
+  .campo-nombre {
+    width: 100% !important; /* en móvil se expande y no queda fijo */
+  }
+}
+  
 </style>
 </head>
 <body>
@@ -956,7 +969,11 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
       <div class="d-flex align-items-center justify-content-end gap-2">
         <div class="preview-imagen" style="width:80px;height:60px;"></div>
         <button type="button" class="btn btn-sm btn-gradient px-2 py-1" onclick="abrirCarrusel(this)">Elegir imagen</button>
-        <button type="button" class="btn btn-sm btn-danger px-2 py-1" onclick="eliminarFila(this)">✕</button>
+        <button type="button" 
+                class="btn btn-sm btn-danger px-2 py-1 d-flex align-items-center gap-1" 
+                onclick="eliminarFila(this)">
+          <span>✕</span> Eliminar fila
+        </button>
       </div>
       <input type="hidden" name="grupo" value="${nombreGrupo}">
       <input type="hidden" name="subgrupo" value="${nombreSubgrupo}">
