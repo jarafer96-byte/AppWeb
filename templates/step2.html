@@ -6,212 +6,194 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
-    body {
-      background-color: #000;
-      font-family: sans-serif;
-      color: white;
-      margin: 0;
-      padding: 0;
-    }
+  body {
+    background-color: #000;
+    font-family: sans-serif;
+    color: white;
+    margin: 0;
+    padding: 0;
+  }
 
+  h2 {
+    color: white;
+    text-align: center;
+    margin: 20px 0 15px 0;
+  }
+
+  .grupo-selector {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 10px;
+    background-color: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    margin: 0 auto 20px auto;
+    max-width: 900px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .grupo-selector button {
+    margin: 5px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 50px;
+    background-color: #333;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    min-width: 90px;
+  }
+
+  .grupo-selector button:hover,
+  .grupo-selector button.active {
+    background-color: #8e2de2;
+    transform: scale(1.05);
+  }
+
+  .preview-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+  }
+
+  .preview-img:hover {
+    transform: scale(1.05);
+  }
+
+  .preview-img.seleccionado {
+    outline: 3px solid limegreen;
+    outline-offset: 2px;
+    border-color: limegreen;
+    box-shadow: 0 0 15px rgba(50, 205, 50, 0.5);
+  }
+
+  .continuar-btn {
+    margin-top: 40px;
+    text-align: center;
+  }
+
+  .btn-gradient {
+    background: linear-gradient(135deg, #8e2de2, #ff6f61);
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 50px;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(255,255,255,0.3);
+    transition: all 0.2s ease;
+    display: inline-block;
+    font-size: 1em;
+    width: auto; /* en PC tamaño normal */
+    max-width: none;
+  }
+
+  .btn-gradient:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255,255,255,0.5);
+  }
+
+  /* Grid adaptable */
+  .imagenes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    padding: 0 10px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Responsivo móvil */
+  @media (max-width: 768px) {
     h2 {
-      color: white;
-      text-align: center;
-      margin: 20px 0 15px 0;
+      font-size: 1.3rem;
+      margin: 15px 0 10px 0;
     }
 
     .grupo-selector {
-      overflow-x: auto;
-      white-space: nowrap;
-      padding: 10px;
-      background-color: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      margin: 0 auto 20px auto;
-      max-width: 900px;
-      -webkit-overflow-scrolling: touch;
+      padding: 8px 6px;
+      margin: 0 8px 15px 8px;
+      border-radius: 10px;
     }
 
     .grupo-selector button {
-      margin: 5px;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 50px;
-      background-color: #333;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.2s ease;
-      min-width: 90px;
+      padding: 8px 14px;
+      font-size: 0.85em;
+      min-width: 75px;
+      margin: 3px;
     }
 
-    .grupo-selector button:hover,
-    .grupo-selector button.active {
-      background-color: #8e2de2;
-      transform: scale(1.05);
+    .imagenes-grid {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+      padding: 0 8px;
     }
 
     .preview-img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: 2px solid transparent;
-    }
-
-    .preview-img:hover {
-      transform: scale(1.05);
-    }
-
-    .preview-img.seleccionado {
-      outline: 3px solid limegreen;
-      outline-offset: 2px;
-      border-color: limegreen;
-      box-shadow: 0 0 15px rgba(50, 205, 50, 0.5);
-    }
-
-    .continuar-btn {
-      margin-top: 40px;
-      text-align: center;
+      height: 160px;
     }
 
     .btn-gradient {
-      background: linear-gradient(135deg, #8e2de2, #ff6f61);
-      color: white;
-      border: none;
-      padding: 12px 28px;
-      border-radius: 50px;
-      font-weight: bold;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3);
-      transition: all 0.2s ease;
-      display: inline-block;
+      width: 100%;
+      max-width: 300px;
+      padding: 14px 28px;
       font-size: 1em;
-      /* En PC se mantiene tamaño normal */
-      width: auto;
-      max-width: none;
     }
 
-    .btn-gradient:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    .continuar-btn {
+      margin-top: 30px;
+      padding: 0 15px;
     }
 
-    /* 🔥 NUEVO: Grid adaptable en lugar de columnas fijas */
+    .preview-img:active { transform: scale(0.98); }
+    .grupo-selector button:active { transform: scale(0.95); }
+  }
+
+  /* Pantallas muy pequeñas */
+  @media (max-width: 360px) {
     .imagenes-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 10px;
-      padding: 0 10px;
-      max-width: 1200px;
-      margin: 0 auto;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 6px;
+      padding: 0 6px;
     }
 
-    /* 🔥 RESPONSIVO PARA MÓVIL */
-    @media (max-width: 768px) {
-      h2 {
-        font-size: 1.3rem;
-        margin: 15px 0 10px 0;
-      }
+    .preview-img { height: 140px; }
 
-      .grupo-selector {
-        padding: 8px 6px;
-        margin: 0 8px 15px 8px;
-        border-radius: 10px;
-      }
-
-      .grupo-selector button {
-        padding: 8px 14px;
-        font-size: 0.85em;
-        min-width: 75px;
-        margin: 3px;
-      }
-
-      /* Grid más compacto en móvil */
-      .imagenes-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 8px;
-        padding: 0 8px;
-      }
-
-      .preview-img {
-        height: 160px; /* Más alto para aprovechar espacio */
-      }
-
-      /* 🔥 Botón al 100% solo en móvil */
-      .btn-gradient {
-        width: 100%;
-        max-width: 300px;
-        padding: 14px 28px;
-        font-size: 1em;
-      }
-
-      .continuar-btn {
-        margin-top: 30px;
-        padding: 0 15px;
-      }
-
-      /* Feedback táctil */
-      .preview-img:active {
-        transform: scale(0.98);
-      }
-
-      .grupo-selector button:active {
-        transform: scale(0.95);
-      }
+    .grupo-selector button {
+      padding: 7px 10px;
+      font-size: 0.8em;
+      min-width: 65px;
     }
+  }
 
-    /* Para pantallas muy pequeñas (iPhone SE) */
-    @media (max-width: 360px) {
-      .imagenes-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 6px;
-        padding: 0 6px;
-      }
-
-      .preview-img {
-        height: 140px;
-      }
-
-      .grupo-selector button {
-        padding: 7px 10px;
-        font-size: 0.8em;
-        min-width: 65px;
-      }
+  /* Tablets */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .imagenes-grid {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
     }
+    .preview-img { height: 170px; }
+  }
 
-    /* Para tablets - más columnas */
-    @media (min-width: 769px) and (max-width: 1024px) {
-      .imagenes-grid {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 12px;
-      }
-      
-      .preview-img {
-        height: 170px;
-      }
+  /* Escritorio */
+  @media (min-width: 1025px) {
+    .imagenes-grid {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
+      padding: 0 15px;
     }
+    .preview-img { height: 200px; }
+  }
 
-    /* Para escritorio - máximo aprovechamiento */
-    @media (min-width: 1025px) {
-      .imagenes-grid {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 15px;
-        padding: 0 15px;
-      }
-      
-      .preview-img {
-        height: 200px; /* Más alto en desktop */
-      }
-    }
-
-    /* Eliminar el contenedor Bootstrap que limita el ancho */
-    .container-fluid {
-      padding-left: 0;
-      padding-right: 0;
-      max-width: 100%;
-    }
-  </style>
+  .container-fluid {
+    padding-left: 0;
+    padding-right: 0;
+    max-width: 100%;
+  }
+</style>
 </head>
 <body>
 
