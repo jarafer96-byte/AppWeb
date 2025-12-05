@@ -266,7 +266,63 @@ html { scroll-behavior: auto; }
   height: 180px;
   object-fit: contain; /* o cover según prefieras */
 }
+/* Imagen dentro de la card */
+#previewFoto {
+  width: 300px;
+  height: 180px;
+  object-fit: contain; /* o cover según prefieras */
+  cursor: pointer;     /* indica que se puede hacer click */
+  transition: transform 0.3s ease;
+}
+#previewFoto:hover {
+  transform: scale(1.05); /* pequeño zoom al pasar el mouse */
+}
 
+/* Modal */
+#imgModal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: none; /* oculto por defecto */
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+#imgModal.show {
+  display: flex;
+  opacity: 1;
+}
+
+/* Imagen dentro del modal */
+#imgModal img {
+  max-width: 95%;
+  max-height: 95%;
+  border-radius: 8px;
+  transform: scale(0.8);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+}
+#imgModal.show img {
+  transform: scale(1.5); /* zoom suave */
+  opacity: 1;
+}
+
+/* Botón de cierre */
+#imgModal .close {
+  position: absolute;
+  top: 20px; right: 30px;
+  font-size: 40px;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+#imgModal .close:hover {
+  opacity: 0.7;
+}
+  
 </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
@@ -451,7 +507,12 @@ html { scroll-behavior: auto; }
      style="display: none; position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 9999;">
   ✔ Talle actualizado
 </div>
-
+  
+<div id="imgModal" style="display:none;" onclick="closeModal()">
+  <span class="close">&times;</span>
+  <img id="modal-img" style="max-width:90%; max-height:90%;">
+</div>
+  
   <script>
 const configWhatsApp = "{{ config.whatsapp }}";
 // Opción B: leerlo de la URL si lo pasás como query param
@@ -484,7 +545,19 @@ const modoAdmin = window.tokenAdminEmail ? true : false;
 if (modoAdmin) {
   document.getElementById("adminCard").classList.remove("d-none");
 }   
+    
+function openModal(src) {
+  const modal = document.getElementById("imgModal");
+  document.getElementById("modal-img").src = src;
+  modal.style.display = "flex";
+  setTimeout(() => modal.classList.add("show"), 10); // activa animación
+}
 
+function closeModal() {
+  const modal = document.getElementById("imgModal");
+  modal.classList.remove("show");
+  setTimeout(() => modal.style.display = "none", 300); // espera animación
+}
 // ========== FUNCIONES NUEVAS PARA EL CARRITO ==========
 
 // 1. Mostrar formulario de datos del cliente (NUEVA)
@@ -1794,7 +1867,8 @@ function renderProducto(p) {
     <div class="card p-3 h-100">
       <img src="${p.imagen_url || '/static/img/fallback.webp'}"
            alt="${p.nombre}" loading="lazy"
-           style="width:300px;height:180px;object-fit:contain;border-radius:4px;">
+           style="width:300px;height:180px;object-fit:contain;border-radius:4px;cursor:pointer;"
+           onclick="openModal('${p.imagen_url || '/static/img/fallback.webp'}')">
       <div class="card-body">
         <h5 class="card-title">${p.nombre}</h5>
         <p class="card-text">${p.descripcion || ""}</p>
