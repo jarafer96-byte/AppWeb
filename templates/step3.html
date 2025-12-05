@@ -5,72 +5,104 @@
   <title>Contenido del sitio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-
+<style>
 body { background-color: #000; font-family: sans-serif; color: white; }
-
 h2 { color: white; }
+
+@media (max-width: 576px) {
+  /* móviles chicos */
+  .navbar { flex-direction: column; }
+  .form-group { width: 100%; }
+  .container { padding: 1rem !important; }
+  #modalCarrusel .modal-body { padding: 0 10px !important; }
+  #spinner p { font-size: 14px; }
+}
 
 textarea { resize: none; }
 
-.form-control { background-color: rgba(255,255,255,0.05); color: white; border: none; border-radius: 8px; }
-
+.form-control {
+  background-color: rgba(255,255,255,0.05);
+  color: white;
+  border: none;
+  border-radius: 8px;
+}
 .form-control::placeholder { color: #aaa; }
 
-.card { background-color: rgba(255,255,255,0.05); color: white; border: none; border-radius: 12px; }
-
+.card {
+  background-color: rgba(255,255,255,0.05);
+  color: white;
+  border: none;
+  border-radius: 12px;
+}
 .card .row { margin-bottom: 4px; }
-
 .card .form-control, .card textarea { padding: 4px 8px; font-size: 0.85em; }
 
-.btn-gradient { background: linear-gradient(135deg, #8e2de2, #ff6f61); color: white; border: none; padding: 6px 14px; border-radius: 50px; font-weight: bold; box-shadow: 0 0 10px rgba(255,255,255,0.3); transition: transform 0.2s ease, box-shadow 0.2s ease; }
-
+.btn-gradient {
+  background: linear-gradient(135deg, #8e2de2, #ff6f61);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(255,255,255,0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
 .btn-gradient:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255,255,255,0.5); }
 
-label.btn-imagen { display: block; width: 100%; background-color: rgba(255,255,255,0.05); color: white; border: 1px dashed #888; border-radius: 8px; padding: 4px 8px; text-align: center; font-size: 0.75em; font-weight: bold; cursor: pointer; transition: background-color 0.3s ease, border-color 0.3s ease; }
-
+label.btn-imagen {
+  display: block;
+  width: 100%;
+  background-color: rgba(255,255,255,0.05);
+  color: white;
+  border: 1px dashed #888;
+  border-radius: 8px;
+  padding: 4px 8px;
+  text-align: center;
+  font-size: 0.75em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
 label.btn-imagen:hover { background-color: rgba(255,255,255,0.15); border-color: #ccc; }
-
 label.btn-imagen.cargado { background-color: rgba(40,167,69,0.2); border-color: #28a745; color: #28a745; }
-
 label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 4px; }
 
 #carouselGlobal { position: relative; z-index: 1; }
-
 #carouselGlobal .row { margin: 0; }
-
 #carouselGlobal .col { padding: 4px; }
-
 #carouselGlobal img { max-height: 100px; object-fit: contain; cursor: pointer; }
 
 .carousel-control-prev { left: -40px; width: 40px; height: 100px; top: 50%; transform: translateY(-50%); z-index: 10; }
-
 .carousel-control-next { right: -40px; width: 40px; height: 100px; top: 50%; transform: translateY(-50%); z-index: 10; }
-
 .carousel-control-prev-icon, .carousel-control-next-icon { background-size: 80% 80%; filter: drop-shadow(0 0 2px #000); }
 
 .imagen-carrusel { max-height: 100px; object-fit: contain; cursor: pointer; transition: box-shadow 0.2s ease, border 0.2s ease; }
-
 .imagen-carrusel.usada { opacity: 0.25; filter: grayscale(100%) brightness(0.6); pointer-events: none; }
 
 .col.invisible { visibility: hidden; }
 
-.thumb-wrapper { width: 120px; height: 100px; display: flex; align-items: center; justify-content: center; background-color: rgba(255,255,255,0.05); border-radius: 6px; }
-
+.thumb-wrapper {
+  width: 120px; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+  background-color: rgba(255,255,255,0.05);
+  border-radius: 6px;
+}
 .thumb-wrapper img { max-width: 100%; max-height: 100%; object-fit: contain; }
-
 .thumb-wrapper.seleccionada { border: 2px solid #ff6f61; box-shadow: 0 0 5px #ff6f61; }
 
 .mensaje-final { margin-top: 30px; font-style: italic; text-align: center; color: #ccc; }
-
 .mensaje-final span { display: block; margin-top: 10px; color: #ffcc00; font-weight: bold; }
 
-.loader { border: 8px solid rgba(255,255,255,0.1); border-top: 8px solid #ff6f61; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
-
+.loader {
+  border: 8px solid rgba(255,255,255,0.1);
+  border-top: 8px solid #ff6f61;
+  border-radius: 50%;
+  width: 60px; height: 60px;
+  animation: spin 1s linear infinite;
+}
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .precio-chico { width: 10px; }
-    
 </style>
 </head>
 <body>
@@ -81,17 +113,17 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
   <div class="text-center mb-4">
     <input type="file" id="archivoProductos" 
            accept=".csv,.txt,.xls,.xlsx" 
-           class="form-control w-50 mx-auto mb-2">
-    <button type="button" class="btn-gradient btn-sm" onclick="leerArchivoProductos()">
-      📂 Importar lista de productos (CSV, TXT y .xls/.xlsx)
+           class="form-control w-100 w-md-50 mx-auto mb-2">
+    <button type="button" class="btn-gradient btn-lg w-100 w-md-auto mb-2" onclick="leerArchivoProductos()">
+      📂 Importar lista de productos
     </button>
   </div>
 
   <!-- Crear grupo -->
   <div class="mb-4 text-center">
-    <input type="text" id="nombreGrupo" class="form-control w-50 mx-auto mb-2" 
+    <input type="text" id="nombreGrupo" class="form-control w-100 w-md-50 mx-auto mb-2" 
            placeholder="Nombre del grupo (ej: Ropa Mujer)">
-    <button type="button" class="btn-gradient btn-sm" onclick="crearGrupo()">Crear grupo</button>
+    <button type="button" class="btn-gradient btn-lg w-100 w-md-auto mb-2" onclick="crearGrupo()">Crear grupo</button>
   </div>
 
 <form id="formulario" method="POST" action="/contenido" enctype="multipart/form-data"
@@ -99,8 +131,7 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
   <div id="grupos"></div>
 
   <div class="text-center mt-4">
-    <!-- ✅ ahora el botón tiene id="btnContinuar" -->
-    <button id="btnContinuar" type="submit" class="btn-gradient px-5 py-2">Continuar</button>
+    <button id="btnContinuar" type="submit" class="btn-gradient btn-lg w-100 w-md-auto">Continuar</button>
   </div>
 </form>
   
@@ -128,7 +159,7 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div style="padding: 0 40px;">
+        <div class="px-2 px-md-5">
           <div id="carouselGlobal" class="carousel slide" data-bs-ride="carousel">
             <div class="carousel-inner">
               <!-- thumbnails se insertan dinámicamente -->
@@ -143,7 +174,7 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
         </div>
       </div>
       <div class="modal-footer d-flex justify-content-between">
-        <button type="button" class="btn btn-gradient" onclick="confirmarImagen()">Usar esta imagen</button>
+        <button type="button" class="btn btn-gradient w-100 w-md-auto" onclick="confirmarImagen()">Usar esta imagen</button>
       </div>
     </div>
   </div>
