@@ -35,7 +35,25 @@ body {
   {% endif %}
   background-size: cover; background-repeat: no-repeat; background-attachment: fixed; background-position: center; padding-top: 70px;
 }
-
+/* 📱 Para móviles */
+@media (max-width: 768px) {
+  body {
+    background-image: url("/static/img/fondo-movil.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: center;
+  }
+}
+/* 📱 En pantallas chicas (celulares) */
+@media (max-width: 768px) {
+  body {
+    background-size: cover; /* ocupa toda la pantalla */
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: center;
+  }
+}
 h1, h2, h3, .btn, .card { font-family: {{ config.fuente | safe }}; }
 
 body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: -1; }
