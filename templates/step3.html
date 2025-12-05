@@ -9,15 +9,6 @@
 body { background-color: #000; font-family: sans-serif; color: white; }
 h2 { color: white; }
 
-@media (max-width: 576px) {
-  /* móviles chicos */
-  .navbar { flex-direction: column; }
-  .form-group { width: 100%; }
-  .container { padding: 1rem !important; }
-  #modalCarrusel .modal-body { padding: 0 10px !important; }
-  #spinner p { font-size: 14px; }
-}
-
 textarea { resize: none; }
 
 .form-control {
@@ -25,6 +16,7 @@ textarea { resize: none; }
   color: white;
   border: none;
   border-radius: 8px;
+  margin-bottom: 12px; /* más aire entre campos */
 }
 .form-control::placeholder { color: #aaa; }
 
@@ -103,6 +95,30 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .precio-chico { width: 10px; }
+
+/* 🔥 Ajustes móviles */
+@media (max-width: 576px) {
+  .navbar { flex-direction: column; }
+  .form-group { width: 100%; }
+  .container { padding: 1rem !important; }
+  #modalCarrusel .modal-body { padding: 0 10px !important; }
+  #spinner p { font-size: 14px; }
+
+  body { font-size: 0.95rem; }
+
+  .form-control {
+    font-size: 1rem;   /* inputs más grandes */
+    padding: 12px;     /* más aire */
+  }
+
+  .modal-footer .btn-gradient {
+    width: auto;       /* no ocupa todo */
+    max-width: 80%;    /* centrado y más chico */
+    margin: 0 auto;
+  }
+
+  .talles-section { margin-bottom: 20px; }
+}
 </style>
 </head>
 <body>
