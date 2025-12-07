@@ -654,32 +654,52 @@ if (modoAdmin) {
 // 👇 NUEVAS FUNCIONES PARA EDITAR STOCK (SOLO MODO ADMIN)
 
 function editarStock(id) {
+  console.log("🔍 [editarStock] Llamado con id:", id);
+  
   const span = document.getElementById("stock_" + id);
-  if (!span) return;
+  if (!span) {
+    console.error("❌ No se encontró el span stock_" + id);
+    return;
+  }
 
-  const valorActual = span.textContent === "Sin stock" ? "0" : span.textContent.trim();
+  let valorActual = span.textContent.trim();
+  
+  // Convertir "Sin stock" a 0
+  if (valorActual === "Sin stock" || valorActual === "sin stock") {
+    valorActual = "0";
+  }
+  
+  console.log("📝 Valor actual de stock:", valorActual);
 
   const input = document.createElement("input");
   input.type = "number";
   input.min = "0";
   input.value = valorActual;
+  input.defaultValue = valorActual; // Guardar valor original
   input.className = "form-control form-control-sm d-inline-block";
   input.style.width = "80px";
   input.id = "input_stock_" + id;
 
   input.onblur = () => guardarStock(id);
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") input.blur();
+    if (e.key === "Enter") {
+      input.blur();
+    }
   });
 
+  // Guardar referencia al span original para poder revertir
+  input.dataset.originalValue = valorActual;
+  
   span.replaceWith(input);
   input.focus();
+  input.select();
 }
 
 function guardarStock(id) {
   const input = document.getElementById("input_stock_" + id);
   if (!input) {
     console.warn("❌ No se encontró el input de stock:", "input_stock_" + id);
+    alert("❌ Error interno: No se encontró el campo de stock");
     return;
   }
 
@@ -687,27 +707,43 @@ function guardarStock(id) {
   
   if (nuevoStock < 0) {
     alert("❌ El stock no puede ser negativo");
+    input.value = "0";
     return;
   }
 
-  console.log("📡 Actualizando stock:", { id, stock: nuevoStock, email: window.email });
+  // DEBUG: Ver qué estamos enviando
+  console.log("📡 [guardarStock] Enviando a backend:", { 
+    id: id, 
+    stock: nuevoStock, 
+    email: email,  // ← USAMOS LA CONSTANTE LOCAL
+    emailDefinido: !!email  // ← USAMOS LA CONSTANTE LOCAL
+  });
 
-  // Usamos el endpoint EXISTENTE que actualiza cualquier campo
+  if (!email || email === "") {
+    alert("❌ Error: No se detectó el email del vendedor. Recarga la página.");
+    console.error("💥 email está vacío:", email);
+    return;
+  }
+
+  // ✅ ENVIAR CORRECTAMENTE - stock va en "campos"
   fetch("https://mpagina.onrender.com/actualizar-firestore", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ 
-      id: id, 
-      stock: nuevoStock, 
-      email: window.email  // Variable global del email del vendedor
+      id: id,            // id_base del producto
+      stock: nuevoStock, // Esto va en "campos" automáticamente
+      email: email  // ← USAMOS LA CONSTANTE LOCAL
     })
   })
   .then(res => {
-    console.log("📡 Respuesta recibida, status:", res.status);
+    console.log("📡 Respuesta HTTP recibida, status:", res.status);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
     return res.json();
   })
   .then(data => {
-    console.log("📩 Respuesta backend:", data);
+    console.log("📩 Respuesta backend actualizar-firestore:", data);
 
     if (data.status === "ok") {
       // 1. Actualizar texto en DOM
@@ -717,11 +753,11 @@ function guardarStock(id) {
       span.className = nuevoStock > 0 ? "text-success" : "text-danger";
       input.replaceWith(span);
       setTimeout(() => {
-        span.classList.remove("text-success");
-        span.classList.remove("text-danger");
+        span.classList.remove("text-success", "text-danger");
+        span.className = nuevoStock > 0 ? "" : "text-danger";
       }, 1000);
       
-      // 2. Actualizar el atributo max del input de cantidad
+      // 2. Actualizar el input de cantidad
       const cantidadInput = document.getElementById("cantidad_" + id);
       const agregarBtn = cantidadInput?.closest(".d-flex")?.querySelector("button");
       
@@ -729,29 +765,47 @@ function guardarStock(id) {
         if (nuevoStock > 0) {
           cantidadInput.max = nuevoStock;
           cantidadInput.disabled = false;
-          cantidadInput.value = Math.min(parseInt(cantidadInput.value) || 1, nuevoStock);
+          // Ajustar valor si es mayor al nuevo stock
+          const valorActual = parseInt(cantidadInput.value) || 1;
+          cantidadInput.value = Math.min(valorActual, nuevoStock);
           agregarBtn.disabled = false;
           agregarBtn.style.opacity = "1";
           agregarBtn.textContent = "Agregar al carrito";
         } else {
           cantidadInput.disabled = true;
+          cantidadInput.value = "0";
           agregarBtn.disabled = true;
           agregarBtn.style.opacity = "0.5";
           agregarBtn.textContent = "Sin stock";
         }
-        console.log("✅ Input cantidad actualizado, stock=", nuevoStock);
+        console.log("✅ Input cantidad actualizado, nuevo stock=", nuevoStock);
       }
       
       // 3. Mostrar aviso visual
       mostrarAvisoStock();
+      
     } else {
-      console.error("❌ Error al actualizar stock:", data);
-      alert("❌ No se pudo actualizar el stock: " + (data.message || "Error desconocido"));
+      console.error("❌ Error en respuesta backend:", data);
+      alert("❌ No se pudo actualizar el stock: " + (data.message || data.error || "Error desconocido"));
+      
+      // Revertir input
+      const span = document.createElement("span");
+      span.id = "stock_" + id;
+      span.textContent = input.defaultValue || "0";
+      span.className = "text-danger";
+      input.replaceWith(span);
     }
   })
   .catch(err => {
-    console.error("💥 Error de conexión:", err);
+    console.error("💥 Error de conexión en guardarStock:", err);
     alert("❌ Error de conexión al guardar el stock");
+    
+    // Revertir en caso de error
+    const span = document.createElement("span");
+    span.id = "stock_" + id;
+    span.textContent = input.defaultValue || "0";
+    span.className = "text-danger";
+    input.replaceWith(span);
   });
 }
 
