@@ -523,21 +523,32 @@ function procesarFila(grupo, subgrupo, productoBase, descripcion, precio, talles
   // Lista de productos separados por coma
   let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
 
-  // 🔧 CORRECCIÓN: NO expandir talles, mantenerlos como texto
-  // Si hay talles múltiples (S,M,L), dejarlos como están
-
-  // Expandir productos según cantidad
-  if (cantidad > 1 && productos.length === 1) {
-    const base = productos[0];
-    productos = [];
-    for (let i = 1; i <= cantidad; i++) {
-      productos.push(`${base}${i}`);
+  // 🔧 CORRECCIÓN: NO expandir productos por cantidad cuando hay talles
+  if (cantidad > 1) {
+    // Caso 1: varios productos explícitos → se respetan tal cual
+    if (productos.length > 1) {
+      // no se aplica cantidad
+    }
+    // Caso 2: un solo producto + cantidad > 1 → numerar
+    else if (productos.length === 1) {
+      const base = productos[0];
+      productos = [];
+      for (let i = 1; i <= cantidad; i++) {
+        productos.push(`${base}${i}`);
+      }
+    }
+    // Caso 3: sin producto pero con cantidad → usar grupo como base
+    else if (productos.length === 0 && cantidad > 0) {
+      const base = grupo || "Genérico";
+      productos = [];
+      for (let i = 1; i <= cantidad; i++) {
+        productos.push(`${base}${i}`);
+      }
     }
   }
 
-  // Crear una fila por cada producto
+  // 🔧 CORRECCIÓN: NO expandir por talles. Mantener "S,M,L" como texto
   productos.forEach(prod => {
-    // 🔧 Pasar los talles COMPLETOS "S,M,L" como texto
     agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stock);
     filasAgregadas++;
   });
@@ -752,8 +763,9 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   fila.querySelector("input[name='nombre']").value = nombre;
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
-  fila.querySelector("input[name='stock']").value = stock; // NUEVO
-  fila.querySelector("input[name='talles']").value = talles;
+  fila.querySelector("input[name='stock']").value = stock;
+  // 🔧 CORRECCIÓN: Poner los talles COMPLETOS como texto "S,M,L"
+  fila.querySelector("input[name='talles']").value = talles || "";
 
   // 👉 Insertar fila en el contenedor correcto
   const contenedor = subgrupoCard.querySelector(".productos");
