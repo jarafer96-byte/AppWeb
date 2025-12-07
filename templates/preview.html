@@ -1623,40 +1623,109 @@ let carrito = [];
 function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = "", subgrupo = "") {
   const cantidadInput = document.getElementById(idCantidad);
   const precioSpan = document.getElementById(idPrecioSpan);
-  const talleSelect = document.getElementById("talle_" + id_base);
-  const stockSpan = document.getElementById("stock_" + id_base);  // 👈 NUEVO
-
-  const cantidad = parseInt(cantidadInput?.value) || 1;
-  const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
-  const talleElegido = talleSelect?.value || "Sin talle";
-  const stockTexto = stockSpan?.textContent || "0";
-  const stockDisponible = stockTexto === "Sin stock" ? 0 : parseInt(stockTexto) || 0;  // 👈 NUEVO
-
-  // 👇 VALIDAR STOCK
-  if (stockDisponible <= 0) {
-    alert("❌ Producto sin stock disponible");
-    return;
-  }
-
-  if (cantidad > stockDisponible) {
-    alert(`❌ Solo hay ${stockDisponible} unidades disponibles`);
-    cantidadInput.value = stockDisponible;
-    return;
-  }
-
-  const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
-  if (existente) {
-    const nuevoTotal = existente.cantidad + cantidad;
-    if (nuevoTotal > stockDisponible) {
-      alert(`❌ No puedes llevar más de ${stockDisponible} unidades`);
+  
+  // Verificar si es producto con variantes
+  const tieneVariantes = document.getElementById(`color_${id_base}`) !== null;
+  
+  let talleElegido = "";
+  let colorElegido = "";
+  
+  if (tieneVariantes) {
+    // Para productos con variantes
+    const talleSelect = document.getElementById(`talle_${id_base}`);
+    const colorSelect = document.getElementById(`color_${id_base}`);
+    
+    talleElegido = talleSelect?.value || "";
+    colorElegido = colorSelect?.value || "";
+    
+    if (!talleElegido || !colorElegido) {
+      alert("❌ Por favor selecciona talle y color");
       return;
     }
+    
+    // Verificar stock específico
+    const stockSpan = document.getElementById(`cantidad_variante_${id_base}`);
+    const stockDisponible = parseInt(stockSpan?.textContent) || 0;
+    
+    if (stockDisponible <= 0) {
+      alert("❌ No hay stock disponible para esta combinación");
+      return;
+    }
+    
+    const cantidad = parseInt(cantidadInput?.value) || 1;
+    
+    if (cantidad > stockDisponible) {
+      alert(`❌ Solo hay ${stockDisponible} unidades disponibles`);
+      cantidadInput.value = stockDisponible;
+      return;
+    }
+  } else {
+    // Para productos sin variantes
+    const talleSelect = document.getElementById(`talle_${id_base}`);
+    talleElegido = talleSelect?.value || "Sin talle";
+    
+    const stockSpan = document.getElementById(`stock_${id_base}`);
+    const stockTexto = stockSpan?.textContent || "0";
+    const stockDisponible = stockTexto === "Sin stock" ? 0 : parseInt(stockTexto) || 0;
+    
+    if (stockDisponible <= 0) {
+      alert("❌ Producto sin stock disponible");
+      return;
+    }
+    
+    const cantidad = parseInt(cantidadInput?.value) || 1;
+    
+    if (cantidad > stockDisponible) {
+      alert(`❌ Solo hay ${stockDisponible} unidades disponibles`);
+      cantidadInput.value = stockDisponible;
+      return;
+    }
+  }
+  
+  const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
+  const cantidad = parseInt(cantidadInput?.value) || 1;
+  
+  // Buscar si ya existe en el carrito (mismo producto, mismo talle, mismo color)
+  const existente = carrito.find(item => 
+    item.id_base === id_base && 
+    item.talle === talleElegido && 
+    item.color === colorElegido
+  );
+  
+  if (existente) {
+    const nuevoTotal = existente.cantidad + cantidad;
+    
+    // Verificar stock nuevamente
+    let stockMaximo;
+    if (tieneVariantes) {
+      const stockSpan = document.getElementById(`cantidad_variante_${id_base}`);
+      stockMaximo = parseInt(stockSpan?.textContent) || 0;
+    } else {
+      const stockSpan = document.getElementById(`stock_${id_base}`);
+      const stockTexto = stockSpan?.textContent || "0";
+      stockMaximo = stockTexto === "Sin stock" ? 0 : parseInt(stockTexto) || 0;
+    }
+    
+    if (nuevoTotal > stockMaximo) {
+      alert(`❌ No puedes llevar más de ${stockMaximo} unidades`);
+      return;
+    }
+    
     existente.cantidad = nuevoTotal;
   } else {
-    const nuevoItem = { nombre, precio, cantidad, id_base, talle: talleElegido, grupo, subgrupo };
+    const nuevoItem = { 
+      nombre, 
+      precio, 
+      cantidad, 
+      id_base, 
+      talle: talleElegido, 
+      color: colorElegido,
+      grupo, 
+      subgrupo 
+    };
     carrito.push(nuevoItem);
   }
-
+  
   actualizarCarrito();
 }
 
