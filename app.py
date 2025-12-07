@@ -191,6 +191,17 @@ def subir_a_firestore(producto, email):
             talles = [t.strip() for t in talles.split(',') if t.strip()]
         print(f"[FIRESTORE] Talles procesados: {talles}")
 
+        # 👇 NUEVO: Parseo de stock
+        stock_raw = producto.get("stock")
+        if stock_raw is not None:
+            try:
+                stock = int(stock_raw)
+            except:
+                stock = 0
+        else:
+            stock = 0  # default
+        print(f"[FIRESTORE] Stock procesado: {stock}")
+
         producto["id_base"] = custom_id
 
         # Imagen: usar la URL real si ya viene del upload, si no, fallback a custom_id.webp
@@ -207,6 +218,7 @@ def subir_a_firestore(producto, email):
             "nombre": nombre_original,
             "id_base": custom_id,
             "precio": precio,
+            "stock": stock,  # 👈 NUEVO CAMPO
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
@@ -440,6 +452,7 @@ def api_productos():
                 "id_base": data.get("id_base"),
                 "nombre": data.get("nombre"),
                 "precio": data.get("precio"),
+                "stock": data.get("stock", 0),  # 👈 NUEVO: campo stock con default 0
                 "grupo": data.get("grupo"),
                 "subgrupo": data.get("subgrupo"),
                 "descripcion": data.get("descripcion"),
@@ -1233,7 +1246,42 @@ def webhook_mp():
         
         orden_data = doc.to_dict()
         
-        # Actualizar estado del pago
+        # 👇 NUEVO: RESTAR STOCK SI EL PAGO FUE APROBADO
+        if estado == "approved":
+            email_vendedor = orden_data.get("email_vendedor")
+            
+            if email_vendedor:
+                # Obtener items de la orden
+                items = orden_data.get("items_mp") or orden_data.get("items") or []
+                print(f"[WEBHOOK-STOCK] 📦 Items a procesar: {len(items)}")
+                
+                for item in items:
+                    try:
+                        producto_id = item.get("id_base") or item.get("id")
+                        if not producto_id:
+                            continue
+                            
+                        cantidad = int(item.get("quantity") or item.get("cantidad") or 1)
+                        
+                        # Obtener producto actual
+                        prod_ref = db.collection("usuarios").document(email_vendedor)\
+                                      .collection("productos").document(producto_id)
+                        prod_doc = prod_ref.get()
+                        
+                        if prod_doc.exists:
+                            data = prod_doc.to_dict()
+                            stock_actual = data.get("stock", 0)
+                            nuevo_stock = max(0, stock_actual - cantidad)
+                            
+                            # Actualizar stock
+                            prod_ref.update({"stock": nuevo_stock})
+                            print(f"[WEBHOOK-STOCK] ✅ {producto_id}: {stock_actual} → {nuevo_stock} (-{cantidad})")
+                        else:
+                            print(f"[WEBHOOK-STOCK] ⚠️ Producto {producto_id} no encontrado")
+                    except Exception as e:
+                        print(f"[WEBHOOK-STOCK] ❌ Error actualizando stock para item: {e}")
+        
+        # Actualizar estado del pago (esto ya existía)
         doc_ref.update({
             "estado": estado,
             "payment_id": payment_id,
