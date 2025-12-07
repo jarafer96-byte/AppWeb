@@ -321,7 +321,7 @@ function hydrateFila(filaEl, filaData) {
   if (filaData.descripcion) filaEl.querySelector("textarea[name='descripcion']").value = filaData.descripcion;
   if (filaData.precio) filaEl.querySelector("input[name='precio']").value = filaData.precio;
   if (filaData.talles) filaEl.querySelector("input[name='talles']").value = filaData.talles;
-  if (filaData.stock) filaEl.querySelector("input[name='stock']").value = filaData.stock; // NUEVO
+  if (filaData.stock) filaEl.querySelector("input[name='stock']").value = filaData.stock; // ✅ NUEVA LÍNEA PARA STOCK
 
   // Restaurar imagen elegida
   if (filaData.imagen_elegida) {
