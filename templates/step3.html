@@ -267,8 +267,6 @@ function crearGrupo() {
 
   document.getElementById('grupos').appendChild(grupo);
   document.getElementById('nombreGrupo').value = '';
-  
-  saveStateDebounced()
 }
   
 function hydrateFila(filaData, filaEl) {
@@ -311,7 +309,6 @@ function editarNombreGrupo(btn) {
 
   h4.replaceWith(input);
   input.focus();
-  saveStateDebounced();
 }
 
 function guardarNombreGrupo(card, nuevoNombre) {
@@ -324,7 +321,6 @@ function guardarNombreGrupo(card, nuevoNombre) {
 
   // ✅ Actualizar hidden inputs de todas las filas dentro del grupo
   card.querySelectorAll('input[name="grupo"]').forEach(h => h.value = nuevoNombre);
-  saveStateDebounced();
 }
 
 function actualizarContador(elemento) {
@@ -658,7 +654,6 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   }
 
   actualizarContador(subgrupoCard);
-  saveStateDebounced();
 }
 
   function ensureDB(callback) {
@@ -802,9 +797,6 @@ function crearSubgrupo(btn) {
   contenedor.appendChild(fila);
 
   actualizarContador(subgrupo);
-
-  // ✅ Guardar estado después de crear el subgrupo y su primera fila
-  saveStateDebounced();
 }
 
 function editarNombreSubgrupo(btn) {
@@ -824,7 +816,6 @@ function editarNombreSubgrupo(btn) {
 
   strong.replaceWith(input);
   input.focus();
-  saveStateDebounced();
 }
 
 function guardarNombreSubgrupo(card, nuevoNombre) {
@@ -837,7 +828,6 @@ function guardarNombreSubgrupo(card, nuevoNombre) {
 
   // ✅ Actualizar hidden inputs de todas las filas dentro del subgrupo
   card.querySelectorAll('input[name="subgrupo"]').forEach(h => h.value = nuevoNombre);
-  saveStateDebounced();
 }
 
 <!-- En la función crearFila() del JavaScript: -->
@@ -898,7 +888,6 @@ function agregarFila(btn) {
   contenedor.appendChild(fila);
 
   actualizarContador(contenedor);
-  saveStateDebounced();
 }
 
 function eliminarSubgrupo(btn) {
@@ -930,7 +919,6 @@ function eliminarSubgrupo(btn) {
   marcarImagenesUsadas();
 
   subgrupo.remove();
-  saveStateDebounced();
 }
 
 function eliminarFila(btn) {
@@ -975,8 +963,6 @@ function eliminarFila(btn) {
     alert("No se puede eliminar la última fila");
     console.warn("⚠️ [Step3] Intento de eliminar la última fila bloqueado");
   }
-
-  saveStateDebounced();
 }
 
 function eliminarGrupo(btn) {
@@ -1127,8 +1113,6 @@ function confirmarImagen() {
   } else {
     console.warn("⚠️ [Step3] No se encontró instancia de modalCarrusel");
   }
-
-  saveStateDebounced();
   console.log("💾 [Step3] Estado guardado (debounced). localStorage.email:", localStorage.getItem("email"));
 }
   
