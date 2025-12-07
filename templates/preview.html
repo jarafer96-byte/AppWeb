@@ -1247,21 +1247,25 @@ async function cargarListaVariantes(idProducto) {
   }
 }
 
-// Actualizar stock de una variante específica
 function actualizarStockVariante(idVariante, nuevoStock) {
+  const productoId = window.currentProductoId; // Debes guardar esto al abrir el modal
+  
   fetch(`${URL_BACKEND}/api/variantes/${idVariante}/actualizar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ stock: parseInt(nuevoStock) || 0 })
+    body: JSON.stringify({ 
+      stock: parseInt(nuevoStock) || 0,
+      producto_id: productoId,  // ← AGREGAR ESTO
+      email: window.email
+    })
   })
   .then(res => res.json())
   .then(data => {
     if (data.status === 'ok') {
       mostrarAviso('✅ Stock actualizado');
       // Actualizar stock general en la vista
-      const idProducto = data.id_producto;
-      if (idProducto) {
-        const stockSpan = document.getElementById(`stock_${idProducto}`);
+      if (data.id_producto) {
+        const stockSpan = document.getElementById(`stock_${data.id_producto}`);
         if (stockSpan) {
           stockSpan.textContent = data.stock_total || '0';
         }
@@ -1270,7 +1274,6 @@ function actualizarStockVariante(idVariante, nuevoStock) {
   });
 }
 
-// Agregar nueva variante
 function agregarVariante(idProducto) {
   const talle = document.getElementById('nuevoTalle').value.trim();
   const color = document.getElementById('nuevoColor').value.trim();
