@@ -691,7 +691,7 @@ function leerArchivoProductos() {
   }
 }
 
-function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles) {
+function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles, stock) {
   // Buscar o crear grupo
   let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
     c => c.querySelector("h4")?.textContent.trim() === grupo
@@ -742,6 +742,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   fila.querySelector("input[name='nombre']").value = nombre;
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
+  fila.querySelector("input[name='stock']").value = stock; // NUEVO
   fila.querySelector("input[name='talles']").value = talles;
 
   // 👉 Insertar fila en el contenedor correcto
