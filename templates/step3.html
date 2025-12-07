@@ -10,7 +10,47 @@
 body { background-color: #000; font-family: sans-serif; color: white; }
 
 h2 { color: white; }
+/* Agrega al final de la sección de estilos */
+.tooltip-info {
+  position: relative;
+  display: inline-block;
+  margin-left: 5px;
+  cursor: help;
+  color: #ff6f61;
+}
+/* Ajusta los anchos de columna */
+.fila-producto .col-2 {
+  width: 16.666667%;
+  flex: 0 0 auto;
+}
 
+.fila-producto .col-1 {
+  width: 8.333333%;
+  flex: 0 0 auto;
+}
+.tooltip-info .tooltip-texto {
+  visibility: hidden;
+  width: 300px;
+  background-color: rgba(0,0,0,0.9);
+  color: #fff;
+  text-align: left;
+  border-radius: 6px;
+  padding: 10px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -150px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tooltip-info:hover .tooltip-texto {
+  visibility: visible;
+  opacity: 1;
+}
 textarea { resize: none; }
 
 .form-control { background-color: rgba(255,255,255,0.05); color: white; border: none; border-radius: 8px; }
