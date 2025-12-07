@@ -300,6 +300,7 @@
             <th>Grupo</th>
             <th>Subgrupo</th>
             <th>Talles</th>
+            <th>Stock</th>
             <th>Filas</th>
           </tr>
         </thead>
@@ -407,91 +408,91 @@
       return datos;
     }
 
-    // Mostrar vista previa
-    function probarVistaPrevia() {
-      const datos = recolectarDatos();
-      if (datos.length === 0) {
-        alert('Por favor, completá al menos una fila con Grupo y Producto.');
-        return;
-      }
+function probarVistaPrevia() {
+  const datos = recolectarDatos();
+  if (datos.length === 0) {
+    alert('Por favor, completá al menos una fila con Grupo y Producto.');
+    return;
+  }
 
-      const tbody = document.getElementById('vista-previa-body');
-      tbody.innerHTML = '';
+  const tbody = document.getElementById('vista-previa-body');
+  tbody.innerHTML = '';
 
-      datos.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.producto}</td>
-          <td></td>
-          <td></td>
-          <td>${item.grupo}</td>
-          <td>${item.subgrupo || ''}</td>
-          <td>${item.talle || ''}</td>
-          <td>1</td>
-        `;
-        tbody.appendChild(tr);
-      });
+  datos.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.producto}</td>
+      <td></td>
+      <td></td>
+      <td>${item.grupo}</td>
+      <td>${item.subgrupo || ''}</td>
+      <td>${item.talle || ''}</td>
+      <td></td> <!-- NUEVO: Stock vacío -->
+      <td>1</td>
+    `;
+    tbody.appendChild(tr);
+  });
 
-      document.getElementById('vista-previa-container').style.display = 'block';
-      
-      // Scroll a la vista previa
-      document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
-    }
+  document.getElementById('vista-previa-container').style.display = 'block';
+  
+  // Scroll a la vista previa
+  document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
+}
 
-    // Generar Excel
-    function generarExcel() {
-      const datos = recolectarDatos();
-      if (datos.length === 0) {
-        alert('No hay datos para generar el Excel. Completá al menos una fila.');
-        return;
-      }
+function generarExcel() {
+  const datos = recolectarDatos();
+  if (datos.length === 0) {
+    alert('No hay datos para generar el Excel. Completá al menos una fila.');
+    return;
+  }
 
-      // Crear hoja de cálculo
-      const hojaDatos = [
-        // Encabezados (EXACTAMENTE como step3 los espera)
-        ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Filas']
-      ];
+  // Crear hoja de cálculo
+  const hojaDatos = [
+    // Encabezados (EXACTAMENTE como step3 los espera)
+    ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas'] // Agregado Stock
+  ];
 
-      // Agregar filas de datos
-      datos.forEach(item => {
-        hojaDatos.push([
-          item.producto,    // Nombre
-          '',               // Descripción (vacía)
-          '',               // Precio (vacío)
-          item.grupo,       // Grupo
-          item.subgrupo,    // Subgrupo (puede estar vacío)
-          item.talle,       // Talles (puede estar vacío)
-          '1'               // Filas (siempre 1)
-        ]);
-      });
+  // Agregar filas de datos
+  datos.forEach(item => {
+    hojaDatos.push([
+      item.producto,    // Nombre
+      '',               // Descripción (vacía)
+      '',               // Precio (vacío)
+      item.grupo,       // Grupo
+      item.subgrupo,    // Subgrupo (puede estar vacío)
+      item.talle,       // Talles (puede estar vacío)
+      '',               // Stock (vacío) - NUEVO
+      '1'               // Filas (siempre 1)
+    ]);
+  });
 
-      const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+  const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Productos');
 
-      // Formatear columnas
-      const colAnchos = [
-        { wch: 20 }, // Nombre
-        { wch: 30 }, // Descripción
-        { wch: 10 }, // Precio
-        { wch: 15 }, // Grupo
-        { wch: 15 }, // Subgrupo
-        { wch: 15 }, // Talles
-        { wch: 8 }   // Filas
-      ];
-      ws['!cols'] = colAnchos;
+  // Formatear columnas
+  const colAnchos = [
+    { wch: 20 }, // Nombre
+    { wch: 30 }, // Descripción
+    { wch: 10 }, // Precio
+    { wch: 15 }, // Grupo
+    { wch: 15 }, // Subgrupo
+    { wch: 15 }, // Talles
+    { wch: 10 }, // Stock - NUEVO
+    { wch: 8 }   // Filas
+  ];
+  ws['!cols'] = colAnchos;
 
-      // Generar nombre de archivo
-      const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
+  // Generar nombre de archivo
+  const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
 
-      // Mostrar vista previa
-      probarVistaPrevia();
+  // Mostrar vista previa
+  probarVistaPrevia();
 
-      // Mostrar mensaje de éxito
-      alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso.`);
-    }
-
+  // Mostrar mensaje de éxito
+  alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso.`);
+}
     // Inicializar con algunas filas y mejoras para móvil
     window.addEventListener('load', () => {
       // Agregar 3 filas más
