@@ -1271,83 +1271,44 @@ def webhook_mp():
             email_vendedor = orden_data.get("email_vendedor")
             
             if email_vendedor:
-                # Obtener items de la orden (todas las fuentes posibles)
-                items = orden_data.get("items_mp") or orden_data.get("items") or orden_data.get("carrito") or []
-                print(f"[WEBHOOK-STOCK] 📦 Items encontrados: {len(items)}")
+                # ✅ CORRECCIÓN: USAR CARRITO EN LUGAR DE ITEMS_MP
+                # Porque carrito tiene los id_base correctos y únicos
+                todos_items = orden_data.get("carrito") or []
+                
+                # Si carrito está vacío, intentar con items_mp
+                if not todos_items:
+                    todos_items = orden_data.get("items_mp") or orden_data.get("items") or []
+                    print(f"[WEBHOOK-STOCK] ⚠️ Carrito vacío, usando items_mp/items")
+                
+                print(f"[WEBHOOK-STOCK] 📦 Items encontrados en carrito: {len(todos_items)}")
                 
                 # 🔍 DEBUG DETALLADO
-                print(f"[WEBHOOK-STOCK] 🔍 DEBUG - Estructura de items:")
-                for i, item in enumerate(items):
+                print(f"[WEBHOOK-STOCK] 🔍 DEBUG - Estructura de items en carrito:")
+                for i, item in enumerate(todos_items):
                     print(f"  Item {i}:")
                     print(f"    Tipo: {type(item)}")
                     if isinstance(item, dict):
                         print(f"    Keys: {list(item.keys())}")
-                        print(f"    id: {item.get('id')}")
                         print(f"    id_base: {item.get('id_base')}")
-                        print(f"    quantity: {item.get('quantity')}")
                         print(f"    cantidad: {item.get('cantidad')}")
-                        print(f"    title: {item.get('title')}")
                         print(f"    nombre: {item.get('nombre')}")
+                        print(f"    talle: {item.get('talle')}")
                 
-                for item in items:
+                for item in todos_items:
                     try:
                         if not isinstance(item, dict):
                             print(f"[WEBHOOK-STOCK] ⚠️ Item no es dict: {type(item)}")
                             continue
                             
-                        # ✅ **BÚSQUEDA ROBUSTA DE PRODUCTO_ID**
-                        producto_id = None
-                        
-                        # Buscar en TODOS los campos posibles
-                        posibles_ids = [
-                            item.get("id_base"),
-                            item.get("id"),
-                            item.get("product_id"),
-                            item.get("producto_id"),
-                            item.get("item_id")
-                        ]
-                        
-                        for pid in posibles_ids:
-                            if pid and isinstance(pid, str) and pid.strip():
-                                producto_id = pid.strip()
-                                break
+                        # ✅ **BÚSQUEDA DE PRODUCTO_ID DESDE CARRITO**
+                        producto_id = item.get("id_base")
                         
                         if not producto_id:
-                            print(f"[WEBHOOK-STOCK] ⚠️ Item sin ID identificable: {item}")
+                            print(f"[WEBHOOK-STOCK] ⚠️ Item sin id_base: {item}")
                             continue
                         
-                        # ✅ **BÚSQUEDA ROBUSTA DE CANTIDAD**
-                        cantidad = 1
-                        
-                        # Lista de posibles nombres de campo para cantidad
-                        posibles_cantidades = [
-                            ("quantity", item.get("quantity")),
-                            ("cantidad", item.get("cantidad")),
-                            ("qty", item.get("qty")),
-                            ("cant", item.get("cant")),
-                            ("cant.", item.get("cant.")),
-                        ]
-                        
-                        # Buscar explícitamente
-                        for campo_nombre, valor in posibles_cantidades:
-                            if valor is not None:
-                                try:
-                                    cantidad = int(valor)
-                                    print(f"[WEBHOOK-STOCK] ✅ Cantidad encontrada en '{campo_nombre}': {cantidad}")
-                                    break
-                                except (ValueError, TypeError):
-                                    continue
-                        
-                        # Si no se encontró en campos explícitos, buscar en cualquier key
-                        if cantidad == 1:
-                            for key, valor in item.items():
-                                if any(term in key.lower() for term in ["cant", "qty", "quant"]):
-                                    try:
-                                        cantidad = int(valor)
-                                        print(f"[WEBHOOK-STOCK] ✅ Cantidad encontrada en key '{key}': {cantidad}")
-                                        break
-                                    except (ValueError, TypeError):
-                                        continue
+                        # ✅ **BÚSQUEDA DE CANTIDAD DESDE CARRITO**
+                        cantidad = int(item.get("cantidad", 1))
                         
                         print(f"[WEBHOOK-STOCK] 🔍 Producto: {producto_id}, Cantidad a descontar: {cantidad}")
                         
@@ -1377,16 +1338,39 @@ def webhook_mp():
                                 "stock_despues": nuevo_stock,
                                 "cantidad_descontada": cantidad,
                                 "payment_id": payment_id,
-                                "tipo": "compra_webhook"
+                                "tipo": "compra_webhook",
+                                "talle": item.get("talle", ""),
+                                "nombre_producto": data.get("nombre", "")
                             })
                             
                         else:
                             print(f"[WEBHOOK-STOCK] ⚠️ Producto {producto_id} no encontrado en {email_vendedor}")
                             # Intentar buscar por nombre si no encontramos por ID
-                            nombre_producto = item.get("title") or item.get("nombre") or item.get("description")
+                            nombre_producto = item.get("nombre")
                             if nombre_producto:
                                 print(f"[WEBHOOK-STOCK] 🔍 Intentando buscar por nombre: {nombre_producto}")
-                                
+                                try:
+                                    # Buscar producto por nombre
+                                    query = db.collection("usuarios").document(email_vendedor)\
+                                              .collection("productos").where("nombre", "==", nombre_producto).get()
+                                    if query:
+                                        for prod_doc in query:
+                                            prod_data = prod_doc.to_dict()
+                                            # Verificar si tiene el mismo talle (si aplica)
+                                            talles_producto = prod_data.get("talles", [])
+                                            talle_item = item.get("talle", "")
+                                            
+                                            if not talle_item or talle_item in talles_producto or not talles_producto:
+                                                producto_id_real = prod_doc.id
+                                                stock_actual_real = prod_data.get("stock", 0)
+                                                nuevo_stock_real = max(0, stock_actual_real - cantidad)
+                                                
+                                                prod_doc.reference.update({"stock": nuevo_stock_real})
+                                                print(f"[WEBHOOK-STOCK] ✅ Encontrado por nombre: {nombre_producto} -> {producto_id_real}: {stock_actual_real} → {nuevo_stock_real}")
+                                                break
+                                except Exception as e:
+                                    print(f"[WEBHOOK-STOCK] ❌ Error buscando producto por nombre: {e}")
+                            
                     except Exception as e:
                         print(f"[WEBHOOK-STOCK] ❌ Error procesando item: {e}")
                         import traceback
@@ -1399,7 +1383,9 @@ def webhook_mp():
             "payment_id": payment_id,
             "actualizado": firestore.SERVER_TIMESTAMP,
             "webhook_processed": True,
-            "webhook_timestamp": firestore.SERVER_TIMESTAMP
+            "webhook_timestamp": firestore.SERVER_TIMESTAMP,
+            "stock_actualizado": estado == "approved",  # Marcar si se actualizó stock
+            "stock_actualizado_fecha": firestore.SERVER_TIMESTAMP if estado == "approved" else None
         })
         
         # Si el pago fue aprobado, enviar comprobante
