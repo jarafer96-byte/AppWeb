@@ -5,231 +5,206 @@
   <title>Armar plantilla de productos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
- <style>
-  body {
-    background-color: #000;
-    font-family: sans-serif;
-    color: white;
-  }
-
-  h2 {
-    color: white;
-    text-align: center;
-    margin-bottom: 30px;
-  }
-/* Añadir después de las reglas existentes de .col-talle y .col-filas */
-.col-talle { width: 180px; }
-.col-filas { width: 100px; }
-.col-stock { width: 100px; } /* NUEVO */
-
-/* Para móvil */
-@media (max-width: 768px) {
-  .col-talle, .col-filas, .col-stock { width: 100% !important; }
-}
-  .card {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 25px;
-  }
-
-  .form-control {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 15px;
-  }
-
-  .form-control::placeholder { color: #aaa; }
-
-  .form-control:focus {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: white;
-    box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.5);
-  }
-
-  .btn-gradient {
-    background: linear-gradient(135deg, #8e2de2, #ff6f61);
-    color: white;
-    border: none;
-    padding: 12px 28px;
-    border-radius: 50px;
-    font-weight: bold;
-    box-shadow: 0 0 10px rgba(255,255,255,0.3);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    display: inline-block;
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  .btn-gradient:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(255,255,255,0.5);
-    color: white;
-  }
-
-  .btn-outline-light {
-    border: 1px solid rgba(255,255,255,0.3);
-    color: white;
-    background: transparent;
-    padding: 8px 20px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-  }
-
-  .btn-outline-light:hover {
-    background-color: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.5);
-  }
-
-  .btn-sm { padding: 6px 15px; font-size: 0.9em; }
-
-  .table th {
-    background-color: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.2);
-    color: #ff6f61;
-  }
-
-  .table td {
-    border-color: rgba(255,255,255,0.1);
-    vertical-align: middle;
-  }
-
-  .badge {
-    background: linear-gradient(135deg, #8e2de2, #ff6f61);
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 0.8em;
-  }
-
-  .alert-custom {
-    background-color: rgba(13, 110, 253, 0.1);
-    border-left: 4px solid #0d6efd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
-  }
-
-  .example-box {
-    background-color: rgba(255,255,255,0.03);
-    border-radius: 8px;
-    padding: 15px;
-    margin-top: 10px;
-    border-left: 3px solid #28a745;
-  }
-
-  .col-talle { width: 180px; }
-  .col-filas { width: 100px; }
-
-  /* 🔥 RESPONSIVO PARA MÓVIL */
-  @media (max-width: 768px) {
-    .container { padding: 0 15px !important; }
-
-    h2 { font-size: 1.5rem; margin-bottom: 20px; }
-
-    .card { padding: 15px !important; margin-bottom: 15px; }
-
-    .row .col-md-6 { width: 100%; margin-bottom: 15px; }
-
-    .table-responsive {
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
+  <style>
+    body {
+      background-color: #000;
+      font-family: sans-serif;
+      color: white;
     }
 
-    .table { font-size: 13px; margin-bottom: 0; }
-    .table th, .table td { padding: 8px 6px; white-space: nowrap; }
-
-    .fila-entrada {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 10px;
-      background: rgba(255,255,255,0.03);
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px !important;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .fila-entrada > div { width: 100% !important; padding: 0 !important; }
-
-    .fila-entrada input {
-      width: 100% !important;
-      padding: 10px 12px;
-      font-size: 16px; /* evita zoom en iOS */
-      margin-bottom: 8px;
-    }
-
-    .fila-entrada .col-md-1 { text-align: right; margin-top: 5px; }
-
-    .fila-entrada button.btn-sm { padding: 6px 12px; font-size: 0.9em; }
-
-    .d-flex.gap-3 {
-      flex-direction: column;
-      flex-wrap: wrap;
-      gap: 12px !important;
-    }
-
-    .d-flex.gap-3 button {
-      width: 100%;
+    h2 {
+      color: white;
       text-align: center;
-      padding: 12px;
+      margin-bottom: 30px;
     }
 
-    .text-center .btn-gradient {
-      width: 100%;
-      padding: 14px;
-      font-size: 1.1em;
+    /* Columnas */
+    .col-talle { width: 180px; }
+    .col-filas { width: 100px; }
+    .col-stock { width: 100px; }
+
+    /* Para móvil */
+    @media (max-width: 768px) {
+      .col-talle, .col-filas, .col-stock { width: 100% !important; }
     }
 
-    .col-talle, .col-filas { width: 100% !important; }
+    .card {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
 
-    .badge { font-size: 0.7em; padding: 4px 8px; }
+    .form-control {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+    }
 
-    .alert-custom { padding: 12px; font-size: 0.9em; }
+    .form-control::placeholder { color: #aaa; }
 
-    .text-center .btn-gradient.mb-3 { width: 100%; padding: 12px; }
+    .form-control:focus {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: white;
+      box-shadow: 0 0 0 2px rgba(255, 111, 97, 0.5);
+    }
 
-    ol { padding-left: 20px; }
-    ol li { margin-bottom: 10px; font-size: 0.9em; }
+    .btn-gradient {
+      background: linear-gradient(135deg, #8e2de2, #ff6f61);
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 50px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      display: inline-block;
+      text-decoration: none;
+      cursor: pointer;
+    }
 
-    .form-control { margin-bottom: 10px; }
-  }
+    .btn-gradient:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.5);
+      color: white;
+    }
 
-  /* Pantallas muy pequeñas */
-  @media (max-width: 360px) {
-    .container { padding: 0 10px !important; }
-    h2 { font-size: 1.3rem; }
-    h4 { font-size: 1.1rem; }
-    .fila-entrada { padding: 12px; }
-    .table { font-size: 12px; }
-  }
-</style>
+    .btn-outline-light {
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      background: transparent;
+      padding: 8px 20px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-outline-light:hover {
+      background-color: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.5);
+    }
+
+    .btn-sm { padding: 6px 15px; font-size: 0.9em; }
+
+    .table th {
+      background-color: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+      color: #ff6f61;
+    }
+
+    .table td {
+      border-color: rgba(255,255,255,0.1);
+      vertical-align: middle;
+    }
+
+    .badge {
+      background: linear-gradient(135deg, #8e2de2, #ff6f61);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8em;
+    }
+
+    .alert-custom {
+      background-color: rgba(13, 110, 253, 0.1);
+      border-left: 4px solid #0d6efd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .example-box {
+      background-color: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+      border-left: 3px solid #28a745;
+    }
+
+    /* 🔥 RESPONSIVO PARA MÓVIL */
+    @media (max-width: 768px) {
+      .container { padding: 0 15px !important; }
+      h2 { font-size: 1.5rem; margin-bottom: 20px; }
+      .card { padding: 15px !important; margin-bottom: 15px; }
+      .row .col-md-6 { width: 100%; margin-bottom: 15px; }
+      .table-responsive {
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .table { font-size: 13px; margin-bottom: 0; }
+      .table th, .table td { padding: 8px 6px; white-space: nowrap; }
+      .fila-entrada {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        background: rgba(255,255,255,0.03);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px !important;
+        border: 1px solid rgba(255,255,255,0.05);
+      }
+      .fila-entrada > div { width: 100% !important; padding: 0 !important; }
+      .fila-entrada input {
+        width: 100% !important;
+        padding: 10px 12px;
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+      .fila-entrada .col-md-1 { text-align: right; margin-top: 5px; }
+      .fila-entrada button.btn-sm { padding: 6px 12px; font-size: 0.9em; }
+      .d-flex.gap-3 {
+        flex-direction: column;
+        flex-wrap: wrap;
+        gap: 12px !important;
+      }
+      .d-flex.gap-3 button {
+        width: 100%;
+        text-align: center;
+        padding: 12px;
+      }
+      .text-center .btn-gradient {
+        width: 100%;
+        padding: 14px;
+        font-size: 1.1em;
+      }
+      .badge { font-size: 0.7em; padding: 4px 8px; }
+      .alert-custom { padding: 12px; font-size: 0.9em; }
+      .text-center .btn-gradient.mb-3 { width: 100%; padding: 12px; }
+      ol { padding-left: 20px; }
+      ol li { margin-bottom: 10px; font-size: 0.9em; }
+      .form-control { margin-bottom: 10px; }
+    }
+
+    /* Pantallas muy pequeñas */
+    @media (max-width: 360px) {
+      .container { padding: 0 10px !important; }
+      h2 { font-size: 1.3rem; }
+      h4 { font-size: 1.1rem; }
+      .fila-entrada { padding: 12px; }
+      .table { font-size: 12px; }
+    }
+  </style>
 </head>
 <body>
 <div class="container py-5 px-3 px-md-5">
   <h2> Armar plantilla de productos</h2>
 
-  <!-- Alerta informativa -->
   <div class="alert-custom">
     <strong>¿Ya tenés un Excel?</strong> Si ya tenés tu archivo con productos, podés subirlo directamente en el siguiente paso y saltar este.
   </div>
 
-  <!-- Botón para saltar -->
   <div class="text-center mb-4">
     <a href="/contenido" class="btn-gradient mb-3 w-100 w-md-auto">Saltar este paso e ir a cargar contenido</a>
     <p class="text-white">Si no tenés Excel, creá uno fácilmente aquí:</p>
   </div>
 
-  <!-- Formulario principal -->
   <div class="card">
     <h4 class="mb-4">📝 Crear estructura de productos</h4>
 
-    <!-- Instrucciones -->
     <div class="mb-4">
       <p>Completá cada fila para definir grupos, subgrupos y productos. Luego generá el Excel.</p>
       <div class="row">
@@ -259,48 +234,44 @@
       </div>
     </div>
 
-    <!-- Buscar esta sección (línea ~80-100) y actualizar: -->
-<div id="filas-container">
-  <div class="row mb-3 align-items-center fila-entrada">
-    <div class="col-md-2">
-      <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
+    <div id="filas-container">
+      <div class="row mb-3 align-items-center fila-entrada">
+        <div class="col-md-2">
+          <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
+        </div>
+        <div class="col-md-2">
+          <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
+        </div>
+        <div class="col-md-2">
+          <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
+        </div>
+        <div class="col-md-3 col-talle">
+          <input type="text" class="form-control" placeholder="Talle (ej: S,M,L o 38,40,42)" data-field="talle">
+        </div>
+        <div class="col-md-1 col-filas">
+          <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="">
+        </div>
+        <div class="col-md-1 col-stock">
+          <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0" value="">
+        </div>
+        <div class="col-md-1 text-end">
+          <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)" style="display:none;">✕</button>
+        </div>
+      </div>
     </div>
-    <div class="col-md-2">
-      <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
-    </div>
-    <div class="col-md-2">
-      <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
-    </div>
-    <div class="col-md-3 col-talle">
-      <input type="text" class="form-control" placeholder="Talle (ej: S,M,L o 38,40,42)" data-field="talle">
-    </div>
-    <div class="col-md-1 col-filas"> <!-- Cambiado de col-md-2 a col-md-1 -->
-      <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="">
-    </div>
-    <div class="col-md-1 col-stock"> <!-- NUEVO: Campo Stock -->
-      <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0" value="">
-    </div>
-    <div class="col-md-1 text-end">
-      <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)" style="display:none;">✕</button>
-    </div>
-  </div>
-</div>
 
-    <!-- Botones de acción -->
     <div class="d-flex gap-3 mt-4 flex-wrap">
       <button type="button" class="btn-gradient w-100 w-md-auto" onclick="agregarFila()">+ Agregar otra fila</button>
       <button type="button" class="btn btn-outline-light w-100 w-md-auto" onclick="limpiarFormulario()">Limpiar todo</button>
       <button type="button" class="btn btn-outline-light w-100 w-md-auto" onclick="probarVistaPrevia()">Ver vista previa</button>
     </div>
 
-    <!-- Botón para generar Excel -->
     <div class="text-center mt-5">
       <button type="button" class="btn-gradient px-5 w-100 w-md-auto" onclick="generarExcel()">Generar Excel</button>
       <p class="mt-2 text-white">El Excel generado será compatible con el importador del siguiente paso.</p>
     </div>
   </div>
 
-  <!-- Vista previa -->
   <div id="vista-previa-container" class="card" style="display:none;">
     <h4 class="mb-3">👁️ Vista previa del Excel</h4>
     <div class="table-responsive">
@@ -326,7 +297,6 @@
     </div>
   </div>
 
-  <!-- Información adicional -->
   <div class="card">
     <h4 class="mb-3">ℹ️ ¿Cómo funciona?</h4>
     <ol>
@@ -341,278 +311,182 @@
   </div>
 </div>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script>
-    let contadorFilas = 1;
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+  let contadorFilas = 1;
 
-   function agregarFila() {
-  contadorFilas++;
-  const container = document.getElementById('filas-container');
-  const nuevaFila = document.createElement('div');
-  nuevaFila.className = 'row mb-3 align-items-center fila-entrada';
-  nuevaFila.innerHTML = `
-    <div class="col-md-2">
-      <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
-    </div>
-    <div class="col-md-2">
-      <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
-    </div>
-    <div class="col-md-2">
-      <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
-    </div>
-    <div class="col-md-3 col-talle">
-      <input type="text" class="form-control" placeholder="Talle (ej: S,M,L)" data-field="talle">
-    </div>
-    <div class="col-md-1 col-filas">
-      <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="">
-    </div>
-    <div class="col-md-1 col-stock"> <!-- NUEVO: Campo Stock -->
-      <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0" value="">
-    </div>
-    <div class="col-md-1">
-      <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)">✕</button>
-    </div>
-  `;
-  container.appendChild(nuevaFila);
-}
-
-    // Eliminar fila
-    function eliminarFila(btn) {
-      const filas = document.querySelectorAll('.fila-entrada');
-      if (filas.length > 1) {
-        btn.closest('.fila-entrada').remove();
-      }
-    }
-
-    // Limpiar formulario
-    function limpiarFormulario() {
-      document.querySelectorAll('.fila-entrada').forEach(fila => {
-        fila.querySelectorAll('input').forEach(input => {
-          if (input.dataset.field === 'filas') {
-            input.value = '1';
-          } else {
-            input.value = '';
-          }
-        });
-      });
-    }
-
-function recolectarDatos() {
-  const datos = [];
-  document.querySelectorAll('.fila-entrada').forEach(fila => {
-    const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
-    const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
-    const producto = fila.querySelector('[data-field="producto"]').value.trim();
-    const talle = fila.querySelector('[data-field="talle"]').value.trim();
-    
-    // Filas: si está vacío, usar 1 por defecto
-    const filasInput = fila.querySelector('[data-field="filas"]').value;
-    const filas = filasInput === '' ? 1 : parseInt(filasInput) || 1;
-    
-    // Stock: si está vacío, usar 0 por defecto
-    const stockInput = fila.querySelector('[data-field="stock"]').value;
-    const stock = stockInput === '' ? 0 : parseInt(stockInput) || 0;
-
-    if (grupo && producto) {
-      // Crear una entrada por cada fila solicitada
-      for (let i = 0; i < filas; i++) {
-        datos.push({
-          grupo,
-          subgrupo, // Puede estar vacío
-          producto, // Mismo nombre para todas las filas (sin número)
-          talle,    // Talles (puede estar vacío)
-          stock,    // NUEVO: Stock para cada producto
-          filas: 1  // Siempre 1 porque cada entrada es una fila
-        });
-      }
-    }
-  });
-  return datos;
-}
-
-function probarVistaPrevia() {
-  const datos = recolectarDatos();
-  if (datos.length === 0) {
-    alert('Por favor, completá al menos una fila con Grupo y Producto.');
-    return;
-  }
-
-  const tbody = document.getElementById('vista-previa-body');
-  tbody.innerHTML = '';
-
-  datos.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${item.producto}</td>
-      <td></td>
-      <td></td>
-      <td>${item.grupo}</td>
-      <td>${item.subgrupo || ''}</td>
-      <td>${item.talle || ''}</td>
-      <td>${item.stock}</td> <!-- CORREGIDO: Stock aquí -->
-      <td>1</td> <!-- CORREGIDO: Filas siempre 1 -->
+  function agregarFila() {
+    contadorFilas++;
+    const container = document.getElementById('filas-container');
+    const nuevaFila = document.createElement('div');
+    nuevaFila.className = 'row mb-3 align-items-center fila-entrada';
+    nuevaFila.innerHTML = `
+      <div class="col-md-2">
+        <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
+      </div>
+      <div class="col-md-2">
+        <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
+      </div>
+      <div class="col-md-2">
+        <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
+      </div>
+      <div class="col-md-3 col-talle">
+        <input type="text" class="form-control" placeholder="Talle (ej: S,M,L)" data-field="talle">
+      </div>
+      <div class="col-md-1 col-filas">
+        <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="">
+      </div>
+      <div class="col-md-1 col-stock">
+        <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0" value="">
+      </div>
+      <div class="col-md-1">
+        <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)">✕</button>
+      </div>
     `;
-    tbody.appendChild(tr);
-  });
-
-  document.getElementById('vista-previa-container').style.display = 'block';
-  
-  // Scroll a la vista previa
-  document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
-}
-    
-function generarExcel() {
-  const datos = recolectarDatos();
-  if (datos.length === 0) {
-    alert('No hay datos para generar el Excel. Completá al menos una fila.');
-    return;
+    container.appendChild(nuevaFila);
   }
 
-  // Crear hoja de cálculo
-  // 🔥 IMPORTANTE: Estos encabezados deben coincidir EXACTAMENTE con lo que step3 espera
-  const hojaDatos = [
-    // Encabezados (EXACTAMENTE como step3 los espera con stock)
-    ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas']
-    // Nota: Stock ahora está en posición 7, Filas en posición 8 (índices 6 y 7)
-  ];
+  function eliminarFila(btn) {
+    const filas = document.querySelectorAll('.fila-entrada');
+    if (filas.length > 1) {
+      btn.closest('.fila-entrada').remove();
+    }
+  }
 
-  // Agregar filas de datos
-  datos.forEach(item => {
-    hojaDatos.push([
-      item.producto,    // Nombre
-      '',               // Descripción (vacía)
-      '',               // Precio (vacío)
-      item.grupo,       // Grupo
-      item.subgrupo,    // Subgrupo (puede estar vacío)
-      item.talle,       // Talles (puede estar vacío)
-      item.stock,       // NUEVO: Stock
-      '1'               // Filas (siempre 1)
-    ]);
-  });
+  function limpiarFormulario() {
+    document.querySelectorAll('.fila-entrada').forEach(fila => {
+      fila.querySelectorAll('input').forEach(input => {
+        input.value = '';
+      });
+    });
+  }
 
-  const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+  function recolectarDatos() {
+    const datos = [];
+    document.querySelectorAll('.fila-entrada').forEach(fila => {
+      const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
+      const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
+      const producto = fila.querySelector('[data-field="producto"]').value.trim();
+      const talle = fila.querySelector('[data-field="talle"]').value.trim();
+      
+      const filasInput = fila.querySelector('[data-field="filas"]').value;
+      const filas = filasInput === '' ? 1 : parseInt(filasInput) || 1;
+      
+      const stockInput = fila.querySelector('[data-field="stock"]').value;
+      const stock = stockInput === '' ? 0 : parseInt(stockInput) || 0;
 
-  // Formatear columnas
-  const colAnchos = [
-    { wch: 20 }, // Nombre
-    { wch: 30 }, // Descripción
-    { wch: 10 }, // Precio
-    { wch: 15 }, // Grupo
-    { wch: 15 }, // Subgrupo
-    { wch: 15 }, // Talles
-    { wch: 10 }, // NUEVO: Stock
-    { wch: 8 }   // Filas
-  ];
-  ws['!cols'] = colAnchos;
-
-  // Generar nombre de archivo
-  const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
-
-  // Mostrar vista previa
-  probarVistaPrevia();
-
-  // Mostrar mensaje de éxito
-  alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso.`);
-}
-    // Inicializar con algunas filas y mejoras para móvil
-    window.addEventListener('load', () => {
-      // Agregar 3 filas más
-      for (let i = 0; i < 3; i++) {
-        agregarFila();
+      if (grupo && producto) {
+        for (let i = 0; i < filas; i++) {
+          datos.push({
+            grupo,
+            subgrupo,
+            producto,
+            talle,
+            stock,
+            filas: 1
+          });
+        }
       }
+    });
+    return datos;
+  }
 
-      // Mostrar botones de eliminar en todas las filas excepto la primera
-      document.querySelectorAll('.fila-entrada').forEach((fila, index) => {
-        if (index > 0) {
-          const btnEliminar = fila.querySelector('button');
-          if (btnEliminar) btnEliminar.style.display = 'inline-block';
+  function probarVistaPrevia() {
+    const datos = recolectarDatos();
+    if (datos.length === 0) {
+      alert('Por favor, completá al menos una fila con Grupo y Producto.');
+      return;
+    }
+
+    const tbody = document.getElementById('vista-previa-body');
+    tbody.innerHTML = '';
+
+    datos.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.producto}</td>
+        <td></td>
+        <td></td>
+        <td>${item.grupo}</td>
+        <td>${item.subgrupo || ''}</td>
+        <td>${item.talle || ''}</td>
+        <td>${item.stock}</td>
+        <td>1</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('vista-previa-container').style.display = 'block';
+    document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function generarExcel() {
+    const datos = recolectarDatos();
+    if (datos.length === 0) {
+      alert('No hay datos para generar el Excel. Completá al menos una fila.');
+      return;
+    }
+
+    const hojaDatos = [
+      ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas']
+    ];
+
+    datos.forEach(item => {
+      hojaDatos.push([
+        item.producto,
+        '',
+        '',
+        item.grupo,
+        item.subgrupo,
+        item.talle,
+        item.stock,
+        '1'
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+
+    const colAnchos = [
+      { wch: 20 }, { wch: 30 }, { wch: 10 }, { wch: 15 },
+      { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 8 }
+    ];
+    ws['!cols'] = colAnchos;
+
+    const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
+
+    probarVistaPrevia();
+    alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso.`);
+  }
+
+  window.addEventListener('load', () => {
+    for (let i = 0; i < 3; i++) {
+      agregarFila();
+    }
+
+    document.querySelectorAll('.fila-entrada').forEach((fila, index) => {
+      if (index > 0) {
+        const btnEliminar = fila.querySelector('button');
+        if (btnEliminar) btnEliminar.style.display = 'inline-block';
+      }
+    });
+
+    if (window.innerWidth <= 768) {
+      document.querySelectorAll('.fila-entrada input[placeholder]').forEach(input => {
+        const placeholder = input.getAttribute('placeholder');
+        if (placeholder && placeholder.length > 20) {
+          if (placeholder.includes('Grupo')) input.setAttribute('placeholder', 'Grupo');
+          if (placeholder.includes('Subgrupo')) input.setAttribute('placeholder', 'Subgrupo (opc)');
+          if (placeholder.includes('Producto')) input.setAttribute('placeholder', 'Producto');
+          if (placeholder.includes('Talle')) input.setAttribute('placeholder', 'Talles (opc)');
+          if (placeholder.includes('Filas')) input.setAttribute('placeholder', 'Cantidad');
+          if (placeholder.includes('Stock')) input.setAttribute('placeholder', 'Stock');
         }
       });
-
-      // 🔥 MEJORAS ESPECÍFICAS PARA MÓVIL
-      const isMobile = window.innerWidth <= 768;
-      
-      if (isMobile) {
-        console.log("📱 Modo móvil activado - Ajustando interfaz...");
-        
-        // Ajustar placeholder más cortos para móvil
-        document.querySelectorAll('.fila-entrada input[placeholder]').forEach(input => {
-          const placeholder = input.getAttribute('placeholder');
-          if (placeholder && placeholder.length > 20) {
-            // Acortar placeholders largos
-            if (placeholder.includes('Grupo')) input.setAttribute('placeholder', 'Grupo');
-            if (placeholder.includes('Subgrupo')) input.setAttribute('placeholder', 'Subgrupo (opc)');
-            if (placeholder.includes('Producto')) input.setAttribute('placeholder', 'Producto');
-            if (placeholder.includes('Talle')) input.setAttribute('placeholder', 'Talles (opc)');
-            if (placeholder.includes('Filas')) input.setAttribute('placeholder', 'Cantidad');
-          }
-        });
-        
-        // Mostrar menos filas iniciales en móvil
-        const filasIniciales = document.querySelectorAll('.fila-entrada');
-        if (filasIniciales.length > 2) {
-          // Ocultar filas extras (mantener solo 2 visibles)
-          for (let i = 2; i < filasIniciales.length; i++) {
-            filasIniciales[i].style.display = 'none';
-          }
-          
-          // Agregar mensaje para agregar más filas
-          const container = document.getElementById('filas-container');
-          const msg = document.createElement('div');
-          msg.className = 'text-center mt-3 mb-4';
-          msg.innerHTML = '<p class="text-white-50" style="font-size: 0.9em;">Hay ' + (filasIniciales.length - 2) + ' filas ocultas. Usá "Agregar otra fila" cuando necesites más.</p>';
-          container.appendChild(msg);
-          
-          // Ajustar la función agregarFila() para mostrar filas ocultas
-          const originalAgregarFila = agregarFila;
-          agregarFila = function() {
-            // Primero verificar si hay filas ocultas
-            const filasOcultas = document.querySelectorAll('.fila-entrada[style*="display: none"]');
-            if (filasOcultas.length > 0) {
-              // Mostrar la primera fila oculta
-              filasOcultas[0].style.display = '';
-              
-              // Si era la última fila oculta, remover el mensaje
-              if (filasOcultas.length === 1) {
-                const msg = container.querySelector('.text-center.mt-3');
-                if (msg) msg.remove();
-              } else {
-                // Actualizar el mensaje
-                const msg = container.querySelector('.text-center.mt-3 p');
-                if (msg) msg.textContent = 'Hay ' + (filasOcultas.length - 1) + ' filas ocultas. Usá "Agregar otra fila" cuando necesites más.';
-              }
-            } else {
-              // Si no hay filas ocultas, usar la función original
-              originalAgregarFila();
-            }
-          };
-        }
-      }
-    });
-
-    // Validar entrada en tiempo real (mejorado para móvil/desktop)
-    document.addEventListener('input', function(e) {
-      if (e.target.matches('[data-field="grupo"], [data-field="producto"]')) {
-        const fila = e.target.closest('.fila-entrada');
-        const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
-        const producto = fila.querySelector('[data-field="producto"]').value.trim();
-        
-        if (grupo && producto) {
-          e.target.style.border = '2px solid #28a745';
-          // Solo agregar fondo en móvil para mejor visibilidad
-          if (window.innerWidth <= 768) {
-            e.target.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
-          }
-        } else {
-          e.target.style.border = '';
-          e.target.style.backgroundColor = '';
-        }
-      }
-    });
-  </script>
+    }
+  });
+</script>
 </body>
 </html>
