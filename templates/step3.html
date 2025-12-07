@@ -1306,12 +1306,11 @@ function marcarImagenesUsadas() {
   });
 }
 
-
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
   if (grupos.length === 0) {
     alert('Agregá al menos un grupo antes de continuar');
-    return;
+    return false;
   }
 
   let hayContenidoValido = false;
@@ -1339,18 +1338,19 @@ function validarYEnviar() {
 
   if (!hayContenidoValido) {
     alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
-    return;
+    return false;
   }
 
   if (imagenesInvalidas) {
     alert('⚠️ Hay filas con nombre/precio pero sin imagen seleccionada. Revisalas antes de continuar.');
-    return;
+    return false;
   }
 
   // Mostrar spinner y limpiar estado antes de enviar
   document.getElementById('spinner').style.display = 'flex';
   localStorage.removeItem("step3_state"); // ✅ limpiar cache del paso
-  document.getElementById('formulario').submit();
+  
+  return true; // ✅ Permitir envío del formulario
 }
   
 function guardarProductoLocal(producto) {
