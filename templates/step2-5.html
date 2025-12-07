@@ -249,29 +249,32 @@
       </div>
     </div>
 
-    <!-- Filas de entrada -->
-    <div id="filas-container">
-      <div class="row mb-3 align-items-center fila-entrada">
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
-        </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
-        </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
-        </div>
-        <div class="col-md-3 col-talle">
-          <input type="text" class="form-control" placeholder="Talle (ej: S,M,L o 38,40,42)" data-field="talle">
-        </div>
-        <div class="col-md-2 col-filas">
-          <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
-        </div>
-        <div class="col-md-1 text-end">
-          <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)" style="display:none;">✕</button>
-        </div>
-      </div>
+<!-- Filas de entrada -->
+<div id="filas-container">
+  <div class="row mb-3 align-items-center fila-entrada">
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
     </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
+    </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
+    </div>
+    <div class="col-md-2 col-talle">
+      <input type="text" class="form-control" placeholder="Talle (ej: S,M,L o 38,40,42)" data-field="talle">
+    </div>
+    <div class="col-md-1">
+      <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0">
+    </div>
+    <div class="col-md-2 col-filas">
+      <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="">
+    </div>
+    <div class="col-md-1 text-end">
+      <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)" style="display:none;">✕</button>
+    </div>
+  </div>
+</div>
 
     <!-- Botones de acción -->
     <div class="d-flex gap-3 mt-4 flex-wrap">
@@ -332,34 +335,36 @@
   <script>
     let contadorFilas = 1;
 
-    // Agregar nueva fila
-    function agregarFila() {
-      contadorFilas++;
-      const container = document.getElementById('filas-container');
-      const nuevaFila = document.createElement('div');
-      nuevaFila.className = 'row mb-3 align-items-center fila-entrada';
-      nuevaFila.innerHTML = `
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
-        </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
-        </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
-        </div>
-        <div class="col-md-3 col-talle">
-          <input type="text" class="form-control" placeholder="Talle (ej: S,M,L)" data-field="talle">
-        </div>
-        <div class="col-md-2 col-filas">
-          <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
-        </div>
-        <div class="col-md-1">
-          <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)">✕</button>
-        </div>
-      `;
-      container.appendChild(nuevaFila);
-    }
+function agregarFila() {
+  contadorFilas++;
+  const container = document.getElementById('filas-container');
+  const nuevaFila = document.createElement('div');
+  nuevaFila.className = 'row mb-3 align-items-center fila-entrada';
+  nuevaFila.innerHTML = `
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
+    </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
+    </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
+    </div>
+    <div class="col-md-2 col-talle">
+      <input type="text" class="form-control" placeholder="Talle (ej: S,M,L)" data-field="talle">
+    </div>
+    <div class="col-md-1">
+      <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0">
+    </div>
+    <div class="col-md-2 col-filas">
+      <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
+    </div>
+    <div class="col-md-1">
+      <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)">✕</button>
+    </div>
+  `;
+  container.appendChild(nuevaFila);
+}
 
     // Eliminar fila
     function eliminarFila(btn) {
@@ -382,31 +387,32 @@
       });
     }
 
-    // Recolectar datos
-    function recolectarDatos() {
-      const datos = [];
-      document.querySelectorAll('.fila-entrada').forEach(fila => {
-        const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
-        const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
-        const producto = fila.querySelector('[data-field="producto"]').value.trim();
-        const talle = fila.querySelector('[data-field="talle"]').value.trim();
-        const filas = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
+function recolectarDatos() {
+  const datos = [];
+  document.querySelectorAll('.fila-entrada').forEach(fila => {
+    const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
+    const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
+    const producto = fila.querySelector('[data-field="producto"]').value.trim();
+    const talle = fila.querySelector('[data-field="talle"]').value.trim();
+    const stock = fila.querySelector('[data-field="stock"]').value.trim(); // NUEVO
+    const filas = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
 
-        if (grupo && producto) {
-          // Crear una entrada por cada fila solicitada
-          for (let i = 0; i < filas; i++) {
-            datos.push({
-              grupo,
-              subgrupo, // Puede estar vacío
-              producto, // Mismo nombre para todas las filas (sin número)
-              talle,    // Talles (puede estar vacío)
-              filas: 1  // Siempre 1 porque cada entrada es una fila
-            });
-          }
-        }
-      });
-      return datos;
+    if (grupo && producto) {
+      // Crear una entrada por cada fila solicitada
+      for (let i = 0; i < filas; i++) {
+        datos.push({
+          grupo,
+          subgrupo, // Puede estar vacío
+          producto, // Mismo nombre para todas las filas (sin número)
+          talle,    // Talles (puede estar vacío)
+          stock,    // Stock (puede estar vacío) - NUEVO
+          filas: 1  // Siempre 1 porque cada entrada es una fila
+        });
+      }
     }
+  });
+  return datos;
+}
 
 function probarVistaPrevia() {
   const datos = recolectarDatos();
@@ -427,7 +433,7 @@ function probarVistaPrevia() {
       <td>${item.grupo}</td>
       <td>${item.subgrupo || ''}</td>
       <td>${item.talle || ''}</td>
-      <td></td> <!-- NUEVO: Stock vacío -->
+      <td>${item.stock || ''}</td> <!-- ACTUALIZADO: Mostrar stock si existe -->
       <td>1</td>
     `;
     tbody.appendChild(tr);
@@ -461,7 +467,7 @@ function generarExcel() {
       item.grupo,       // Grupo
       item.subgrupo,    // Subgrupo (puede estar vacío)
       item.talle,       // Talles (puede estar vacío)
-      '',               // Stock (vacío) - NUEVO
+      item.stock || '', // Stock (usar el valor recolectado o vacío) - ACTUALIZADO
       '1'               // Filas (siempre 1)
     ]);
   });
@@ -493,6 +499,7 @@ function generarExcel() {
   // Mostrar mensaje de éxito
   alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso.`);
 }
+    
     // Inicializar con algunas filas y mejoras para móvil
     window.addEventListener('load', () => {
       // Agregar 3 filas más
