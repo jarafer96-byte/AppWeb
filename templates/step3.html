@@ -1295,8 +1295,6 @@ window.addEventListener("load", () => {
     const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
     console.log("🟢 [Step3] imagenes_step0 al cargar:", rutasStep0);
 
-    // Intentar restaurar estado guardado (si no venís de Step2-5)
-    loadState();
     console.log("💾 [Step3] Estado restaurado desde localStorage");
 
     // ✅ volver a marcar imágenes usadas
