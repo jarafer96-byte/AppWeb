@@ -2331,10 +2331,11 @@ def step3():
         subgrupos = request.form.getlist('subgrupo')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
-        stocks = request.form.getlist('stock')  # 👈 NUEVO: campo stock
+        colores = request.form.getlist('colores')  # 👈 NUEVO: campo colores
+        stocks = request.form.getlist('stock')
         imagenes_elegidas = request.form.getlist('imagen_elegida')
 
-        print(f"📊 [Step3] Datos recibidos: nombres={len(nombres)}, precios={len(precios)}, stocks={len(stocks)}, imagenes_elegidas={len(imagenes_elegidas)}")
+        print(f"📊 [Step3] Datos recibidos: nombres={len(nombres)}, talles={len(talles)}, colores={len(colores)}, stocks={len(stocks)}")
 
         repo_name = session.get('repo_nombre') or "AppWeb"
         print(f"📦 [Step3] Repo destino: {repo_name}")
@@ -2346,11 +2347,18 @@ def step3():
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
             
-            # 👈 NUEVO: procesar stock
+            # Procesar talles
+            talle_raw = talles[i].strip() if i < len(talles) else ''
+            talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
+            
+            # Procesar colores
+            color_raw = colores[i].strip() if i < len(colores) else ''
+            color_lista = [c.strip() for c in color_raw.split(',') if c.strip()]
+            
+            # Procesar stock
             stock_raw = stocks[i] if i < len(stocks) else "0"
             print(f"  [Step3] Stock raw recibido para producto {i+1}: '{stock_raw}'")
             
-            # Procesar stock para convertirlo a int
             stock_final = 0
             if stock_raw and str(stock_raw).strip():
                 try:
@@ -2364,15 +2372,12 @@ def step3():
             else:
                 print(f"  [Step3] ℹ️ Stock vacío o no proporcionado, usando default 0")
             
-            print(f"➡️ [Step3] Procesando producto {i+1}: nombre={nombre}, precio={precio}, stock={stock_final}, grupo={grupo}, subgrupo={subgrupo}, orden={orden}")
+            print(f"➡️ [Step3] Procesando producto {i+1}: nombre={nombre}, precio={precio}, stock={stock_final}")
+            print(f"  Talles: {talle_lista}, Colores: {color_lista}")
 
             if not nombre or not precio or not grupo or not subgrupo:
                 print("⚠️ [Step3] Producto ignorado por datos incompletos")
                 continue
-
-            talle_raw = talles[i].strip() if i < len(talles) else ''
-            talle_lista = [t.strip() for t in talle_raw.split(',') if t.strip()]
-            print(f"👕 [Step3] Talles={talle_lista}")
 
             imagen_url = imagenes_elegidas[i].strip() if i < len(imagenes_elegidas) else ''
             imagen_para_guardar = None
@@ -2396,23 +2401,52 @@ def step3():
                     if os.path.exists(local_candidate):
                         imagen_para_guardar = f"/static/img/{basename}"
                     else:
-                        print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url} (basename: {basename})")
+                        print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url}")
                         continue
 
-            print(f"🔍 [Step3] imagen_para_guardar para '{nombre}': {imagen_para_guardar}")
+            # Crear variantes si hay talles y colores
+            variantes = {}
+            tiene_variantes = False
+            
+            if talle_lista and color_lista:
+                tiene_variantes = True
+                # Distribuir stock equitativamente entre variantes
+                num_variantes = len(talle_lista) * len(color_lista)
+                if num_variantes > 0:
+                    stock_por_variante = stock_final // num_variantes
+                    
+                    for talle in talle_lista:
+                        for color in color_lista:
+                            key = f"{talle}_{color}".replace(" ", "_")
+                            variantes[key] = {
+                                "talle": talle,
+                                "color": color,
+                                "stock": stock_por_variante,
+                                "imagen_url": ""
+                            }
+                    print(f"  [Step3] Creadas {len(variantes)} variantes con stock {stock_por_variante} cada una")
+            
+            # Calcular stock total
+            if tiene_variantes and variantes:
+                stock_total = sum(v.get('stock', 0) for v in variantes.values())
+            else:
+                stock_total = stock_final
 
             bloques.append({
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'stock': stock_final,  # 👈 NUEVO: incluir stock en el bloque
+                'stock': stock_total,  # Stock total (calculado)
                 'imagen_url': imagen_para_guardar,
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
-                'talles': talle_lista
+                'talles': talle_lista,
+                'colores': color_lista,
+                'variantes': variantes,
+                'tiene_variantes': tiene_variantes
             })
-            print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_para_guardar}, stock={stock_final}")
+            print(f"✅ [Step3] Producto agregado: {nombre} con {len(variantes)} variantes, stock total={stock_total}")
 
         session['bloques'] = bloques
         print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
@@ -2420,11 +2454,10 @@ def step3():
 
         def subir_con_resultado(producto):
             try:
-                print(f"🔥 [Step3] Subiendo producto a Firestore: {producto.get('nombre')}, stock={producto.get('stock')}")
+                print(f"🔥 [Step3] Subiendo producto a Firestore: {producto.get('nombre')}")
                 resultado = subir_a_firestore(producto, email)
                 print(f"🔥 [Step3] Resultado subir_a_firestore para '{producto.get('nombre')}' -> {resultado}")
                 
-                # Verificar si fue exitoso
                 if isinstance(resultado, dict):
                     return resultado.get("status") == "ok" or resultado.get("ok") == True
                 else:
@@ -2495,7 +2528,6 @@ def step3():
 
         if exitos > 0:
             print(f"➡️ [Step3] {exitos} productos guardados exitosamente, redirigiendo a /preview")
-            # Limpiar imágenes de sesión para liberar memoria
             session.pop('imagenes_step0', None)
             return redirect(f"/preview?email={email}&step3_completado=true&guardados={exitos}")
         else:
@@ -2505,7 +2537,7 @@ def step3():
                 tipo_web=tipo,
                 imagenes_step0=imagenes_disponibles,
                 email=email,
-                productos=bloques  # 👈 Pasar productos para rellenar formulario
+                productos=bloques
             )
 
     print("ℹ️ [Step3] GET request, renderizando step3.html")
