@@ -2026,7 +2026,7 @@ def guardar_producto():
 
         # 1) Parsear body
         data = request.get_json(force=True) or {}
-        print(f"[GUARDAR_PRODUCTO] Body recibido: {data}")
+        print(f"[GUARDAR_PRODUCTO] Body recibido: {json.dumps(data, indent=2)}")
 
         email = data.get("email")
         producto = data.get("producto")
@@ -2040,15 +2040,33 @@ def guardar_producto():
             print("[GUARDAR_PRODUCTO] ❌ Falta producto en body")
             return jsonify({"status": "error", "error": "Producto inválido"}), 400
 
-        # NUEVO: Debug del stock
-        print(f"[GUARDAR_PRODUCTO] Stock recibido en producto: {producto.get('stock')}")
-        print(f"[GUARDAR_PRODUCTO] Datos validados → email={email}")
+        # 3) Validar consistencia de stock y variantes
+        tiene_variantes = bool(producto.get('tiene_variantes', False))
+        variantes = producto.get('variantes', {})
+        
+        if tiene_variantes and variantes:
+            # Si tiene variantes, calcular stock total de las variantes
+            stock_total_variantes = sum(v.get('stock', 0) for v in variantes.values())
+            producto['stock'] = stock_total_variantes
+            print(f"[GUARDAR_PRODUCTO] ✅ Stock sincronizado: {stock_total_variantes} (de {len(variantes)} variantes)")
+        elif tiene_variantes and not variantes:
+            # Si tiene variantes pero no datos, verificar talles y colores
+            talles = producto.get('talles', [])
+            colores = producto.get('colores', [])
+            if talles and colores and producto.get('stock', 0) > 0:
+                # Distribuir stock entre variantes automáticas
+                num_variantes = len(talles) * len(colores)
+                if num_variantes > 0:
+                    stock_por_variante = producto.get('stock', 0) // num_variantes
+                    print(f"[GUARDAR_PRODUCTO] ℹ️ Producto con talles/colores pero sin variantes explícitas")
+        
+        print(f"[GUARDAR_PRODUCTO] 📊 Datos validados → email={email}, tiene_variantes={tiene_variantes}")
 
-        # 3) Guardar usando función robusta
+        # 4) Guardar usando función robusta
         print("[GUARDAR_PRODUCTO] → Llamando a subir_a_firestore()")
         resultado = subir_a_firestore(producto, email)
 
-        # 4) Respuesta normalizada
+        # 5) Respuesta normalizada
         response_data = {
             "status": "ok",
             "email": email,
@@ -2058,7 +2076,7 @@ def guardar_producto():
         print(f"[GUARDAR_PRODUCTO] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
         return jsonify(response_data)
 
-    except Exception as e:   # 👈 alineado con el try
+    except Exception as e:
         print(f"[GUARDAR_PRODUCTO] ❌ Error interno: {e}")
         import traceback
         traceback.print_exc()
@@ -2068,6 +2086,37 @@ def guardar_producto():
             'detalle': 'Revisa los logs del servidor'
         }), 500
 
+def sincronizar_stock_variantes(email, producto_id):
+    """Sincroniza el stock general con la suma de variantes"""
+    try:
+        doc_ref = db.collection("usuarios").document(email)\
+                    .collection("productos").document(producto_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            print(f"[SYNC] ❌ Producto no encontrado: {producto_id}")
+            return False
+        
+        data = doc.to_dict()
+        variantes = data.get('variantes', {})
+        tiene_variantes = data.get('tiene_variantes', False)
+        
+        if tiene_variantes and variantes:
+            stock_total = sum(v.get('stock', 0) for v in variantes.values())
+            doc_ref.update({
+                "stock": stock_total,
+                "actualizado": firestore.SERVER_TIMESTAMP
+            })
+            print(f"[SYNC] ✅ Stock sincronizado: {producto_id} → {stock_total} (de {len(variantes)} variantes)")
+            return True
+        else:
+            print(f"[SYNC] ℹ️ Producto {producto_id} no usa variantes")
+            return False
+            
+    except Exception as e:
+        print(f"[SYNC] ❌ Error sincronizando stock: {e}")
+        return False
+        
 # --- Agregar en app.py (temporal, para debug) ---
 @app.route('/debug/session')
 def debug_session():
