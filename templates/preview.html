@@ -2234,22 +2234,19 @@ function mostrarAvisoPrecio() {
   }, 2000);
 }
 
-// 👉 Eliminar ítem del carrito
-function eliminarDelCarrito(id_base, talle, event) {
+function eliminarDelCarrito(id_base, talle, color, event) {
   if (event?.stopPropagation) event.stopPropagation();
 
-  console.log("[CARRITO] ❌ Intentando eliminar → id_base:", id_base, "talle:", talle);
+  console.log("[CARRITO] ❌ Intentando eliminar →", { id_base, talle, color });
 
   // Filtrar el carrito quitando el ítem que coincide
-  const antes = carrito.length;
-  carrito = carrito.filter(p => !(p.id_base === id_base && p.talle === talle));
-  const despues = carrito.length;
+  carrito = carrito.filter(p => !(
+    p.id_base === id_base && 
+    p.talle === talle && 
+    p.color === color
+  ));
 
-  console.log("[CARRITO] 📉 Carrito antes:", antes, "después:", despues);
-
-  // Actualizar la vista del carrito
   actualizarCarrito();
-  console.log("[CARRITO] 🔄 Vista actualizada tras eliminar ítem");
 }
     
 function mostrarSubgrupo(subgrupo, event) {
