@@ -259,29 +259,32 @@
       </div>
     </div>
 
-    <!-- Filas de entrada -->
-    <div id="filas-container">
-      <div class="row mb-3 align-items-center fila-entrada">
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
-        </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
-        </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
-        </div>
-        <div class="col-md-3 col-talle">
-          <input type="text" class="form-control" placeholder="Talle (ej: S,M,L o 38,40,42)" data-field="talle">
-        </div>
-        <div class="col-md-2 col-filas">
-          <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
-        </div>
-        <div class="col-md-1 text-end">
-          <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)" style="display:none;">✕</button>
-        </div>
-      </div>
+    <!-- Buscar esta sección (línea ~80-100) y actualizar: -->
+<div id="filas-container">
+  <div class="row mb-3 align-items-center fila-entrada">
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
     </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
+    </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
+    </div>
+    <div class="col-md-3 col-talle">
+      <input type="text" class="form-control" placeholder="Talle (ej: S,M,L o 38,40,42)" data-field="talle">
+    </div>
+    <div class="col-md-1 col-filas"> <!-- Cambiado de col-md-2 a col-md-1 -->
+      <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
+    </div>
+    <div class="col-md-1 col-stock"> <!-- NUEVO: Campo Stock -->
+      <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0" value="0">
+    </div>
+    <div class="col-md-1 text-end">
+      <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)" style="display:none;">✕</button>
+    </div>
+  </div>
+</div>
 
     <!-- Botones de acción -->
     <div class="d-flex gap-3 mt-4 flex-wrap">
