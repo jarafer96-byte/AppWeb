@@ -1587,7 +1587,7 @@ def get_variantes(producto_id):
 
 @app.route('/api/variantes/<producto_id>/actualizar', methods=['POST'])
 def actualizar_variante(producto_id):
-    """Actualizar stock de una variante específica"""
+    """Actualizar stock de una variante específica y sincronizar stock total"""
     data = request.get_json(silent=True) or {}
     email = data.get('email')
     variante_key = data.get('variante_key')
@@ -1611,7 +1611,7 @@ def actualizar_variante(producto_id):
             "actualizado": firestore.SERVER_TIMESTAMP
         })
         
-        # Recalcular stock total
+        # Sincronizar stock total
         doc = doc_ref.get()
         if doc.exists:
             data_doc = doc.to_dict()
@@ -1620,7 +1620,14 @@ def actualizar_variante(producto_id):
             doc_ref.update({"stock": stock_total})
         
         print(f"[VARIANTES] ✅ Variante actualizada: {producto_id}/{variante_key} -> {nuevo_stock_int}")
-        return jsonify({'status': 'ok', 'stock_total': stock_total})
+        print(f"[VARIANTES] ✅ Stock total sincronizado: {stock_total}")
+        
+        return jsonify({
+            'status': 'ok', 
+            'stock_total': stock_total,
+            'variante_actualizada': variante_key,
+            'nuevo_stock': nuevo_stock_int
+        })
         
     except Exception as e:
         print(f"[VARIANTES] ❌ Error: {e}")
@@ -2915,7 +2922,25 @@ def preview():
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         for doc in productos_ref.stream():
-            productos.append(doc.to_dict())
+            data = doc.to_dict()
+            
+            # Calcular disponibilidad
+            tiene_variantes = data.get('tiene_variantes', False)
+            variantes = data.get('variantes', {})
+            
+            if tiene_variantes and variantes:
+                stock_total = sum(v.get('stock', 0) for v in variantes.values())
+                disponible = stock_total > 0
+            else:
+                stock_total = data.get('stock', 0)
+                disponible = stock_total > 0
+            
+            # Agregar campos calculados
+            data['stock_total'] = stock_total
+            data['disponible'] = disponible
+            
+            productos.append(data)
+            
         productos = sorted(productos, key=lambda p: p.get('orden', 0))
         print(f"[Preview] Productos cargados: {len(productos)}")
     except Exception as e:
@@ -2939,7 +2964,7 @@ def preview():
     config = {
         **config_data,
         'email': email,
-        'orden_id': orden_id,              # 👈 añadido para trazabilidad del formulario cliente
+        'orden_id': orden_id,
         'estilo_visual': estilo_visual,
         'mercado_pago': bool(mercado_pago_token),
         'public_key': public_key,
