@@ -1507,6 +1507,121 @@ def webhook_mp():
         traceback.print_exc()
         return jsonify({"ok": False}), 500
 
+# Agrega esto después de las rutas existentes
+
+@app.route('/api/variantes/<producto_id>', methods=['GET'])
+def get_variantes(producto_id):
+    """Obtener todas las variantes de un producto"""
+    email = request.args.get('email')
+    if not email:
+        return jsonify({'error': 'Falta email'}), 400
+    
+    try:
+        doc = db.collection("usuarios").document(email)\
+               .collection("productos").document(producto_id).get()
+        
+        if not doc.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        data = doc.to_dict()
+        
+        # Calcular stock total si es necesario
+        variantes = data.get('variantes', {})
+        stock_total = sum(v.get('stock', 0) for v in variantes.values())
+        
+        return jsonify({
+            'variantes': variantes,
+            'talles': data.get('talles', []),
+            'colores': data.get('colores', []),
+            'tiene_variantes': data.get('tiene_variantes', False),
+            'stock_total': stock_total,
+            'nombre': data.get('nombre', '')
+        })
+        
+    except Exception as e:
+        print(f"[API-VARIANTES] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/variantes/<producto_id>/actualizar', methods=['POST'])
+def actualizar_variante(producto_id):
+    """Actualizar stock de una variante específica"""
+    data = request.get_json(silent=True) or {}
+    email = data.get('email')
+    variante_key = data.get('variante_key')
+    nuevo_stock = data.get('stock')
+    
+    if not email or not variante_key or nuevo_stock is None:
+        return jsonify({'error': 'Datos incompletos'}), 400
+    
+    try:
+        # Convertir stock a entero
+        nuevo_stock_int = int(nuevo_stock)
+        if nuevo_stock_int < 0:
+            return jsonify({'error': 'Stock no puede ser negativo'}), 400
+        
+        doc_ref = db.collection("usuarios").document(email)\
+                    .collection("productos").document(producto_id)
+        
+        # Actualizar stock de la variante
+        doc_ref.update({
+            f"variantes.{variante_key}.stock": nuevo_stock_int,
+            "actualizado": firestore.SERVER_TIMESTAMP
+        })
+        
+        # Recalcular stock total
+        doc = doc_ref.get()
+        if doc.exists:
+            data_doc = doc.to_dict()
+            variantes = data_doc.get('variantes', {})
+            stock_total = sum(v.get('stock', 0) for v in variantes.values())
+            doc_ref.update({"stock": stock_total})
+        
+        print(f"[VARIANTES] ✅ Variante actualizada: {producto_id}/{variante_key} -> {nuevo_stock_int}")
+        return jsonify({'status': 'ok', 'stock_total': stock_total})
+        
+    except Exception as e:
+        print(f"[VARIANTES] ❌ Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/productos/<producto_id>/stock-variantes', methods=['GET'])
+def get_stock_variantes(producto_id):
+    """Obtener stock por variante para un producto específico"""
+    email = request.args.get('email')
+    if not email:
+        return jsonify({'error': 'Falta email'}), 400
+    
+    try:
+        doc = db.collection("usuarios").document(email)\
+               .collection("productos").document(producto_id).get()
+        
+        if not doc.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        data = doc.to_dict()
+        variantes = data.get('variantes', {})
+        
+        # Formatear respuesta para fácil uso en frontend
+        stock_por_variante = {}
+        for key, variante in variantes.items():
+            stock_por_variante[key] = {
+                'stock': variante.get('stock', 0),
+                'talle': variante.get('talle', ''),
+                'color': variante.get('color', ''),
+                'disponible': variante.get('stock', 0) > 0
+            }
+        
+        return jsonify({
+            'stock_por_variante': stock_por_variante,
+            'talles_disponibles': data.get('talles', []),
+            'colores_disponibles': data.get('colores', []),
+            'tiene_variantes': data.get('tiene_variantes', False),
+            'nombre': data.get('nombre', '')
+        })
+        
+    except Exception as e:
+        print(f"[STOCK-VARIANTES] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+        
 @app.route('/pagar', methods=['POST'])
 def pagar():
     print("\n🚀 [PAGAR UNIFICADO] Nueva petición recibida")
