@@ -73,7 +73,7 @@ else:
     sdk = None
     print("⚠️ MERCADO_PAGO_TOKEN no configurado, SDK no inicializado")
 ####################
-# ⚙️ Configuración de GitHub, Flask y sesiones
+# Configuración de GitHub, Flask y sesiones
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 ACCESS_TOKEN = os.getenv("WHATSAPP_TOKEN")
@@ -98,7 +98,7 @@ firebase_config = {
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
 ###################
-# ☁️ Inicialización de Google Cloud Storage
+# Inicialización de Google Cloud Storage
 key_json = os.environ.get("GOOGLE_CLOUD_KEY")
 if not key_json:
     raise RuntimeError("Falta la variable GOOGLE_CLOUD_KEY en Render")
@@ -115,7 +115,7 @@ client = storage.Client(credentials=credentials, project="arcane-sentinel-479319
 # Bucket donde se guardan las imágenes
 bucket = client.bucket("mpagina")
 ###################
-# 📂 Configuración de subida de imágenes
+# Configuración de subida de imágenes
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -123,16 +123,16 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024
 ###################
-# 🌀 Generación de referencia corta (sirve para IDs temporales)
+# Generación de referencia corta (sirve para IDs temporales)
 ext_ref = shortuuid.uuid()[:8]
 ###################
-# ⚠️ Carga alternativa de credenciales (si se usa otra variable de entorno)
+# Carga alternativa de credenciales (si se usa otra variable de entorno)
 creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
 ###################
-# 📧 Configuración de Gmail API
+# Configuración de Gmail API
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
-# 📂 Validación de archivos permitidos
+# Validación de archivos permitidos
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -191,18 +191,36 @@ def subir_a_firestore(producto, email):
             talles = [t.strip() for t in talles.split(',') if t.strip()]
         print(f"[FIRESTORE] Talles procesados: {talles}")
 
-        # 👇 NUEVO: Parseo de stock
+        # 👇 PARSEO DE STOCK - VERSIÓN MEJORADA
         stock_raw = producto.get("stock")
+        print(f"[FIRESTORE] Stock recibido (raw): {stock_raw}, tipo: {type(stock_raw)}")
+        
+        stock = 0  # default
         if stock_raw is not None:
             try:
-                stock = int(stock_raw)
+                # Si es string, convertir a int
+                if isinstance(stock_raw, str):
+                    stock_raw = stock_raw.strip()
+                    if stock_raw == "":
+                        stock = 0
+                    else:
+                        stock = int(stock_raw)
+                # Si ya es int o float
+                elif isinstance(stock_raw, (int, float)):
+                    stock = int(stock_raw)
+                
+                # Validar que no sea negativo
                 if stock < 0:
                     stock = 0
-            except:
+                    print(f"[FIRESTORE] ⚠️ Stock negativo ajustado a 0")
+                    
+            except (ValueError, TypeError) as e:
+                print(f"[FIRESTORE] ⚠️ Error parseando stock '{stock_raw}': {e}, usando default 0")
                 stock = 0
         else:
-            stock = 0  # default
-        print(f"[FIRESTORE] Stock procesado: {stock}")
+            print(f"[FIRESTORE] ℹ️ Stock no proporcionado, usando default 0")
+        
+        print(f"[FIRESTORE] ✅ Stock final: {stock}")
 
         producto["id_base"] = custom_id
 
@@ -220,7 +238,7 @@ def subir_a_firestore(producto, email):
             "nombre": nombre_original,
             "id_base": custom_id,
             "precio": precio,
-            "stock": stock,  # 👈 NUEVO CAMPO
+            "stock": stock,  # 👈 CAMPO DE STOCK INCLUIDO
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
