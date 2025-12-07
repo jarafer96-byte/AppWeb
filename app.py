@@ -1642,6 +1642,8 @@ def guardar_producto():
             print("[GUARDAR_PRODUCTO] ❌ Falta producto en body")
             return jsonify({"status": "error", "error": "Producto inválido"}), 400
 
+        # NUEVO: Debug del stock
+        print(f"[GUARDAR_PRODUCTO] Stock recibido en producto: {producto.get('stock')}")
         print(f"[GUARDAR_PRODUCTO] Datos validados → email={email}")
 
         # 3) Guardar usando función robusta
