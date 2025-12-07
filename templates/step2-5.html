@@ -394,21 +394,27 @@ function recolectarDatos() {
     const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
     const producto = fila.querySelector('[data-field="producto"]').value.trim();
     const talle = fila.querySelector('[data-field="talle"]').value.trim();
-    const stock = fila.querySelector('[data-field="stock"]').value.trim(); // NUEVO
+    const stock = fila.querySelector('[data-field="stock"]').value.trim();
     const filas = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
 
     if (grupo && producto) {
-      // Crear una entrada por cada fila solicitada
-      for (let i = 0; i < filas; i++) {
-        datos.push({
-          grupo,
-          subgrupo, // Puede estar vacío
-          producto, // Mismo nombre para todas las filas (sin número)
-          talle,    // Talles (puede estar vacío)
-          stock,    // Stock (puede estar vacío) - NUEVO
-          filas: 1  // Siempre 1 porque cada entrada es una fila
-        });
-      }
+      // Separar talles por comas
+      const tallesList = talle ? talle.split(",").map(t => t.trim()).filter(Boolean) : [""];
+      
+      // Para cada talle, crear una entrada
+      tallesList.forEach(t => {
+        // Crear una entrada por cada fila solicitada
+        for (let i = 0; i < filas; i++) {
+          datos.push({
+            grupo,
+            subgrupo,
+            producto: filas > 1 ? `${producto}${i+1}` : producto,
+            talle: t,
+            stock,
+            filas: 1
+          });
+        }
+      });
     }
   });
   return datos;
