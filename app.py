@@ -537,14 +537,19 @@ def api_productos():
         for doc in docs:
             data = doc.to_dict() or {}
             
-            # Calcular stock disponible si tiene variantes
-            stock_disponible = data.get("stock", 0)
+            # Calcular stock disponible según si tiene variantes o no
+            tiene_variantes = data.get("tiene_variantes", False)
             variantes = data.get("variantes", {})
             
-            if variantes:
+            if tiene_variantes and variantes:
                 # Si tiene variantes, calcular stock total sumando todas las variantes
-                stock_total_variantes = sum(v.get('stock', 0) for v in variantes.values())
-                stock_disponible = stock_total_variantes
+                stock_disponible = sum(v.get('stock', 0) for v in variantes.values())
+            else:
+                # Usar stock general
+                stock_disponible = data.get("stock", 0)
+            
+            # Determinar si está disponible (stock > 0)
+            disponible = stock_disponible > 0
             
             productos.append({
                 "id": doc.id,
@@ -552,15 +557,16 @@ def api_productos():
                 "nombre": data.get("nombre"),
                 "precio": data.get("precio"),
                 "stock": stock_disponible,  # Stock total (suma de variantes si aplica)
+                "disponible": disponible,
                 "grupo": data.get("grupo"),
                 "subgrupo": data.get("subgrupo"),
                 "descripcion": data.get("descripcion"),
                 "imagen_url": data.get("imagen_url"),
                 "orden": data.get("orden"),
                 "talles": data.get("talles", []),
-                "colores": data.get("colores", []),  # 👈 NUEVO
-                "variantes": data.get("variantes", {}),  # 👈 NUEVO
-                "tiene_variantes": data.get("tiene_variantes", False),  # 👈 NUEVO
+                "colores": data.get("colores", []),
+                "variantes": data.get("variantes", {}),
+                "tiene_variantes": tiene_variantes,
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
             })
 
