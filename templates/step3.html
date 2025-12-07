@@ -908,12 +908,13 @@ function guardarNombreSubgrupo(card, nuevoNombre) {
   saveStateDebounced();
 }
 
+<!-- En la función crearFila(), dentro del HTML de la fila -->
 function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2 fila-producto';
 
   fila.innerHTML = `
-    <div class="col-3">
+    <div class="col-2"> <!-- Reducido de col-3 -->
       <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre">
     </div>
     <div class="col-3">
@@ -924,6 +925,9 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
     </div>
     <div class="col-2">
       <input type="text" name="talles" class="form-control form-control-sm" style="width: 160px;" placeholder="(Opcional) S,M,L,XL">
+    </div>
+    <div class="col-1"> <!-- NUEVO: Campo Stock -->
+      <input type="number" name="stock" class="form-control form-control-sm" placeholder="Stock" min="0" value="0">
     </div>
     <div class="col-2">
       <div class="d-flex align-items-center justify-content-end gap-2">
