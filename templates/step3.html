@@ -1334,29 +1334,35 @@ function validarYEnviar() {
 
   let hayContenidoValido = false;
   let imagenesInvalidas = false;
+  let stockInvalidos = false;
 
   grupos.forEach(grupo => {
     const filas = grupo.querySelectorAll('.fila-producto');
     filas.forEach(fila => {
       const nombre = fila.querySelector('input[name="nombre"]');
       const precio = fila.querySelector('input[name="precio"]');
+      const stock = fila.querySelector('input[name="stock"]');
       const inputImagen = fila.querySelector('input[name="imagen_elegida"]');
 
       const nombreValido = nombre && nombre.value.trim();
       const precioValido = precio && precio.value.trim();
+      const stockValido = stock && !isNaN(stock.value) && parseInt(stock.value) >= 0; // NUEVO
       const imagenValida = inputImagen && inputImagen.value.trim() !== "";
 
-      if (nombreValido && precioValido && imagenValida) {
+      if (nombreValido && precioValido && imagenValida && stockValido) {
         hayContenidoValido = true;
       }
       if ((nombreValido || precioValido) && !imagenValida) {
         imagenesInvalidas = true;
       }
+      if (nombreValido && !stockValido) {
+        stockInvalidos = true;
+      }
     });
   });
 
   if (!hayContenidoValido) {
-    alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
+    alert('Completá al menos una fila con nombre, precio, stock e imagen antes de continuar');
     return;
   }
 
@@ -1365,12 +1371,17 @@ function validarYEnviar() {
     return;
   }
 
+  if (stockInvalidos) {
+    alert('⚠️ Hay filas con valores de stock inválidos (debe ser un número mayor o igual a 0).');
+    return;
+  }
+
   // Mostrar spinner y limpiar estado antes de enviar
   document.getElementById('spinner').style.display = 'flex';
   localStorage.removeItem("step3_state"); // ✅ limpiar cache del paso
   document.getElementById('formulario').submit();
 }
-  
+ 
 function guardarProductoLocal(producto) {
   let productos = JSON.parse(localStorage.getItem("productos")) || [];
   productos.push(producto);
