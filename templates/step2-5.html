@@ -405,12 +405,18 @@ function recolectarDatos() {
     const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
     const producto = fila.querySelector('[data-field="producto"]').value.trim();
     const talle = fila.querySelector('[data-field="talle"]').value.trim();
-    const filasInput = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
-    const stock = parseInt(fila.querySelector('[data-field="stock"]').value) || 0; // NUEVO
+    
+    // Filas: si está vacío, usar 1 por defecto
+    const filasInput = fila.querySelector('[data-field="filas"]').value;
+    const filas = filasInput === '' ? 1 : parseInt(filasInput) || 1;
+    
+    // Stock: si está vacío, usar 0 por defecto
+    const stockInput = fila.querySelector('[data-field="stock"]').value;
+    const stock = stockInput === '' ? 0 : parseInt(stockInput) || 0;
 
     if (grupo && producto) {
       // Crear una entrada por cada fila solicitada
-      for (let i = 0; i < filasInput; i++) {
+      for (let i = 0; i < filas; i++) {
         datos.push({
           grupo,
           subgrupo, // Puede estar vacío
