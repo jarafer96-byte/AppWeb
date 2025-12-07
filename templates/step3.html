@@ -568,15 +568,17 @@ function leerArchivoProductos() {
         const grupo = partes[3] || "";
         const subgrupo = partes[4] || "";
         const talles = partes[5] || "";
-        const stock = partes[6] || "";
-        const filas = parseInt(partes[7]) || 1;
+        const colores = partes[6] || "";  // NUEVO: campo de colores
+        const stock = partes[7] || "";
+        const filas = parseInt(partes[8]) || 1;
 
         if (!grupo) {
           console.warn("⚠️ Línea descartada por falta de grupo:", partes);
           return;
         }
 
-        const filasCreadas = procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas, stock);
+        // 👉 CORRECCIÓN: Ahora pasamos 9 parámetros en lugar de 7
+        const filasCreadas = procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, colores, filas, stock);
         totalFilasAgregadas += filasCreadas;
       });
 
@@ -604,6 +606,7 @@ function leerArchivoProductos() {
         const descripcion = obj.Descripcion || "";
         const precio = obj.Precio || "";
         const talles = obj.Talles || "";
+        const colores = obj.Colores || obj.Color || "";  // NUEVO: campo de colores
         const stock = obj.Stock || "";
         const filas = parseInt(obj.Filas) || 1;
 
@@ -612,7 +615,8 @@ function leerArchivoProductos() {
           return;
         }
 
-        const filasCreadas = procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas, stock);
+        // 👉 CORRECCIÓN: Ahora pasamos 9 parámetros
+        const filasCreadas = procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, colores, filas, stock);
         totalFilasAgregadas += filasCreadas;
       });
 
