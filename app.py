@@ -512,18 +512,31 @@ def api_productos():
         productos = []
         for doc in docs:
             data = doc.to_dict() or {}
+            
+            # Calcular stock disponible si tiene variantes
+            stock_disponible = data.get("stock", 0)
+            variantes = data.get("variantes", {})
+            
+            if variantes:
+                # Si tiene variantes, calcular stock total sumando todas las variantes
+                stock_total_variantes = sum(v.get('stock', 0) for v in variantes.values())
+                stock_disponible = stock_total_variantes
+            
             productos.append({
                 "id": doc.id,
                 "id_base": data.get("id_base"),
                 "nombre": data.get("nombre"),
                 "precio": data.get("precio"),
-                "stock": data.get("stock", 0),  # 👈 NUEVO: campo stock con default 0
+                "stock": stock_disponible,  # Stock total (suma de variantes si aplica)
                 "grupo": data.get("grupo"),
                 "subgrupo": data.get("subgrupo"),
                 "descripcion": data.get("descripcion"),
                 "imagen_url": data.get("imagen_url"),
                 "orden": data.get("orden"),
                 "talles": data.get("talles", []),
+                "colores": data.get("colores", []),  # 👈 NUEVO
+                "variantes": data.get("variantes", {}),  # 👈 NUEVO
+                "tiene_variantes": data.get("tiene_variantes", False),  # 👈 NUEVO
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
             })
 
