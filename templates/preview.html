@@ -637,6 +637,128 @@ const modoAdmin = window.tokenAdminEmail ? true : false;
 if (modoAdmin) {
   document.getElementById("adminCard").classList.remove("d-none");
 }   
+// 👇 NUEVAS FUNCIONES PARA EDITAR STOCK (SOLO MODO ADMIN)
+
+function editarStock(id) {
+  const span = document.getElementById("stock_" + id);
+  if (!span) return;
+
+  const valorActual = span.textContent === "Sin stock" ? "0" : span.textContent.trim();
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = "0";
+  input.value = valorActual;
+  input.className = "form-control form-control-sm d-inline-block";
+  input.style.width = "80px";
+  input.id = "input_stock_" + id;
+
+  input.onblur = () => guardarStock(id);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") input.blur();
+  });
+
+  span.replaceWith(input);
+  input.focus();
+}
+
+function guardarStock(id) {
+  const input = document.getElementById("input_stock_" + id);
+  if (!input) {
+    console.warn("❌ No se encontró el input de stock:", "input_stock_" + id);
+    return;
+  }
+
+  const nuevoStock = parseInt(input.value) || 0;
+  
+  if (nuevoStock < 0) {
+    alert("❌ El stock no puede ser negativo");
+    return;
+  }
+
+  console.log("📡 Actualizando stock:", { id, stock: nuevoStock, email: window.email });
+
+  // Usamos el endpoint EXISTENTE que actualiza cualquier campo
+  fetch("https://mpagina.onrender.com/actualizar-firestore", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      id: id, 
+      stock: nuevoStock, 
+      email: window.email  // Variable global del email del vendedor
+    })
+  })
+  .then(res => {
+    console.log("📡 Respuesta recibida, status:", res.status);
+    return res.json();
+  })
+  .then(data => {
+    console.log("📩 Respuesta backend:", data);
+
+    if (data.status === "ok") {
+      // 1. Actualizar texto en DOM
+      const span = document.createElement("span");
+      span.id = "stock_" + id;
+      span.textContent = nuevoStock > 0 ? nuevoStock : "Sin stock";
+      span.className = nuevoStock > 0 ? "text-success" : "text-danger";
+      input.replaceWith(span);
+      setTimeout(() => {
+        span.classList.remove("text-success");
+        span.classList.remove("text-danger");
+      }, 1000);
+      
+      // 2. Actualizar el atributo max del input de cantidad
+      const cantidadInput = document.getElementById("cantidad_" + id);
+      const agregarBtn = cantidadInput?.closest(".d-flex")?.querySelector("button");
+      
+      if (cantidadInput && agregarBtn) {
+        if (nuevoStock > 0) {
+          cantidadInput.max = nuevoStock;
+          cantidadInput.disabled = false;
+          cantidadInput.value = Math.min(parseInt(cantidadInput.value) || 1, nuevoStock);
+          agregarBtn.disabled = false;
+          agregarBtn.style.opacity = "1";
+          agregarBtn.textContent = "Agregar al carrito";
+        } else {
+          cantidadInput.disabled = true;
+          agregarBtn.disabled = true;
+          agregarBtn.style.opacity = "0.5";
+          agregarBtn.textContent = "Sin stock";
+        }
+        console.log("✅ Input cantidad actualizado, stock=", nuevoStock);
+      }
+      
+      // 3. Mostrar aviso visual
+      mostrarAvisoStock();
+    } else {
+      console.error("❌ Error al actualizar stock:", data);
+      alert("❌ No se pudo actualizar el stock: " + (data.message || "Error desconocido"));
+    }
+  })
+  .catch(err => {
+    console.error("💥 Error de conexión:", err);
+    alert("❌ Error de conexión al guardar el stock");
+  });
+}
+
+function mostrarAvisoStock() {
+  // Crear aviso si no existe
+  let aviso = document.getElementById("avisoStock");
+  if (!aviso) {
+    aviso = document.createElement("div");
+    aviso.id = "avisoStock";
+    aviso.className = "alert alert-info text-center";
+    aviso.role = "alert";
+    aviso.textContent = "✔ Stock actualizado";
+    aviso.style.cssText = "display: none; position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 10px 20px; border-radius: 5px;";
+    document.body.appendChild(aviso);
+  }
+  
+  aviso.style.display = "block";
+  setTimeout(() => {
+    aviso.style.display = "none";
+  }, 2000);
+}
     
 function openModal(src) {
   const modal = document.getElementById("imgModal");
@@ -1938,6 +2060,11 @@ function renderProducto(p) {
   card.dataset.id = p.id_base;
   card.dataset.precio = p.precio;
 
+  // Stock disponible (si es 0 o negativo, mostrar "Sin stock")
+  const stockDisponible = p.stock || 0;
+  const mostrarStock = stockDisponible > 0 ? stockDisponible : "Sin stock";
+  const claseStock = stockDisponible > 0 ? "" : "text-danger";
+
   // Generar contenido de talles
   let tallesHTML = `
     <div class="mb-2">
@@ -1971,16 +2098,26 @@ function renderProducto(p) {
             <button type="button" class="btn btn-sm btn-outline-primary ms-2"
               onclick="editarPrecio('${p.id_base}')">✎ Editar</button>` : ""}
         </p>
+        <!-- 👇 NUEVO: Mostrar stock disponible -->
+        <p>
+          <strong>Cantidad disponible:</strong> 
+          <span id="stock_${p.id_base}" class="${claseStock}">${mostrarStock}</span>
+          ${window.modoAdmin ? `
+            <button type="button" class="btn btn-sm btn-outline-primary ms-2"
+              onclick="editarStock('${p.id_base}')">✎ Editar</button>` : ""}
+        </p>
         ${tallesHTML}
         ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
         <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
-          <label class="mb-0" style="font-size: 14px;">Cantidad:</label>
-          <input type="number" min="1" max="100" value="1"
+          <label class="mb-0" style="font-size: 14px;">Cantidad a comprar:</label>
+          <input type="number" min="1" max="${stockDisponible > 0 ? stockDisponible : 1}" value="1"
                  id="cantidad_${p.id_base}"
-                 class="form-control form-control-sm" style="width: 70px;">
+                 class="form-control form-control-sm" style="width: 70px;"
+                 ${stockDisponible <= 0 ? "disabled" : ""}>
           <button type="button" class="btn btn-secondary"
-            onclick="agregarAlCarritoDOM('${p.nombre}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${p.grupo}', '${p.subgrupo}')">
-            Agregar al carrito
+            onclick="agregarAlCarritoDOM('${p.nombre}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${p.grupo}', '${p.subgrupo}')"
+            ${stockDisponible <= 0 ? "disabled style='opacity:0.5'" : ""}>
+            ${stockDisponible > 0 ? "Agregar al carrito" : "Sin stock"}
           </button>
         </div>
         ${window.modoAdmin ? `
