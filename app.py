@@ -1480,6 +1480,19 @@ def pagar():
         if items_mp and len(items_mp) > 0:
             print(f"[PAGAR] ✅ Usando items_mp proporcionados del frontend")
             items_para_mp = items_mp
+            
+            # 🔥 CORRECCIÓN: Asegurar que items_mp tengan "id" si vienen del frontend
+            for item in items_para_mp:
+                if not item.get('id') and not item.get('id_base'):
+                    # Buscar en el carrito por título o nombre
+                    titulo_item = item.get('title', '')
+                    for item_carrito in carrito:
+                        nombre_carrito = item_carrito.get('nombre', '')
+                        if nombre_carrito and titulo_item and nombre_carrito in titulo_item:
+                            item['id'] = item_carrito.get('id_base', '')
+                            item['id_base'] = item_carrito.get('id_base', '')
+                            print(f"[PAGAR] 🔄 Agregado id_base a item MP: {item['id']}")
+                            break
         else:
             print(f"[PAGAR] 🔄 Convirtiendo carrito a formato MP")
             items_para_mp = []
@@ -1494,29 +1507,51 @@ def pagar():
                     cantidad = int(item.get('cantidad', 1))
                     nombre = item.get('nombre', 'Producto')
                     talle = item.get('talle', '')
+                    id_base = item.get('id_base', '')
                     
                     titulo = nombre if not talle else f"{nombre} (Talle: {talle})"
                     
-                    items_para_mp.append({
-                        "id": item.get('id_base', ''),
+                    # 🔥 CORRECCIÓN COMPLETA: Incluir TODOS los campos necesarios
+                    item_mp = {
+                        "id": id_base,  # ✅ Campo CRÍTICO para el webhook
+                        "id_base": id_base,  # ✅ Campo adicional
                         "title": titulo,
                         "description": nombre,
                         "quantity": cantidad,
                         "unit_price": precio,
                         "currency_id": "ARS"
-                    })
+                    }
                     
-                    print(f"  - Convertido: {nombre} - ${precio} x {cantidad}")
+                    # Si no hay id_base, generamos uno temporal
+                    if not id_base:
+                        item_mp["id"] = f"temp_{uuid.uuid4().hex[:8]}"
+                        item_mp["id_base"] = item_mp["id"]
+                        print(f"[PAGAR] ⚠️ Item sin id_base, usando temporal: {item_mp['id']}")
+                    
+                    items_para_mp.append(item_mp)
+                    
+                    print(f"  - Convertido: {nombre} - ${precio} x {cantidad} | id_base: {id_base}")
                 except Exception as e:
                     print(f"  - ❌ Error convirtiendo item: {e}")
                     continue
+        
+        # Validar que los items tengan "id" (requerido para el webhook)
+        items_sin_id = [item for item in items_para_mp if not item.get('id')]
+        if items_sin_id:
+            print(f"[PAGAR] ⚠️ Items sin 'id': {len(items_sin_id)}")
+            for i, item in enumerate(items_sin_id):
+                # Generar ID temporal
+                temp_id = f"temp_{external_ref}_{i}"
+                item['id'] = temp_id
+                item['id_base'] = temp_id
+                print(f"[PAGAR] 🔄 Asignado ID temporal: {temp_id}")
         
         if not items_para_mp:
             return jsonify({'error': 'No se pudieron procesar los productos para el pago'}), 400
         
         print(f"[PAGAR] 📦 Items para Mercado Pago ({len(items_para_mp)}):")
         for idx, item in enumerate(items_para_mp):
-            print(f"  {idx+1}. {item.get('title')} - ${item.get('unit_price')} x {item.get('quantity')}")
+            print(f"  {idx+1}. {item.get('title')} - ${item.get('unit_price')} x {item.get('quantity')} | id: {item.get('id')}")
         
         # 5. Calcular total
         total_calculado = sum(item.get('unit_price', 0) * item.get('quantity', 1) for item in items_para_mp)
@@ -1530,7 +1565,7 @@ def pagar():
         base_url = "https://mpagina.onrender.com"
         
         # Usar url_retorno para pasar como parámetro, no como base
-        url_retorno_encoded = quote(url_retorno or "", safe='')  # 👈 CAMBIADO: solo quote()
+        url_retorno_encoded = quote(url_retorno or "", safe='')
         
         preference_data = {
             "items": items_para_mp,
@@ -1589,12 +1624,14 @@ def pagar():
                 "email_cliente": cliente_email,
                 "telefono_cliente": cliente_telefono,
                 "total_items": len(items_para_mp),
-                "url_retorno": url_retorno
+                "url_retorno": url_retorno,
+                "ids_items": [item.get('id') for item in items_para_mp]  # 🔥 Nuevo: lista de IDs para debug
             }
         }
         
         db.collection("ordenes").document(external_ref).set(orden_doc)
         print(f"[PAGAR] ✅ Orden guardada en Firestore: {external_ref}")
+        print(f"[PAGAR] 🔍 IDs en items_mp: {[item.get('id') for item in items_para_mp]}")
         
         # 9. Guardar en la subcolección de pedidos del VENDEDOR
         pedido_data = {
@@ -1625,7 +1662,12 @@ def pagar():
             "total": total_final,
             "message": "Orden creada exitosamente",
             "detalle": f"Procesados {len(items_para_mp)} productos",
-            "url_retorno": url_retorno
+            "url_retorno": url_retorno,
+            "debug": {
+                "ids_items": [item.get('id') for item in items_para_mp],
+                "tiene_carrito": len(carrito) > 0,
+                "tiene_items_mp": len(items_para_mp) > 0
+            }
         }
         
         print(f"[PAGAR] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
@@ -1640,7 +1682,7 @@ def pagar():
             'message': str(e),
             'detalle': 'Revisa los logs del servidor'
         }), 500
-
+        
 @app.route('/crear-admin', methods=['POST'])
 def crear_admin():
     data = request.get_json(silent=True) or {}
