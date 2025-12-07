@@ -196,6 +196,8 @@ def subir_a_firestore(producto, email):
         if stock_raw is not None:
             try:
                 stock = int(stock_raw)
+                if stock < 0:
+                    stock = 0
             except:
                 stock = 0
         else:
