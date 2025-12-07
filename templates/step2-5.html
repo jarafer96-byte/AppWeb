@@ -17,7 +17,15 @@
     text-align: center;
     margin-bottom: 30px;
   }
+/* Añadir después de las reglas existentes de .col-talle y .col-filas */
+.col-talle { width: 180px; }
+.col-filas { width: 100px; }
+.col-stock { width: 100px; } /* NUEVO */
 
+/* Para móvil */
+@media (max-width: 768px) {
+  .col-talle, .col-filas, .col-stock { width: 100% !important; }
+}
   .card {
     background-color: rgba(255, 255, 255, 0.05);
     color: white;
