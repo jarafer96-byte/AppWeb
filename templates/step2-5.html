@@ -454,7 +454,7 @@ function generarExcel() {
   }
 
   const hojaDatos = [
-    ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas']
+    ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas'] // ✅ Stock ya está aquí
   ];
 
   datos.forEach(item => {
@@ -465,8 +465,8 @@ function generarExcel() {
       item.grupo,
       item.subgrupo,
       item.talle,
-      item.stock,
-      '1' // Siempre 1 en el Excel generado
+      item.stock, // ✅ Esto ya está bien
+      '1'
     ]);
   });
 
@@ -476,17 +476,16 @@ function generarExcel() {
 
   const colAnchos = [
     { wch: 20 }, { wch: 30 }, { wch: 10 }, { wch: 15 },
-    { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 8 }
+    { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 8 } // ✅ Stock tiene 10 de ancho
   ];
   ws['!cols'] = colAnchos;
 
   const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
 
-  // Guardar los datos en localStorage para que step3 pueda usarlos directamente
+  // ✅ IMPORTANTE: Asegurar que los datos incluyan stock
   localStorage.setItem("listas_step2-5", JSON.stringify(datos));
   
-  // Mostrar vista previa y mensaje
   probarVistaPrevia();
   alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés:
 1. Subir este archivo en el siguiente paso, O
