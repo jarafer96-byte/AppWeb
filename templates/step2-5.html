@@ -205,34 +205,36 @@
   <div class="card">
     <h4 class="mb-4">📝 Crear estructura de productos</h4>
 
-    <div class="mb-4">
-      <p>Completá cada fila para definir grupos, subgrupos y productos. Luego generá el Excel.</p>
-      <div class="row">
-        <div class="col-md-6 mb-3 mb-md-0">
-          <div class="example-box">
-            <strong>Ejemplo 1 (sin subgrupo):</strong><br>
-            Grupo: <span class="badge">Mochilas</span><br>
-            Producto: <span class="badge">Mochila</span><br>
-            Filas: <span class="badge">2</span><br>
-            Talle: <span class="badge">S,M,L</span><br>
-            Stock: <span class="badge">10</span><br>
-            → Creará 2 productos en el grupo "Mochilas" con talle S,M,L
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="example-box">
-            <strong>Ejemplo 2 (con subgrupo):</strong><br>
-            Grupo: <span class="badge">Mochilas</span><br>
-            Subgrupo: <span class="badge">Niños</span><br>
-            Producto: <span class="badge">Mochila</span><br>
-            Filas: <span class="badge">2</span><br>
-            Talle: <span class="badge">XS,S</span><br>
-            Stock: <span class="badge">15</span><br>
-            → Creará 2 productos en el subgrupo "Niños" con talle XS,S
-          </div>
-        </div>
+<div class="mb-4">
+  <p>Completá cada fila para definir grupos, subgrupos y productos. Luego generá el Excel.</p>
+  <div class="row">
+    <div class="col-md-6 mb-3 mb-md-0">
+      <div class="example-box">
+        <strong>Ejemplo 1 (un producto, múltiples filas):</strong><br>
+        Grupo: <span class="badge">Mochilas</span><br>
+        Producto: <span class="badge">Mochila</span><br>
+        Filas: <span class="badge">3</span><br>
+        Talle: <span class="badge">S,M,L</span><br>
+        Stock: <span class="badge">10</span><br>
+        → Creará 3 productos: <strong>Mochila1, Mochila2, Mochila3</strong><br>
+        → Cada uno con talle S,M,L y stock 10
       </div>
     </div>
+    <div class="col-md-6">
+      <div class="example-box">
+        <strong>Ejemplo 2 (varios productos en una fila):</strong><br>
+        Grupo: <span class="badge">Ropa</span><br>
+        Subgrupo: <span class="badge">Niños</span><br>
+        Producto: <span class="badge">Remera,Camisa,Pantalón</span><br>
+        Filas: <span class="badge">1</span><br>
+        Talle: <span class="badge">XS,S</span><br>
+        Stock: <span class="badge">15</span><br>
+        → Creará 3 productos: <strong>Remera, Camisa, Pantalón</strong><br>
+        → Cada uno en subgrupo "Niños" con talle XS,S y stock 15
+      </div>
+    </div>
+  </div>
+</div>
 
     <div id="filas-container">
       <div class="row mb-3 align-items-center fila-entrada">
@@ -300,12 +302,12 @@
   <div class="card">
     <h4 class="mb-3">ℹ️ ¿Cómo funciona?</h4>
     <ol>
-      <li><strong>Grupo</strong>: Obligatorio. Es la categoría principal.</li>
-      <li><strong>Subgrupo</strong>: Opcional. Para organizar dentro del grupo.</li>
-      <li><strong>Producto</strong>: Obligatorio. El nombre base del producto.</li>
-      <li><strong>Talle</strong>: Opcional. Talles separados por comas.</li>
-      <li><strong>Stock</strong>: Opcional. Cantidad disponible (0 por defecto).</li>
-      <li><strong>Filas</strong>: Cantidad de veces que se repetirá este producto.</li>
+      <li><strong>Grupo</strong>: Obligatorio. Es la categoría principal (ej: "Ropa Mujer").</li>
+      <li><strong>Subgrupo</strong>: Opcional. Para organizar dentro del grupo (ej: "Vestidos").</li>
+      <li><strong>Producto</strong>: Obligatorio. El nombre del producto. Si pones varios separados por comas, se crearán varios productos.</li>
+      <li><strong>Talle</strong>: Opcional. Talles separados por comas (ej: "S,M,L").</li>
+      <li><strong>Stock</strong>: Opcional. Cantidad disponible para cada producto (0 por defecto).</li>
+      <li><strong>Filas</strong>: Si tienes UN solo producto y pones más de 1 fila, se numerarán automáticamente (ej: Producto1, Producto2, etc.).</li>
     </ol>
     <p class="mt-3"><strong>💡 Tip:</strong> Podés dejar Descripción y Precio vacíos en el Excel, y llenarlos después en el paso 3.</p>
   </div>
@@ -361,105 +363,135 @@
     });
   }
 
-  function recolectarDatos() {
-    const datos = [];
-    document.querySelectorAll('.fila-entrada').forEach(fila => {
-      const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
-      const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
-      const producto = fila.querySelector('[data-field="producto"]').value.trim();
-      const talle = fila.querySelector('[data-field="talle"]').value.trim();
-      
-      const filasInput = fila.querySelector('[data-field="filas"]').value;
-      const filas = filasInput === '' ? 1 : parseInt(filasInput) || 1;
-      
-      const stockInput = fila.querySelector('[data-field="stock"]').value;
-      const stock = stockInput === '' ? 0 : parseInt(stockInput) || 0;
+function recolectarDatos() {
+  const datos = [];
+  document.querySelectorAll('.fila-entrada').forEach(fila => {
+    const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
+    const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
+    const producto = fila.querySelector('[data-field="producto"]').value.trim();
+    const talle = fila.querySelector('[data-field="talle"]').value.trim();
+    
+    const filasInput = fila.querySelector('[data-field="filas"]').value;
+    const filas = filasInput === '' ? 1 : parseInt(filasInput) || 1;
+    
+    const stockInput = fila.querySelector('[data-field="stock"]').value;
+    const stock = stockInput === '' ? 0 : parseInt(stockInput) || 0;
 
-      if (grupo && producto) {
-        for (let i = 0; i < filas; i++) {
-          datos.push({
-            grupo,
-            subgrupo,
-            producto,
-            talle,
-            stock,
-            filas: 1
-          });
-        }
+    if (grupo && producto) {
+      // Si hay varios productos separados por comas
+      const productos = producto.split(',').map(p => p.trim()).filter(p => p);
+      
+      if (productos.length > 0) {
+        productos.forEach(prod => {
+          // Si hay múltiples filas y un solo producto, numerarlos
+          if (productos.length === 1 && filas > 1) {
+            for (let i = 1; i <= filas; i++) {
+              datos.push({
+                grupo,
+                subgrupo,
+                producto: `${prod}${i}`,
+                talle,
+                stock,
+                filas: 1 // Siempre 1 en el Excel
+              });
+            }
+          } else {
+            // Si hay múltiples productos (separados por comas), cada uno es una fila
+            datos.push({
+              grupo,
+              subgrupo,
+              producto: prod,
+              talle,
+              stock,
+              filas: 1 // Siempre 1 en el Excel
+            });
+          }
+        });
       }
-    });
-    return datos;
-  }
-
-  function probarVistaPrevia() {
-    const datos = recolectarDatos();
-    if (datos.length === 0) {
-      alert('Por favor, completá al menos una fila con Grupo y Producto.');
-      return;
     }
+  });
+  return datos;
+}
 
-    const tbody = document.getElementById('vista-previa-body');
-    tbody.innerHTML = '';
-
-    datos.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${item.producto}</td>
-        <td></td>
-        <td></td>
-        <td>${item.grupo}</td>
-        <td>${item.subgrupo || ''}</td>
-        <td>${item.talle || ''}</td>
-        <td>${item.stock}</td>
-        <td>1</td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById('vista-previa-container').style.display = 'block';
-    document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
+function probarVistaPrevia() {
+  const datos = recolectarDatos();
+  if (datos.length === 0) {
+    alert('Por favor, completá al menos una fila con Grupo y Producto.');
+    return;
   }
 
-  function generarExcel() {
-    const datos = recolectarDatos();
-    if (datos.length === 0) {
-      alert('No hay datos para generar el Excel. Completá al menos una fila.');
-      return;
-    }
+  const tbody = document.getElementById('vista-previa-body');
+  tbody.innerHTML = '';
 
-    const hojaDatos = [
-      ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas']
-    ];
+  datos.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.producto}</td>
+      <td></td>
+      <td></td>
+      <td>${item.grupo}</td>
+      <td>${item.subgrupo || ''}</td>
+      <td>${item.talle || ''}</td>
+      <td>${item.stock}</td>
+      <td>1</td>
+    `;
+    tbody.appendChild(tr);
+  });
 
-    datos.forEach(item => {
-      hojaDatos.push([
-        item.producto,
-        '',
-        '',
-        item.grupo,
-        item.subgrupo,
-        item.talle,
-        item.stock,
-        '1'
-      ]);
-    });
+  document.getElementById('vista-previa-container').style.display = 'block';
+  document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
+  
+  // Mostrar mensaje informativo
+  const totalProductos = datos.length;
+  alert(`✅ Vista previa generada con ${totalProductos} productos.\n\nCada producto será una fila en el Excel y podrás asignarle precio y descripción en el siguiente paso.`);
+}
 
-    const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Productos');
-
-    const colAnchos = [
-      { wch: 20 }, { wch: 30 }, { wch: 10 }, { wch: 15 },
-      { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 8 }
-    ];
-    ws['!cols'] = colAnchos;
-
-    const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
-
-    probarVistaPrevia();
-    alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso.`);
+function generarExcel() {
+  const datos = recolectarDatos();
+  if (datos.length === 0) {
+    alert('No hay datos para generar el Excel. Completá al menos una fila.');
+    return;
   }
+
+  const hojaDatos = [
+    ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas']
+  ];
+
+  datos.forEach(item => {
+    hojaDatos.push([
+      item.producto,
+      '',
+      '',
+      item.grupo,
+      item.subgrupo,
+      item.talle,
+      item.stock,
+      '1' // Siempre 1 en el Excel generado
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+
+  const colAnchos = [
+    { wch: 20 }, { wch: 30 }, { wch: 10 }, { wch: 15 },
+    { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 8 }
+  ];
+  ws['!cols'] = colAnchos;
+
+  const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
+
+  // Guardar los datos en localStorage para que step3 pueda usarlos directamente
+  localStorage.setItem("listas_step2-5", JSON.stringify(datos));
+  
+  // Mostrar vista previa y mensaje
+  probarVistaPrevia();
+  alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés:
+1. Subir este archivo en el siguiente paso, O
+2. Continuar directamente para crear los productos automáticamente.`);
+}
 
   window.addEventListener('load', () => {
     for (let i = 0; i < 3; i++) {
