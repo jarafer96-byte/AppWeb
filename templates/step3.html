@@ -869,7 +869,6 @@ function guardarNombreSubgrupo(card, nuevoNombre) {
   card.querySelectorAll('input[name="subgrupo"]').forEach(h => h.value = nuevoNombre);
 }
 
-<!-- En la función crearFila() del JavaScript: -->
 function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   const fila = document.createElement('div');
   fila.className = 'row g-2 align-items-center mb-2 fila-producto';
@@ -885,12 +884,16 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
       <input type="text" name="precio" class="form-control form-control-sm" style="width: 60px;" placeholder="$">
     </div>
     <div class="col-1">
-      <!-- 🔥 CAMBIO IMPORTANTE: Agregar input de stock -->
+      <!-- Campo de stock -->
       <input type="number" name="stock" class="form-control form-control-sm" style="width: 80px;" 
              placeholder="Stock" value="0" min="0">
     </div>
     <div class="col-2">
-      <input type="text" name="talles" class="form-control form-control-sm" style="width: 160px;" placeholder="(Opcional) S,M,L,XL">
+      <input type="text" name="talles" class="form-control form-control-sm" style="width: 160px;" placeholder="Talles (opcional) S,M,L">
+    </div>
+    <div class="col-2">
+      <!-- NUEVO: Campo para colores -->
+      <input type="text" name="colores" class="form-control form-control-sm" style="width: 160px;" placeholder="Colores (opcional) Rojo,Azul">
     </div>
     <div class="col-2">
       <div class="d-flex align-items-center justify-content-end gap-2">
