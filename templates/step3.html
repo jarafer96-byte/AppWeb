@@ -520,24 +520,22 @@ function inicializarCarrusel() {
 function procesarFila(grupo, subgrupo, productoBase, descripcion, precio, talles, cantidadRaw, stock) {
   const cantidad = parseInt(cantidadRaw || "1", 10);
   
-  // 1. Mantener productos tal cual del Excel
   let productos = productoBase ? [productoBase] : [grupo || "Producto"];
   
-  // 2. SI cantidad > 1 Y es producto único → numerar
-  if (cantidad > 1 && productos.length === 1) {
+  // 🔥 CORRECCIÓN: NO numerar productos, repetir el mismo nombre
+  if (cantidad > 1) {
     const base = productos[0];
     productos = [];
-    for (let i = 1; i <= cantidad; i++) {
-      productos.push(`${base}${i}`);
+    for (let i = 0; i < cantidad; i++) {
+      productos.push(base); // MISMO NOMBRE PARA TODAS
     }
   }
   
-  // 3. NO expandir talles. "S,M,L" queda como texto completo
   productos.forEach(prod => {
     agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stock);
   });
   
-  return productos.length; // Devuelve cuántas filas se agregaron
+  return productos.length;
 }
   
 function leerArchivoProductos() {
