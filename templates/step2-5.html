@@ -339,34 +339,36 @@
   <script>
     let contadorFilas = 1;
 
-    // Agregar nueva fila
-    function agregarFila() {
-      contadorFilas++;
-      const container = document.getElementById('filas-container');
-      const nuevaFila = document.createElement('div');
-      nuevaFila.className = 'row mb-3 align-items-center fila-entrada';
-      nuevaFila.innerHTML = `
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
-        </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
-        </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
-        </div>
-        <div class="col-md-3 col-talle">
-          <input type="text" class="form-control" placeholder="Talle (ej: S,M,L)" data-field="talle">
-        </div>
-        <div class="col-md-2 col-filas">
-          <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
-        </div>
-        <div class="col-md-1">
-          <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)">✕</button>
-        </div>
-      `;
-      container.appendChild(nuevaFila);
-    }
+   function agregarFila() {
+  contadorFilas++;
+  const container = document.getElementById('filas-container');
+  const nuevaFila = document.createElement('div');
+  nuevaFila.className = 'row mb-3 align-items-center fila-entrada';
+  nuevaFila.innerHTML = `
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Grupo (ej: Ropa Mujer)" data-field="grupo" required>
+    </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Subgrupo (opcional)" data-field="subgrupo">
+    </div>
+    <div class="col-md-2">
+      <input type="text" class="form-control" placeholder="Producto (ej: Pantalón)" data-field="producto" required>
+    </div>
+    <div class="col-md-3 col-talle">
+      <input type="text" class="form-control" placeholder="Talle (ej: S,M,L)" data-field="talle">
+    </div>
+    <div class="col-md-1 col-filas">
+      <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
+    </div>
+    <div class="col-md-1 col-stock"> <!-- NUEVO: Campo Stock -->
+      <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0" value="0">
+    </div>
+    <div class="col-md-1">
+      <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)">✕</button>
+    </div>
+  `;
+  container.appendChild(nuevaFila);
+}
 
     // Eliminar fila
     function eliminarFila(btn) {
@@ -389,117 +391,120 @@
       });
     }
 
-    // Recolectar datos
-    function recolectarDatos() {
-      const datos = [];
-      document.querySelectorAll('.fila-entrada').forEach(fila => {
-        const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
-        const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
-        const producto = fila.querySelector('[data-field="producto"]').value.trim();
-        const talle = fila.querySelector('[data-field="talle"]').value.trim();
-        const filas = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
+function recolectarDatos() {
+  const datos = [];
+  document.querySelectorAll('.fila-entrada').forEach(fila => {
+    const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
+    const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
+    const producto = fila.querySelector('[data-field="producto"]').value.trim();
+    const talle = fila.querySelector('[data-field="talle"]').value.trim();
+    const filasInput = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
+    const stock = parseInt(fila.querySelector('[data-field="stock"]').value) || 0; // NUEVO
 
-        if (grupo && producto) {
-          // Crear una entrada por cada fila solicitada
-          for (let i = 0; i < filas; i++) {
-            datos.push({
-              grupo,
-              subgrupo, // Puede estar vacío
-              producto, // Mismo nombre para todas las filas (sin número)
-              talle,    // Talles (puede estar vacío)
-              filas: 1  // Siempre 1 porque cada entrada es una fila
-            });
-          }
-        }
-      });
-      return datos;
-    }
-
-    // Mostrar vista previa
-    function probarVistaPrevia() {
-      const datos = recolectarDatos();
-      if (datos.length === 0) {
-        alert('Por favor, completá al menos una fila con Grupo y Producto.');
-        return;
+    if (grupo && producto) {
+      // Crear una entrada por cada fila solicitada
+      for (let i = 0; i < filasInput; i++) {
+        datos.push({
+          grupo,
+          subgrupo, // Puede estar vacío
+          producto, // Mismo nombre para todas las filas (sin número)
+          talle,    // Talles (puede estar vacío)
+          stock,    // NUEVO: Stock para cada producto
+          filas: 1  // Siempre 1 porque cada entrada es una fila
+        });
       }
-
-      const tbody = document.getElementById('vista-previa-body');
-      tbody.innerHTML = '';
-
-      datos.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.producto}</td>
-          <td></td>
-          <td></td>
-          <td>${item.grupo}</td>
-          <td>${item.subgrupo || ''}</td>
-          <td>${item.talle || ''}</td>
-          <td>1</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      document.getElementById('vista-previa-container').style.display = 'block';
-      
-      // Scroll a la vista previa
-      document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
     }
+  });
+  return datos;
+}
 
-    // Generar Excel
-    function generarExcel() {
-      const datos = recolectarDatos();
-      if (datos.length === 0) {
-        alert('No hay datos para generar el Excel. Completá al menos una fila.');
-        return;
-      }
+function probarVistaPrevia() {
+  const datos = recolectarDatos();
+  if (datos.length === 0) {
+    alert('Por favor, completá al menos una fila con Grupo y Producto.');
+    return;
+  }
 
-      // Crear hoja de cálculo
-      const hojaDatos = [
-        // Encabezados (EXACTAMENTE como step3 los espera)
-        ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Filas']
-      ];
+  const tbody = document.getElementById('vista-previa-body');
+  tbody.innerHTML = '';
 
-      // Agregar filas de datos
-      datos.forEach(item => {
-        hojaDatos.push([
-          item.producto,    // Nombre
-          '',               // Descripción (vacía)
-          '',               // Precio (vacío)
-          item.grupo,       // Grupo
-          item.subgrupo,    // Subgrupo (puede estar vacío)
-          item.talle,       // Talles (puede estar vacío)
-          '1'               // Filas (siempre 1)
-        ]);
-      });
+  datos.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.producto}</td>
+      <td></td>
+      <td></td>
+      <td>${item.grupo}</td>
+      <td>${item.subgrupo || ''}</td>
+      <td>${item.talle || ''}</td>
+      <td>1</td>
+      <td>${item.stock}</td> <!-- NUEVO: Columna Stock -->
+    `;
+    tbody.appendChild(tr);
+  });
 
-      const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+  document.getElementById('vista-previa-container').style.display = 'block';
+  
+  // Scroll a la vista previa
+  document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
+}
+    
+function generarExcel() {
+  const datos = recolectarDatos();
+  if (datos.length === 0) {
+    alert('No hay datos para generar el Excel. Completá al menos una fila.');
+    return;
+  }
 
-      // Formatear columnas
-      const colAnchos = [
-        { wch: 20 }, // Nombre
-        { wch: 30 }, // Descripción
-        { wch: 10 }, // Precio
-        { wch: 15 }, // Grupo
-        { wch: 15 }, // Subgrupo
-        { wch: 15 }, // Talles
-        { wch: 8 }   // Filas
-      ];
-      ws['!cols'] = colAnchos;
+  // Crear hoja de cálculo
+  // 🔥 IMPORTANTE: Estos encabezados deben coincidir EXACTAMENTE con lo que step3 espera
+  const hojaDatos = [
+    // Encabezados (EXACTAMENTE como step3 los espera con stock)
+    ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas']
+    // Nota: Stock ahora está en posición 7, Filas en posición 8 (índices 6 y 7)
+  ];
 
-      // Generar nombre de archivo
-      const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
+  // Agregar filas de datos
+  datos.forEach(item => {
+    hojaDatos.push([
+      item.producto,    // Nombre
+      '',               // Descripción (vacía)
+      '',               // Precio (vacío)
+      item.grupo,       // Grupo
+      item.subgrupo,    // Subgrupo (puede estar vacío)
+      item.talle,       // Talles (puede estar vacío)
+      item.stock,       // NUEVO: Stock
+      '1'               // Filas (siempre 1)
+    ]);
+  });
 
-      // Mostrar vista previa
-      probarVistaPrevia();
+  const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Productos');
 
-      // Mostrar mensaje de éxito
-      alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso.`);
-    }
+  // Formatear columnas
+  const colAnchos = [
+    { wch: 20 }, // Nombre
+    { wch: 30 }, // Descripción
+    { wch: 10 }, // Precio
+    { wch: 15 }, // Grupo
+    { wch: 15 }, // Subgrupo
+    { wch: 15 }, // Talles
+    { wch: 10 }, // NUEVO: Stock
+    { wch: 8 }   // Filas
+  ];
+  ws['!cols'] = colAnchos;
 
+  // Generar nombre de archivo
+  const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
+
+  // Mostrar vista previa
+  probarVistaPrevia();
+
+  // Mostrar mensaje de éxito
+  alert(`✅ Excel generado exitosamente!\n\nSe crearon ${datos.length} productos.\n\nPodés subir este archivo en el siguiente paso.`);
+}
     // Inicializar con algunas filas y mejoras para móvil
     window.addEventListener('load', () => {
       // Agregar 3 filas más
