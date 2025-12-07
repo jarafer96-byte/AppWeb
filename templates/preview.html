@@ -449,6 +449,7 @@ html { scroll-behavior: auto; }
     <input type="text" id="nombreProd" placeholder="Nombre producto" class="form-control mb-2">
     <input type="number" id="precioProd" placeholder="Precio" class="form-control mb-2">
     <input type="text" id="tallesProd" placeholder="Talles (S,M,L)" class="form-control mb-2">
+    <input type="number" id="stockProd" placeholder="Stock inicial" min="0" value="" class="form-control mb-2">
 
     <!-- Grupo/Subgrupo -->
     <input type="text" id="grupoProd" placeholder="Grupo" class="form-control mb-2">
@@ -1213,7 +1214,7 @@ document.getElementById("inputFoto").addEventListener("change", async (e) => {
   }
 });
 
-// 👉 Guardar solo al confirmar (usando email y campos obligatorios)
+// Busca esta función en preview.html (~línea 850-950)
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
   const email = "{{ session.get('email') or '' }}"; // 👈 email inyectado desde la sesión
   if (!email) {
@@ -1249,6 +1250,7 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
     // 2. Armar producto con campos obligatorios
     const nombre = document.getElementById("nombreProd").value.trim();
     const precio = parseFloat(document.getElementById("precioProd").value);
+    const stock = parseInt(document.getElementById("stockProd").value) || 1; // 👈 NUEVO: stock con default 1
     const talles = document.getElementById("tallesProd").value.split(",").map(t => t.trim()).filter(Boolean);
 
     // Grupo y subgrupo: tomados del contexto o default
@@ -1263,6 +1265,7 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
     const producto = {
       nombre,
       precio,
+      stock,        // 👈 NUEVO: incluir stock
       talles,
       grupo,
       subgrupo,
@@ -1288,6 +1291,14 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
     if (data.status === "ok") {
       alert("✅ Producto guardado correctamente");
+      // Limpiar formulario
+      document.getElementById("nombreProd").value = "";
+      document.getElementById("precioProd").value = "";
+      document.getElementById("stockProd").value = "1"; // 👈 Resetear a 1
+      document.getElementById("tallesProd").value = "";
+      document.getElementById("grupoProd").value = "";
+      document.getElementById("subgrupoProd").value = "";
+      
       if (typeof cargarProductos === "function") {
         console.log("✅ Refrescando catálogo...");
         cargarProductos();
