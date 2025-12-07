@@ -1194,49 +1194,99 @@ function marcarImagenesUsadas() {
 
 function validarYEnviar() {
   const grupos = document.querySelectorAll('.card');
+  
+  // Validar que haya al menos un grupo
   if (grupos.length === 0) {
-    alert('Agregá al menos un grupo antes de continuar');
+    alert('❌ Agregá al menos un grupo antes de continuar');
     return false;
   }
 
-  let hayContenidoValido = false;
+  let productosValidos = 0;
+  let errores = [];
   let imagenesInvalidas = false;
 
+  // Recorrer todos los grupos y subgrupos
   grupos.forEach(grupo => {
     const filas = grupo.querySelectorAll('.fila-producto');
-    filas.forEach(fila => {
+    
+    filas.forEach((fila, index) => {
       const nombre = fila.querySelector('input[name="nombre"]');
       const precio = fila.querySelector('input[name="precio"]');
+      const stock = fila.querySelector('input[name="stock"]');
       const inputImagen = fila.querySelector('input[name="imagen_elegida"]');
 
       const nombreValido = nombre && nombre.value.trim();
       const precioValido = precio && precio.value.trim();
+      const stockValido = stock && stock.value.trim() !== "";
       const imagenValida = inputImagen && inputImagen.value.trim() !== "";
 
+      // Validar campos obligatorios
       if (nombreValido && precioValido && imagenValida) {
-        hayContenidoValido = true;
+        productosValidos++;
+        
+        // Validar que el precio sea un número válido
+        const precioNum = parseFloat(precio.value.replace(',', '.'));
+        if (isNaN(precioNum) || precioNum <= 0) {
+          errores.push(`❌ El precio del producto "${nombre.value}" debe ser un número mayor a 0`);
+        }
+        
+        // Validar stock si está presente
+        if (stockValido) {
+          const stockNum = parseInt(stock.value);
+          if (isNaN(stockNum) || stockNum < 0) {
+            errores.push(`❌ El stock del producto "${nombre.value}" debe ser un número válido (0 o mayor)`);
+          }
+        }
+      } else {
+        // Identificar qué falta
+        if (!nombreValido && precioValido) {
+          errores.push(`❌ Falta el nombre del producto en la fila ${index + 1}`);
+        }
+        if (nombreValido && !precioValido) {
+          errores.push(`❌ Falta el precio del producto "${nombre.value}"`);
+        }
+        if (nombreValido && precioValido && !imagenValida) {
+          errores.push(`❌ Falta seleccionar una imagen para el producto "${nombre.value}"`);
+        }
       }
+      
+      // Marcar si hay imagen faltante para productos con nombre/precio
       if ((nombreValido || precioValido) && !imagenValida) {
         imagenesInvalidas = true;
       }
     });
   });
 
-  if (!hayContenidoValido) {
-    alert('Completá al menos una fila con nombre, precio e imagen antes de continuar');
+  // Verificar si hay al menos un producto completo
+  if (productosValidos === 0) {
+    alert('❌ Completá al menos una fila con:\n• Nombre\n• Precio\n• Imagen seleccionada');
+    return false;
+  }
+
+  // Mostrar errores específicos si los hay
+  if (errores.length > 0) {
+    alert('❌ Hay errores en los datos:\n\n' + errores.join('\n'));
     return false;
   }
 
   if (imagenesInvalidas) {
-    alert('⚠️ Hay filas con nombre/precio pero sin imagen seleccionada. Revisalas antes de continuar.');
+    const continuar = confirm('⚠️ Hay productos sin imagen seleccionada.\n\n¿Deseás continuar de todos modos?\n(Los productos sin imagen no se guardarán)');
+    if (!continuar) {
+      return false;
+    }
+  }
+
+  // Mostrar resumen y confirmar
+  const confirmacion = confirm(`✅ Validación exitosa!\n\n• Productos completos: ${productosValidos}\n• Total grupos: ${grupos.length}\n\n¿Continuar con el envío?`);
+  
+  if (!confirmacion) {
     return false;
   }
 
-  // Mostrar spinner y limpiar estado antes de enviar
+  // Mostrar spinner
   document.getElementById('spinner').style.display = 'flex';
-  localStorage.removeItem("step3_state"); // ✅ limpiar cache del paso
   
-  return true; // ✅ Permitir envío del formulario
+  return true;
 }
 
 window.addEventListener("load", () => {
