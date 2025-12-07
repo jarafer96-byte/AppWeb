@@ -94,12 +94,12 @@ label.btn-imagen.cargado::after { content: " ✓"; color: #28a745; margin-left: 
     <button type="button" class="btn-gradient btn-sm" onclick="crearGrupo()">Crear grupo</button>
   </div>
 
-<form id="formulario" method="POST" action="/contenido" enctype="multipart/form-data"
-      onsubmit="return confirmarContinuar()">
+<!-- Cambia el formulario a: -->
+<form id="formulario" method="POST" action="/contenido" enctype="multipart/form-data">
   <div id="grupos"></div>
 
   <div class="text-center mt-4">
-    <!-- ✅ ahora el botón tiene id="btnContinuar" -->
+    <!-- 🔥 CAMBIO: Quitar onclick y solo tener type="submit" -->
     <button id="btnContinuar" type="submit" class="btn-gradient px-5 py-2">Continuar</button>
   </div>
 </form>
