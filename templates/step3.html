@@ -1352,13 +1352,6 @@ function validarYEnviar() {
   
   return true; // ✅ Permitir envío del formulario
 }
-  
-function guardarProductoLocal(producto) {
-  let productos = JSON.parse(localStorage.getItem("productos")) || [];
-  productos.push(producto);
-  localStorage.setItem("productos", JSON.stringify(productos));
-  console.log("✅ Producto guardado en localStorage:", producto);
-}
 
 window.addEventListener("load", () => {
   console.log("🚀 [Step3] Inicializando...");
