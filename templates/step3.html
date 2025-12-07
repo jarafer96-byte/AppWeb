@@ -1268,7 +1268,51 @@ function validarYEnviar() {
   
   return true;
 }
+// Agrega esto al final del script, después de window.addEventListener("load", ...)
+document.addEventListener('DOMContentLoaded', function() {
+  // Agregar event listener al formulario
+  document.getElementById('formulario').addEventListener('submit', function(e) {
+    // Validar antes de enviar
+    if (!validarYEnviar()) {
+      e.preventDefault(); // Evitar envío si la validación falla
+      document.getElementById('spinner').style.display = 'none'; // Ocultar spinner si se mostró
+    }
+  });
+  
+  // También agregar validación en tiempo real (opcional, para mejor UX)
+  document.addEventListener('input', function(e) {
+    if (e.target.matches('input[name="nombre"], input[name="precio"], input[name="stock"]')) {
+      validarCampoEnTiempoReal(e.target);
+    }
+  });
+});
 
+// Función para validación en tiempo real
+function validarCampoEnTiempoReal(campo) {
+  const fila = campo.closest('.fila-producto');
+  const nombre = fila.querySelector('input[name="nombre"]');
+  const precio = fila.querySelector('input[name="precio"]');
+  
+  if (campo === nombre || campo === precio) {
+    const valor = campo.value.trim();
+    
+    if (campo === precio && valor) {
+      // Validar que el precio sea numérico
+      const precioNum = parseFloat(valor.replace(',', '.'));
+      if (isNaN(precioNum) || precioNum <= 0) {
+        campo.style.border = '2px solid #dc3545';
+        campo.style.backgroundColor = 'rgba(220, 53, 69, 0.1)';
+      } else {
+        campo.style.border = '2px solid #28a745';
+        campo.style.backgroundColor = '';
+      }
+    } else if (campo === nombre && valor) {
+      campo.style.border = '2px solid #28a745';
+      campo.style.backgroundColor = '';
+    }
+  }
+}
+  
 window.addEventListener("load", () => {
   console.log("🚀 [Step3] Inicializando...");
 
