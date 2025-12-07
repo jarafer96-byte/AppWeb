@@ -579,29 +579,32 @@ function leerArchivoProductos() {
     // Lista de productos separados por coma
     let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
 
-    // Caso 1: varios productos explícitos → se respetan tal cual
-    if (productos.length > 1) {
-      // no se aplica cantidad
-    }
-    // Caso 2: un solo producto + Filas > 1 → numerar
-    else if (productos.length === 1 && cantidad > 1) {
-      const base = productos[0];
-      productos = [];
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
-      }
-    }
-    // Caso 3: sin producto pero con cantidad → usar grupo como base
-    else if (productos.length === 0 && cantidad > 0) {
-      const base = grupo || "Genérico";   // ⚠️ corregido: ya no usa subgrupo
-      productos = [];
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
-      }
-    }
-
     // Expandir talles si existen
     const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+    // 🔧 CORRECCIÓN: Si hay talles, NO aplicamos duplicación por cantidad
+    if (listaTalles.length === 0) {
+      // Caso 1: varios productos explícitos → se respetan tal cual
+      if (productos.length > 1) {
+        // no se aplica cantidad
+      }
+      // Caso 2: un solo producto + Filas > 1 → numerar
+      else if (productos.length === 1 && cantidad > 1) {
+        const base = productos[0];
+        productos = [];
+        for (let i = 1; i <= cantidad; i++) {
+          productos.push(`${base}${i}`);
+        }
+      }
+      // Caso 3: sin producto pero con cantidad → usar grupo como base
+      else if (productos.length === 0 && cantidad > 0) {
+        const base = grupo || "Genérico";
+        productos = [];
+        for (let i = 1; i <= cantidad; i++) {
+          productos.push(`${base}${i}`);
+        }
+      }
+    }
 
     if (listaTalles.length > 0) {
       productos.forEach(prod => {
@@ -626,6 +629,8 @@ function leerArchivoProductos() {
       const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
       const sep = lineas.some(l => l.includes(";")) ? ";" : ",";
 
+      // 🔧 CORRECCIÓN: Agrupar filas idénticas para evitar duplicados
+      const grupos = {};
       lineas.forEach((linea, idx) => {
         const partes = linea.split(sep).map(p => p.trim());
         const nombre      = partes[0] || "";
@@ -634,15 +639,26 @@ function leerArchivoProductos() {
         const grupo       = partes[3] || "";
         const subgrupo    = partes[4] || "";
         const talles      = partes[5] || "";
-        const stock       = partes[6] || ""; // NUEVA COLUMNA
-        const filas       = partes[7] || "1"; // opcional columna Filas
+        const stock       = partes[6] || "";
+        const filas       = parseInt(partes[7]) || 1;
 
         if (!grupo) {
           console.warn("⚠️ Línea descartada por falta de grupo:", partes);
           return;
         }
 
-        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas, stock);
+        const clave = `${grupo}|${subgrupo}|${nombre}|${descripcion}|${precio}|${talles}|${stock}`;
+        if (!grupos[clave]) {
+          grupos[clave] = {
+            grupo, subgrupo, nombre, descripcion, precio, talles, stock, filas: 0
+          };
+        }
+        grupos[clave].filas += filas;
+      });
+
+      // Procesar cada grupo único
+      Object.values(grupos).forEach(item => {
+        procesarFila(item.grupo, item.subgrupo, item.nombre, item.descripcion, item.precio, item.talles, item.filas, item.stock);
       });
 
       alert(filasAgregadas > 0
@@ -661,6 +677,8 @@ function leerArchivoProductos() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws);
 
+      // 🔧 CORRECCIÓN: Agrupar filas idénticas para evitar duplicados
+      const grupos = {};
       rows.forEach((obj, idx) => {
         const grupo       = obj.Grupo       || obj.Categoria    || "";
         const subgrupo    = obj.Subgrupo    || obj.Subcategoria || "";
@@ -668,15 +686,26 @@ function leerArchivoProductos() {
         const descripcion = obj.Descripcion || "";
         const precio      = obj.Precio      || "";
         const talles      = obj.Talles      || "";
-        const stock       = obj.Stock       || ""; // NUEVA COLUMNA
-        const filas       = obj.Filas       || "1";
+        const stock       = obj.Stock       || "";
+        const filas       = parseInt(obj.Filas) || 1;
 
         if (!grupo) {
           console.warn("⚠️ Fila descartada por falta de grupo:", obj);
           return;
         }
 
-        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas, stock);
+        const clave = `${grupo}|${subgrupo}|${nombre}|${descripcion}|${precio}|${talles}|${stock}`;
+        if (!grupos[clave]) {
+          grupos[clave] = {
+            grupo, subgrupo, nombre, descripcion, precio, talles, stock, filas: 0
+          };
+        }
+        grupos[clave].filas += filas;
+      });
+
+      // Procesar cada grupo único
+      Object.values(grupos).forEach(item => {
+        procesarFila(item.grupo, item.subgrupo, item.nombre, item.descripcion, item.precio, item.talles, item.filas, item.stock);
       });
 
       alert(filasAgregadas > 0
