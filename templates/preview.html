@@ -365,7 +365,21 @@ html { scroll-behavior: auto; }
 #imgModal .close:hover {
   opacity: 0.7;
 }
-  
+/* Aviso flotante de stock actualizado */
+#avisoStock {
+  display: none;
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 10px 20px;
+  border-radius: 5px;
+  background-color: #17a2b8;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}  
 </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
@@ -1545,14 +1559,34 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
   const cantidadInput = document.getElementById(idCantidad);
   const precioSpan = document.getElementById(idPrecioSpan);
   const talleSelect = document.getElementById("talle_" + id_base);
+  const stockSpan = document.getElementById("stock_" + id_base);  // 👈 NUEVO
 
   const cantidad = parseInt(cantidadInput?.value) || 1;
   const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
   const talleElegido = talleSelect?.value || "Sin talle";
+  const stockTexto = stockSpan?.textContent || "0";
+  const stockDisponible = stockTexto === "Sin stock" ? 0 : parseInt(stockTexto) || 0;  // 👈 NUEVO
+
+  // 👇 VALIDAR STOCK
+  if (stockDisponible <= 0) {
+    alert("❌ Producto sin stock disponible");
+    return;
+  }
+
+  if (cantidad > stockDisponible) {
+    alert(`❌ Solo hay ${stockDisponible} unidades disponibles`);
+    cantidadInput.value = stockDisponible;
+    return;
+  }
 
   const existente = carrito.find(item => item.id_base === id_base && item.talle === talleElegido);
   if (existente) {
-    existente.cantidad += cantidad;
+    const nuevoTotal = existente.cantidad + cantidad;
+    if (nuevoTotal > stockDisponible) {
+      alert(`❌ No puedes llevar más de ${stockDisponible} unidades`);
+      return;
+    }
+    existente.cantidad = nuevoTotal;
   } else {
     const nuevoItem = { nombre, precio, cantidad, id_base, talle: talleElegido, grupo, subgrupo };
     carrito.push(nuevoItem);
