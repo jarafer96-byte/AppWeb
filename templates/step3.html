@@ -517,6 +517,51 @@ function inicializarCarrusel() {
   });
 }
 
+function procesarFila(grupo, subgrupo, productoBase, descripcion, precio, talles, cantidadRaw, stock) {
+  const cantidad = parseInt(cantidadRaw || "1", 10);
+
+  // Lista de productos separados por coma
+  let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
+
+  // Caso 1: varios productos explícitos → se respetan tal cual
+  if (productos.length > 1) {
+    // no se aplica cantidad
+  }
+  // Caso 2: un solo producto + Filas > 1 → numerar
+  else if (productos.length === 1 && cantidad > 1) {
+    const base = productos[0];
+    productos = [];
+    for (let i = 1; i <= cantidad; i++) {
+      productos.push(`${base}${i}`);
+    }
+  }
+  // Caso 3: sin producto pero con cantidad → usar grupo como base
+  else if (productos.length === 0 && cantidad > 0) {
+    const base = grupo || "Genérico";   // ⚠️ corregido: ya no usa subgrupo
+    productos = [];
+    for (let i = 1; i <= cantidad; i++) {
+      productos.push(`${base}${i}`);
+    }
+  }
+
+  // Expandir talles si existen
+  const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+  if (listaTalles.length > 0) {
+    productos.forEach(prod => {
+      listaTalles.forEach(talle => {
+        agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talle, stock);
+        filasAgregadas++;
+      });
+    });
+  } else {
+    productos.forEach(prod => {
+      agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stock);
+      filasAgregadas++;
+    });
+  }
+}
+  
 function leerArchivoProductos() {
   const input = document.getElementById("archivoProductos");
   if (!input.files.length) {
@@ -528,7 +573,7 @@ function leerArchivoProductos() {
   const ext = file.name.toLowerCase().split('.').pop();
   let filasAgregadas = 0;
 
-  const procesarFila = (grupo, subgrupo, productoBase, descripcion, precio, talles, cantidadRaw) => {
+  const procesarFila = (grupo, subgrupo, productoBase, descripcion, precio, talles, cantidadRaw, stock) => {
     const cantidad = parseInt(cantidadRaw || "1", 10);
 
     // Lista de productos separados por coma
@@ -561,13 +606,13 @@ function leerArchivoProductos() {
     if (listaTalles.length > 0) {
       productos.forEach(prod => {
         listaTalles.forEach(talle => {
-          agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talle);
+          agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talle, stock);
           filasAgregadas++;
         });
       });
     } else {
       productos.forEach(prod => {
-        agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles);
+        agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stock);
         filasAgregadas++;
       });
     }
@@ -589,14 +634,15 @@ function leerArchivoProductos() {
         const grupo       = partes[3] || "";
         const subgrupo    = partes[4] || "";
         const talles      = partes[5] || "";
-        const filas       = partes[6] || "1"; // opcional columna Filas
+        const stock       = partes[6] || ""; // NUEVA COLUMNA
+        const filas       = partes[7] || "1"; // opcional columna Filas
 
         if (!grupo) {
           console.warn("⚠️ Línea descartada por falta de grupo:", partes);
           return;
         }
 
-        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas);
+        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas, stock);
       });
 
       alert(filasAgregadas > 0
@@ -622,6 +668,7 @@ function leerArchivoProductos() {
         const descripcion = obj.Descripcion || "";
         const precio      = obj.Precio      || "";
         const talles      = obj.Talles      || "";
+        const stock       = obj.Stock       || ""; // NUEVA COLUMNA
         const filas       = obj.Filas       || "1";
 
         if (!grupo) {
@@ -629,7 +676,7 @@ function leerArchivoProductos() {
           return;
         }
 
-        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas);
+        procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas, stock);
       });
 
       alert(filasAgregadas > 0
