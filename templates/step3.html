@@ -1119,45 +1119,34 @@ window.sessionEmail = "{{ email }}";
   
   
 function iniciarStep3() {
-  // 🧹 Siempre limpiar el estado viejo de Step3
-  localStorage.removeItem("step3_state");
-  imagenesUsadas = [];
+  console.log("🚀 [Step3] Inicializando...");
 
-  // 🔎 Log inicial: ver qué trae window.sessionEmail
-  console.log("📌 [Step3] Valor inicial window.sessionEmail:", window.sessionEmail);
-
-  // ✅ Guardar email de sesión en localStorage para que GCS use la carpeta correcta
-  if (window.sessionEmail) {
+  // ✅ 1. Guardar email en localStorage (CRUCIAL para URLs de imágenes)
+  if (window.sessionEmail && window.sessionEmail !== "None") {
     localStorage.setItem("email", window.sessionEmail);
     console.log("🔑 [Step3] Email seteado en localStorage:", window.sessionEmail);
   } else {
-    console.warn("⚠️ [Step3] No se encontró sessionEmail, usando 'anonimo'");
+    console.warn("⚠️ [Step3] No se encontró sessionEmail válido, usando 'anonimo'");
     localStorage.setItem("email", "anonimo");
   }
 
-  // 🔎 Verificar inmediatamente qué quedó en localStorage
-  console.log("📌 [Step3] localStorage.email actual:", localStorage.getItem("email"));
-
-  // 📦 Ver si existe estructura nueva desde Step2-5
+  // ✅ 2. Procesar listas desde Step2-5 si existen
   const listasStep2_5 = JSON.parse(localStorage.getItem("listas_step2-5") || "null");
-
-  if (listasStep2_5) {
-    console.log("♻️ [Step3] Usando listas_step2-5 para generar filas:", listasStep2_5);
+  
+  if (listasStep2_5 && Array.isArray(listasStep2_5) && listasStep2_5.length > 0) {
+    console.log("♻️ [Step3] Usando listas_step2-5 para generar filas:", listasStep2_5.length, "grupos");
     generarFilasDesdeListas(listasStep2_5);
 
-    // Una vez usadas, las borramos para no repetir
+    // Limpiar después de usar
     localStorage.removeItem("listas_step2-5");
     console.log("🗑️ [Step3] listas_step2-5 eliminadas de localStorage");
   } else {
     console.log("🧹 [Step3] No hay listas_step2-5, empezando vacío");
-    document.getElementById("grupos").innerHTML = "";
+    // No hacer nada, dejar que el usuario agregue grupos manualmente
   }
 
-  // 🔎 Log final: confirmar estado después de iniciar
-  console.log("✅ [Step3] iniciarStep3 completado. Email en localStorage:", localStorage.getItem("email"), 
-              "imagenesUsadas:", imagenesUsadas);
+  console.log("✅ [Step3] Inicialización completada");
 }
-
 
 function marcarImagenesUsadas() {
   let usadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
@@ -1314,9 +1303,9 @@ function validarCampoEnTiempoReal(campo) {
 }
   
 window.addEventListener("load", () => {
-  console.log("🚀 [Step3] Inicializando...");
+  console.log("🚀 [Step3] Página cargada");
 
-  // 🧹 Inicializar Step3 (limpia estado viejo y usa listas_step2-5 si existen)
+  // ✅ Inicializar Step3 (esto SÍ es necesario)
   iniciarStep3();
 
   // 🔢 Contador de orden
@@ -1331,18 +1320,18 @@ window.addEventListener("load", () => {
       inicializarCarrusel();
     }
 
-    // 🔑 Inicializar lista de imágenes usadas desde localStorage
-    imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
-    console.log("🟢 [Step3] imagenesUsadas al cargar:", imagenesUsadas);
-
     // También conviene loguear las rutas reales guardadas en Step0
     const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
-    console.log("🟢 [Step3] imagenes_step0 al cargar:", rutasStep0);
-
-    console.log("💾 [Step3] Estado restaurado desde localStorage");
-
-    // ✅ volver a marcar imágenes usadas
-    marcarImagenesUsadas();
+    console.log("🟢 [Step3] imagenes_step0 al cargar:", rutasStep0.length, "imágenes");
+  });
+  
+  // ✅ Agregar event listener al formulario para validación
+  document.getElementById('formulario').addEventListener('submit', function(e) {
+    // Validar antes de enviar
+    if (!validarYEnviar()) {
+      e.preventDefault(); // Evitar envío si la validación falla
+      document.getElementById('spinner').style.display = 'none'; // Ocultar spinner si se mostró
+    }
   });
 });
 
