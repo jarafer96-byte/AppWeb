@@ -401,23 +401,23 @@ function recolectarDatos() {
     const filas = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
 
     if (grupo && producto) {
-      // Separar talles por comas
-      const tallesList = talle ? talle.split(",").map(t => t.trim()).filter(Boolean) : [""];
+      // 🔧 CORRECCIÓN: NO expandir talles, mantenerlos como texto completo
+      // Por ejemplo: "S,M,L" se mantiene como "S,M,L"
       
-      // Para cada talle, crear una entrada
-      tallesList.forEach(t => {
-        // Crear una entrada por cada fila solicitada
-        for (let i = 0; i < filas; i++) {
-          datos.push({
-            grupo,
-            subgrupo,
-            producto: filas > 1 ? `${producto}${i+1}` : producto,
-            talle: t,
-            stock,
-            filas: 1
-          });
-        }
-      });
+      // Crear una entrada por cada fila solicitada
+      for (let i = 0; i < filas; i++) {
+        // Si hay más de 1 fila, numerar el producto
+        const nombreFinal = filas > 1 ? `${producto}${i+1}` : producto;
+        
+        datos.push({
+          grupo,
+          subgrupo,
+          producto: nombreFinal,
+          talle: talle, // 🔧 Mantener los talles COMPLETOS como texto
+          stock,
+          filas: 1
+        });
+      }
     }
   });
   return datos;
@@ -442,7 +442,7 @@ function probarVistaPrevia() {
       <td>${item.grupo}</td>
       <td>${item.subgrupo || ''}</td>
       <td>${item.talle || ''}</td>
-      <td>${item.stock || ''}</td> <!-- ACTUALIZADO: Mostrar stock si existe -->
+      <td>${item.stock || ''}</td>
       <td>1</td>
     `;
     tbody.appendChild(tr);
@@ -453,7 +453,7 @@ function probarVistaPrevia() {
   // Scroll a la vista previa
   document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
 }
-
+    
 function generarExcel() {
   const datos = recolectarDatos();
   if (datos.length === 0) {
@@ -464,7 +464,7 @@ function generarExcel() {
   // Crear hoja de cálculo
   const hojaDatos = [
     // Encabezados (EXACTAMENTE como step3 los espera)
-    ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas'] // Agregado Stock
+    ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas']
   ];
 
   // Agregar filas de datos
@@ -475,9 +475,9 @@ function generarExcel() {
       '',               // Precio (vacío)
       item.grupo,       // Grupo
       item.subgrupo,    // Subgrupo (puede estar vacío)
-      item.talle,       // Talles (puede estar vacío)
-      item.stock || '', // Stock (usar el valor recolectado o vacío) - ACTUALIZADO
-      '1'               // Filas (siempre 1)
+      item.talle,       // Talles COMPLETOS como texto (ej: "S,M,L") - CORREGIDO
+      item.stock || '', // Stock (puede estar vacío)
+      '1'               // Filas (siempre 1 porque cada fila es un producto)
     ]);
   });
 
@@ -493,7 +493,7 @@ function generarExcel() {
     { wch: 15 }, // Grupo
     { wch: 15 }, // Subgrupo
     { wch: 15 }, // Talles
-    { wch: 10 }, // Stock - NUEVO
+    { wch: 10 }, // Stock
     { wch: 8 }   // Filas
   ];
   ws['!cols'] = colAnchos;
