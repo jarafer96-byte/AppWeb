@@ -523,46 +523,24 @@ function procesarFila(grupo, subgrupo, productoBase, descripcion, precio, talles
   // Lista de productos separados por coma
   let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
 
-  // Expandir talles si existen
-  const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
+  // 🔧 CORRECCIÓN: NO expandir talles, mantenerlos como texto
+  // Si hay talles múltiples (S,M,L), dejarlos como están
 
-  // 🔧 CORRECCIÓN: Si hay talles, NO aplicamos duplicación por cantidad
-  if (listaTalles.length === 0) {
-    // Caso 1: varios productos explícitos → se respetan tal cual
-    if (productos.length > 1) {
-      // no se aplica cantidad
-    }
-    // Caso 2: un solo producto + Filas > 1 → numerar
-    else if (productos.length === 1 && cantidad > 1) {
-      const base = productos[0];
-      productos = [];
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
-      }
-    }
-    // Caso 3: sin producto pero con cantidad → usar grupo como base
-    else if (productos.length === 0 && cantidad > 0) {
-      const base = grupo || "Genérico";   // ⚠️ corregido: ya no usa subgrupo
-      productos = [];
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
-      }
+  // Expandir productos según cantidad
+  if (cantidad > 1 && productos.length === 1) {
+    const base = productos[0];
+    productos = [];
+    for (let i = 1; i <= cantidad; i++) {
+      productos.push(`${base}${i}`);
     }
   }
 
-  if (listaTalles.length > 0) {
-    productos.forEach(prod => {
-      listaTalles.forEach(talle => {
-        agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talle, stock);
-        filasAgregadas++;
-      });
-    });
-  } else {
-    productos.forEach(prod => {
-      agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stock);
-      filasAgregadas++;
-    });
-  }
+  // Crear una fila por cada producto
+  productos.forEach(prod => {
+    // 🔧 Pasar los talles COMPLETOS "S,M,L" como texto
+    agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stock);
+    filasAgregadas++;
+  });
 }
   
 function leerArchivoProductos() {
