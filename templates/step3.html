@@ -533,6 +533,52 @@ function inicializarCarrusel() {
   });
 }
 
+function procesarFilaEXTERNA(grupo, subgrupo, productoBase, descripcion, precio, talles, stock, cantidadRaw, callback) {
+  const cantidad = parseInt(cantidadRaw || "1", 10);
+  const stockNum = parseInt(stock || "0", 10);
+
+  // Lista de productos separados por coma
+  let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
+
+  // Caso 1: varios productos explícitos → se respetan tal cual
+  if (productos.length > 1) {
+    // no se aplica cantidad
+  }
+  // Caso 2: un solo producto + Filas > 1 → numerar
+  else if (productos.length === 1 && cantidad > 1) {
+    const base = productos[0];
+    productos = [];
+    for (let i = 1; i <= cantidad; i++) {
+      productos.push(`${base}${i}`);
+    }
+  }
+  // Caso 3: sin producto pero con cantidad → usar grupo como base
+  else if (productos.length === 0 && cantidad > 0) {
+    const base = grupo || "Genérico";
+    productos = [];
+    for (let i = 1; i <= cantidad; i++) {
+      productos.push(`${base}${i}`);
+    }
+  }
+
+  // Expandir talles si existen
+  const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+  if (listaTalles.length > 0) {
+    productos.forEach(prod => {
+      listaTalles.forEach(talle => {
+        agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talle, stockNum);
+        if (callback) callback();
+      });
+    });
+  } else {
+    productos.forEach(prod => {
+      agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stockNum);
+      if (callback) callback();
+    });
+  }
+}
+  
 function leerArchivoProductos() {
   const input = document.getElementById("archivoProductos");
   if (!input.files.length) {
@@ -637,52 +683,6 @@ function leerArchivoProductos() {
 
   else {
     alert("⚠️ Formato no soportado. Subí CSV, TXT o Excel (.xls/.xlsx)");
-  }
-}
-
-function procesarFilaEXTERNA(grupo, subgrupo, productoBase, descripcion, precio, talles, stock, cantidadRaw, callback) {
-  const cantidad = parseInt(cantidadRaw || "1", 10);
-  const stockNum = parseInt(stock || "0", 10);
-
-  // Lista de productos separados por coma
-  let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
-
-  // Caso 1: varios productos explícitos → se respetan tal cual
-  if (productos.length > 1) {
-    // no se aplica cantidad
-  }
-  // Caso 2: un solo producto + Filas > 1 → numerar
-  else if (productos.length === 1 && cantidad > 1) {
-    const base = productos[0];
-    productos = [];
-    for (let i = 1; i <= cantidad; i++) {
-      productos.push(`${base}${i}`);
-    }
-  }
-  // Caso 3: sin producto pero con cantidad → usar grupo como base
-  else if (productos.length === 0 && cantidad > 0) {
-    const base = grupo || "Genérico";
-    productos = [];
-    for (let i = 1; i <= cantidad; i++) {
-      productos.push(`${base}${i}`);
-    }
-  }
-
-  // Expandir talles si existen
-  const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
-
-  if (listaTalles.length > 0) {
-    productos.forEach(prod => {
-      listaTalles.forEach(talle => {
-        agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talle, stockNum);
-        if (callback) callback();
-      });
-    });
-  } else {
-    productos.forEach(prod => {
-      agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stockNum);
-      if (callback) callback();
-    });
   }
 }
   
