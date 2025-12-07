@@ -166,37 +166,6 @@ function eliminarProducto(boton) {
   fila.remove();
   actualizarContador(grupo);
 }
-    
-const LS_KEY = "step3_state";
-// Función que arma el JSON y lo guarda en localStorage
-function saveState() {
-  const state = { grupos: [], imagenesUsadas: [...imagenesUsadas] };
-
-  document.querySelectorAll(".card:not(.subgrupo)").forEach(grupoCard => {
-    const nombreGrupo = grupoCard.querySelector("h4")?.textContent?.trim() || "Sin nombre";
-
-    const productosGrupo = [...grupoCard.querySelectorAll(".productos > .fila-producto")].map(fila => filaToObj(fila));
-
-    const subgrupos = [...grupoCard.querySelectorAll(".subgrupo")].map(subCard => {
-      const nombreSub = subCard.querySelector(".nombre-subgrupo")?.textContent?.trim() || "Sin subgrupo";
-      const productosSub = [...subCard.querySelectorAll(".productos > .fila-producto")].map(fila => filaToObj(fila));
-      return { nombre: nombreSub, productos: productosSub };
-    });
-
-    state.grupos.push({ nombre: nombreGrupo, productos: productosGrupo, subgrupos });
-  });
-
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
-}
-
-// Debounce wrapper
-const saveStateDebounced = (() => {
-  let t;
-  return function() {
-    clearTimeout(t);
-    t = setTimeout(() => saveState(), 200);
-  }
-})();
 
 function confirmarContinuar() {
   return confirm("Se enviarán los datos, ¿deseás continuar?");
