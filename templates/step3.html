@@ -658,7 +658,7 @@ function leerArchivoProductos() {
         const grupo       = row[3] || "";
         const subgrupo    = row[4] || "";
         const talles      = row[5] || "";
-        const stock       = row[6]?.toString() || "0";
+        const stock       = row[6]?.toString() || "0";  // ✅ Stock como string
         const filas       = row[7]?.toString() || "1";
 
         if (!grupo) {
