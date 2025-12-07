@@ -202,12 +202,12 @@ function confirmarContinuar() {
   return confirm("Se enviarán los datos, ¿deseás continuar?");
 }
   
-// Utilidad para convertir fila en objeto
 function filaToObj(fila) {
   return {
     nombre: fila.querySelector("input[name='nombre']")?.value || "",
     descripcion: fila.querySelector("textarea[name='descripcion']")?.value || "",
     precio: fila.querySelector("input[name='precio']")?.value || "",
+    stock: fila.querySelector("input[name='stock']")?.value || "", // NUEVO
     talles: fila.querySelector("input[name='talles']")?.value || "",
     imagen_url: fila.querySelector("input[name='imagen_elegida']")?.value || "",
     imagen_basename: fila.querySelector("input[name='imagen_basename']")?.value || ""
@@ -893,14 +893,17 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
   fila.className = 'row g-2 align-items-center mb-2 fila-producto';
 
   fila.innerHTML = `
-    <div class="col-3">
+    <div class="col-2">
       <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Nombre">
     </div>
-    <div class="col-3">
+    <div class="col-2">
       <textarea name="descripcion" class="form-control form-control-sm" rows="1" placeholder="Descripción (Opcional)"></textarea>
     </div>
-    <div class="col-2">
-      <input type="text" name="precio" class="form-control form-control-sm" style="width: 80px;" placeholder="$">
+    <div class="col-1">
+      <input type="text" name="precio" class="form-control form-control-sm" style="width: 60px;" placeholder="$">
+    </div>
+    <div class="col-1">
+      <input type="text" name="stock" class="form-control form-control-sm" style="width: 60px;" placeholder="Stock">
     </div>
     <div class="col-2">
       <input type="text" name="talles" class="form-control form-control-sm" style="width: 160px;" placeholder="(Opcional) S,M,L,XL">
