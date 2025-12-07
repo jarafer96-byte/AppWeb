@@ -1307,9 +1307,9 @@ def enviar_comprobante(email_vendedor, orden_id):
 
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
-    """Webhook unificado - Versión ultra-robusta con soporte para variantes"""
+    """Webhook unificado - Versión mejorada con extracción robusta de talle/color"""
     evento = request.get_json(force=True) or {}
-    print(f"[WEBHOOK] 📥 Evento recibido")
+    print(f"[WEBHOOK] 📥 Evento recibido: {json.dumps(evento, indent=2)[:500]}...")
     
     # Extraer payment_id
     payment_id = None
@@ -1385,13 +1385,46 @@ def webhook_mp():
                         # ✅ **BÚSQUEDA DE CANTIDAD DESDE CARRITO**
                         cantidad = int(item.get("cantidad", 1))
                         
-                        # ✅ **BÚSQUEDA DE TALLE Y COLOR DESDE CARRITO**
+                        # ✅ **MEJORA: EXTRACCIÓN ROBUSTA DE TALLE Y COLOR**
                         talle = item.get("talle", "")
                         color = item.get("color", "")
                         
-                        print(f"[WEBHOOK-STOCK] 🔍 Producto: {producto_id}, Talle: {talle}, Color: {color}, Cantidad: {cantidad}")
+                        # Si no tiene talle/color explícitos, intentar extraer del título
+                        if not talle and not color:
+                            title = item.get("title", "") or item.get("nombre", "") or ""
+                            
+                            # Patrones de búsqueda en el título
+                            import re
+                            
+                            # Patrón 1: "Producto (Talle: M, Color: Rojo)"
+                            talle_match = re.search(r"[Tt]alle[:\s]*([A-Za-z0-9]+)", title)
+                            color_match = re.search(r"[Cc]olor[:\s]*([A-Za-z\s]+)", title)
+                            
+                            if talle_match:
+                                talle = talle_match.group(1).strip()
+                            if color_match:
+                                color = color_match.group(1).strip()
+                            
+                            # Patrón 2: "Producto - M - Rojo"
+                            if not talle and not color:
+                                parts = title.split('-')
+                                if len(parts) >= 3:
+                                    talle = parts[-2].strip()
+                                    color = parts[-1].strip()
+                            
+                            # Patrón 3: Buscar en metadata
+                            if not talle:
+                                talle = item.get("metadata", {}).get("talle", "") or item.get("metadata", {}).get("size", "")
+                            if not color:
+                                color = item.get("metadata", {}).get("color", "") or item.get("metadata", {}).get("colour", "")
                         
-                        # ✅ **DESCONTAR STOCK - CON SOPORTE PARA VARIANTES**
+                        # Limpiar espacios
+                        talle = str(talle).strip()
+                        color = str(color).strip()
+                        
+                        print(f"[WEBHOOK-STOCK] 🔍 Producto: {producto_id}, Talle: '{talle}', Color: '{color}', Cantidad: {cantidad}")
+                        
+                        # ✅ **DESCONTAR STOCK - CON SOPORTE MEJORADO PARA VARIANTES**
                         prod_ref = db.collection("usuarios").document(email_vendedor)\
                                       .collection("productos").document(producto_id)
                         prod_doc = prod_ref.get()
@@ -1403,27 +1436,44 @@ def webhook_mp():
                             tiene_variantes = data.get("tiene_variantes", False)
                             variantes = data.get("variantes", {})
                             
+                            # Si tiene variantes y tenemos talle/color
                             if tiene_variantes and variantes and talle and color:
-                                # 👇 DESCONTAR DE VARIANTE ESPECÍFICA
-                                variante_key = f"{talle}_{color}".replace(" ", "_")
+                                # Buscar variante coincidente (con flexibilidad)
+                                variante_encontrada = None
+                                variante_key_encontrada = None
                                 
-                                if variante_key in variantes:
-                                    variante = variantes[variante_key]
-                                    stock_variante = variante.get("stock", 0)
+                                # Buscar exacto primero
+                                variante_key_exacta = f"{talle}_{color}".replace(" ", "_")
+                                if variante_key_exacta in variantes:
+                                    variante_encontrada = variantes[variante_key_exacta]
+                                    variante_key_encontrada = variante_key_exacta
+                                else:
+                                    # Buscar con flexibilidad (ignorar mayúsculas/minúsculas)
+                                    for key, variante in variantes.items():
+                                        variante_talle = variante.get("talle", "").lower().strip()
+                                        variante_color = variante.get("color", "").lower().strip()
+                                        if (variante_talle == talle.lower() and 
+                                            variante_color == color.lower()):
+                                            variante_encontrada = variante
+                                            variante_key_encontrada = key
+                                            break
+                                
+                                if variante_encontrada and variante_key_encontrada:
+                                    # 👇 DESCONTAR DE VARIANTE ESPECÍFICA
+                                    stock_variante = variante_encontrada.get("stock", 0)
                                     nuevo_stock_variante = max(0, stock_variante - cantidad)
                                     
                                     # Actualizar variante específica
                                     prod_ref.update({
-                                        f"variantes.{variante_key}.stock": nuevo_stock_variante,
-                                        "stock": firestore.Increment(-cantidad)  # Actualizar stock total
+                                        f"variantes.{variante_key_encontrada}.stock": nuevo_stock_variante
                                     })
                                     
-                                    print(f"[WEBHOOK-STOCK] ✅ Variante {variante_key}: {stock_variante} → {nuevo_stock_variante} (-{cantidad})")
+                                    print(f"[WEBHOOK-STOCK] ✅ Variante {variante_key_encontrada}: {stock_variante} → {nuevo_stock_variante} (-{cantidad})")
                                     
                                     # 🔄 Guardar histórico para variante
                                     historial_ref = db.collection("usuarios").document(email_vendedor)\
                                                        .collection("productos").document(producto_id)\
-                                                       .collection("stock_historial").document(f"{external_ref}_{variante_key}")
+                                                       .collection("stock_historial").document(f"{external_ref}_{variante_key_encontrada}")
                                     
                                     historial_ref.set({
                                         "orden_id": external_ref,
@@ -1435,13 +1485,13 @@ def webhook_mp():
                                         "tipo": "compra_webhook_variante",
                                         "talle": talle,
                                         "color": color,
-                                        "variante_key": variante_key,
+                                        "variante_key": variante_key_encontrada,
                                         "nombre_producto": data.get("nombre", "")
                                     })
                                     
                                 else:
                                     # Variante no encontrada, descontar del stock general
-                                    print(f"[WEBHOOK-STOCK] ⚠️ Variante {variante_key} no encontrada, descontando del stock general")
+                                    print(f"[WEBHOOK-STOCK] ⚠️ Variante no encontrada (Talle: '{talle}', Color: '{color}'), descontando del stock general")
                                     stock_actual = data.get("stock", 0)
                                     nuevo_stock = max(0, stock_actual - cantidad)
                                     prod_ref.update({"stock": nuevo_stock})
@@ -1487,10 +1537,25 @@ def webhook_mp():
                                     "nombre_producto": data.get("nombre", "")
                                 })
                             
+                            # ✅ Sincronizar stock total después de la actualización
+                            try:
+                                # Recalcular stock total sumando todas las variantes
+                                prod_doc_actualizado = prod_ref.get()
+                                if prod_doc_actualizado.exists:
+                                    data_actualizado = prod_doc_actualizado.to_dict()
+                                    variantes_actualizadas = data_actualizado.get("variantes", {})
+                                    
+                                    if variantes_actualizadas:
+                                        stock_total_actualizado = sum(v.get('stock', 0) for v in variantes_actualizadas.values())
+                                        prod_ref.update({"stock": stock_total_actualizado})
+                                        print(f"[WEBHOOK-STOCK] 🔄 Stock total sincronizado: {stock_total_actualizado}")
+                            except Exception as sync_error:
+                                print(f"[WEBHOOK-STOCK] ⚠️ Error sincronizando stock total: {sync_error}")
+                            
                         else:
                             print(f"[WEBHOOK-STOCK] ⚠️ Producto {producto_id} no encontrado en {email_vendedor}")
                             # Intentar buscar por nombre si no encontramos por ID
-                            nombre_producto = item.get("nombre")
+                            nombre_producto = item.get("nombre") or item.get("title", "")
                             if nombre_producto:
                                 print(f"[WEBHOOK-STOCK] 🔍 Intentando buscar por nombre: {nombre_producto}")
                                 try:
@@ -1524,10 +1589,17 @@ def webhook_mp():
             "webhook_processed": True,
             "webhook_timestamp": firestore.SERVER_TIMESTAMP,
             "stock_actualizado": estado == "approved",
+            "stock_actualizado_fecha": firestore.SERVER_TIMESTAMP if estado == "approved" else None
         }
         
+        # Si el pago fue aprobado, agregar campos adicionales
         if estado == "approved":
-            update_data["stock_actualizado_fecha"] = firestore.SERVER_TIMESTAMP
+            update_data["pago_aprobado_fecha"] = firestore.SERVER_TIMESTAMP
+            
+            # Marcar items procesados si es necesario
+            if len(todos_items) > 0:
+                update_data["items_procesados"] = True
+                update_data["items_procesados_fecha"] = firestore.SERVER_TIMESTAMP
         
         doc_ref.update(update_data)
         
@@ -1538,8 +1610,17 @@ def webhook_mp():
             if email_vendedor:
                 # Verificar si ya se envió comprobante
                 if not orden_data.get("comprobante_enviado", False):
-                    enviar_comprobante(email_vendedor, external_ref)
-                    print(f"[WEBHOOK] ✅ Comprobante enviado para orden {external_ref}")
+                    try:
+                        enviar_comprobante(email_vendedor, external_ref)
+                        print(f"[WEBHOOK] ✅ Comprobante enviado para orden {external_ref}")
+                        
+                        # Actualizar estado de comprobante
+                        doc_ref.update({
+                            "comprobante_enviado": True,
+                            "comprobante_enviado_fecha": firestore.SERVER_TIMESTAMP
+                        })
+                    except Exception as e:
+                        print(f"[WEBHOOK] ❌ Error enviando comprobante: {e}")
                 else:
                     print(f"[WEBHOOK] ⚠️ Comprobante ya enviado anteriormente para {external_ref}")
         
@@ -1549,8 +1630,6 @@ def webhook_mp():
         print(f"[WEBHOOK] ❌ Error procesando webhook: {e}")
         traceback.print_exc()
         return jsonify({"ok": False}), 500
-
-# Agrega esto después de las rutas existentes
 
 @app.route('/api/variantes/<producto_id>', methods=['GET'])
 def get_variantes(producto_id):
