@@ -519,39 +519,25 @@ function inicializarCarrusel() {
 
 function procesarFila(grupo, subgrupo, productoBase, descripcion, precio, talles, cantidadRaw, stock) {
   const cantidad = parseInt(cantidadRaw || "1", 10);
-
-  // Lista de productos separados por coma
-  let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
-
-  // 🔧 CORRECCIÓN: NO expandir productos por cantidad cuando hay talles
-  if (cantidad > 1) {
-    // Caso 1: varios productos explícitos → se respetan tal cual
-    if (productos.length > 1) {
-      // no se aplica cantidad
-    }
-    // Caso 2: un solo producto + cantidad > 1 → numerar
-    else if (productos.length === 1) {
-      const base = productos[0];
-      productos = [];
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
-      }
-    }
-    // Caso 3: sin producto pero con cantidad → usar grupo como base
-    else if (productos.length === 0 && cantidad > 0) {
-      const base = grupo || "Genérico";
-      productos = [];
-      for (let i = 1; i <= cantidad; i++) {
-        productos.push(`${base}${i}`);
-      }
+  
+  // 1. Mantener productos tal cual del Excel
+  let productos = productoBase ? [productoBase] : [grupo || "Producto"];
+  
+  // 2. SI cantidad > 1 Y es producto único → numerar
+  if (cantidad > 1 && productos.length === 1) {
+    const base = productos[0];
+    productos = [];
+    for (let i = 1; i <= cantidad; i++) {
+      productos.push(`${base}${i}`);
     }
   }
-
-  // 🔧 CORRECCIÓN: NO expandir por talles. Mantener "S,M,L" como texto
+  
+  // 3. NO expandir talles. "S,M,L" queda como texto completo
   productos.forEach(prod => {
     agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stock);
-    filasAgregadas++;
   });
+  
+  return productos.length; // Devuelve cuántas filas se agregaron
 }
   
 function leerArchivoProductos() {
@@ -563,55 +549,7 @@ function leerArchivoProductos() {
 
   const file = input.files[0];
   const ext = file.name.toLowerCase().split('.').pop();
-  let filasAgregadas = 0;
-
-  const procesarFila = (grupo, subgrupo, productoBase, descripcion, precio, talles, cantidadRaw, stock) => {
-    const cantidad = parseInt(cantidadRaw || "1", 10);
-
-    // Lista de productos separados por coma
-    let productos = productoBase ? productoBase.split(",").map(p => p.trim()).filter(Boolean) : [];
-
-    // Expandir talles si existen
-    const listaTalles = talles ? talles.split(",").map(t => t.trim()).filter(Boolean) : [];
-
-    // 🔧 CORRECCIÓN: Si hay talles, NO aplicamos duplicación por cantidad
-    if (listaTalles.length === 0) {
-      // Caso 1: varios productos explícitos → se respetan tal cual
-      if (productos.length > 1) {
-        // no se aplica cantidad
-      }
-      // Caso 2: un solo producto + Filas > 1 → numerar
-      else if (productos.length === 1 && cantidad > 1) {
-        const base = productos[0];
-        productos = [];
-        for (let i = 1; i <= cantidad; i++) {
-          productos.push(`${base}${i}`);
-        }
-      }
-      // Caso 3: sin producto pero con cantidad → usar grupo como base
-      else if (productos.length === 0 && cantidad > 0) {
-        const base = grupo || "Genérico";
-        productos = [];
-        for (let i = 1; i <= cantidad; i++) {
-          productos.push(`${base}${i}`);
-        }
-      }
-    }
-
-    if (listaTalles.length > 0) {
-      productos.forEach(prod => {
-        listaTalles.forEach(talle => {
-          agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talle, stock);
-          filasAgregadas++;
-        });
-      });
-    } else {
-      productos.forEach(prod => {
-        agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stock);
-        filasAgregadas++;
-      });
-    }
-  };
+  let totalFilasAgregadas = 0;
 
   // 👉 CSV / TXT
   if (ext === "csv" || ext === "txt") {
@@ -620,41 +558,30 @@ function leerArchivoProductos() {
       const contenido = e.target.result;
       const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
       const sep = lineas.some(l => l.includes(";")) ? ";" : ",";
+      totalFilasAgregadas = 0;
 
-      // 🔧 CORRECCIÓN: Agrupar filas idénticas para evitar duplicados
-      const grupos = {};
       lineas.forEach((linea, idx) => {
         const partes = linea.split(sep).map(p => p.trim());
-        const nombre      = partes[0] || "";
+        const nombre = partes[0] || "";
         const descripcion = partes[1] || "";
-        const precio      = partes[2] || "";
-        const grupo       = partes[3] || "";
-        const subgrupo    = partes[4] || "";
-        const talles      = partes[5] || "";
-        const stock       = partes[6] || "";
-        const filas       = parseInt(partes[7]) || 1;
+        const precio = partes[2] || "";
+        const grupo = partes[3] || "";
+        const subgrupo = partes[4] || "";
+        const talles = partes[5] || "";
+        const stock = partes[6] || "";
+        const filas = parseInt(partes[7]) || 1;
 
         if (!grupo) {
           console.warn("⚠️ Línea descartada por falta de grupo:", partes);
           return;
         }
 
-        const clave = `${grupo}|${subgrupo}|${nombre}|${descripcion}|${precio}|${talles}|${stock}`;
-        if (!grupos[clave]) {
-          grupos[clave] = {
-            grupo, subgrupo, nombre, descripcion, precio, talles, stock, filas: 0
-          };
-        }
-        grupos[clave].filas += filas;
+        const filasCreadas = procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas, stock);
+        totalFilasAgregadas += filasCreadas;
       });
 
-      // Procesar cada grupo único
-      Object.values(grupos).forEach(item => {
-        procesarFila(item.grupo, item.subgrupo, item.nombre, item.descripcion, item.precio, item.talles, item.filas, item.stock);
-      });
-
-      alert(filasAgregadas > 0
-        ? `✅ Productos importados: ${filasAgregadas}`
+      alert(totalFilasAgregadas > 0
+        ? `✅ Productos importados: ${totalFilasAgregadas}`
         : "❌ No se importaron filas desde CSV/TXT");
     };
     reader.readAsText(file);
@@ -668,40 +595,29 @@ function leerArchivoProductos() {
       const wb = XLSX.read(data, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws);
+      totalFilasAgregadas = 0;
 
-      // 🔧 CORRECCIÓN: Agrupar filas idénticas para evitar duplicados
-      const grupos = {};
       rows.forEach((obj, idx) => {
-        const grupo       = obj.Grupo       || obj.Categoria    || "";
-        const subgrupo    = obj.Subgrupo    || obj.Subcategoria || "";
-        const nombre      = obj.Nombre      || obj.Producto     || "";
+        const grupo = obj.Grupo || obj.Categoria || "";
+        const subgrupo = obj.Subgrupo || obj.Subcategoria || "";
+        const nombre = obj.Nombre || obj.Producto || "";
         const descripcion = obj.Descripcion || "";
-        const precio      = obj.Precio      || "";
-        const talles      = obj.Talles      || "";
-        const stock       = obj.Stock       || "";
-        const filas       = parseInt(obj.Filas) || 1;
+        const precio = obj.Precio || "";
+        const talles = obj.Talles || "";
+        const stock = obj.Stock || "";
+        const filas = parseInt(obj.Filas) || 1;
 
         if (!grupo) {
           console.warn("⚠️ Fila descartada por falta de grupo:", obj);
           return;
         }
 
-        const clave = `${grupo}|${subgrupo}|${nombre}|${descripcion}|${precio}|${talles}|${stock}`;
-        if (!grupos[clave]) {
-          grupos[clave] = {
-            grupo, subgrupo, nombre, descripcion, precio, talles, stock, filas: 0
-          };
-        }
-        grupos[clave].filas += filas;
+        const filasCreadas = procesarFila(grupo, subgrupo, nombre, descripcion, precio, talles, filas, stock);
+        totalFilasAgregadas += filasCreadas;
       });
 
-      // Procesar cada grupo único
-      Object.values(grupos).forEach(item => {
-        procesarFila(item.grupo, item.subgrupo, item.nombre, item.descripcion, item.precio, item.talles, item.filas, item.stock);
-      });
-
-      alert(filasAgregadas > 0
-        ? `✅ Productos importados desde Excel: ${filasAgregadas}`
+      alert(totalFilasAgregadas > 0
+        ? `✅ Productos importados desde Excel: ${totalFilasAgregadas}`
         : "❌ No se importaron filas desde Excel");
     };
     reader.readAsArrayBuffer(file);
@@ -711,7 +627,7 @@ function leerArchivoProductos() {
     alert("⚠️ Formato no soportado. Subí CSV, TXT o Excel (.xls/.xlsx)");
   }
 }
-
+  
 function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles, stock) {
   // Buscar o crear grupo
   let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
@@ -728,7 +644,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     }
   }
 
-  // Buscar o crear subgrupo (solo si se especifica)
+  // Buscar o crear subgrupo
   let subgrupoCard = null;
   if (subgrupo) {
     subgrupoCard = grupoCard && [...grupoCard.querySelectorAll(".subgrupo")].find(
@@ -748,7 +664,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     }
   }
 
-  // 👉 Si no hay subgrupo, usamos directamente el grupo como contenedor
+  // Si no hay subgrupo, usar grupo
   if (!subgrupoCard) {
     subgrupoCard = grupoCard;
   }
@@ -758,16 +674,17 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     return;
   }
 
-  // Crear fila y rellenar datos
+  // Crear fila
   const fila = crearFila(subgrupo || grupo, grupo);
+  
+  // Rellenar datos - TALLES COMPLETOS COMO TEXTO "S,M,L"
   fila.querySelector("input[name='nombre']").value = nombre;
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
   fila.querySelector("input[name='stock']").value = stock;
-  // 🔧 CORRECCIÓN: Poner los talles COMPLETOS como texto "S,M,L"
-  fila.querySelector("input[name='talles']").value = talles || "";
+  fila.querySelector("input[name='talles']").value = talles || ""; // "S,M,L" queda entero
 
-  // 👉 Insertar fila en el contenedor correcto
+  // Insertar
   const contenedor = subgrupoCard.querySelector(".productos");
   if (contenedor) {
     contenedor.appendChild(fila);
