@@ -680,6 +680,7 @@ function leerArchivoProductos() {
     alert("⚠️ Formato no soportado. Subí CSV, TXT o Excel (.xls/.xlsx)");
   }
 }
+  
 function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles, stock) {
   // Buscar o crear grupo
   let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
@@ -696,53 +697,64 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     }
   }
 
+  if (!grupoCard) {
+    console.warn("⚠️ No se pudo crear/ubicar grupo:", grupo);
+    return;
+  }
+
   // Buscar o crear subgrupo (solo si se especifica)
   let subgrupoCard = null;
-  if (subgrupo) {
-    subgrupoCard = grupoCard && [...grupoCard.querySelectorAll(".subgrupo")].find(
-      s => s.querySelector("strong")?.textContent.trim() === subgrupo
+  let contenedorFinal = null;
+  
+  if (subgrupo && subgrupo.trim() !== "") {
+    subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
+      s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === subgrupo
     );
-    if (!subgrupoCard && grupoCard) {
+    
+    if (!subgrupoCard) {
       const grupoIdx = grupoCard.id.split("_")[1];
       const inputSub = grupoCard.querySelector(`#inputSubgrupo_${grupoIdx}`);
       const btnCrearSub = grupoCard.querySelector("button[onclick^='crearSubgrupo']");
       if (inputSub && btnCrearSub) {
         inputSub.value = subgrupo;
         crearSubgrupo(btnCrearSub);
+        // Buscar el subgrupo recién creado
         subgrupoCard = [...grupoCard.querySelectorAll(".subgrupo")].find(
-          s => s.querySelector("strong")?.textContent.trim() === subgrupo
+          s => s.querySelector(".nombre-subgrupo")?.textContent.trim() === subgrupo
         );
       }
     }
+    
+    contenedorFinal = subgrupoCard ? subgrupoCard.querySelector(".productos") : null;
   }
-
-  // 👉 Si no hay subgrupo, usamos directamente el grupo como contenedor
-  if (!subgrupoCard) {
-    subgrupoCard = grupoCard;
-  }
-
-  if (!subgrupoCard) {
-    console.warn("⚠️ No se pudo crear/ubicar grupo/subgrupo:", grupo, subgrupo);
-    return;
+  
+  // Si no hay subgrupo o no se pudo crear, usar el grupo directamente
+  if (!contenedorFinal) {
+    contenedorFinal = grupoCard.querySelector(".productos");
+    subgrupo = ""; // Resetear subgrupo a vacío si no existe
   }
 
   // Crear fila y rellenar datos
-  const fila = crearFila(subgrupo || grupo, grupo);
+  const fila = crearFila(subgrupo || "", grupo);
   fila.querySelector("input[name='nombre']").value = nombre;
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
   fila.querySelector("input[name='talles']").value = talles;
-  fila.querySelector("input[name='stock']").value = stock || "0"; // NUEVO
+  fila.querySelector("input[name='stock']").value = stock || "0";
 
-  // 👉 Insertar fila en el contenedor correcto
-  const contenedor = subgrupoCard.querySelector(".productos");
-  if (contenedor) {
-    contenedor.appendChild(fila);
+  // Insertar fila en el contenedor correcto
+  if (contenedorFinal) {
+    contenedorFinal.appendChild(fila);
+    // Actualizar contador del contenedor apropiado
+    if (subgrupoCard) {
+      actualizarContador(subgrupoCard);
+    } else {
+      actualizarContador(grupoCard);
+    }
   } else {
-    subgrupoCard.appendChild(fila);
+    console.warn("⚠️ No se encontró contenedor para la fila:", grupo, subgrupo);
   }
 
-  actualizarContador(subgrupoCard);
   saveStateDebounced();
 }
 
