@@ -1951,9 +1951,10 @@ def step3():
         subgrupos = request.form.getlist('subgrupo')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
+        stocks = request.form.getlist('stock')  # 👈 NUEVO: campo stock
         imagenes_elegidas = request.form.getlist('imagen_elegida')
 
-        print(f"📊 [Step3] Datos recibidos: nombres={len(nombres)}, precios={len(precios)}, imagenes_elegidas={len(imagenes_elegidas)}")
+        print(f"📊 [Step3] Datos recibidos: nombres={len(nombres)}, precios={len(precios)}, stocks={len(stocks)}, imagenes_elegidas={len(imagenes_elegidas)}")
 
         repo_name = session.get('repo_nombre') or "AppWeb"
         print(f"📦 [Step3] Repo destino: {repo_name}")
@@ -1964,8 +1965,26 @@ def step3():
             grupo = grupos[i].strip() or 'Sin grupo'
             subgrupo = subgrupos[i].strip() or 'Sin subgrupo'
             orden = ordenes[i].strip() or str(i + 1)
-
-            print(f"➡️ [Step3] Procesando producto {i+1}: nombre={nombre}, precio={precio}, grupo={grupo}, subgrupo={subgrupo}, orden={orden}")
+            
+            # 👈 NUEVO: procesar stock
+            stock_raw = stocks[i] if i < len(stocks) else "0"
+            print(f"  [Step3] Stock raw recibido para producto {i+1}: '{stock_raw}'")
+            
+            # Procesar stock para convertirlo a int
+            stock_final = 0
+            if stock_raw and str(stock_raw).strip():
+                try:
+                    stock_final = int(str(stock_raw).strip())
+                    if stock_final < 0:
+                        stock_final = 0
+                        print(f"  [Step3] ⚠️ Stock negativo ajustado a 0")
+                except (ValueError, TypeError) as e:
+                    print(f"  [Step3] ⚠️ Error parseando stock '{stock_raw}': {e}, usando default 0")
+                    stock_final = 0
+            else:
+                print(f"  [Step3] ℹ️ Stock vacío o no proporcionado, usando default 0")
+            
+            print(f"➡️ [Step3] Procesando producto {i+1}: nombre={nombre}, precio={precio}, stock={stock_final}, grupo={grupo}, subgrupo={subgrupo}, orden={orden}")
 
             if not nombre or not precio or not grupo or not subgrupo:
                 print("⚠️ [Step3] Producto ignorado por datos incompletos")
@@ -2006,13 +2025,14 @@ def step3():
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
+                'stock': stock_final,  # 👈 NUEVO: incluir stock en el bloque
                 'imagen_url': imagen_para_guardar,
                 'grupo': grupo,
                 'subgrupo': subgrupo,
                 'orden': orden,
                 'talles': talle_lista
             })
-            print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_para_guardar}")
+            print(f"✅ [Step3] Producto agregado: {nombre} con imagen {imagen_para_guardar}, stock={stock_final}")
 
         session['bloques'] = bloques
         print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
@@ -2020,9 +2040,15 @@ def step3():
 
         def subir_con_resultado(producto):
             try:
+                print(f"🔥 [Step3] Subiendo producto a Firestore: {producto.get('nombre')}, stock={producto.get('stock')}")
                 resultado = subir_a_firestore(producto, email)
                 print(f"🔥 [Step3] Resultado subir_a_firestore para '{producto.get('nombre')}' -> {resultado}")
-                return resultado.get("ok") if isinstance(resultado, dict) else bool(resultado)
+                
+                # Verificar si fue exitoso
+                if isinstance(resultado, dict):
+                    return resultado.get("status") == "ok" or resultado.get("ok") == True
+                else:
+                    return bool(resultado)
             except Exception as e:
                 print(f"💥 [Step3] Excepción en subir_con_resultado: {e}")
                 print(traceback.format_exc())
@@ -2035,7 +2061,9 @@ def step3():
             with ThreadPoolExecutor(max_workers=3) as executor:
                 resultados = list(executor.map(subir_con_resultado, lote))
             exitos += sum(1 for r in resultados if r)
-        print(f"📊 [Step3] Total exitos en Firestore: {exitos}")
+            print(f"📊 [Step3] Lote completado: {sum(1 for r in resultados if r)} exitos")
+        
+        print(f"📊 [Step3] Total exitos en Firestore: {exitos} de {len(bloques)} intentados")
 
         grupos_dict = {}
         for producto in bloques:
@@ -2086,15 +2114,18 @@ def step3():
                 print(f"✅ [Step3] Fondo subido: {estilo_visual}.jpeg")
 
         if exitos > 0:
-            print("➡️ [Step3] Redirigiendo a /preview")
-            return redirect(f"/preview?email={email}")
+            print(f"➡️ [Step3] {exitos} productos guardados exitosamente, redirigiendo a /preview")
+            # Limpiar imágenes de sesión para liberar memoria
+            session.pop('imagenes_step0', None)
+            return redirect(f"/preview?email={email}&step3_completado=true&guardados={exitos}")
         else:
-            print("⚠️ [Step3] Ningún producto subido, renderizando step3.html")
+            print("⚠️ [Step3] Ningún producto subido exitosamente, renderizando step3.html")
             return render_template(
                 'step3.html',
                 tipo_web=tipo,
                 imagenes_step0=imagenes_disponibles,
-                email=email   # 👈 agregado
+                email=email,
+                productos=bloques  # 👈 Pasar productos para rellenar formulario
             )
 
     print("ℹ️ [Step3] GET request, renderizando step3.html")
@@ -2102,7 +2133,7 @@ def step3():
         'step3.html',
         tipo_web=tipo,
         imagenes_step0=imagenes_disponibles,
-        email=email   # 👈 agregado
+        email=email
     )
 
 def get_mp_public_key(email: str):
