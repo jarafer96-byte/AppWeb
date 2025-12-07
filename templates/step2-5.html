@@ -401,19 +401,15 @@ function recolectarDatos() {
     const filas = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
 
     if (grupo && producto) {
-      // 🔧 CORRECCIÓN: NO expandir talles, mantenerlos como texto completo
-      // Por ejemplo: "S,M,L" se mantiene como "S,M,L"
+      // 🔧 CORRECCIÓN: Crear múltiples productos con el MISMO nombre
+      // Por ejemplo: si filas=3, crea 3 productos llamados "Pantalón"
       
-      // Crear una entrada por cada fila solicitada
       for (let i = 0; i < filas; i++) {
-        // Si hay más de 1 fila, numerar el producto
-        const nombreFinal = filas > 1 ? `${producto}${i+1}` : producto;
-        
         datos.push({
           grupo,
           subgrupo,
-          producto: nombreFinal,
-          talle: talle, // 🔧 Mantener los talles COMPLETOS como texto
+          producto: producto,  // 🔥 CAMBIO: usar el nombre original SIN numerar
+          talle: talle,       // Mantener los talles COMPLETOS como texto
           stock,
           filas: 1
         });
@@ -433,10 +429,11 @@ function probarVistaPrevia() {
   const tbody = document.getElementById('vista-previa-body');
   tbody.innerHTML = '';
 
-  datos.forEach(item => {
+  // Mostrar productos con nombres iguales
+  datos.forEach((item, index) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${item.producto}</td>
+      <td>${item.producto}</td>  <!-- MISMO nombre para todos -->
       <td></td>
       <td></td>
       <td>${item.grupo}</td>
@@ -467,17 +464,17 @@ function generarExcel() {
     ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Stock', 'Filas']
   ];
 
-  // Agregar filas de datos
-  datos.forEach(item => {
+  // Agregar filas de datos - ahora productos tendrán nombres iguales
+  datos.forEach((item, index) => {
     hojaDatos.push([
-      item.producto,    // Nombre
+      item.producto,    // Nombre - MISMO nombre para todos
       '',               // Descripción (vacía)
       '',               // Precio (vacío)
       item.grupo,       // Grupo
       item.subgrupo,    // Subgrupo (puede estar vacío)
-      item.talle,       // Talles COMPLETOS como texto (ej: "S,M,L") - CORREGIDO
+      item.talle,       // Talles COMPLETOS como texto
       item.stock || '', // Stock (puede estar vacío)
-      '1'               // Filas (siempre 1 porque cada fila es un producto)
+      '1'               // Filas (siempre 1)
     ]);
   });
 
