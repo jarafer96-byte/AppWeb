@@ -1092,6 +1092,177 @@ function toggleModoAdmin(activo) {
     }
   });
 }
+
+// Función para gestionar variantes (modo admin)
+function editarVariantes(idProducto) {
+  // Crear modal para gestionar variantes
+  const modalHTML = `
+    <div class="modal fade" id="modalVariantes" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">🎨 Gestionar Variantes</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="listaVariantes"></div>
+            <hr>
+            <h6>➕ Agregar nueva variante</h6>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <input type="text" id="nuevoTalle" class="form-control" placeholder="Talle">
+              </div>
+              <div class="col-md-4">
+                <input type="text" id="nuevoColor" class="form-control" placeholder="Color">
+              </div>
+              <div class="col-md-4">
+                <input type="number" id="nuevoStock" class="form-control" placeholder="Stock" min="0">
+              </div>
+            </div>
+            <button class="btn btn-success mt-2" onclick="agregarVariante('${idProducto}')">
+              ➕ Agregar Variante
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Añadir modal al DOM si no existe
+  if (!document.getElementById('modalVariantes')) {
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  }
+  
+  // Cargar variantes existentes
+  cargarListaVariantes(idProducto);
+  
+  // Mostrar modal
+  const modal = new bootstrap.Modal(document.getElementById('modalVariantes'));
+  modal.show();
+}
+
+// Cargar lista de variantes en el modal
+async function cargarListaVariantes(idProducto) {
+  try {
+    const response = await fetch(`${URL_BACKEND}/api/variantes/${idProducto}`);
+    const variantes = await response.json();
+    
+    const listaDiv = document.getElementById('listaVariantes');
+    listaDiv.innerHTML = '';
+    
+    if (!Array.isArray(variantes) || variantes.length === 0) {
+      listaDiv.innerHTML = '<p class="text-muted">No hay variantes configuradas.</p>';
+      return;
+    }
+    
+    const tablaHTML = `
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>Talle</th>
+            <th>Color</th>
+            <th>Stock</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${variantes.map(v => `
+            <tr>
+              <td>${v.talle || ''}</td>
+              <td>${v.color || ''}</td>
+              <td>
+                <input type="number" 
+                       id="stock_${v.id}" 
+                       value="${v.stock || 0}" 
+                       class="form-control form-control-sm w-auto d-inline"
+                       onchange="actualizarStockVariante('${v.id}', this.value)">
+              </td>
+              <td>
+                <button class="btn btn-sm btn-danger" 
+                        onclick="eliminarVariante('${v.id}')">
+                  🗑️
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    
+    listaDiv.innerHTML = tablaHTML;
+  } catch (error) {
+    console.error('Error cargando variantes:', error);
+  }
+}
+
+// Actualizar stock de una variante específica
+function actualizarStockVariante(idVariante, nuevoStock) {
+  fetch(`${URL_BACKEND}/api/variantes/${idVariante}/actualizar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stock: parseInt(nuevoStock) || 0 })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'ok') {
+      mostrarAviso('✅ Stock actualizado');
+      // Actualizar stock general en la vista
+      const idProducto = data.id_producto;
+      if (idProducto) {
+        const stockSpan = document.getElementById(`stock_${idProducto}`);
+        if (stockSpan) {
+          stockSpan.textContent = data.stock_total || '0';
+        }
+      }
+    }
+  });
+}
+
+// Agregar nueva variante
+function agregarVariante(idProducto) {
+  const talle = document.getElementById('nuevoTalle').value.trim();
+  const color = document.getElementById('nuevoColor').value.trim();
+  const stock = parseInt(document.getElementById('nuevoStock').value) || 0;
+  
+  if (!talle || !color) {
+    alert('❌ Talle y color son requeridos');
+    return;
+  }
+  
+  fetch(`${URL_BACKEND}/api/variantes/${idProducto}/crear`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ talle, color, stock })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'ok') {
+      mostrarAviso('✅ Variante agregada');
+      cargarListaVariantes(idProducto);
+      
+      // Limpiar campos
+      document.getElementById('nuevoTalle').value = '';
+      document.getElementById('nuevoColor').value = '';
+      document.getElementById('nuevoStock').value = '';
+    }
+  });
+}
+
+// Eliminar variante
+function eliminarVariante(idVariante) {
+  if (!confirm('¿Eliminar esta variante?')) return;
+  
+  fetch(`${URL_BACKEND}/api/variantes/${idVariante}/eliminar`, {
+    method: 'DELETE'
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'ok') {
+      mostrarAviso('✅ Variante eliminada');
+      cargarListaVariantes(data.id_producto);
+    }
+  });
+}
     
 function abrirConfigMercadoPago() {
     console.log("⚙️ Redirigiendo a configuración de Mercado Pago...");
