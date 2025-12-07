@@ -740,7 +740,7 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
   fila.querySelector("input[name='talles']").value = talles;
-  fila.querySelector("input[name='stock']").value = stock || "0";
+  fila.querySelector("input[name='stock']").value = stock || "0"; // ✅ ASIGNA STOCK
 
   // Insertar fila en el contenedor correcto
   if (contenedorFinal) {
