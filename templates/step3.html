@@ -264,6 +264,7 @@ function generarFilasDesdeListas(listas) {
     for (let i = 0; i < cant; i++) {
       const fila = crearFila(subgrupo || "General", nombreGrupo);
       fila.querySelector("input[name='talles']").value = talles || "";
+      // Nota: También deberías manejar colores aquí si vienen del step2-5
       contenedor.appendChild(fila);
     }
     actualizarContador(contenedor);
