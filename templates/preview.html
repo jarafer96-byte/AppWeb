@@ -380,6 +380,58 @@ html { scroll-behavior: auto; }
   font-weight: bold;
   box-shadow: 0 0 10px rgba(0,0,0,0.3);
 }  
+/* Añadir al final del bloque de estilos */
+
+/* Indicador de colores en las cards */
+.color-indicator {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-right: 5px;
+  border: 1px solid #ccc;
+  vertical-align: middle;
+}
+
+/* Badge para productos con variantes */
+.badge-variantes {
+  font-size: 0.8em;
+  padding: 3px 8px;
+  background: linear-gradient(45deg, #6f42c1, #20c997);
+  color: white;
+}
+
+/* Modal de variantes */
+.modal-variantes table {
+  font-size: 0.9em;
+}
+
+.modal-variantes th {
+  background-color: #f8f9fa;
+}
+
+/* Selector de color mejorado */
+.color-selector {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.color-option {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border 0.2s;
+}
+
+.color-option.selected {
+  border: 2px solid #000;
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+  
 </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
@@ -2225,6 +2277,36 @@ function cargarProductos(emailUsuario = null) {
     });
 }
 
+function mostrarAviso(mensaje) {
+  // Crear aviso si no existe
+  let aviso = document.getElementById("avisoFlotante");
+  if (!aviso) {
+    aviso = document.createElement("div");
+    aviso.id = "avisoFlotante";
+    aviso.className = "alert alert-success text-center";
+    aviso.role = "alert";
+    aviso.style.cssText = `
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      padding: 10px 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    `;
+    document.body.appendChild(aviso);
+  }
+  
+  aviso.textContent = mensaje;
+  aviso.style.display = "block";
+  
+  setTimeout(() => {
+    aviso.style.display = "none";
+  }, 3000);
+}
+    
 function mostrarAvisoPrecio() {
   const aviso = document.getElementById("avisoPrecio");
   if (!aviso) return;
