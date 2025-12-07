@@ -520,22 +520,21 @@ function inicializarCarrusel() {
   });
 }
 
-function procesarFila(grupo, subgrupo, productoBase, descripcion, precio, talles, cantidadRaw, stock) {
+function procesarFila(grupo, subgrupo, productoBase, descripcion, precio, talles, colores, cantidadRaw, stock) {
   const cantidad = parseInt(cantidadRaw || "1", 10);
   
   let productos = productoBase ? [productoBase] : [grupo || "Producto"];
   
-  // 🔥 CORRECCIÓN: NO numerar productos, repetir el mismo nombre
   if (cantidad > 1) {
     const base = productos[0];
     productos = [];
     for (let i = 0; i < cantidad; i++) {
-      productos.push(base); // MISMO NOMBRE PARA TODAS
+      productos.push(base);
     }
   }
   
   productos.forEach(prod => {
-    agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, stock);
+    agregarFilaImportada(prod, descripcion, precio, grupo, subgrupo, talles, colores, stock);
   });
   
   return productos.length;
@@ -629,7 +628,7 @@ function leerArchivoProductos() {
   }
 }
   
-function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles, stock) {
+function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, talles, colores, stock) {
   // Buscar o crear grupo
   let grupoCard = [...document.querySelectorAll(".card:not(.subgrupo)")].find(
     c => c.querySelector("h4")?.textContent.trim() === grupo
@@ -665,7 +664,6 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     }
   }
 
-  // Si no hay subgrupo, usar grupo
   if (!subgrupoCard) {
     subgrupoCard = grupoCard;
   }
@@ -678,12 +676,13 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
   // Crear fila
   const fila = crearFila(subgrupo || grupo, grupo);
   
-  // Rellenar datos - TALLES COMPLETOS COMO TEXTO "S,M,L"
+  // Rellenar datos
   fila.querySelector("input[name='nombre']").value = nombre;
   fila.querySelector("textarea[name='descripcion']").value = descripcion;
   fila.querySelector("input[name='precio']").value = precio;
   fila.querySelector("input[name='stock']").value = stock;
-  fila.querySelector("input[name='talles']").value = talles || ""; // "S,M,L" queda entero
+  fila.querySelector("input[name='talles']").value = talles || "";
+  fila.querySelector("input[name='colores']").value = colores || "";
 
   // Insertar
   const contenedor = subgrupoCard.querySelector(".productos");
