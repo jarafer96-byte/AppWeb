@@ -893,11 +893,20 @@ function crearFila(nombreSubgrupo, nombreGrupo = 'General') {
              placeholder="Stock" value="0" min="0">
     </div>
     <div class="col-2">
-      <input type="text" name="talles" class="form-control form-control-sm" style="width: 160px;" placeholder="Talles (opcional) S,M,L">
+      <div class="d-flex align-items-center">
+        <input type="text" name="talles" class="form-control form-control-sm" style="width: 140px;" placeholder="Talles (opcional) S,M,L">
+        <span class="tooltip-info">📌
+          <span class="tooltip-texto">Si especificas talles Y colores, el sistema creará variantes automáticamente.<br>Ej: Talle: S,M,L | Color: Rojo,Azul → 6 combinaciones</span>
+        </span>
+      </div>
     </div>
     <div class="col-2">
-      <!-- NUEVO: Campo para colores -->
-      <input type="text" name="colores" class="form-control form-control-sm" style="width: 160px;" placeholder="Colores (opcional) Rojo,Azul">
+      <div class="d-flex align-items-center">
+        <input type="text" name="colores" class="form-control form-control-sm" style="width: 140px;" placeholder="Colores (opcional) Rojo,Azul">
+        <span class="tooltip-info">🎨
+          <span class="tooltip-texto">Colores separados por comas. Se combinarán con los talles para crear variantes.</span>
+        </span>
+      </div>
     </div>
     <div class="col-2">
       <div class="d-flex align-items-center justify-content-end gap-2">
