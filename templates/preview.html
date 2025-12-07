@@ -2331,7 +2331,6 @@ function actualizarCarrito() {
 
   const lista = document.getElementById('listaCarrito');
   const totalSpan = document.getElementById('totalCarrito');
-  const link = document.getElementById('enviarCarrito');
   if (!lista || !totalSpan) return;
 
   lista.innerHTML = '';
@@ -2340,7 +2339,6 @@ function actualizarCarrito() {
   if (carrito.length === 0) {
     lista.innerHTML = "<li>🛒 Carrito vacío</li>";
     totalSpan.textContent = "0.00";
-    if (link) link.href = configWhatsApp;
     return;
   }
 
@@ -2350,10 +2348,20 @@ function actualizarCarrito() {
     const subtotal = item.precio * item.cantidad;
     suma += subtotal;
 
+    // Crear descripción con talle y color
+    let descripcion = item.nombre;
+    if (item.talle) descripcion += ` (Talle: ${item.talle})`;
+    if (item.color) descripcion += ` (Color: ${item.color})`;
+
     lista.insertAdjacentHTML("beforeend", `
-      <li style="display: flex; justify-content: space-between; align-items: center;">
-        <span>${item.nombre}${item.talle ? ' (' + item.talle + ')' : ''} x ${item.cantidad} - $${fmt.format(subtotal)}</span>
-        <button onclick="eliminarDelCarrito('${item.id_base}', '${item.talle}', event)" 
+      <li style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div>
+          <div><strong>${descripcion}</strong></div>
+          <div style="font-size: 0.9em; color: #666;">
+            ${item.cantidad} x $${item.precio.toFixed(2)} = $${subtotal.toFixed(2)}
+          </div>
+        </div>
+        <button onclick="eliminarDelCarrito('${item.id_base}', '${item.talle}', '${item.color}', event)" 
                 style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">
           ❌
         </button>
@@ -2361,16 +2369,6 @@ function actualizarCarrito() {
   });
 
   totalSpan.textContent = fmt.format(suma);
-
-  const mensaje = encodeURIComponent(
-    `Hola, quiero consultar por:\n` +
-    carrito.map(i => `- ${i.nombre}${i.talle ? ' (' + i.talle + ')' : ''} x ${i.cantidad}: $${fmt.format(i.precio * i.cantidad)}`).join('\n') +
-    `\nTotal estimado: $${fmt.format(suma)}`
-  );
-
-  if (link) {
-    link.href = configWhatsApp + '?text=' + mensaje;
-  }
 }
 
 function mostrarTodos() {
