@@ -136,7 +136,6 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
 def subir_a_firestore(producto, email):
     try:
         print(f"[FIRESTORE] 🚀 Iniciando subida de producto para email={email}")
@@ -186,12 +185,19 @@ def subir_a_firestore(producto, email):
             orden = 999
         print(f"[FIRESTORE] Orden final: {orden}")
 
+        # 👇 PARSEO MEJORADO DE TALLES Y COLORES
         talles = producto.get("talles") or []
         if isinstance(talles, str):
             talles = [t.strip() for t in talles.split(',') if t.strip()]
+        
+        colores = producto.get("colores") or []
+        if isinstance(colores, str):
+            colores = [c.strip() for c in colores.split(',') if c.strip()]
+        
         print(f"[FIRESTORE] Talles procesados: {talles}")
+        print(f"[FIRESTORE] Colores procesados: {colores}")
 
-        # 👇 PARSEO DE STOCK - VERSIÓN MEJORADA
+        # 👇 PARSEO DE STOCK Y VARIANTES
         stock_raw = producto.get("stock")
         print(f"[FIRESTORE] Stock recibido (raw): {stock_raw}, tipo: {type(stock_raw)}")
         
@@ -222,6 +228,42 @@ def subir_a_firestore(producto, email):
         
         print(f"[FIRESTORE] ✅ Stock final: {stock}")
 
+        # 👇 NUEVO: PROCESAR VARIANTES
+        variantes = {}
+        variantes_raw = producto.get("variantes") or {}
+        
+        if isinstance(variantes_raw, dict) and variantes_raw:
+            print(f"[FIRESTORE] Procesando {len(variantes_raw)} variantes")
+            for key, variante in variantes_raw.items():
+                try:
+                    variante_stock = variante.get("stock", 0)
+                    if isinstance(variante_stock, str):
+                        variante_stock = int(variante_stock.strip() or 0)
+                    
+                    variantes[key] = {
+                        "talle": variante.get("talle", ""),
+                        "color": variante.get("color", ""),
+                        "stock": max(0, variante_stock),
+                        "imagen_url": variante.get("imagen_url", "")
+                    }
+                    print(f"[FIRESTORE] Variante '{key}': talle={variantes[key]['talle']}, color={variantes[key]['color']}, stock={variantes[key]['stock']}")
+                except Exception as e:
+                    print(f"[FIRESTORE] ⚠️ Error procesando variante {key}: {e}")
+        
+        # Si no hay variantes pero hay talles y colores, crear variantes básicas
+        if not variantes and talles and colores:
+            print(f"[FIRESTORE] Creando variantes automáticamente de talles x colores")
+            for talle in talles:
+                for color in colores:
+                    key = f"{talle}_{color}".replace(" ", "_")
+                    variantes[key] = {
+                        "talle": talle,
+                        "color": color,
+                        "stock": 0,  # Stock inicial 0
+                        "imagen_url": ""
+                    }
+            print(f"[FIRESTORE] ✅ Creadas {len(variantes)} variantes automáticamente")
+
         producto["id_base"] = custom_id
 
         # Imagen: usar la URL real si ya viene del upload, si no, fallback a custom_id.webp
@@ -238,13 +280,16 @@ def subir_a_firestore(producto, email):
             "nombre": nombre_original,
             "id_base": custom_id,
             "precio": precio,
-            "stock": stock,  # 👈 CAMPO DE STOCK INCLUIDO
+            "stock": stock,  # Stock total (compatibilidad)
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
             "imagen_url": imagen_url,
             "orden": orden,
-            "talles": talles,
+            "talles": talles,  # Mantener para compatibilidad
+            "colores": colores,  # 👈 NUEVO
+            "variantes": variantes,  # 👈 NUEVO: estructura de variantes
+            "tiene_variantes": bool(variantes),  # 👈 NUEVO: flag para saber si usa variantes
             "timestamp": firestore.SERVER_TIMESTAMP
         }
         print(f"[FIRESTORE] Documento a guardar: {doc}")
@@ -254,7 +299,7 @@ def subir_a_firestore(producto, email):
         db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
         print(f"[FIRESTORE] ✅ Producto guardado correctamente en Firestore: {custom_id} para {email}")
 
-        return {"status": "ok", "ok": True, "id_base": custom_id}
+        return {"status": "ok", "ok": True, "id_base": custom_id, "tiene_variantes": bool(variantes)}
 
     except Exception as e:
         tb = traceback.format_exc()
