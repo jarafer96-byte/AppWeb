@@ -1631,6 +1631,111 @@ def webhook_mp():
         traceback.print_exc()
         return jsonify({"ok": False}), 500
 
+# Agregar a tu backend (app.py)
+
+@app.route('/api/variantes/<producto_id>/crear', methods=['POST'])
+def crear_variante(producto_id):
+    """Crear nueva variante para un producto"""
+    data = request.get_json(silent=True) or {}
+    email = data.get('email')
+    talle = data.get('talle')
+    color = data.get('color')
+    stock = data.get('stock', 0)
+    
+    if not email or not talle or not color:
+        return jsonify({'error': 'Datos incompletos'}), 400
+    
+    try:
+        doc_ref = db.collection("usuarios").document(email)\
+                    .collection("productos").document(producto_id)
+        
+        # Obtener producto actual
+        doc = doc_ref.get()
+        if not doc.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        data_doc = doc.to_dict()
+        variantes = data_doc.get('variantes', {})
+        
+        # Crear key única
+        key = f"{talle}_{color}".replace(" ", "_")
+        
+        # Agregar nueva variante
+        variantes[key] = {
+            'talle': talle,
+            'color': color,
+            'stock': int(stock) if stock else 0
+        }
+        
+        # Actualizar en Firestore
+        doc_ref.update({
+            'variantes': variantes,
+            'tiene_variantes': True,
+            'actualizado': firestore.SERVER_TIMESTAMP
+        })
+        
+        # Sincronizar stock total
+        stock_total = sum(v.get('stock', 0) for v in variantes.values())
+        doc_ref.update({'stock': stock_total})
+        
+        return jsonify({
+            'status': 'ok',
+            'variante_creada': key,
+            'stock_total': stock_total
+        })
+        
+    except Exception as e:
+        print(f"[CREAR_VARIANTE] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/variantes/<variante_id>/eliminar', methods=['DELETE'])
+def eliminar_variante(variante_id):
+    """Eliminar una variante específica"""
+    data = request.get_json(silent=True) or {}
+    email = data.get('email')
+    producto_id = data.get('producto_id')
+    
+    if not email or not producto_id:
+        return jsonify({'error': 'Datos incompletos'}), 400
+    
+    try:
+        doc_ref = db.collection("usuarios").document(email)\
+                    .collection("productos").document(producto_id)
+        
+        doc = doc_ref.get()
+        if not doc.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        data_doc = doc.to_dict()
+        variantes = data_doc.get('variantes', {})
+        
+        # Eliminar variante
+        if variante_id in variantes:
+            del variantes[variante_id]
+            
+            # Actualizar
+            doc_ref.update({
+                'variantes': variantes,
+                'actualizado': firestore.SERVER_TIMESTAMP
+            })
+            
+            # Sincronizar stock total
+            stock_total = sum(v.get('stock', 0) for v in variantes.values())
+            doc_ref.update({'stock': stock_total})
+            
+            return jsonify({
+                'status': 'ok',
+                'variante_eliminada': variante_id,
+                'stock_total': stock_total,
+                'id_producto': producto_id
+            })
+        else:
+            return jsonify({'error': 'Variante no encontrada'}), 404
+            
+    except Exception as e:
+        print(f"[ELIMINAR_VARIANTE] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+        
 @app.route('/api/variantes/<producto_id>', methods=['GET'])
 def get_variantes(producto_id):
     """Obtener todas las variantes de un producto"""
@@ -1684,6 +1789,18 @@ def actualizar_variante(producto_id):
         doc_ref = db.collection("usuarios").document(email)\
                     .collection("productos").document(producto_id)
         
+        # Verificar que existe el producto
+        doc = doc_ref.get()
+        if not doc.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        data_doc = doc.to_dict()
+        variantes = data_doc.get('variantes', {})
+        
+        # Verificar que existe la variante
+        if variante_key not in variantes:
+            return jsonify({'error': 'Variante no encontrada'}), 404
+        
         # Actualizar stock de la variante
         doc_ref.update({
             f"variantes.{variante_key}.stock": nuevo_stock_int,
@@ -1691,22 +1808,26 @@ def actualizar_variante(producto_id):
         })
         
         # Sincronizar stock total
-        doc = doc_ref.get()
-        if doc.exists:
-            data_doc = doc.to_dict()
-            variantes = data_doc.get('variantes', {})
-            stock_total = sum(v.get('stock', 0) for v in variantes.values())
+        doc_actualizado = doc_ref.get()
+        if doc_actualizado.exists:
+            data_actualizado = doc_actualizado.to_dict()
+            variantes_actualizadas = data_actualizado.get('variantes', {})
+            stock_total = sum(v.get('stock', 0) for v in variantes_actualizadas.values())
             doc_ref.update({"stock": stock_total})
-        
-        print(f"[VARIANTES] ✅ Variante actualizada: {producto_id}/{variante_key} -> {nuevo_stock_int}")
-        print(f"[VARIANTES] ✅ Stock total sincronizado: {stock_total}")
-        
-        return jsonify({
-            'status': 'ok', 
-            'stock_total': stock_total,
-            'variante_actualizada': variante_key,
-            'nuevo_stock': nuevo_stock_int
-        })
+            
+            print(f"[VARIANTES] ✅ Variante actualizada: {producto_id}/{variante_key} -> {nuevo_stock_int}")
+            print(f"[VARIANTES] ✅ Stock total sincronizado: {stock_total}")
+            
+            return jsonify({
+                'status': 'ok', 
+                'stock_total': stock_total,
+                'variante_actualizada': variante_key,
+                'nuevo_stock': nuevo_stock_int,
+                'id_producto': producto_id,
+                'tiene_variantes': True
+            })
+        else:
+            return jsonify({'error': 'Error al sincronizar stock'}), 500
         
     except Exception as e:
         print(f"[VARIANTES] ❌ Error: {e}")
