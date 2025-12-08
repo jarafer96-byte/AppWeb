@@ -2478,65 +2478,34 @@ function renderProducto(p) {
   card.dataset.id = p.id_base;
   card.dataset.precio = p.precio;
 
-  // Stock total (suma de todas las variantes)
-  const stockTotal = p.stock_total || p.stock || 0;
-  const mostrarStock = stockTotal > 0 ? stockTotal : "Sin stock";
-  const claseStock = stockTotal > 0 ? "" : "text-danger";
-
-  // Determinar si el producto tiene variantes
-  const tieneVariantes = p.tiene_variantes === true;
+  // Verificar si el producto tiene stock por talle
+  const tieneStockPorTalle = p.stock_por_talle && Object.keys(p.stock_por_talle).length > 0;
   
-  // Generar controles según si tiene variantes o no
-  let controlesStockHTML = '';
+  // Generar opciones de talles basadas en stock_por_talle o talles array
+  let opcionesTalles = "";
+  let stockInicial = 0;
   
-  if (tieneVariantes) {
-    // Producto con variantes (talle/color)
-    controlesStockHTML = `
-      <div class="mb-2">
-        <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-        <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block"
-                onchange="actualizarDisponibilidadVariante('${p.id_base}')">
-          <option value="">Seleccionar talle...</option>
-        </select>
-      </div>
-      
-      <div class="mb-2">
-        <label class="form-label mb-1" style="font-size: 14px;"><strong>Color:</strong></label>
-        <select id="color_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block"
-                onchange="actualizarDisponibilidadVariante('${p.id_base}')">
-          <option value="">Seleccionar color...</option>
-        </select>
-      </div>
-      
-      <!-- Stock de la variante seleccionada -->
-      <div id="stock_variante_${p.id_base}" class="mb-2 text-info" style="display: none;">
-        <strong>Stock disponible:</strong> <span id="cantidad_variante_${p.id_base}">0</span>
-      </div>
-      
-      ${window.modoAdmin ? `
-        <button type="button" class="btn btn-sm btn-outline-success mb-2"
-          onclick="editarVariantes('${p.id_base}')">✎ Gestionar Variantes</button>
-      ` : ""}
-    `;
-  } else {
-    // Producto sin variantes (talles simples)
-    controlesStockHTML = `
-      <div class="mb-2">
-        <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-        <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block">
-          ${
-            Array.isArray(p.talles) && p.talles.length
-              ? p.talles.map(t => `<option value="${t}">${t}</option>`).join("")
-              : `<option disabled selected>Sin talles</option>`
-          }
-        </select>
-        ${window.modoAdmin ? `
-          <button type="button" class="btn btn-sm btn-outline-primary ms-2"
-            onclick="editarTalles('${p.id_base}')">✎ Editar</button>
-        ` : ""}
-      </div>
-    `;
+  if (tieneStockPorTalle) {
+    // Usar stock_por_talle
+    const talles = Object.keys(p.stock_por_talle);
+    talles.forEach(talle => {
+      const stock = p.stock_por_talle[talle] || 0;
+      opcionesTalles += `<option value="${talle}">${talle}</option>`;
+      // Si es el primer talle, usarlo como valor inicial
+      if (talle === talles[0]) {
+        stockInicial = stock;
+      }
+    });
+  } else if (Array.isArray(p.talles) && p.talles.length > 0) {
+    // Usar array de talles (modo viejo)
+    p.talles.forEach(talle => {
+      opcionesTalles += `<option value="${talle}">${talle}</option>`;
+    });
+    stockInicial = p.stock || 0;
   }
+  
+  const mostrarStock = stockInicial > 0 ? stockInicial : "Sin stock";
+  const claseStock = stockInicial > 0 ? "" : "text-danger";
 
   card.innerHTML = `
     <div class="card p-3 h-100">
@@ -2548,9 +2517,9 @@ function renderProducto(p) {
         <h5 class="card-title">${p.nombre}</h5>
         <p class="card-text">${p.descripcion || ""}</p>
         
-        <!-- Indicador de variantes -->
-        ${tieneVariantes ? `
-          <span class="badge bg-info mb-2">🎨 Variantes por talle/color</span>
+        <!-- Indicador de stock por talle -->
+        ${tieneStockPorTalle ? `
+          <span class="badge bg-info mb-2">📦 Stock por talle</span>
         ` : ""}
         
         <p>
@@ -2562,31 +2531,42 @@ function renderProducto(p) {
           ` : ""}
         </p>
         
-        <!-- Stock general -->
+        <!-- Selector de talle -->
+        <div class="mb-2">
+          <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+          <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block"
+                  onchange="actualizarStockPorTalle('${p.id_base}', this.value)">
+            ${opcionesTalles || `<option disabled selected>Sin talles</option>`}
+          </select>
+          ${window.modoAdmin ? `
+            <button type="button" class="btn btn-sm btn-outline-primary ms-2"
+              onclick="editarTallesYStock('${p.id_base}')">✎ Editar talles/stock</button>
+          ` : ""}
+        </div>
+        
+        <!-- Stock disponible (dinámico según talle) -->
         <p>
           <strong>Cantidad disponible:</strong> 
           <span id="stock_${p.id_base}" class="${claseStock}">${mostrarStock}</span>
-          ${window.modoAdmin ? `
+          ${window.modoAdmin && opcionesTalles ? `
             <button type="button" class="btn btn-sm btn-outline-primary ms-2"
-              onclick="editarStock('${p.id_base}')">✎ Editar</button>
+              onclick="editarStockTalleActual('${p.id_base}')">✎ Editar stock</button>
           ` : ""}
         </p>
-        
-        ${controlesStockHTML}
         
         ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
         
         <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
           <label class="mb-0" style="font-size: 14px;">Cantidad:</label>
-          <input type="number" min="1" max="${stockTotal > 0 ? stockTotal : 1}" value="1"
+          <input type="number" min="1" max="${stockInicial > 0 ? stockInicial : 1}" value="1"
                  id="cantidad_${p.id_base}"
                  class="form-control form-control-sm" style="width: 70px;"
-                 ${stockTotal <= 0 ? "disabled" : ""}>
+                 ${stockInicial <= 0 ? "disabled" : ""}>
           
           <button type="button" class="btn btn-secondary" id="btn_agregar_${p.id_base}"
             onclick="agregarAlCarritoDOM('${p.nombre}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${p.grupo}', '${p.subgrupo}')"
-            ${stockTotal <= 0 ? "disabled style='opacity:0.5'" : ""}>
-            ${stockTotal > 0 ? "Agregar al carrito" : "Sin stock"}
+            ${stockInicial <= 0 ? "disabled style='opacity:0.5'" : ""}>
+            ${stockInicial > 0 ? "Agregar al carrito" : "Sin stock"}
           </button>
         </div>
         
@@ -2600,9 +2580,9 @@ function renderProducto(p) {
     </div>
   `;
 
-  // Si tiene variantes, cargar las opciones
-  if (tieneVariantes) {
-    setTimeout(() => cargarVariantesProducto(p.id_base), 100);
+  // Si tiene stock por talle, almacenar los datos localmente
+  if (tieneStockPorTalle) {
+    window[`stock_por_talle_${p.id_base}`] = p.stock_por_talle;
   }
 
   requestAnimationFrame(() => card.classList.add("show"));
@@ -2625,6 +2605,89 @@ async function cargarVariantesProducto(idProducto) {
   }
 }
 
+function actualizarStockPorTalle(idProducto, talleSeleccionado) {
+  console.log(`📊 [actualizarStockPorTalle] id: ${idProducto}, talle: ${talleSeleccionado}`);
+  
+  const stockSpan = document.getElementById(`stock_${idProducto}`);
+  const cantidadInput = document.getElementById(`cantidad_${idProducto}`);
+  const agregarBtn = document.getElementById(`btn_agregar_${idProducto}`);
+  
+  if (!stockSpan || !cantidadInput || !agregarBtn) {
+    console.warn("⚠️ Elementos no encontrados para actualizar stock por talle");
+    return;
+  }
+  
+  // Obtener stock del talle seleccionado
+  let stockDisponible = 0;
+  
+  // 1. Intentar obtener de stock_por_talle (modo nuevo)
+  const stockPorTalle = window[`stock_por_talle_${idProducto}`];
+  if (stockPorTalle && stockPorTalle[talleSeleccionado] !== undefined) {
+    stockDisponible = stockPorTalle[talleSeleccionado];
+    console.log(`✅ Stock obtenido de stock_por_talle: ${stockDisponible}`);
+  } else {
+    // 2. Si no, obtener de la API (para compatibilidad con backend)
+    fetch(`${URL_BACKEND}/api/productos/${idProducto}/stock-talle?talle=${encodeURIComponent(talleSeleccionado)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.stock !== undefined) {
+          stockDisponible = data.stock;
+          actualizarUIStock(idProducto, stockDisponible, talleSeleccionado);
+        }
+      })
+      .catch(err => {
+        console.error("❌ Error obteniendo stock por talle:", err);
+        // 3. Fallback: mostrar 0
+        stockDisponible = 0;
+        actualizarUIStock(idProducto, stockDisponible, talleSeleccionado);
+      });
+    return;
+  }
+  
+  actualizarUIStock(idProducto, stockDisponible, talleSeleccionado);
+}
+
+function actualizarUIStock(idProducto, stockDisponible, talleSeleccionado) {
+  const stockSpan = document.getElementById(`stock_${idProducto}`);
+  const cantidadInput = document.getElementById(`cantidad_${idProducto}`);
+  const agregarBtn = document.getElementById(`btn_agregar_${idProducto}`);
+  
+  // Actualizar el texto del stock
+  stockSpan.textContent = stockDisponible > 0 ? stockDisponible : "Sin stock";
+  
+  // Actualizar clases de estilo
+  if (stockDisponible > 0) {
+    stockSpan.classList.remove("text-danger");
+    stockSpan.classList.add("text-success");
+    setTimeout(() => stockSpan.classList.remove("text-success"), 1000);
+  } else {
+    stockSpan.classList.remove("text-success");
+    stockSpan.classList.add("text-danger");
+  }
+  
+  // Actualizar el input de cantidad
+  cantidadInput.max = stockDisponible;
+  
+  if (stockDisponible > 0) {
+    cantidadInput.disabled = false;
+    const valorActual = parseInt(cantidadInput.value) || 1;
+    cantidadInput.value = Math.min(valorActual, stockDisponible);
+    
+    agregarBtn.disabled = false;
+    agregarBtn.style.opacity = "1";
+    agregarBtn.textContent = "Agregar al carrito";
+  } else {
+    cantidadInput.disabled = true;
+    cantidadInput.value = "0";
+    
+    agregarBtn.disabled = true;
+    agregarBtn.style.opacity = "0.5";
+    agregarBtn.textContent = "Sin stock";
+  }
+  
+  console.log(`✅ Stock actualizado: Talle ${talleSeleccionado} → ${stockDisponible} unidades`);
+}
+    
 // Actualizar los selectores de talle/color con las variantes disponibles
 function actualizarSelectoresVariantes(idProducto, variantes) {
   const talleSelect = document.getElementById(`talle_${idProducto}`);
