@@ -1604,6 +1604,386 @@ if (window.modoAdmin) {
     console.log("🔑 configurarMP mostrado");
   }
 }
+
+function editarStockTalleActual(idProducto) {
+  console.log(`✏️ [editarStockTalleActual] Editando stock para producto: ${idProducto}`);
+  
+  const talleSelect = document.getElementById(`talle_${idProducto}`);
+  if (!talleSelect) {
+    alert("❌ Primero selecciona un talle");
+    return;
+  }
+  
+  const talleActual = talleSelect.value;
+  if (!talleActual) {
+    alert("❌ No hay talle seleccionado");
+    return;
+  }
+  
+  const stockSpan = document.getElementById(`stock_${idProducto}`);
+  if (!stockSpan) {
+    console.error("❌ No se encontró el span de stock");
+    return;
+  }
+  
+  let valorActual = stockSpan.textContent.trim();
+  
+  // Convertir "Sin stock" a 0
+  if (valorActual === "Sin stock" || valorActual === "sin stock") {
+    valorActual = "0";
+  }
+  
+  console.log(`📝 Valor actual de stock para talle ${talleActual}:`, valorActual);
+  
+  // Crear input para editar
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = "0";
+  input.value = valorActual;
+  input.defaultValue = valorActual;
+  input.className = "form-control form-control-sm d-inline-block";
+  input.style.width = "80px";
+  input.id = "input_stock_talle_" + idProducto;
+  
+  // Guardar referencia al talle actual
+  input.dataset.talle = talleActual;
+  input.dataset.idProducto = idProducto;
+  
+  input.onblur = () => guardarStockPorTalle(idProducto, talleActual);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      input.blur();
+    }
+  });
+  
+  stockSpan.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
+function guardarStockPorTalle(idProducto, talle) {
+  const input = document.getElementById("input_stock_talle_" + idProducto);
+  if (!input) {
+    console.warn("❌ No se encontró el input de stock por talle");
+    alert("❌ Error interno: No se encontró el campo de stock");
+    return;
+  }
+  
+  const nuevoStock = parseInt(input.value) || 0;
+  
+  if (nuevoStock < 0) {
+    alert("❌ El stock no puede ser negativo");
+    input.value = "0";
+    return;
+  }
+  
+  console.log("📡 [guardarStockPorTalle] Enviando al backend:", { 
+    id: idProducto, 
+    talle: talle,
+    stock: nuevoStock,
+    email: email
+  });
+  
+  if (!email || email === "") {
+    alert("❌ Error: No se detectó el email del vendedor. Recarga la página.");
+    console.error("💥 email está vacío:", email);
+    return;
+  }
+  
+  // Enviar al backend
+  fetch(`${URL_BACKEND}/actualizar-stock-talle`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      id: idProducto,
+      talle: talle,
+      stock: nuevoStock,
+      email: email
+    })
+  })
+  .then(res => {
+    console.log("📡 Respuesta HTTP recibida, status:", res.status);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    return res.json();
+  })
+  .then(data => {
+    console.log("📩 Respuesta backend actualizar-stock-talle:", data);
+    
+    if (data.status === "ok") {
+      // 1. Actualizar en la UI
+      const span = document.createElement("span");
+      span.id = `stock_${idProducto}`;
+      span.textContent = nuevoStock > 0 ? nuevoStock : "Sin stock";
+      span.className = nuevoStock > 0 ? "" : "text-danger";
+      input.replaceWith(span);
+      
+      // 2. Actualizar la variable local stock_por_talle
+      if (!window[`stock_por_talle_${idProducto}`]) {
+        window[`stock_por_talle_${idProducto}`] = {};
+      }
+      window[`stock_por_talle_${idProducto}`][talle] = nuevoStock;
+      
+      // 3. Actualizar controles de cantidad
+      const cantidadInput = document.getElementById(`cantidad_${idProducto}`);
+      const agregarBtn = document.getElementById(`btn_agregar_${idProducto}`);
+      
+      if (cantidadInput && agregarBtn) {
+        if (nuevoStock > 0) {
+          cantidadInput.max = nuevoStock;
+          cantidadInput.disabled = false;
+          const valorActual = parseInt(cantidadInput.value) || 1;
+          cantidadInput.value = Math.min(valorActual, nuevoStock);
+          agregarBtn.disabled = false;
+          agregarBtn.style.opacity = "1";
+          agregarBtn.textContent = "Agregar al carrito";
+        } else {
+          cantidadInput.disabled = true;
+          cantidadInput.value = "0";
+          agregarBtn.disabled = true;
+          agregarBtn.style.opacity = "0.5";
+          agregarBtn.textContent = "Sin stock";
+        }
+      }
+      
+      // 4. Mostrar aviso
+      mostrarAvisoStock();
+      console.log(`✅ Stock actualizado para talle ${talle}: ${nuevoStock}`);
+      
+    } else {
+      console.error("❌ Error en respuesta backend:", data);
+      alert("❌ No se pudo actualizar el stock: " + (data.message || data.error));
+      
+      // Revertir
+      const span = document.createElement("span");
+      span.id = `stock_${idProducto}`;
+      span.textContent = input.defaultValue || "0";
+      span.className = "text-danger";
+      input.replaceWith(span);
+    }
+  })
+  .catch(err => {
+    console.error("💥 Error de conexión en guardarStockPorTalle:", err);
+    alert("❌ Error de conexión al guardar el stock");
+    
+    // Revertir
+    const span = document.createElement("span");
+    span.id = `stock_${idProducto}`;
+    span.textContent = input.defaultValue || "0";
+    span.className = "text-danger";
+    input.replaceWith(span);
+  });
+}
+
+function editarTallesYStock(idProducto) {
+  console.log(`🎛️ [editarTallesYStock] Abriendo editor para producto: ${idProducto}`);
+  
+  // Obtener los talles y stocks actuales
+  let stockPorTalle = window[`stock_por_talle_${idProducto}`] || {};
+  let tallesActuales = Object.keys(stockPorTalle);
+  
+  // Si no hay stock_por_talle, intentar obtener de talles array
+  if (tallesActuales.length === 0) {
+    // Buscar el producto en la lista para obtener talles
+    const producto = window.todosLosProductos?.find(p => p.id_base === idProducto);
+    if (producto && Array.isArray(producto.talles)) {
+      tallesActuales = producto.talles;
+      // Inicializar stock en 0 para cada talle
+      tallesActuales.forEach(talle => {
+        stockPorTalle[talle] = producto.stock || 0;
+      });
+    }
+  }
+  
+  // Crear modal
+  const modalHTML = `
+    <div class="modal fade" id="modalTallesStock" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">📏 Gestión de Talles y Stock</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <h6>Talles actuales:</h6>
+              <div id="listaTallesStock" class="mb-3">
+                ${tallesActuales.map((talle, index) => `
+                  <div class="row g-2 align-items-center mb-2">
+                    <div class="col-md-4">
+                      <input type="text" class="form-control form-control-sm talle-input" 
+                             value="${talle}" data-index="${index}"
+                             placeholder="Talle (ej: S, M, L)">
+                    </div>
+                    <div class="col-md-4">
+                      <input type="number" class="form-control form-control-sm stock-input" 
+                             value="${stockPorTalle[talle] || 0}" data-index="${index}" min="0"
+                             placeholder="Stock">
+                    </div>
+                    <div class="col-md-4">
+                      <button type="button" class="btn btn-sm btn-danger" 
+                              onclick="eliminarFilaTalle(${index})">
+                        🗑️ Eliminar
+                      </button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              
+              <button type="button" class="btn btn-sm btn-success" onclick="agregarFilaTalle()">
+                ➕ Agregar talle
+              </button>
+            </div>
+            
+            <hr>
+            
+            <div class="d-grid gap-2">
+              <button type="button" class="btn btn-primary" 
+                      onclick="guardarTallesYStock('${idProducto}')">
+                💾 Guardar cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Añadir modal al DOM si no existe
+  if (!document.getElementById('modalTallesStock')) {
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  }
+  
+  // Mostrar modal
+  const modal = new bootstrap.Modal(document.getElementById('modalTallesStock'));
+  modal.show();
+}
+
+// Funciones auxiliares para el modal
+function agregarFilaTalle() {
+  const lista = document.getElementById('listaTallesStock');
+  if (!lista) return;
+  
+  const index = lista.querySelectorAll('.row').length;
+  
+  const nuevaFila = `
+    <div class="row g-2 align-items-center mb-2">
+      <div class="col-md-4">
+        <input type="text" class="form-control form-control-sm talle-input" 
+               value="" data-index="${index}"
+               placeholder="Talle (ej: S, M, L)">
+      </div>
+      <div class="col-md-4">
+        <input type="number" class="form-control form-control-sm stock-input" 
+               value="0" data-index="${index}" min="0"
+               placeholder="Stock">
+      </div>
+      <div class="col-md-4">
+        <button type="button" class="btn btn-sm btn-danger" 
+                onclick="eliminarFilaTalle(${index})">
+          🗑️ Eliminar
+        </button>
+      </div>
+    </div>
+  `;
+  
+  lista.insertAdjacentHTML('beforeend', nuevaFila);
+}
+
+function eliminarFilaTalle(index) {
+  const fila = document.querySelector(`[data-index="${index}"]`)?.closest('.row');
+  if (fila) {
+    fila.remove();
+  }
+}
+
+function guardarTallesYStock(idProducto) {
+  console.log(`💾 [guardarTallesYStock] Guardando para producto: ${idProducto}`);
+  
+  const talleInputs = document.querySelectorAll('.talle-input');
+  const stockInputs = document.querySelectorAll('.stock-input');
+  
+  const stockPorTalle = {};
+  let hayErrores = false;
+  
+  // Validar y recopilar datos
+  talleInputs.forEach((input, index) => {
+    const talle = input.value.trim();
+    const stock = parseInt(stockInputs[index]?.value) || 0;
+    
+    if (talle === "") {
+      alert(`❌ El talle en la fila ${index + 1} está vacío`);
+      hayErrores = true;
+      return;
+    }
+    
+    if (stockPorTalle[talle] !== undefined) {
+      alert(`❌ El talle "${talle}" está duplicado`);
+      hayErrores = true;
+      return;
+    }
+    
+    stockPorTalle[talle] = stock;
+  });
+  
+  if (hayErrores) return;
+  
+  if (Object.keys(stockPorTalle).length === 0) {
+    alert("❌ Debes ingresar al menos un talle");
+    return;
+  }
+  
+  console.log("📦 Datos a guardar:", { idProducto, stockPorTalle, email });
+  
+  // Enviar al backend
+  fetch(`${URL_BACKEND}/guardar-talles-stock`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      id: idProducto,
+      stock_por_talle: stockPorTalle,
+      email: email
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("📩 Respuesta backend:", data);
+    
+    if (data.status === "ok") {
+      // 1. Cerrar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalTallesStock'));
+      if (modal) modal.hide();
+      
+      // 2. Actualizar variable local
+      window[`stock_por_talle_${idProducto}`] = stockPorTalle;
+      
+      // 3. Actualizar select de talles en la card
+      const talleSelect = document.getElementById(`talle_${idProducto}`);
+      if (talleSelect) {
+        talleSelect.innerHTML = Object.keys(stockPorTalle)
+          .map(talle => `<option value="${talle}">${talle}</option>`)
+          .join('');
+        
+        // Actualizar stock del primer talle
+        const primerTalle = Object.keys(stockPorTalle)[0];
+        if (primerTalle) {
+          actualizarStockPorTalle(idProducto, primerTalle);
+        }
+      }
+      
+      // 4. Mostrar aviso
+      mostrarAviso("✅ Talles y stock guardados correctamente");
+      
+    } else {
+      alert("❌ Error al guardar: " + (data.error || "Error desconocido"));
+    }
+  })
+  .catch(err => {
+    console.error("💥 Error de conexión:", err);
+    alert("❌ Error de conexión al guardar los datos");
+  });
+}
     
 function renderPagina(pagina, productosFiltrados) {
   const cont = document.getElementById("productos"); // 👈 agregar esto
