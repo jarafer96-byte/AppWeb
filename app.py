@@ -2540,8 +2540,8 @@ def actualizar_talles():
 @app.route('/actualizar-firestore', methods=['POST'])
 def actualizar_firestore():
     data = request.get_json(silent=True) or {}
-    id_base = data.get("id")          # 👈 explícito
-    email = data.get("email")         # 👈 explícito
+    id_base = data.get("id")
+    email = data.get("email")
     campos = {k: v for k, v in data.items() if k not in ("id", "email")}
 
     if not email or not id_base or not campos:
@@ -2556,6 +2556,34 @@ def actualizar_firestore():
             return jsonify({'status': 'error', 'message': 'Producto no encontrado'}), 404
 
         doc = query[0]
+        doc_data = doc.to_dict()
+        
+        # 🔥 NUEVO: Si se actualiza stock y el producto tiene stock_por_talle
+        if 'stock' in campos and doc_data.get('stock_por_talle'):
+            stock_nuevo = campos['stock']
+            
+            # Si es 0, poner todos los talles en 0
+            if stock_nuevo == 0:
+                stock_por_talle = doc_data.get('stock_por_talle', {})
+                for talle in stock_por_talle:
+                    stock_por_talle[talle] = 0
+                campos['stock_por_talle'] = stock_por_talle
+                print(f"[ACTUALIZAR] ⚠️ Stock=0 → Todos los talles puestos en 0")
+            # Si hay stock_por_talle pero cambia el stock general, mantener la distribución relativa
+            elif 'stock_por_talle' not in campos:
+                stock_actual = doc_data.get('stock', 0)
+                stock_por_talle_actual = doc_data.get('stock_por_talle', {})
+                
+                if stock_actual > 0 and stock_por_talle_actual:
+                    # Recalcular manteniendo proporciones
+                    factor = stock_nuevo / stock_actual
+                    nuevo_stock_por_talle = {}
+                    for talle, stock_talle in stock_por_talle_actual.items():
+                        nuevo_stock_por_talle[talle] = max(0, int(stock_talle * factor))
+                    
+                    campos['stock_por_talle'] = nuevo_stock_por_talle
+                    print(f"[ACTUALIZAR] 🔄 Recalculado stock por talle con factor {factor:.2f}")
+        
         doc.reference.update(campos)
         print(f"[ACTUALIZAR] ✅ Firestore actualizado para {id_base}")
         return jsonify({'status': 'ok'})
@@ -2563,6 +2591,88 @@ def actualizar_firestore():
         print(f"[ACTUALIZAR] ❌ Error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/api/productos/<producto_id>/stock-talle')
+def api_stock_talle(producto_id):
+    """Obtener stock por talle para un producto específico"""
+    email = request.args.get('talle_email') or request.args.get('email')
+    talle = request.args.get('talle')
+    
+    if not email:
+        return jsonify({'error': 'Falta email'}), 400
+    
+    try:
+        producto_ref = db.collection("usuarios").document(email)\
+                        .collection("productos").document(producto_id)
+        producto_doc = producto_ref.get()
+        
+        if not producto_doc.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        data = producto_doc.to_dict()
+        
+        # Si se solicita un talle específico
+        if talle:
+            stock_por_talle = data.get('stock_por_talle', {})
+            stock = stock_por_talle.get(talle, 0)
+            return jsonify({
+                'talle': talle,
+                'stock': stock,
+                'disponible': stock > 0
+            })
+        
+        # Si no se especifica talle, devolver todos
+        stock_por_talle = data.get('stock_por_talle', {})
+        talles_disponibles = list(stock_por_talle.keys())
+        
+        return jsonify({
+            'stock_por_talle': stock_por_talle,
+            'talles': talles_disponibles,
+            'stock_total': data.get('stock', 0),
+            'nombre': data.get('nombre', ''),
+            'tiene_stock_por_talle': bool(stock_por_talle)
+        })
+        
+    except Exception as e:
+        print(f"[API_STOCK_TALLE] ❌ Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/productos/<producto_id>/stock-total')
+def api_stock_total(producto_id):
+    """Obtener stock total de un producto (considerando stock por talle si existe)"""
+    email = request.args.get('email')
+    
+    if not email:
+        return jsonify({'error': 'Falta email'}), 400
+    
+    try:
+        producto_ref = db.collection("usuarios").document(email)\
+                        .collection("productos").document(producto_id)
+        producto_doc = producto_ref.get()
+        
+        if not producto_doc.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        data = producto_doc.to_dict()
+        
+        # Calcular stock total
+        stock_por_talle = data.get('stock_por_talle', {})
+        
+        if stock_por_talle:
+            stock_total = sum(stock_por_talle.values())
+        else:
+            stock_total = data.get('stock', 0)
+        
+        return jsonify({
+            'stock_total': stock_total,
+            'stock_por_talle': stock_por_talle if stock_por_talle else None,
+            'tiene_stock_por_talle': bool(stock_por_talle),
+            'talles_disponibles': list(stock_por_talle.keys()) if stock_por_talle else []
+        })
+        
+    except Exception as e:
+        print(f"[API_STOCK_TOTAL] ❌ Error: {e}")
+        return jsonify({'error': str(e)}), 500
+        
 @app.route('/', methods=['GET', 'POST'])
 def step1():
     limpiar_imagenes_usuario()
