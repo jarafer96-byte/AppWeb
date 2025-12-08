@@ -3261,6 +3261,20 @@ document.addEventListener("DOMContentLoaded", () => {
     window.modoAdmin = false;
   }
 
+  // Inicializar variables de stock por talle
+  window.stockPorTalleData = {};
+  
+  // Delegación de eventos para actualización de stock por talle
+  document.addEventListener('change', (e) => {
+    if (e.target.id && e.target.id.startsWith('talle_')) {
+      const idProducto = e.target.id.replace('talle_', '');
+      const talleSeleccionado = e.target.value;
+      if (talleSeleccionado) {
+        actualizarStockPorTalle(idProducto, talleSeleccionado);
+      }
+    }
+  });
+
   // Botón Subcategorías
   const btnSubcategorias = document.getElementById("btnSubcategorias");
   if (btnSubcategorias) {
@@ -3462,7 +3476,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, 100);
 });
-
+    
 // 👉 Nueva función ordenarGrupo
 function ordenarGrupo(valor) {
   console.log("🔄 ordenarGrupo llamada con:", valor);
