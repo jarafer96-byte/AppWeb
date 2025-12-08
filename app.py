@@ -1306,6 +1306,385 @@ def enviar_comprobante(email_vendedor, orden_id):
         traceback.print_exc()
         return False
 
+@app.route('/api/producto/<producto_id>/stock', methods=['GET'])
+def get_stock_completo(producto_id):
+    """
+    Endpoint unificado para obtener toda la información de stock de un producto.
+    Retorna: stock_por_talle, variantes, stock_total y metadatos.
+    """
+    try:
+        email = request.args.get('email')
+        
+        if not email:
+            print(f"[STOCK-COMPLETO] ❌ Falta email en query params")
+            return jsonify({'error': 'Falta email del vendedor'}), 400
+        
+        print(f"[STOCK-COMPLETO] 🔍 Buscando stock para producto: {producto_id}, vendedor: {email}")
+        
+        # Buscar producto en Firestore
+        producto_ref = db.collection("usuarios").document(email)\
+                        .collection("productos").document(producto_id)
+        producto_doc = producto_ref.get()
+        
+        if not producto_doc.exists:
+            print(f"[STOCK-COMPLETO] ❌ Producto no encontrado: {producto_id}")
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        producto_data = producto_doc.to_dict()
+        
+        # Obtener información básica
+        nombre = producto_data.get('nombre', '')
+        precio = producto_data.get('precio', 0)
+        stock_general = producto_data.get('stock', 0)
+        tiene_variantes = producto_data.get('tiene_variantes', False)
+        variantes = producto_data.get('variantes', {})
+        stock_por_talle = producto_data.get('stock_por_talle', {})
+        talles_array = producto_data.get('talles', [])
+        colores_array = producto_data.get('colores', [])
+        
+        print(f"[STOCK-COMPLETO] 📊 Datos básicos: nombre={nombre}, stock_general={stock_general}")
+        print(f"[STOCK-COMPLETO] 📊 Tiene variantes: {tiene_variantes}, stock_por_talle: {bool(stock_por_talle)}")
+        
+        # 🔥 LÓGICA UNIFICADA: Calcular stock total y por talle según el sistema usado
+        
+        # Sistema 1: Producto con variantes (talle + color)
+        stock_total_variantes = 0
+        stock_por_talle_variantes = {}
+        variantes_detalladas = []
+        
+        if tiene_variantes and variantes:
+            print(f"[STOCK-COMPLETO] 🔄 Procesando {len(variantes)} variantes...")
+            
+            for key, variante in variantes.items():
+                if not isinstance(variante, dict):
+                    continue
+                
+                talle = variante.get('talle', '').strip()
+                color = variante.get('color', '').strip()
+                stock_variante = int(variante.get('stock', 0))
+                
+                # Acumular stock total
+                stock_total_variantes += stock_variante
+                
+                # Acumular stock por talle
+                if talle:
+                    if talle not in stock_por_talle_variantes:
+                        stock_por_talle_variantes[talle] = 0
+                    stock_por_talle_variantes[talle] += stock_variante
+                
+                # Detalle de cada variante
+                variantes_detalladas.append({
+                    'key': key,
+                    'talle': talle,
+                    'color': color,
+                    'stock': stock_variante,
+                    'disponible': stock_variante > 0,
+                    'imagen_url': variante.get('imagen_url', '')
+                })
+            
+            print(f"[STOCK-COMPLETO] ✅ Stock calculado de variantes: total={stock_total_variantes}")
+            print(f"[STOCK-COMPLETO] ✅ Stock por talle (de variantes): {stock_por_talle_variantes}")
+        
+        # Sistema 2: Producto con stock_por_talle directo
+        stock_total_por_talle = 0
+        if stock_por_talle and isinstance(stock_por_talle, dict):
+            print(f"[STOCK-COMPLETO] 🔄 Procesando stock_por_talle directo...")
+            for talle, stock in stock_por_talle.items():
+                stock_total_por_talle += int(stock or 0)
+        
+        # Sistema 3: Producto con array de talles (modo antiguo)
+        stock_total_talles_array = 0
+        stock_por_talle_array = {}
+        if not tiene_variantes and not stock_por_talle and talles_array:
+            print(f"[STOCK-COMPLETO] 🔄 Procesando array de talles (modo antiguo)...")
+            # Distribuir stock general entre los talles
+            num_talles = len(talles_array)
+            if num_talles > 0:
+                stock_por_talle_uniforme = stock_general // num_talles
+                for talle in talles_array:
+                    stock_por_talle_array[talle] = stock_por_talle_uniforme
+                stock_total_talles_array = stock_general
+        
+        # 🔥 DETERMINAR EL STOCK FINAL (prioridad: variantes > stock_por_talle > array de talles)
+        stock_final_total = 0
+        stock_final_por_talle = {}
+        
+        if tiene_variantes and variantes:
+            stock_final_total = stock_total_variantes
+            stock_final_por_talle = stock_por_talle_variantes
+            sistema_usado = "variantes"
+        elif stock_por_talle:
+            stock_final_total = stock_total_por_talle
+            stock_final_por_talle = stock_por_talle
+            sistema_usado = "stock_por_talle"
+        elif talles_array:
+            stock_final_total = stock_total_talles_array
+            stock_final_por_talle = stock_por_talle_array
+            sistema_usado = "talles_array"
+        else:
+            stock_final_total = stock_general
+            sistema_usado = "stock_general"
+        
+        # Calcular disponibilidad general
+        disponible = stock_final_total > 0
+        
+        # Preparar talles disponibles (con stock > 0)
+        talles_disponibles = []
+        if stock_final_por_talle:
+            for talle, stock in stock_final_por_talle.items():
+                if stock > 0:
+                    talles_disponibles.append({
+                        'talle': talle,
+                        'stock': stock,
+                        'disponible': True
+                    })
+                else:
+                    talles_disponibles.append({
+                        'talle': talle,
+                        'stock': 0,
+                        'disponible': False
+                    })
+        elif talles_array:
+            for talle in talles_array:
+                # En modo array, todos tienen el mismo stock
+                stock = stock_final_total // len(talles_array) if len(talles_array) > 0 else 0
+                talles_disponibles.append({
+                    'talle': talle,
+                    'stock': stock,
+                    'disponible': stock > 0
+                })
+        
+        # Preparar colores disponibles (si hay variantes)
+        colores_disponibles = []
+        if tiene_variantes and variantes:
+            colores_set = set()
+            for variante in variantes_detalladas:
+                if variante['color'] and variante['stock'] > 0:
+                    colores_set.add(variante['color'])
+            colores_disponibles = list(colores_set)
+        
+        # Respuesta unificada
+        response_data = {
+            'status': 'ok',
+            'producto': {
+                'id': producto_id,
+                'nombre': nombre,
+                'precio': precio,
+                'sistema_stock': sistema_usado,
+                'disponible': disponible,
+                'stock_total': stock_final_total,
+                'tiene_variantes': tiene_variantes,
+                'tiene_stock_por_talle': bool(stock_final_por_talle)
+            },
+            'stock': {
+                'total': stock_final_total,
+                'por_talle': stock_final_por_talle,
+                'talles_disponibles': talles_disponibles,
+                'talles': list(stock_final_por_talle.keys()) if stock_final_por_talle else talles_array
+            },
+            'variantes': {
+                'total': len(variantes_detalladas),
+                'detalle': variantes_detalladas,
+                'colores_disponibles': colores_disponibles,
+                'colores': colores_array
+            },
+            'metadata': {
+                'actualizado': str(producto_data.get('timestamp', '')),
+                'grupo': producto_data.get('grupo', ''),
+                'subgrupo': producto_data.get('subgrupo', ''),
+                'imagen_url': producto_data.get('imagen_url', '')
+            }
+        }
+        
+        print(f"[STOCK-COMPLETO] ✅ Respuesta preparada: sistema={sistema_usado}, stock_total={stock_final_total}")
+        print(f"[STOCK-COMPLETO] 📊 Talles disponibles: {len(talles_disponibles)}")
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"[STOCK-COMPLETO] ❌ Error general: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'message': 'Error interno al obtener stock del producto'
+        }), 500
+
+@app.route('/api/producto/<producto_id>/stock/actualizar', methods=['POST'])
+def actualizar_stock_unificado(producto_id):
+    """
+    Endpoint unificado para actualizar stock de un producto.
+    Soporta: stock_por_talle, variantes específicas, o stock general.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        email = data.get('email')
+        tipo_actualizacion = data.get('tipo', 'stock_por_talle')  # stock_por_talle, variante, general
+        
+        print(f"[ACTUALIZAR-STOCK] 🚀 Iniciando actualización para producto: {producto_id}")
+        print(f"[ACTUALIZAR-STOCK] Email: {email}, Tipo: {tipo_actualizacion}")
+        print(f"[ACTUALIZAR-STOCK] Datos recibidos: {data}")
+        
+        if not email:
+            return jsonify({'error': 'Falta email del vendedor'}), 400
+        
+        # Buscar producto
+        producto_ref = db.collection("usuarios").document(email)\
+                        .collection("productos").document(producto_id)
+        producto_doc = producto_ref.get()
+        
+        if not producto_doc.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        producto_data = producto_doc.to_dict()
+        actualizaciones = {}
+        
+        if tipo_actualizacion == 'stock_por_talle':
+            # Actualizar stock_por_talle completo
+            nuevo_stock_por_talle = data.get('stock_por_talle', {})
+            
+            if not isinstance(nuevo_stock_por_talle, dict):
+                return jsonify({'error': 'stock_por_talle debe ser un objeto JSON'}), 400
+            
+            # Validar y convertir valores
+            stock_por_talle_validado = {}
+            stock_total = 0
+            
+            for talle, stock in nuevo_stock_por_talle.items():
+                stock_int = int(stock) if stock is not None else 0
+                if stock_int < 0:
+                    stock_int = 0
+                stock_por_talle_validado[talle] = stock_int
+                stock_total += stock_int
+            
+            actualizaciones['stock_por_talle'] = stock_por_talle_validado
+            actualizaciones['stock'] = stock_total
+            
+            # Si el producto tenía variantes, desactivarlas
+            if producto_data.get('tiene_variantes'):
+                actualizaciones['tiene_variantes'] = False
+                print(f"[ACTUALIZAR-STOCK] ⚠️ Desactivando variantes para usar stock_por_talle")
+            
+            print(f"[ACTUALIZAR-STOCK] ✅ Stock por talle actualizado: {stock_total} unidades totales")
+            
+        elif tipo_actualizacion == 'variante':
+            # Actualizar stock de una variante específica
+            variante_key = data.get('variante_key')
+            nuevo_stock = data.get('stock')
+            
+            if not variante_key or nuevo_stock is None:
+                return jsonify({'error': 'Falta variante_key o stock'}), 400
+            
+            if not producto_data.get('tiene_variantes'):
+                return jsonify({'error': 'Este producto no usa variantes'}), 400
+            
+            variantes = producto_data.get('variantes', {})
+            if variante_key not in variantes:
+                return jsonify({'error': 'Variante no encontrada'}), 404
+            
+            # Actualizar variante específica
+            stock_int = int(nuevo_stock) if nuevo_stock is not None else 0
+            if stock_int < 0:
+                stock_int = 0
+            
+            # Actualizar en Firestore
+            producto_ref.update({
+                f"variantes.{variante_key}.stock": stock_int
+            })
+            
+            # Recalcular stock total
+            producto_doc_actualizado = producto_ref.get()
+            if producto_doc_actualizado.exists:
+                producto_actualizado = producto_doc_actualizado.to_dict()
+                variantes_actualizadas = producto_actualizado.get('variantes', {})
+                
+                stock_total_actualizado = 0
+                stock_por_talle_actualizado = {}
+                
+                for key, variante in variantes_actualizadas.items():
+                    stock_variante = variante.get('stock', 0)
+                    stock_total_actualizado += stock_variante
+                    
+                    talle = variante.get('talle', '')
+                    if talle:
+                        if talle not in stock_por_talle_actualizado:
+                            stock_por_talle_actualizado[talle] = 0
+                        stock_por_talle_actualizado[talle] += stock_variante
+                
+                # Actualizar campos calculados
+                producto_ref.update({
+                    'stock': stock_total_actualizado,
+                    'stock_por_talle': stock_por_talle_actualizado
+                })
+                
+                print(f"[ACTUALIZAR-STOCK] ✅ Variante actualizada: {variante_key} -> {stock_int}")
+                print(f"[ACTUALIZAR-STOCK] ✅ Stock total recalculado: {stock_total_actualizado}")
+                
+                return jsonify({
+                    'status': 'ok',
+                    'variante_actualizada': variante_key,
+                    'nuevo_stock': stock_int,
+                    'stock_total': stock_total_actualizado,
+                    'stock_por_talle': stock_por_talle_actualizado
+                })
+            
+        elif tipo_actualizacion == 'general':
+            # Actualizar stock general (para productos sin talles)
+            nuevo_stock = data.get('stock')
+            
+            if nuevo_stock is None:
+                return jsonify({'error': 'Falta el stock'}), 400
+            
+            stock_int = int(nuevo_stock) if nuevo_stock is not None else 0
+            if stock_int < 0:
+                stock_int = 0
+            
+            actualizaciones['stock'] = stock_int
+            
+            # Si tenía stock_por_talle, actualizar todos los valores
+            stock_por_talle = producto_data.get('stock_por_talle', {})
+            if stock_por_talle:
+                nuevo_stock_por_talle = {}
+                for talle in stock_por_talle.keys():
+                    nuevo_stock_por_talle[talle] = stock_int // len(stock_por_talle)
+                actualizaciones['stock_por_talle'] = nuevo_stock_por_talle
+            
+            print(f"[ACTUALIZAR-STOCK] ✅ Stock general actualizado: {stock_int}")
+        
+        else:
+            return jsonify({'error': 'Tipo de actualización no válido'}), 400
+        
+        # Aplicar actualizaciones
+        if actualizaciones:
+            actualizaciones['actualizado'] = firestore.SERVER_TIMESTAMP
+            producto_ref.update(actualizaciones)
+            
+            print(f"[ACTUALIZAR-STOCK] ✅ Actualizaciones aplicadas: {list(actualizaciones.keys())}")
+        
+        # Obtener datos actualizados para respuesta
+        producto_actualizado = producto_ref.get().to_dict()
+        
+        return jsonify({
+            'status': 'ok',
+            'producto_id': producto_id,
+            'tipo_actualizacion': tipo_actualizacion,
+            'actualizaciones': actualizaciones,
+            'stock_total': producto_actualizado.get('stock', 0),
+            'stock_por_talle': producto_actualizado.get('stock_por_talle', {}),
+            'tiene_variantes': producto_actualizado.get('tiene_variantes', False)
+        })
+        
+    except Exception as e:
+        print(f"[ACTUALIZAR-STOCK] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'message': 'Error interno al actualizar stock'
+        }), 500
+        
 @app.route("/webhook_mp", methods=["POST"])
 def webhook_mp():
     """Webhook unificado - Versión mejorada con extracción robusta de talle/color"""
