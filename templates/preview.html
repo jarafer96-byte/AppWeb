@@ -2862,48 +2862,88 @@ function renderProducto(p) {
   card.dataset.id = p.id_base;
   card.dataset.precio = p.precio;
 
-  // Verificar si el producto tiene stock por talle
+  // 🔥 CORRECCIÓN: Primero verificar si el producto tiene variantes
+  const tieneVariantes = p.tiene_variantes && p.variantes && Object.keys(p.variantes).length > 0;
   const tieneStockPorTalle = p.stock_por_talle && Object.keys(p.stock_por_talle).length > 0;
   
-  // Generar opciones de talles basadas en stock_por_talle o talles array
+  // 🔥 NUEVA LÓGICA: Unificar datos de stock
+  let stockData = {};
   let opcionesTalles = "";
   let stockInicial = 0;
   
-  if (tieneStockPorTalle) {
-    // Usar stock_por_talle
-    const talles = Object.keys(p.stock_por_talle);
-    talles.forEach(talle => {
-      const stock = p.stock_por_talle[talle] || 0;
-      opcionesTalles += `<option value="${talle}">${talle}</option>`;
-      // Si es el primer talle, usarlo como valor inicial
-      if (talle === talles[0]) {
+  if (tieneVariantes) {
+    // Si tiene variantes, extraer talles y sumar stock por talle
+    stockData = extraerStockDeVariantes(p.variantes);
+    window[`stock_por_talle_${p.id_base}`] = stockData;
+  } else if (tieneStockPorTalle) {
+    // Usar stock_por_talle directamente
+    stockData = p.stock_por_talle;
+    window[`stock_por_talle_${p.id_base}`] = stockData;
+  } else if (Array.isArray(p.talles) && p.talles.length > 0) {
+    // Modo viejo: convertir array de talles a stockData
+    p.talles.forEach(talle => {
+      stockData[talle] = p.stock || 0;
+    });
+    window[`stock_por_talle_${p.id_base}`] = stockData;
+  } else {
+    // Producto sin talles
+    stockInicial = p.stock || 0;
+  }
+  
+  // Generar opciones de talles si hay stockData
+  const tallesDisponibles = Object.keys(stockData);
+  if (tallesDisponibles.length > 0) {
+    tallesDisponibles.forEach(talle => {
+      const stock = stockData[talle] || 0;
+      const opcion = stock > 0 ? 
+        `<option value="${talle}">${talle} (${stock} disponible${stock > 1 ? 's' : ''})</option>` :
+        `<option value="${talle}" disabled>${talle} (Agotado)</option>`;
+      opcionesTalles += opcion;
+      
+      // Si es el primer talle con stock, usarlo como valor inicial
+      if (stockInicial === 0 && stock > 0) {
         stockInicial = stock;
       }
     });
-  } else if (Array.isArray(p.talles) && p.talles.length > 0) {
-    // Usar array de talles (modo viejo)
-    p.talles.forEach(talle => {
-      opcionesTalles += `<option value="${talle}">${talle}</option>`;
-    });
+    
+    // Si no encontramos talle con stock, usar el primero
+    if (stockInicial === 0 && tallesDisponibles.length > 0) {
+      stockInicial = stockData[tallesDisponibles[0]] || 0;
+    }
+  } else {
+    // Producto sin talles específicos
     stockInicial = p.stock || 0;
   }
   
   const mostrarStock = stockInicial > 0 ? stockInicial : "Sin stock";
-  const claseStock = stockInicial > 0 ? "" : "text-danger";
+  const claseStock = stockInicial > 0 ? "text-success" : "text-danger";
 
+  // 🔥 CORRECCIÓN: Escapar comillas en texto para evitar errores de JavaScript
+  const nombreEscapado = p.nombre.replace(/'/g, "\\'").replace(/"/g, '\\"');
+  const descripcionEscapada = (p.descripcion || "").replace(/'/g, "\\'").replace(/"/g, '\\"');
+  const imagenUrl = p.imagen_url || '/static/img/fallback.webp';
+  const grupoEscapado = (p.grupo || "").replace(/'/g, "\\'");
+  const subgrupoEscapado = (p.subgrupo || "").replace(/'/g, "\\'");
+  
+  // 🔥 CORRECCIÓN: Usar comillas simples consistentemente en onclick
+  const onclickAgregar = `agregarAlCarritoDOM('${nombreEscapado}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${grupoEscapado}', '${subgrupoEscapado}')`;
+  
+  // Determinar si mostrar badge de stock por talle
+  const mostrarBadgeStock = (tieneVariantes || tieneStockPorTalle) && tallesDisponibles.length > 0;
+  
   card.innerHTML = `
     <div class="card p-3 h-100">
-      <img src="${p.imagen_url || '/static/img/fallback.webp'}"
+      <img src="${imagenUrl}"
            alt="${p.nombre}" loading="lazy"
            style="width:300px;height:180px;object-fit:contain;border-radius:4px;cursor:pointer;"
-           onclick="openModal('${p.imagen_url || '/static/img/fallback.webp'}')">
+           onclick="openModal('${imagenUrl}')">
       <div class="card-body">
         <h5 class="card-title">${p.nombre}</h5>
-        <p class="card-text">${p.descripcion || ""}</p>
+        <p class="card-text">${descripcionEscapada}</p>
         
         <!-- Indicador de stock por talle -->
-        ${tieneStockPorTalle ? `
-          <span class="badge bg-info mb-2">📦 Stock por talle</span>
+        ${mostrarBadgeStock ? `
+          <span class="badge bg-info mb-2">📦 ${tieneVariantes ? 'Variantes por talle/color' : 'Stock por talle'}</span>
         ` : ""}
         
         <p>
@@ -2916,23 +2956,26 @@ function renderProducto(p) {
         </p>
         
         <!-- Selector de talle -->
-        <div class="mb-2">
-          <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
-          <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block"
-                  onchange="actualizarStockPorTalle('${p.id_base}', this.value)">
-            ${opcionesTalles || `<option disabled selected>Sin talles</option>`}
-          </select>
-          ${window.modoAdmin ? `
-            <button type="button" class="btn btn-sm btn-outline-primary ms-2"
-              onclick="editarTallesYStock('${p.id_base}')">✎ Editar talles/stock</button>
-          ` : ""}
-        </div>
+        ${tallesDisponibles.length > 0 ? `
+          <div class="mb-2">
+            <label class="form-label mb-1" style="font-size: 14px;"><strong>Talle:</strong></label>
+            <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto d-inline-block"
+                    onchange="actualizarStockPorTalle('${p.id_base}', this.value)">
+              <option value="">Seleccionar talle...</option>
+              ${opcionesTalles}
+            </select>
+            ${window.modoAdmin ? `
+              <button type="button" class="btn btn-sm btn-outline-primary ms-2 mt-1"
+                onclick="editarTallesYStock('${p.id_base}')">✎ Editar talles/stock</button>
+            ` : ""}
+          </div>
+        ` : ""}
         
         <!-- Stock disponible (dinámico según talle) -->
         <p>
           <strong>Cantidad disponible:</strong> 
           <span id="stock_${p.id_base}" class="${claseStock}">${mostrarStock}</span>
-          ${window.modoAdmin && opcionesTalles ? `
+          ${window.modoAdmin && tallesDisponibles.length > 0 ? `
             <button type="button" class="btn btn-sm btn-outline-primary ms-2"
               onclick="editarStockTalleActual('${p.id_base}')">✎ Editar stock</button>
           ` : ""}
@@ -2948,7 +2991,7 @@ function renderProducto(p) {
                  ${stockInicial <= 0 ? "disabled" : ""}>
           
           <button type="button" class="btn btn-secondary" id="btn_agregar_${p.id_base}"
-            onclick="agregarAlCarritoDOM('${p.nombre}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${p.grupo}', '${p.subgrupo}')"
+            onclick="${onclickAgregar}"
             ${stockInicial <= 0 ? "disabled style='opacity:0.5'" : ""}>
             ${stockInicial > 0 ? "Agregar al carrito" : "Sin stock"}
           </button>
@@ -2964,15 +3007,33 @@ function renderProducto(p) {
     </div>
   `;
 
-  // Si tiene stock por talle, almacenar los datos localmente
-  if (tieneStockPorTalle) {
-    window[`stock_por_talle_${p.id_base}`] = p.stock_por_talle;
-  }
-
   requestAnimationFrame(() => card.classList.add("show"));
   setTimeout(() => card.classList.remove("fade-reorder"), 50);
 
   return card;
+}
+
+// 🔥 FUNCIÓN AUXILIAR: Extraer stock de variantes
+function extraerStockDeVariantes(variantes) {
+  const stockPorTalle = {};
+  
+  if (!variantes || typeof variantes !== 'object') {
+    return stockPorTalle;
+  }
+  
+  Object.values(variantes).forEach(variante => {
+    if (variante && variante.talle) {
+      const talle = variante.talle.trim();
+      if (talle) {
+        if (!stockPorTalle[talle]) {
+          stockPorTalle[talle] = 0;
+        }
+        stockPorTalle[talle] += (parseInt(variante.stock) || 0);
+      }
+    }
+  });
+  
+  return stockPorTalle;
 }
 
 // Función para cargar las variantes de un producto
