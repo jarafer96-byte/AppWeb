@@ -251,7 +251,32 @@ html { scroll-behavior: auto; }
   font-size: 1.2rem;
   margin-bottom: 10px;
 }
+/* Añadir al bloque de estilos existente */
+.modal-talles-stock .row {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
 
+.modal-talles-stock input[type="text"],
+.modal-talles-stock input[type="number"] {
+  font-size: 14px;
+}
+
+/* Badge para productos con stock por talle */
+.badge-stock-talle {
+  font-size: 0.8em;
+  padding: 3px 8px;
+  background: linear-gradient(45deg, #17a2b8, #20c997);
+  color: white;
+}
+
+/* Input para editar stock en línea */
+input.stock-edit {
+  width: 70px;
+  display: inline-block;
+  margin: 0 5px;
+}
 #carritoCarousel ul {
   padding-left: 0;
   list-style: none;
@@ -2228,91 +2253,62 @@ let carrito = [];
 function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = "", subgrupo = "") {
   const cantidadInput = document.getElementById(idCantidad);
   const precioSpan = document.getElementById(idPrecioSpan);
+  const talleSelect = document.getElementById(`talle_${id_base}`);
   
-  // Verificar si es producto con variantes
-  const tieneVariantes = document.getElementById(`color_${id_base}`) !== null;
+  if (!cantidadInput || !precioSpan) {
+    alert("❌ Error: No se pudieron obtener los datos del producto");
+    return;
+  }
   
-  let talleElegido = "";
-  let colorElegido = "";
+  const talleElegido = talleSelect?.value || "Sin talle";
   
-  if (tieneVariantes) {
-    // Para productos con variantes
-    const talleSelect = document.getElementById(`talle_${id_base}`);
-    const colorSelect = document.getElementById(`color_${id_base}`);
-    
-    talleElegido = talleSelect?.value || "";
-    colorElegido = colorSelect?.value || "";
-    
-    if (!talleElegido || !colorElegido) {
-      alert("❌ Por favor selecciona talle y color");
-      return;
-    }
-    
-    // Verificar stock específico
-    const stockSpan = document.getElementById(`cantidad_variante_${id_base}`);
-    const stockDisponible = parseInt(stockSpan?.textContent) || 0;
-    
-    if (stockDisponible <= 0) {
-      alert("❌ No hay stock disponible para esta combinación");
-      return;
-    }
-    
-    const cantidad = parseInt(cantidadInput?.value) || 1;
-    
-    if (cantidad > stockDisponible) {
-      alert(`❌ Solo hay ${stockDisponible} unidades disponibles`);
-      cantidadInput.value = stockDisponible;
-      return;
-    }
+  if (!talleElegido || talleElegido === "Sin talle") {
+    alert("❌ Por favor selecciona un talle");
+    return;
+  }
+  
+  // Verificar stock para el talle seleccionado
+  let stockDisponible = 0;
+  
+  // 1. Intentar obtener de stock_por_talle local
+  const stockPorTalle = window[`stock_por_talle_${id_base}`];
+  if (stockPorTalle && stockPorTalle[talleElegido] !== undefined) {
+    stockDisponible = stockPorTalle[talleElegido];
   } else {
-    // Para productos sin variantes
-    const talleSelect = document.getElementById(`talle_${id_base}`);
-    talleElegido = talleSelect?.value || "Sin talle";
-    
+    // 2. Si no existe, obtener del span de stock actual
     const stockSpan = document.getElementById(`stock_${id_base}`);
-    const stockTexto = stockSpan?.textContent || "0";
-    const stockDisponible = stockTexto === "Sin stock" ? 0 : parseInt(stockTexto) || 0;
-    
-    if (stockDisponible <= 0) {
-      alert("❌ Producto sin stock disponible");
-      return;
-    }
-    
-    const cantidad = parseInt(cantidadInput?.value) || 1;
-    
-    if (cantidad > stockDisponible) {
-      alert(`❌ Solo hay ${stockDisponible} unidades disponibles`);
-      cantidadInput.value = stockDisponible;
-      return;
+    if (stockSpan) {
+      const stockTexto = stockSpan.textContent.trim();
+      stockDisponible = stockTexto === "Sin stock" ? 0 : parseInt(stockTexto) || 0;
     }
   }
   
-  const precio = parseFloat(precioSpan?.textContent?.trim()) || 0;
-  const cantidad = parseInt(cantidadInput?.value) || 1;
+  if (stockDisponible <= 0) {
+    alert("❌ No hay stock disponible para este talle");
+    return;
+  }
   
-  // Buscar si ya existe en el carrito (mismo producto, mismo talle, mismo color)
+  const cantidad = parseInt(cantidadInput.value) || 1;
+  
+  if (cantidad > stockDisponible) {
+    alert(`❌ Solo hay ${stockDisponible} unidades disponibles para el talle ${talleElegido}`);
+    cantidadInput.value = stockDisponible;
+    return;
+  }
+  
+  const precio = parseFloat(precioSpan.textContent.replace("$", "").replace(",", "")) || 0;
+  
+  // Buscar si ya existe en el carrito (mismo producto y mismo talle)
   const existente = carrito.find(item => 
     item.id_base === id_base && 
-    item.talle === talleElegido && 
-    item.color === colorElegido
+    item.talle === talleElegido
   );
   
   if (existente) {
     const nuevoTotal = existente.cantidad + cantidad;
     
-    // Verificar stock nuevamente
-    let stockMaximo;
-    if (tieneVariantes) {
-      const stockSpan = document.getElementById(`cantidad_variante_${id_base}`);
-      stockMaximo = parseInt(stockSpan?.textContent) || 0;
-    } else {
-      const stockSpan = document.getElementById(`stock_${id_base}`);
-      const stockTexto = stockSpan?.textContent || "0";
-      stockMaximo = stockTexto === "Sin stock" ? 0 : parseInt(stockTexto) || 0;
-    }
-    
-    if (nuevoTotal > stockMaximo) {
-      alert(`❌ No puedes llevar más de ${stockMaximo} unidades`);
+    if (nuevoTotal > stockDisponible) {
+      alert(`❌ No puedes llevar más de ${stockDisponible} unidades del talle ${talleElegido}`);
       return;
     }
     
@@ -2323,8 +2319,7 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
       precio, 
       cantidad, 
       id_base, 
-      talle: talleElegido, 
-      color: colorElegido,
+      talle: talleElegido,
       grupo, 
       subgrupo 
     };
@@ -2332,6 +2327,7 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
   }
   
   actualizarCarrito();
+  console.log(`✅ Producto agregado al carrito: ${nombre} (Talle: ${talleElegido})`);
 }
 
 function editarPrecio(id) {
