@@ -2412,6 +2412,22 @@ def pagar():
                             item['id_base'] = item_carrito.get('id_base', '')
                             print(f"[PAGAR] 🔄 Agregado id_base a item MP: {item['id']}")
                             break
+                
+                # 🔥 NUEVO: Si items_mp vienen del frontend, asegurar que tengan metadata
+                if 'metadata' not in item and (item.get('talle') or item.get('color')):
+                    metadata_item = {
+                        "id_base": item.get('id_base', item.get('id', '')),
+                        "nombre": item.get('title', 'Producto')
+                    }
+                    
+                    if item.get('talle'):
+                        metadata_item["talle"] = item.get('talle')
+                    if item.get('color'):
+                        metadata_item["color"] = item.get('color')
+                    
+                    item["metadata"] = metadata_item
+                    print(f"[PAGAR] 🔄 Metadata agregada a item_mp del frontend: talle={item.get('talle')}, color={item.get('color')}")
+                    
         else:
             print(f"[PAGAR] 🔄 Convirtiendo carrito a formato MP")
             items_para_mp = []
@@ -2426,9 +2442,17 @@ def pagar():
                     cantidad = int(item.get('cantidad', 1))
                     nombre = item.get('nombre', 'Producto')
                     talle = item.get('talle', '')
+                    color = item.get('color', '')  # 🔥 OBTENER COLOR TAMBIÉN
                     id_base = item.get('id_base', '')
                     
-                    titulo = nombre if not talle else f"{nombre} (Talle: {talle})"
+                    # 🔥 MEJORA: Crear título más descriptivo
+                    titulo = nombre
+                    if talle:
+                        titulo = f"{nombre} (Talle: {talle})"
+                    if color and talle:
+                        titulo = f"{nombre} (Talle: {talle}, Color: {color})"
+                    elif color and not talle:
+                        titulo = f"{nombre} (Color: {color})"
                     
                     # 🔥 CORRECCIÓN COMPLETA: Incluir TODOS los campos necesarios
                     item_mp = {
@@ -2441,15 +2465,30 @@ def pagar():
                         "currency_id": "ARS"
                     }
                     
-                    # Si no hay id_base, generamos uno temporal
-                    if not id_base:
-                        item_mp["id"] = f"temp_{uuid.uuid4().hex[:8]}"
-                        item_mp["id_base"] = item_mp["id"]
-                        print(f"[PAGAR] ⚠️ Item sin id_base, usando temporal: {item_mp['id']}")
+                    # 🔥 NUEVO: METADATA CON TALLE Y COLOR - ESENCIAL PARA EL WEBHOOK
+                    metadata_item = {
+                        "id_base": id_base,
+                        "nombre": nombre,
+                        "precio": precio,
+                        "cantidad": cantidad,
+                        "talle": talle,  # 🔥 SIEMPRE incluir, aunque esté vacío
+                        "color": color   # 🔥 SIEMPRE incluir, aunque esté vacío
+                    }
+                    
+                    # Incluir grupo y subgrupo si existen
+                    if item.get('grupo'):
+                        metadata_item["grupo"] = item.get('grupo')
+                    if item.get('subgrupo'):
+                        metadata_item["subgrupo"] = item.get('subgrupo')
+                    
+                    # Agregar metadata al item_mp
+                    item_mp["metadata"] = metadata_item
                     
                     items_para_mp.append(item_mp)
                     
-                    print(f"  - Convertido: {nombre} - ${precio} x {cantidad} | id_base: {id_base}")
+                    print(f"  - Convertido: {nombre} - ${precio} x {cantidad}")
+                    print(f"    id_base: {id_base}, Talle: '{talle}', Color: '{color}'")
+                    
                 except Exception as e:
                     print(f"  - ❌ Error convirtiendo item: {e}")
                     continue
@@ -2463,6 +2502,11 @@ def pagar():
                 temp_id = f"temp_{external_ref}_{i}"
                 item['id'] = temp_id
                 item['id_base'] = temp_id
+                
+                # Asegurar que el metadata también tenga el id_base correcto
+                if 'metadata' in item:
+                    item['metadata']['id_base'] = temp_id
+                    
                 print(f"[PAGAR] 🔄 Asignado ID temporal: {temp_id}")
         
         if not items_para_mp:
@@ -2470,7 +2514,11 @@ def pagar():
         
         print(f"[PAGAR] 📦 Items para Mercado Pago ({len(items_para_mp)}):")
         for idx, item in enumerate(items_para_mp):
-            print(f"  {idx+1}. {item.get('title')} - ${item.get('unit_price')} x {item.get('quantity')} | id: {item.get('id')}")
+            metadata = item.get('metadata', {})
+            print(f"  {idx+1}. {item.get('title')}")
+            print(f"     - ${item.get('unit_price')} x {item.get('quantity')}")
+            print(f"     - id: {item.get('id')}")
+            print(f"     - Metadata: talle='{metadata.get('talle')}', color='{metadata.get('color')}'")
         
         # 5. Calcular total
         total_calculado = sum(item.get('unit_price', 0) * item.get('quantity', 1) for item in items_para_mp)
@@ -2502,7 +2550,8 @@ def pagar():
                 "cliente_nombre": cliente_nombre,
                 "cliente_email": cliente_email,
                 "cliente_telefono": cliente_telefono,
-                "url_retorno": url_retorno
+                "url_retorno": url_retorno,
+                "debug_items": len(items_para_mp)  # 🔥 Nuevo: ayuda en debugging
             }
         }
         
@@ -2544,13 +2593,18 @@ def pagar():
                 "telefono_cliente": cliente_telefono,
                 "total_items": len(items_para_mp),
                 "url_retorno": url_retorno,
-                "ids_items": [item.get('id') for item in items_para_mp]  # 🔥 Nuevo: lista de IDs para debug
+                "ids_items": [item.get('id') for item in items_para_mp],
+                "talles_items": [item.get('metadata', {}).get('talle', '') for item in items_para_mp],  # 🔥 Nuevo
+                "colores_items": [item.get('metadata', {}).get('color', '') for item in items_para_mp]   # 🔥 Nuevo
             }
         }
         
         db.collection("ordenes").document(external_ref).set(orden_doc)
         print(f"[PAGAR] ✅ Orden guardada en Firestore: {external_ref}")
-        print(f"[PAGAR] 🔍 IDs en items_mp: {[item.get('id') for item in items_para_mp]}")
+        print(f"[PAGAR] 🔍 Metadata en items_mp:")
+        for idx, item in enumerate(items_para_mp):
+            metadata = item.get('metadata', {})
+            print(f"  {idx+1}. id: {item.get('id')}, talle: '{metadata.get('talle')}', color: '{metadata.get('color')}'")
         
         # 9. Guardar en la subcolección de pedidos del VENDEDOR
         pedido_data = {
@@ -2585,7 +2639,8 @@ def pagar():
             "debug": {
                 "ids_items": [item.get('id') for item in items_para_mp],
                 "tiene_carrito": len(carrito) > 0,
-                "tiene_items_mp": len(items_para_mp) > 0
+                "tiene_items_mp": len(items_para_mp) > 0,
+                "items_con_metadata": sum(1 for item in items_para_mp if 'metadata' in item)  # 🔥 Nuevo
             }
         }
         
