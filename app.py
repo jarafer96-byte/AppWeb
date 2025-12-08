@@ -1632,6 +1632,95 @@ def webhook_mp():
         return jsonify({"ok": False}), 500
 
 # Agregar a tu backend (app.py)
+# En tu backend Flask (app.py)
+@app.route('/actualizar-stock-talle', methods=['POST'])
+def actualizar_stock_talle():
+    try:
+        data = request.json
+        id_producto = data.get('id')
+        talle = data.get('talle')
+        nuevo_stock = data.get('stock')
+        email_vendedor = data.get('email')
+        
+        if not all([id_producto, talle, nuevo_stock is not None, email_vendedor]):
+            return jsonify({'error': 'Faltan datos'}), 400
+        
+        # Buscar producto en Firestore
+        producto_ref = db.collection('productos').document(id_producto)
+        producto = producto_ref.get()
+        
+        if not producto.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        producto_data = producto.to_dict()
+        
+        # Inicializar o actualizar stock_por_talle
+        if 'stock_por_talle' not in producto_data:
+            producto_data['stock_por_talle'] = {}
+        
+        producto_data['stock_por_talle'][talle] = nuevo_stock
+        
+        # Calcular stock total (suma de todos los talles)
+        stock_total = sum(producto_data['stock_por_talle'].values())
+        
+        # Actualizar en Firestore
+        producto_ref.update({
+            'stock_por_talle': producto_data['stock_por_talle'],
+            'stock': stock_total
+        })
+        
+        return jsonify({
+            'status': 'ok',
+            'id_producto': id_producto,
+            'talle': talle,
+            'stock': nuevo_stock,
+            'stock_total': stock_total
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/guardar-talles-stock', methods=['POST'])
+def guardar_talles_stock():
+    try:
+        data = request.json
+        id_producto = data.get('id')
+        stock_por_talle = data.get('stock_por_talle')
+        email_vendedor = data.get('email')
+        
+        if not all([id_producto, stock_por_talle, email_vendedor]):
+            return jsonify({'error': 'Faltan datos'}), 400
+        
+        # Validar que stock_por_talle sea un diccionario
+        if not isinstance(stock_por_talle, dict):
+            return jsonify({'error': 'stock_por_talle debe ser un objeto'}), 400
+        
+        # Buscar producto
+        producto_ref = db.collection('productos').document(id_producto)
+        producto = producto_ref.get()
+        
+        if not producto.exists:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        # Calcular stock total
+        stock_total = sum(stock_por_talle.values())
+        
+        # Actualizar en Firestore
+        producto_ref.update({
+            'stock_por_talle': stock_por_talle,
+            'stock': stock_total,
+            'talles': list(stock_por_talle.keys())  # Actualizar lista de talles
+        })
+        
+        return jsonify({
+            'status': 'ok',
+            'id_producto': id_producto,
+            'stock_total': stock_total,
+            'talles': list(stock_por_talle.keys())
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/variantes/<producto_id>/crear', methods=['POST'])
 def crear_variante(producto_id):
