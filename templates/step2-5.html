@@ -1,4 +1,3 @@
-<!-- Reemplazar esta sección en el HTML de step2-5 -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,394 +6,464 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* Mantener los estilos actuales... */
-    .col-color { width: 180px; }
+    /* ESTILOS PARA EL SISTEMA VISUAL */
+    .color-selector {
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px 0;
+    }
+    
+    .color-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 15px;
+      margin: 5px;
+      border-radius: 25px;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: all 0.2s;
+      user-select: none;
+      min-width: 100px;
+      justify-content: space-between;
+    }
+    
+    .color-chip.seleccionado {
+      border-color: #ff6f61 !important;  /* Contorno rojo/naranja cuando está activo */
+      background: rgba(255,255,255,0.1);
+      transform: scale(1.05);
+    }
+    
+    .color-preview {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-right: 10px;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+    
+    .stock-badge {
+      background: rgba(0,0,0,0.3);
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+      font-size: 0.85em;
+      font-weight: bold;
+    }
+    
+    .talle-container {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .talle-chip {
+      display: inline-block;
+      padding: 8px 15px;
+      margin: 4px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      cursor: pointer;
+      min-width: 40px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    
+    .talle-chip.seleccionado {
+      border-color: #ff6f61 !important;  /* Contorno rojo/naranja para talle seleccionado */
+      background: rgba(255, 111, 97, 0.1);
+      transform: scale(1.1);
+    }
+    
+    .color-tag {
+      font-size: 0.8em;
+      opacity: 0.8;
+      margin-left: 5px;
+    }
+    
+    .color-creator {
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 15px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .color-chip {
+        min-width: 80px;
+        padding: 6px 10px;
+        font-size: 0.9em;
+      }
+      
+      .talle-chip {
+        padding: 6px 10px;
+        font-size: 0.9em;
+      }
+    }
   </style>
 </head>
 <body>
-<div class="container py-5 px-3 px-md-5">
-  <h2>Armar plantilla de productos</h2>
-
-  <!-- Alerta informativa -->
-  <div class="alert-custom">
-    <strong>Importante:</strong> El Excel generado será 100% compatible con el siguiente paso. Podés completar precio y descripción luego.
+<div class="container py-4">
+  <h2 class="text-white mb-4">Sistema Visual de Variantes</h2>
+  
+  <!-- FORMULARIO PRINCIPAL -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <input type="text" class="form-control mb-2" placeholder="Grupo" id="grupoInput">
+    </div>
+    <div class="col-md-3">
+      <input type="text" class="form-control mb-2" placeholder="Subgrupo" id="subgrupoInput">
+    </div>
+    <div class="col-md-4">
+      <input type="text" class="form-control mb-2" placeholder="Producto" id="productoInput">
+    </div>
   </div>
-
-  <!-- Botón para saltar -->
-  <div class="text-center mb-4">
-    <a href="/contenido" class="btn-gradient mb-3 w-100 w-md-auto">Saltar este paso e ir a cargar contenido</a>
-    <p class="text-white">Creá tu Excel automáticamente aquí:</p>
-  </div>
-
-  <!-- Formulario principal -->
-  <div class="card">
-    <h4 class="mb-4">📝 Crear estructura de productos</h4>
-
-    <!-- Instrucciones mejoradas -->
-    <div class="mb-4">
-      <p>Completá cada fila. El Excel generado tendrá <strong>TODOS</strong> los campos que step3 necesita:</p>
-      <div class="row">
-        <div class="col-md-6 mb-3 mb-md-0">
-          <div class="example-box">
-            <strong>Ejemplo 1 - Ropa con talles:</strong><br>
-            Grupo: <span class="badge">Ropa Mujer</span><br>
-            Subgrupo: <span class="badge">Pantalones</span><br>
-            Producto: <span class="badge">Jean Slim</span><br>
-            Talle: <span class="badge">36,38,40,42</span><br>
-            Color: <span class="badge">Azul,Negro</span><br>
-            Stock: <span class="badge">20</span><br>
-            Filas: <span class="badge">2</span><br>
-            → Creará 2 filas en Excel listas para importar
+  
+  <!-- SECCIÓN COLORES -->
+  <div class="card bg-dark text-white mb-4">
+    <div class="card-body">
+      <h5 class="mb-3">🎨 Seleccioná colores y stock</h5>
+      
+      <!-- Color picker -->
+      <div class="color-creator mb-4">
+        <div class="row g-2">
+          <div class="col-2">
+            <input type="color" class="form-control form-control-color" 
+                   id="colorPicker" title="Elegir color" style="height: 38px;">
           </div>
-        </div>
-        <div class="col-md-6">
-          <div class="example-box">
-            <strong>Ejemplo 2 - Accesorios sin talles:</strong><br>
-            Grupo: <span class="badge">Accesorios</span><br>
-            Subgrupo: <span class="badge">Bolsos</span><br>
-            Producto: <span class="badge">Bolso Cuero</span><br>
-            Talle: <span class="badge">(vacío)</span><br>
-            Color: <span class="badge">Marrón,Negro,Rojo</span><br>
-            Stock: <span class="badge">15</span><br>
-            Filas: <span class="badge">1</span><br>
-            → 1 producto con 3 variantes de color
+          <div class="col-3">
+            <input type="text" class="form-control" id="colorNombre" 
+                   placeholder="Nombre (ej: Rojo)">
+          </div>
+          <div class="col-2">
+            <input type="number" class="form-control" id="colorStock" 
+                   placeholder="Stock" min="0" value="0">
+          </div>
+          <div class="col-5">
+            <input type="text" class="form-control" id="colorTalles" 
+                   placeholder="Talles para este color (ej: S,M,L)">
+          </div>
+          <div class="col-12 mt-2">
+            <button class="btn btn-gradient w-100" onclick="agregarColor()">
+              + Agregar este color
+            </button>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Filas de entrada ACTUALIZADA -->
-    <div id="filas-container">
-      <div class="row mb-3 align-items-center fila-entrada">
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Grupo*" data-field="grupo" required>
+      
+      <!-- Chips de colores -->
+      <div class="color-selector">
+        <h6 class="text-white-50 mb-3">Colores agregados:</h6>
+        <div id="coloresContainer" class="mb-4">
+          <!-- Se llena dinámicamente -->
         </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Subgrupo" data-field="subgrupo">
+      </div>
+      
+      <!-- Talles por color seleccionado -->
+      <div class="talle-container" id="talleContainer" style="display: none;">
+        <h6 id="talleTitulo" class="text-white-50 mb-3">📏 Talles disponibles para: <span id="colorSeleccionadoNombre"></span></h6>
+        <div id="tallesContainer">
+          <!-- Se llena dinámicamente según color -->
         </div>
-        <div class="col-md-2">
-          <input type="text" class="form-control" placeholder="Producto*" data-field="producto" required>
-        </div>
-        <div class="col-md-2 col-talle">
-          <input type="text" class="form-control" placeholder="Talles (S,M,L)" data-field="talle">
-        </div>
-        <div class="col-md-2 col-color">
-          <input type="text" class="form-control" placeholder="Colores (Rojo,Azul)" data-field="color">
-        </div>
-        <div class="col-md-1">
-          <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0" value="0">
-        </div>
-        <div class="col-md-1 col-filas">
-          <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
-        </div>
-        <div class="col-md-1 text-end">
-          <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)" style="display:none;">✕</button>
+        <div class="mt-3">
+          <small class="text-white-50">Hacé clic en los talles para marcarlos como disponibles para este color.</small>
         </div>
       </div>
     </div>
-
-    <!-- Botones de acción -->
-    <div class="d-flex gap-3 mt-4 flex-wrap">
-      <button type="button" class="btn-gradient w-100 w-md-auto" onclick="agregarFila()">+ Agregar otra fila</button>
-      <button type="button" class="btn btn-outline-light w-100 w-md-auto" onclick="limpiarFormulario()">Limpiar todo</button>
-      <button type="button" class="btn btn-outline-light w-100 w-md-auto" onclick="probarVistaPrevia()">Ver vista previa</button>
-    </div>
-
-    <!-- Botón para generar Excel -->
-    <div class="text-center mt-5">
-      <button type="button" class="btn-gradient px-5 w-100 w-md-auto" onclick="generarExcel()">📥 Generar Excel completo</button>
-      <p class="mt-2 text-white">El Excel incluirá todos los campos: Nombre, Descripción, Precio, Grupo, Subgrupo, Talles, Colores, Stock, Filas</p>
-    </div>
   </div>
-
-  <!-- Vista previa ACTUALIZADA -->
-  <div id="vista-previa-container" class="card" style="display:none;">
-    <h4 class="mb-3">👁️ Vista previa del Excel (100% compatible con step3)</h4>
-    <div class="table-responsive">
-      <table class="table table-dark">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Precio</th>
-            <th>Grupo</th>
-            <th>Subgrupo</th>
-            <th>Talles</th>
-            <th>Colores</th>
-            <th>Stock</th>
-            <th>Filas</th>
-          </tr>
-        </thead>
-        <tbody id="vista-previa-body"></tbody>
-      </table>
-    </div>
-    <div class="mt-4 text-center">
-      <p>✅ <strong>Formato perfecto para importar en step3</strong></p>
-      <a href="/contenido" class="btn-gradient w-100 w-md-auto">Ir a cargar este Excel en step3</a>
-    </div>
+  
+  <!-- BOTÓN PARA GENERAR EXCEL -->
+  <div class="text-center">
+    <button class="btn btn-gradient btn-lg" onclick="generarExcel()">
+      📥 Generar Excel
+    </button>
+    <p class="text-white-50 mt-2">El Excel incluirá todas las variantes definidas visualmente</p>
   </div>
-
-  <!-- Información adicional ACTUALIZADA -->
-  <div class="card">
-    <h4 class="mb-3">📋 Campos del Excel generado</h4>
-    <ol>
-      <li><strong>Nombre</strong>: Nombre del producto (ej: "Jean Slim Fit")</li>
-      <li><strong>Descripción</strong>: (Vacío) Podés completarlo en step3</li>
-      <li><strong>Precio</strong>: (Vacío) Podés completarlo en step3</li>
-      <li><strong>Grupo</strong>: Categoría principal (ej: "Ropa Mujer")</li>
-      <li><strong>Subgrupo</strong>: Subcategoría (ej: "Pantalones")</li>
-      <li><strong>Talles</strong>: Separados por comas (ej: "S,M,L,XL")</li>
-      <li><strong>Colores</strong>: Separados por comas (ej: "Negro,Azul,Rojo")</li>
-      <li><strong>Stock</strong>: Cantidad inicial (ej: "10")</li>
-      <li><strong>Filas</strong>: Cantidad de productos idénticos (ej: "1")</li>
-    </ol>
-    <p class="mt-3"><strong>💡 Tip avanzado:</strong> Si especificás talles Y colores, step3 automáticamente calculará todas las combinaciones posibles.</p>
+  
+  <!-- PREVIEW DE DATOS -->
+  <div class="card bg-dark text-white mt-4" id="previewCard" style="display: none;">
+    <div class="card-body">
+      <h5>📋 Vista previa de variantes</h5>
+      <pre id="dataPreview" class="text-white" style="white-space: pre-wrap; font-size: 0.9em;"></pre>
+    </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-  let contadorFilas = 1;
-
-  function agregarFila() {
-    contadorFilas++;
-    const container = document.getElementById('filas-container');
-    const nuevaFila = document.createElement('div');
-    nuevaFila.className = 'row mb-3 align-items-center fila-entrada';
-    nuevaFila.innerHTML = `
-      <div class="col-md-2">
-        <input type="text" class="form-control" placeholder="Grupo*" data-field="grupo" required>
-      </div>
-      <div class="col-md-2">
-        <input type="text" class="form-control" placeholder="Subgrupo" data-field="subgrupo">
-      </div>
-      <div class="col-md-2">
-        <input type="text" class="form-control" placeholder="Producto*" data-field="producto" required>
-      </div>
-      <div class="col-md-2 col-talle">
-        <input type="text" class="form-control" placeholder="Talles (S,M,L)" data-field="talle">
-      </div>
-      <div class="col-md-2 col-color">
-        <input type="text" class="form-control" placeholder="Colores (Rojo,Azul)" data-field="color">
-      </div>
-      <div class="col-md-1">
-        <input type="number" class="form-control" placeholder="Stock" data-field="stock" min="0" value="0">
-      </div>
-      <div class="col-md-1 col-filas">
-        <input type="number" class="form-control" placeholder="Filas" data-field="filas" min="1" value="1">
-      </div>
-      <div class="col-md-1">
-        <button type="button" class="btn btn-outline-light btn-sm" onclick="eliminarFila(this)">✕</button>
-      </div>
-    `;
-    container.appendChild(nuevaFila);
-  }
-
-  function eliminarFila(btn) {
-    const filas = document.querySelectorAll('.fila-entrada');
-    if (filas.length > 1) {
-      btn.closest('.fila-entrada').remove();
+  // DATOS
+  let coloresData = []; // [{nombre, hex, stock, talles}]
+  let colorSeleccionadoIndex = -1;
+  let tallesDisponibles = ['XS','S','M','L','XL','XXL','XXXL','36','38','40','42','44','46','48'];
+  
+  // FUNCIONES
+  function agregarColor() {
+    const nombre = document.getElementById('colorNombre').value.trim();
+    const hex = document.getElementById('colorPicker').value;
+    const stock = parseInt(document.getElementById('colorStock').value) || 0;
+    const tallesTexto = document.getElementById('colorTalles').value.trim();
+    
+    if (!nombre) {
+      alert('Ingresá un nombre para el color');
+      return;
     }
+    
+    // Convertir texto de talles a array
+    const tallesArray = tallesTexto 
+      ? tallesTexto.split(',').map(t => t.trim()).filter(t => t)
+      : [];
+    
+    // Agregar a datos
+    coloresData.push({
+      nombre,
+      hex,
+      stock,
+      talles: tallesArray,
+      tallesSeleccionados: [...tallesArray] // Copia inicial
+    });
+    
+    // Actualizar UI
+    actualizarColoresUI();
+    limpiarFormularioColor();
+    
+    // Mostrar preview
+    mostrarPreview();
   }
-
-  function limpiarFormulario() {
-    document.querySelectorAll('.fila-entrada').forEach(fila => {
-      fila.querySelectorAll('input').forEach(input => {
-        if (input.dataset.field === 'filas') {
-          input.value = '1';
-        } else if (input.dataset.field === 'stock') {
-          input.value = '0';
-        } else {
-          input.value = '';
+  
+  function actualizarColoresUI() {
+    const container = document.getElementById('coloresContainer');
+    container.innerHTML = '';
+    
+    coloresData.forEach((color, index) => {
+      const chip = document.createElement('div');
+      chip.className = `color-chip ${index === colorSeleccionadoIndex ? 'seleccionado' : ''}`;
+      chip.style.borderColor = color.hex; // Contorno del color
+      chip.innerHTML = `
+        <div style="display: flex; align-items: center;">
+          <div class="color-preview" style="background-color:${color.hex}"></div>
+          <span>${color.nombre}</span>
+          <span class="stock-badge">${color.stock}</span>
+        </div>
+        ${color.talles.length > 0 ? 
+          `<small class="text-white-50">(${color.talles.length} talles)</small>` : 
+          `<small class="text-white-50">(sin talles)</small>`
         }
-      });
+      `;
+      
+      chip.addEventListener('click', () => seleccionarColor(index));
+      container.appendChild(chip);
     });
   }
-
-  function recolectarDatos() {
-    const datos = [];
-    document.querySelectorAll('.fila-entrada').forEach(fila => {
-      const grupo = fila.querySelector('[data-field="grupo"]').value.trim();
-      const subgrupo = fila.querySelector('[data-field="subgrupo"]').value.trim();
-      const producto = fila.querySelector('[data-field="producto"]').value.trim();
-      const talle = fila.querySelector('[data-field="talle"]').value.trim();
-      const color = fila.querySelector('[data-field="color"]').value.trim();
-      const stock = fila.querySelector('[data-field="stock"]').value.trim();
-      const filas = parseInt(fila.querySelector('[data-field="filas"]').value) || 1;
-
-      if (grupo && producto) {
-        // Crear múltiples filas según la cantidad especificada
-        for (let i = 0; i < filas; i++) {
-          datos.push({
-            grupo,
-            subgrupo,
-            producto: producto,
-            talle: talle,
-            color: color,
-            stock: stock || '0',
-            filas: 1
-          });
+  
+  function seleccionarColor(index) {
+    colorSeleccionadoIndex = index;
+    actualizarColoresUI();
+    mostrarTallesParaColor();
+  }
+  
+  function mostrarTallesParaColor() {
+    const container = document.getElementById('talleContainer');
+    const titulo = document.getElementById('talleTitulo');
+    const tallesContainer = document.getElementById('tallesContainer');
+    
+    if (colorSeleccionadoIndex === -1 || !coloresData[colorSeleccionadoIndex]) {
+      container.style.display = 'none';
+      return;
+    }
+    
+    const color = coloresData[colorSeleccionadoIndex];
+    container.style.display = 'block';
+    document.getElementById('colorSeleccionadoNombre').textContent = color.nombre;
+    
+    // Crear chips de talle
+    tallesContainer.innerHTML = '';
+    
+    tallesDisponibles.forEach(talle => {
+      const chip = document.createElement('div');
+      chip.className = `talle-chip ${color.tallesSeleccionados.includes(talle) ? 'seleccionado' : ''}`;
+      chip.textContent = talle;
+      chip.style.borderColor = color.hex; // Contorno del color del talle!
+      
+      chip.addEventListener('click', () => {
+        const index = color.tallesSeleccionados.indexOf(talle);
+        if (index === -1) {
+          // Agregar talle
+          color.tallesSeleccionados.push(talle);
+        } else {
+          // Quitar talle
+          color.tallesSeleccionados.splice(index, 1);
         }
+        
+        // Actualizar UI
+        chip.classList.toggle('seleccionado');
+        mostrarPreview();
+      });
+      
+      tallesContainer.appendChild(chip);
+    });
+  }
+  
+  function limpiarFormularioColor() {
+    document.getElementById('colorNombre').value = '';
+    document.getElementById('colorStock').value = '0';
+    document.getElementById('colorTalles').value = '';
+    // Mantener el color picker como está
+  }
+  
+  function mostrarPreview() {
+    const preview = document.getElementById('dataPreview');
+    const card = document.getElementById('previewCard');
+    
+    if (coloresData.length === 0) {
+      card.style.display = 'none';
+      return;
+    }
+    
+    let texto = `Producto: ${document.getElementById('productoInput').value || 'Sin nombre'}\n`;
+    texto += `Grupo: ${document.getElementById('grupoInput').value || 'Sin grupo'}\n`;
+    texto += `Subgrupo: ${document.getElementById('subgrupoInput').value || 'Sin subgrupo'}\n\n`;
+    texto += '🎨 VARIANTES DEFINIDAS:\n';
+    
+    coloresData.forEach(color => {
+      texto += `\n▸ ${color.nombre} (Stock: ${color.stock})\n`;
+      texto += `   Talles: ${color.tallesSeleccionados.length > 0 ? color.tallesSeleccionados.join(', ') : 'Sin talles definidos'}\n`;
+      
+      // Calcular stock por talle si hay múltiples talles
+      if (color.tallesSeleccionados.length > 0) {
+        const stockPorTalle = Math.floor(color.stock / color.tallesSeleccionados.length);
+        const sobra = color.stock % color.tallesSeleccionados.length;
+        
+        texto += `   Stock por talle: `;
+        color.tallesSeleccionados.forEach((talle, i) => {
+          const stockTalle = stockPorTalle + (i < sobra ? 1 : 0);
+          texto += `${talle}=${stockTalle} `;
+        });
       }
     });
-    return datos;
+    
+    preview.textContent = texto;
+    card.style.display = 'block';
   }
-
-  function probarVistaPrevia() {
-    const datos = recolectarDatos();
-    if (datos.length === 0) {
-      alert('Por favor, completá al menos una fila con Grupo y Producto.');
-      return;
-    }
-
-    const tbody = document.getElementById('vista-previa-body');
-    tbody.innerHTML = '';
-
-    datos.forEach((item, index) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${item.producto}</td>
-        <td class="text-muted">(vacío)</td>
-        <td class="text-muted">(vacío)</td>
-        <td>${item.grupo}</td>
-        <td>${item.subgrupo || '<span class="text-muted">-</span>'}</td>
-        <td>${item.talle || '<span class="text-muted">-</span>'}</td>
-        <td>${item.color || '<span class="text-muted">-</span>'}</td>
-        <td>${item.stock}</td>
-        <td>1</td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById('vista-previa-container').style.display = 'block';
-    document.getElementById('vista-previa-container').scrollIntoView({ behavior: 'smooth' });
-  }
-
+  
   function generarExcel() {
-    const datos = recolectarDatos();
-    if (datos.length === 0) {
-      alert('No hay datos para generar el Excel. Completá al menos una fila.');
+    const grupo = document.getElementById('grupoInput').value.trim();
+    const subgrupo = document.getElementById('subgrupoInput').value.trim();
+    const producto = document.getElementById('productoInput').value.trim();
+    
+    if (!grupo || !producto) {
+      alert('Completá Grupo y Producto antes de generar el Excel');
       return;
     }
-
-    // 🔥 ENCABEZADOS EXACTOS como step3 los espera
+    
+    if (coloresData.length === 0) {
+      alert('Agregá al menos un color');
+      return;
+    }
+    
+    // Crear hoja de Excel
     const hojaDatos = [
-      // IMPORTANTE: Este orden debe coincidir con lo que step3 espera en leerArchivoProductos()
       ['Nombre', 'Descripción', 'Precio', 'Grupo', 'Subgrupo', 'Talles', 'Colores', 'Stock', 'Filas']
     ];
-
-    // 🔥 DATOS en el MISMO orden
-    datos.forEach((item) => {
-      hojaDatos.push([
-        item.producto,          // Nombre
-        '',                     // Descripción (vacía)
-        '',                     // Precio (vacío)
-        item.grupo,             // Grupo
-        item.subgrupo,          // Subgrupo
-        item.talle,             // Talles
-        item.color,             // Colores (NUEVO)
-        item.stock,             // Stock
-        '1'                     // Filas (siempre 1 porque ya repetimos)
-      ]);
+    
+    // Crear una fila por cada combinación color-talle
+    coloresData.forEach(color => {
+      if (color.tallesSeleccionados.length === 0) {
+        // Producto sin talles (solo color)
+        hojaDatos.push([
+          `${producto} (${color.nombre})`,
+          '',
+          '',
+          grupo,
+          subgrupo,
+          '',
+          color.nombre,
+          color.stock,
+          '1'
+        ]);
+      } else {
+        // Productos con talles
+        color.tallesSeleccionados.forEach(talle => {
+          // Calcular stock para este talle específico
+          const stockPorTalle = Math.floor(color.stock / color.tallesSeleccionados.length);
+          const indexTalle = color.tallesSeleccionados.indexOf(talle);
+          const sobra = color.stock % color.tallesSeleccionados.length;
+          const stockFinal = stockPorTalle + (indexTalle < sobra ? 1 : 0);
+          
+          hojaDatos.push([
+            `${producto} (${talle} - ${color.nombre})`,
+            '',
+            '',
+            grupo,
+            subgrupo,
+            talle,
+            color.nombre,
+            stockFinal,
+            '1'
+          ]);
+        });
+      }
     });
-
+    
+    // Generar Excel
+    const XLSX = window.XLSX;
     const ws = XLSX.utils.aoa_to_sheet(hojaDatos);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Productos');
-
-    // 🔥 Agregar hoja de instrucciones
-    const instrucciones = [
-      ['INSTRUCCIONES PARA IMPORTAR EN STEP3'],
-      [''],
-      ['1. Guardá este archivo Excel'],
-      ['2. En step3, usá el botón "📂 Importar lista de productos"'],
-      ['3. Seleccioná este archivo'],
-      ['4. Las filas se crearán automáticamente con:'],
-      ['   • Grupo y Subgrupo ya definidos'],
-      ['   • Talles y Colores pre-cargados'],
-      ['   • Stock inicial establecido'],
-      ['5. Solo falta:'],
-      ['   • Asignar imágenes a cada producto'],
-      ['   • Completar precios (opcional aquí)'],
-      ['   • Agregar descripciones (opcional)'],
-      [''],
-      ['FORMATO DE CAMPOS:'],
-      ['• Talles: S,M,L,XL (separados por comas)'],
-      ['• Colores: Rojo,Azul,Verde (separados por comas)'],
-      ['• Stock: Número entero (0 si no hay stock)'],
-      [''],
-      ['⚠️ IMPORTANTE:'],
-      ['Si hay Talles Y Colores, step3 calculará automáticamente'],
-      ['todas las combinaciones posibles.']
-    ];
     
-    const wsInst = XLSX.utils.aoa_to_sheet(instrucciones);
-    XLSX.utils.book_append_sheet(wb, wsInst, 'Instrucciones');
-
     // Formatear columnas
     const colAnchos = [
-      { wch: 25 }, // Nombre
-      { wch: 30 }, // Descripción
-      { wch: 12 }, // Precio
-      { wch: 15 }, // Grupo
-      { wch: 15 }, // Subgrupo
-      { wch: 15 }, // Talles
-      { wch: 15 }, // Colores
-      { wch: 10 }, // Stock
-      { wch: 8 }   // Filas
+      { wch: 30 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, 
+      { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 8 }, { wch: 6 }
     ];
     ws['!cols'] = colAnchos;
-
-    // 🔥 Guardar lista en localStorage para step3
-    const listaSimplificada = datos.map(item => ({
-      grupo: item.grupo,
-      subgrupo: item.subgrupo,
-      cantidad: 1,
-      talles: item.talle,
-      colores: item.color,
-      stock: item.stock
-    }));
     
-    localStorage.setItem('listas_step2-5', JSON.stringify(listaSimplificada));
-    console.log('📋 Lista guardada para step3:', listaSimplificada);
-
-    // Generar nombre de archivo
+    // Guardar
     const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    XLSX.writeFile(wb, `productos_completo_${fecha}.xlsx`);
-
-    // Mostrar vista previa
-    probarVistaPrevia();
-
-    // Mostrar mensaje de éxito
-    alert(`✅ Excel generado exitosamente!\n\n• ${datos.length} filas creadas\n• Campos: Nombre, Grupo, Subgrupo, Talles, Colores, Stock\n• Listo para importar en step3\n\nLa lista se guardó automáticamente. Podés ir a step3 ahora.`);
+    XLSX.writeFile(wb, `productos_${fecha}.xlsx`);
+    
+    alert(`✅ Excel generado con ${hojaDatos.length - 1} variantes`);
   }
-
-  // Inicializar con algunas filas
+  
+  // INICIALIZAR CON ALGUNOS COLORES DE EJEMPLO
   window.addEventListener('load', () => {
-    // Agregar 2 filas de ejemplo
-    for (let i = 0; i < 2; i++) {
-      agregarFila();
-    }
-
-    // Poblar primera fila con ejemplo
-    const primeraFila = document.querySelector('.fila-entrada');
-    if (primeraFila) {
-      primeraFila.querySelector('[data-field="grupo"]').value = 'Ropa Mujer';
-      primeraFila.querySelector('[data-field="subgrupo"]').value = 'Pantalones';
-      primeraFila.querySelector('[data-field="producto"]').value = 'Jean Slim';
-      primeraFila.querySelector('[data-field="talle"]').value = '36,38,40,42';
-      primeraFila.querySelector('[data-field="color"]').value = 'Azul,Negro';
-      primeraFila.querySelector('[data-field="stock"]').value = '20';
-    }
-
-    // Mostrar botones de eliminar en todas las filas excepto la primera
-    document.querySelectorAll('.fila-entrada').forEach((fila, index) => {
-      if (index > 0) {
-        const btnEliminar = fila.querySelector('button');
-        if (btnEliminar) btnEliminar.style.display = 'inline-block';
+    // Cargar ejemplo inicial
+    coloresData = [
+      {
+        nombre: 'Rojo',
+        hex: '#dc3545',
+        stock: 4,
+        talles: ['S','M','L','XL'],
+        tallesSeleccionados: ['S','M','L','XL']
+      },
+      {
+        nombre: 'Blanco',
+        hex: '#ffffff',
+        stock: 2,
+        talles: ['M','XL'],
+        tallesSeleccionados: ['M','XL']
+      },
+      {
+        nombre: 'Negro',
+        hex: '#000000',
+        stock: 5,
+        talles: ['S','L'],
+        tallesSeleccionados: ['S','L']
       }
-    });
+    ];
+    
+    // Poblar inputs de ejemplo
+    document.getElementById('grupoInput').value = 'Ropa Mujer';
+    document.getElementById('subgrupoInput').value = 'Pantalones';
+    document.getElementById('productoInput').value = 'Jean Slim';
+    
+    // Actualizar UI
+    actualizarColoresUI();
+    seleccionarColor(0); // Seleccionar primer color
+    mostrarPreview();
   });
 </script>
+
+<!-- Incluir biblioteca XLSX -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </body>
 </html>
