@@ -1632,8 +1632,7 @@ def webhook_mp():
         traceback.print_exc()
         return jsonify({"ok": False}), 500
 
-# Agregar a tu backend (app.py)
-# En tu backend Flask (app.py)
+
 @app.route('/actualizar-stock-talle', methods=['POST'])
 def actualizar_stock_talle():
     try:
