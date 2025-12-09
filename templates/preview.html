@@ -2760,18 +2760,17 @@ function mostrarAvisoPrecio() {
 }
 
 function eliminarDelCarrito(id_base, talle, event) {
-  if (event) {
-    event.preventDefault();  // Previene acción por defecto
-    event.stopPropagation(); // Detiene la propagación
-  }
+  if (event?.stopPropagation) event.stopPropagation();
 
-  console.log("[CARRITO] ❌ Eliminando producto:", { id_base, talle });
+  console.log("[CARRITO] ❌ Eliminando:", { id_base, talle });
 
-  // Buscar y eliminar el ítem específico
-  carrito = carrito.filter(p => !(
-    p.id_base === id_base && 
-    p.talle === talle
-  ));
+  carrito = carrito.filter(p => {
+    if (talle && talle !== "unico") {
+      return !(p.id_base === id_base && p.talle === talle);
+    } else {
+      return p.id_base !== id_base;
+    }
+  });
 
   actualizarCarrito();
 }
