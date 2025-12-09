@@ -524,8 +524,12 @@ input.stock-edit {
     <button id="btnQuitarFoto" type="button" class="btn btn-danger mb-2 d-none">❌ Quitar foto</button>
     
     <!-- Datos -->
-    <input type="text" id="nombreProd" placeholder="Nombre producto" class="form-control mb-2">
-    <input type="number" id="precioProd" placeholder="Precio" class="form-control mb-2">
+    <input type="text" id="nombreProd" placeholder="Nombre producto *" class="form-control mb-2">
+    <input type="number" id="precioProd" placeholder="Precio *" class="form-control mb-2">
+    
+    <!-- 🔥 NUEVO: Campo de descripción -->
+    <textarea id="descripcionProd" placeholder="Descripción del producto (opcional)" 
+              class="form-control mb-2" rows="3"></textarea>
     
     <!-- Talles -->
     <input type="text" id="tallesProd" placeholder="Talles (S,M,L)" class="form-control mb-2">
@@ -543,11 +547,16 @@ input.stock-edit {
     </div>
 
     <!-- Grupo/Subgrupo -->
-    <input type="text" id="grupoProd" placeholder="Grupo" class="form-control mb-2">
-    <input type="text" id="subgrupoProd" placeholder="Subgrupo" class="form-control mb-2">
+    <input type="text" id="grupoProd" placeholder="Grupo *" class="form-control mb-2">
+    <input type="text" id="subgrupoProd" placeholder="Subgrupo *" class="form-control mb-2">
 
     <!-- Confirmar -->
     <button id="btnConfirmarProd" class="btn btn-success">✅ Confirmar</button>
+    
+    <!-- 🔥 NUEVO: Botón para cancelar edición -->
+    <button id="btnCancelarEdicion" class="btn btn-secondary mt-2" onclick="resetearFormularioAdmin()" style="display:none;">
+      ❌ Cancelar edición
+    </button>
   </div>
 </div>
   
@@ -683,6 +692,152 @@ if (window.email) {
   document.getElementById('volverArriba').onclick = () => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
+
+document.getElementById("tallesProd").addEventListener("input", function() {
+  const talles = this.value.split(",").map(t => t.trim()).filter(Boolean);
+  const container = document.getElementById("stockPorTalleContainer");
+  const simpleContainer = document.getElementById("stockSimple");
+  
+  if (talles.length > 0) {
+    container.style.display = "block";
+    simpleContainer.style.display = "none";
+  } else {
+    container.style.display = "none";
+    simpleContainer.style.display = "block";
+  }
+});
+
+// 🔥 NUEVO: Función para resetear formulario
+function resetearFormularioAdmin() {
+  // Limpiar todos los campos
+  document.getElementById("nombreProd").value = "";
+  document.getElementById("precioProd").value = "";
+  document.getElementById("descripcionProd").value = "";
+  document.getElementById("tallesProd").value = "";
+  document.getElementById("stockGeneral").value = "0";
+  document.getElementById("stockPorTalle").value = "";
+  document.getElementById("grupoProd").value = "";
+  document.getElementById("subgrupoProd").value = "";
+  
+  // Resetear visibilidad
+  document.getElementById("stockPorTalleContainer").style.display = "none";
+  document.getElementById("stockSimple").style.display = "block";
+  
+  // Resetear foto
+  document.getElementById("previewFoto").src = "";
+  document.getElementById("previewFoto").classList.add("d-none");
+  document.getElementById("btnQuitarFoto").classList.add("d-none");
+  document.getElementById("inputFoto").value = "";
+  window.fotoOptimizada = null;
+  
+  // Cambiar botón a modo creación
+  const btnConfirmar = document.getElementById("btnConfirmarProd");
+  btnConfirmar.innerHTML = "✅ Confirmar";
+  btnConfirmar.classList.remove("btn-warning");
+  btnConfirmar.classList.add("btn-success");
+  
+  // Ocultar botón cancelar
+  document.getElementById("btnCancelarEdicion").style.display = "none";
+  
+  // Limpiar ID de edición
+  window.productoEditandoId = null;
+  
+  console.log("🔄 Formulario admin reseteado para nuevo producto");
+}
+
+// 🔥 NUEVO: Mostrar/ocultar botón cancelar según modo
+function toggleModoEdicion(editando) {
+  const btnCancelar = document.getElementById("btnCancelarEdicion");
+  const btnConfirmar = document.getElementById("btnConfirmarProd");
+  
+  if (editando) {
+    btnCancelar.style.display = "block";
+    btnConfirmar.innerHTML = "💾 Actualizar Producto";
+    btnConfirmar.classList.remove("btn-success");
+    btnConfirmar.classList.add("btn-warning");
+  } else {
+    btnCancelar.style.display = "none";
+    btnConfirmar.innerHTML = "✅ Confirmar";
+    btnConfirmar.classList.remove("btn-warning");
+    btnConfirmar.classList.add("btn-success");
+  }
+}
+
+// Cuando se hace click en "Editar" en un producto
+window.cargarProductoEnFormulario = function(producto) {
+  console.log("📝 Cargando producto para editar:", producto.nombre);
+  
+  // Mostrar formulario admin
+  const adminCard = document.getElementById("adminCard");
+  adminCard.classList.remove("d-none");
+  
+  // Activar modo edición
+  toggleModoEdicion(true);
+  
+  // Llenar campos con datos del producto
+  document.getElementById("nombreProd").value = producto.nombre || "";
+  document.getElementById("precioProd").value = producto.precio || "";
+  document.getElementById("descripcionProd").value = producto.descripcion || "";
+  
+  // Talles
+  if (Array.isArray(producto.talles)) {
+    document.getElementById("tallesProd").value = producto.talles.join(", ");
+  } else if (typeof producto.talles === 'string') {
+    document.getElementById("tallesProd").value = producto.talles;
+  } else {
+    document.getElementById("tallesProd").value = "";
+  }
+  
+  // Detectar si hay talles para mostrar campo de stock correspondiente
+  const tallesArray = document.getElementById("tallesProd").value.split(",").map(t => t.trim()).filter(Boolean);
+  if (tallesArray.length > 0) {
+    document.getElementById("stockPorTalleContainer").style.display = "block";
+    document.getElementById("stockSimple").style.display = "none";
+  }
+  
+  // Stock por talle
+  if (producto.stock_por_talle && Object.keys(producto.stock_por_talle).length > 0) {
+    const stockPorTalle = producto.stock_por_talle;
+    
+    if (Object.keys(stockPorTalle)[0] === "unico") {
+      // Producto sin talles
+      document.getElementById("stockGeneral").value = stockPorTalle["unico"] || 0;
+      document.getElementById("stockPorTalleContainer").style.display = "none";
+      document.getElementById("stockSimple").style.display = "block";
+    } else {
+      // Producto con talles
+      const stockPorTalleStr = Object.entries(stockPorTalle)
+        .map(([talle, stock]) => `${talle}:${stock}`)
+        .join(", ");
+      document.getElementById("stockPorTalle").value = stockPorTalleStr;
+      document.getElementById("stockPorTalleContainer").style.display = "block";
+      document.getElementById("stockSimple").style.display = "none";
+    }
+  } else {
+    // Fallback a stock general
+    document.getElementById("stockGeneral").value = producto.stock || 0;
+  }
+  
+  document.getElementById("grupoProd").value = producto.grupo || "";
+  document.getElementById("subgrupoProd").value = producto.subgrupo || "";
+  
+  // Imagen
+  if (producto.imagen_url) {
+    const previewFoto = document.getElementById("previewFoto");
+    previewFoto.src = producto.imagen_url;
+    previewFoto.classList.remove("d-none");
+    document.getElementById("btnQuitarFoto").classList.remove("d-none");
+  }
+  
+  // Guardar ID del producto que estamos editando
+  window.productoEditandoId = producto.id_base;
+  
+  // Scroll al formulario
+  adminCard.scrollIntoView({ behavior: 'smooth' });
+  
+  console.log("✅ Producto cargado en formulario para edición:", producto.nombre);
+};
+    
 /////////////////////////////////
 function habilitarScrollHorizontal(selector) {
   const panel = document.querySelector(selector);
@@ -3270,6 +3425,17 @@ function renderProducto(p) {
   
   const onclickAgregar = `agregarAlCarritoDOM('${nombreEscapado}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${grupoEscapado}', '${subgrupoEscapado}')`;
   
+  // 🔥 NUEVO: Mostrar descripción en la card (tanto admin como público)
+  const mostrarDescripcion = p.descripcion ? 
+    `<p class="card-text text-muted small mb-2">${p.descripcion}</p>` : 
+    '';
+  
+  // 🔥 NUEVO: Botón para editar descripción en modo admin
+  const botonEditarDescripcion = window.modoAdmin ? 
+    `<button type="button" class="btn btn-sm btn-outline-secondary ms-2" 
+      onclick="editarDescripcion('${p.id_base}')">📝 Editar descripción</button>` : 
+    '';
+  
   card.innerHTML = `
     <div class="card p-3 h-100">
       <img src="${imagenUrl}"
@@ -3278,20 +3444,23 @@ function renderProducto(p) {
            onclick="openModal('${imagenUrl}')">
       <div class="card-body">
         <h5 class="card-title">${p.nombre}</h5>
-        <p class="card-text">${descripcionEscapada}</p>
         
-        ${tieneStockPorTalle ? `
-          <span class="badge bg-info mb-2"></span>
-        ` : ""}
+        <!-- 🔥 NUEVO: Mostrar descripción del producto -->
+        ${mostrarDescripcion}
         
-        <p>
+        <!-- Información de precio con botón de editar -->
+        <p class="mb-2">
           <strong>Precio:</strong> 
           $<span id="precio_${p.id_base}">${p.precio}</span>
           ${window.modoAdmin ? `
             <button type="button" class="btn btn-sm btn-outline-primary ms-2"
-              onclick="editarPrecio('${p.id_base}')">✎ Editar</button>
+              onclick="editarPrecio('${p.id_base}')">✎ Editar precio</button>
           ` : ""}
         </p>
+        
+        ${tieneStockPorTalle ? `
+          <span class="badge bg-info mb-2">📦 Stock por talle</span>
+        ` : ""}
         
         <!-- Selector de talle -->
         ${Object.keys(stockData).length > 0 && Object.keys(stockData)[0] !== "unico" ? `
@@ -3310,7 +3479,7 @@ function renderProducto(p) {
         ` : ""}
         
         <!-- Stock disponible -->
-        <p>
+        <p class="mb-2">
           <strong>Disponible:</strong> 
           <span id="stock_${p.id_base}" class="${claseStock}">${mostrarStock}</span>
           ${window.modoAdmin && Object.keys(stockData).length > 0 && Object.keys(stockData)[0] !== "unico" ? `
@@ -3336,7 +3505,11 @@ function renderProducto(p) {
         </div>
         
         ${window.modoAdmin ? `
-          <div class="mt-3">
+          <div class="mt-3 d-flex flex-wrap gap-2">
+            <!-- 🔥 NUEVO: Botón para editar TODO el producto (incluye descripción) -->
+            <button type="button" class="btn btn-warning btn-sm btnEditarTodo"
+              onclick="cargarProductoCompletoParaEditar('${p.id_base}')">✏️ Editar todo</button>
+            
             <button type="button" class="btn btn-danger btn-sm btnEliminarCard"
               onclick="eliminarProducto('${p.id_base}')">🗑️ Eliminar</button>
           </div>
@@ -3360,6 +3533,119 @@ function renderProducto(p) {
   setTimeout(() => card.classList.remove("fade-reorder"), 50);
 
   return card;
+}
+
+// 🔥 NUEVA FUNCIÓN: Cargar producto completo para edición
+function cargarProductoCompletoParaEditar(id_base) {
+  const producto = window.todosLosProductos?.find(p => p.id_base === id_base);
+  if (producto) {
+    cargarProductoEnFormulario(producto);
+  } else {
+    alert("❌ No se encontró el producto para editar");
+  }
+}
+
+// 🔥 NUEVA FUNCIÓN: Editar solo la descripción
+function editarDescripcion(id_base) {
+  const spanDescripcion = document.querySelector(`[data-id="${id_base}"] .card-text.text-muted.small.mb-2`);
+  const producto = window.todosLosProductos?.find(p => p.id_base === id_base);
+  
+  if (!producto) {
+    alert("❌ Producto no encontrado");
+    return;
+  }
+  
+  const descripcionActual = producto.descripcion || "";
+  
+  const input = document.createElement("textarea");
+  input.value = descripcionActual;
+  input.className = "form-control form-control-sm";
+  input.style.width = "100%";
+  input.rows = 3;
+  input.id = "input_descripcion_" + id_base;
+  
+  // Reemplazar el párrafo por el textarea
+  if (spanDescripcion) {
+    spanDescripcion.replaceWith(input);
+  } else {
+    // Si no existe el elemento de descripción, insertarlo después del título
+    const cardTitle = document.querySelector(`[data-id="${id_base}"] .card-title`);
+    if (cardTitle) {
+      cardTitle.after(input);
+    }
+  }
+  
+  input.focus();
+  
+  // Guardar al perder foco
+  input.onblur = () => guardarDescripcion(id_base, input.value);
+  
+  // Guardar con Enter (Ctrl+Enter para nueva línea)
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.ctrlKey) {
+      e.preventDefault();
+      input.blur();
+    }
+  });
+}
+
+// 🔥 NUEVA FUNCIÓN: Guardar descripción
+function guardarDescripcion(id_base, nuevaDescripcion) {
+  const email = obtenerEmailAdmin();
+  if (!email) {
+    alert("❌ No hay email de admin");
+    return;
+  }
+  
+  const input = document.getElementById("input_descripcion_" + id_base);
+  
+  // Actualizar en la variable local
+  const productoIndex = window.todosLosProductos?.findIndex(p => p.id_base === id_base);
+  if (productoIndex !== -1 && productoIndex !== undefined) {
+    window.todosLosProductos[productoIndex].descripcion = nuevaDescripcion;
+  }
+  
+  // Actualizar en Firestore
+  fetch("https://mpagina.onrender.com/actualizar-firestore", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      id: id_base,
+      email: email,
+      descripcion: nuevaDescripcion
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === "ok") {
+      // Re-crear el elemento de descripción
+      const nuevoParrafo = document.createElement("p");
+      nuevoParrafo.className = "card-text text-muted small mb-2";
+      nuevoParrafo.textContent = nuevaDescripcion || "";
+      
+      if (input) {
+        input.replaceWith(nuevoParrafo);
+      }
+      
+      // Mostrar aviso
+      const aviso = document.createElement("div");
+      aviso.className = "alert alert-success alert-dismissible fade show";
+      aviso.style.position = "fixed";
+      aviso.style.top = "20px";
+      aviso.style.right = "20px";
+      aviso.style.zIndex = "10000";
+      aviso.innerHTML = `
+        ✅ Descripción actualizada
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(aviso);
+      setTimeout(() => aviso.remove(), 3000);
+    }
+  })
+  .catch(err => {
+    console.error("❌ Error al guardar descripción:", err);
+    alert("❌ Error al guardar descripción");
+  });
 }
 
 // 🔥 FUNCIÓN AUXILIAR: Extraer stock de variantes
