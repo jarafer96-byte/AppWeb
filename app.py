@@ -3278,7 +3278,7 @@ def step3():
         subgrupos = request.form.getlist('subgrupo')
         ordenes = request.form.getlist('orden')
         talles = request.form.getlist('talles')
-        colores = request.form.getlist('colores')  # 👈 NUEVO: campo colores
+        colores = request.form.getlist('colores')
         stocks = request.form.getlist('stock')
         imagenes_elegidas = request.form.getlist('imagen_elegida')
 
@@ -3302,7 +3302,7 @@ def step3():
             color_raw = colores[i].strip() if i < len(colores) else ''
             color_lista = [c.strip() for c in color_raw.split(',') if c.strip()]
             
-            # Procesar stock
+            # 🔥 PROCESAR STOCK: Crear stock_por_talle en lugar de stock general
             stock_raw = stocks[i] if i < len(stocks) else "0"
             print(f"  [Step3] Stock raw recibido para producto {i+1}: '{stock_raw}'")
             
@@ -3319,7 +3319,7 @@ def step3():
             else:
                 print(f"  [Step3] ℹ️ Stock vacío o no proporcionado, usando default 0")
             
-            print(f"➡️ [Step3] Procesando producto {i+1}: nombre={nombre}, precio={precio}, stock={stock_final}")
+            print(f"➡️ [Step3] Procesando producto {i+1}: nombre={nombre}, precio={precio}, stock_total={stock_final}")
             print(f"  Talles: {talle_lista}, Colores: {color_lista}")
 
             if not nombre or not precio or not grupo or not subgrupo:
@@ -3351,7 +3351,31 @@ def step3():
                         print(f"⚠️ [Step3] Imagen inválida/no encontrada para producto {nombre}: {imagen_url}")
                         continue
 
-            # Crear variantes si hay talles y colores
+            # 🔥 CREAR STOCK_POR_TALLE EN LUGAR DE STOCK GENERAL
+            stock_por_talle = {}
+            tiene_stock_por_talle = False
+            
+            if talle_lista:
+                # 🔥 PRODUCTO CON TALLES: Crear stock_por_talle
+                tiene_stock_por_talle = True
+                
+                # Distribuir stock equitativamente entre talles
+                if talle_lista:
+                    stock_por_talle_individual = stock_final // len(talle_lista) if len(talle_lista) > 0 else 0
+                    for talle in talle_lista:
+                        stock_por_talle[talle] = stock_por_talle_individual
+                    
+                    print(f"  [Step3] 🔥 Creado stock_por_talle: {stock_por_talle}")
+            else:
+                # 🔥 PRODUCTO SIN TALLES: Usar clave "unico" para stock_por_talle
+                tiene_stock_por_talle = True
+                stock_por_talle = {"unico": stock_final}
+                print(f"  [Step3] 🔥 Producto sin talles, stock_por_talle con clave 'unico': {stock_por_talle}")
+
+            # 🔥 CALCULAR STOCK TOTAL DESDE STOCK_POR_TALLE (NO USAR stock_final DIRECTAMENTE)
+            stock_total = sum(stock_por_talle.values())
+            
+            # 🔥 MANTENER VARIANTES PARA PRODUCTOS CON TALLES Y COLORES (OPCIONAL)
             variantes = {}
             tiene_variantes = False
             
@@ -3360,7 +3384,7 @@ def step3():
                 # Distribuir stock equitativamente entre variantes
                 num_variantes = len(talle_lista) * len(color_lista)
                 if num_variantes > 0:
-                    stock_por_variante = stock_final // num_variantes
+                    stock_por_variante = stock_total // num_variantes
                     
                     for talle in talle_lista:
                         for color in color_lista:
@@ -3371,19 +3395,16 @@ def step3():
                                 "stock": stock_por_variante,
                                 "imagen_url": ""
                             }
-                    print(f"  [Step3] Creadas {len(variantes)} variantes con stock {stock_por_variante} cada una")
+                    print(f"  [Step3] 🔥 Creadas {len(variantes)} variantes con stock {stock_por_variante} cada una")
             
-            # Calcular stock total
-            if tiene_variantes and variantes:
-                stock_total = sum(v.get('stock', 0) for v in variantes.values())
-            else:
-                stock_total = stock_final
-
-            bloques.append({
+            # 🔥 ARMAR BLOQUE CON STOCK_POR_TALLE (NO INCLUIR CAMPO 'stock')
+            bloque = {
                 'nombre': nombre,
                 'descripcion': descripciones[i],
                 'precio': precio,
-                'stock': stock_total,  # Stock total (calculado)
+                # 🔥 NO INCLUIR 'stock' - SOLO stock_por_talle
+                'stock_por_talle': stock_por_talle,
+                'tiene_stock_por_talle': tiene_stock_por_talle,
                 'imagen_url': imagen_para_guardar,
                 'grupo': grupo,
                 'subgrupo': subgrupo,
@@ -3392,8 +3413,17 @@ def step3():
                 'colores': color_lista,
                 'variantes': variantes,
                 'tiene_variantes': tiene_variantes
-            })
-            print(f"✅ [Step3] Producto agregado: {nombre} con {len(variantes)} variantes, stock total={stock_total}")
+            }
+            
+            # 🔥 COMPATIBILIDAD TEMPORAL: Incluir stock para productos existentes
+            # (Esto se puede eliminar una vez que todos los productos usen stock_por_talle)
+            if tiene_stock_por_talle:
+                bloque['stock'] = stock_total  # Para compatibilidad temporal
+            else:
+                bloque['stock'] = stock_total
+            
+            bloques.append(bloque)
+            print(f"✅ [Step3] Producto agregado: {nombre} con stock_por_talle={stock_por_talle}, stock_total={stock_total}")
 
         session['bloques'] = bloques
         print(f"📊 [Step3] Total bloques construidos: {len(bloques)}")
