@@ -2884,7 +2884,7 @@ function actualizarCarrito() {
             ${item.cantidad} x $${item.precio.toFixed(2)} = $${subtotal.toFixed(2)}
           </div>
         </div>
-        <button onclick="eliminarDelCarrito('${item.id_base}', '${item.talle}', '${item.color}', event)" 
+        <button onmousedown="eliminarDelCarrito('${item.id_base}', '${item.talle}', '${item.color}', event)" 
                 style="background: none; border: none; color: red; font-weight: bold; font-size: 16px; cursor: pointer;">
           ❌
         </button>
