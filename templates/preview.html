@@ -3124,38 +3124,51 @@ function actualizarStockPorTalle(idProducto, talleSeleccionado) {
   const agregarBtn = document.getElementById(`btn_agregar_${idProducto}`);
   
   if (!stockSpan || !cantidadInput || !agregarBtn) {
-    console.warn("⚠️ Elementos no encontrados para actualizar stock por talle");
+    console.warn("⚠️ Elementos no encontrados");
     return;
   }
   
   // Obtener stock del talle seleccionado
   let stockDisponible = 0;
-  
-  // 1. Intentar obtener de stock_por_talle (modo nuevo)
   const stockPorTalle = window[`stock_por_talle_${idProducto}`];
+  
   if (stockPorTalle && stockPorTalle[talleSeleccionado] !== undefined) {
     stockDisponible = stockPorTalle[talleSeleccionado];
-    console.log(`✅ Stock obtenido de stock_por_talle: ${stockDisponible}`);
+    console.log(`✅ Stock obtenido: ${stockDisponible} para talle ${talleSeleccionado}`);
   } else {
-    // 2. Si no, obtener de la API (para compatibilidad con backend)
-    fetch(`${URL_BACKEND}/api/productos/${idProducto}/stock-talle?talle=${encodeURIComponent(talleSeleccionado)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.stock !== undefined) {
-          stockDisponible = data.stock;
-          actualizarUIStock(idProducto, stockDisponible, talleSeleccionado);
-        }
-      })
-      .catch(err => {
-        console.error("❌ Error obteniendo stock por talle:", err);
-        // 3. Fallback: mostrar 0
-        stockDisponible = 0;
-        actualizarUIStock(idProducto, stockDisponible, talleSeleccionado);
-      });
-    return;
+    console.warn(`⚠️ Talle ${talleSeleccionado} no encontrado en stock_por_talle`);
+    stockDisponible = 0;
   }
   
-  actualizarUIStock(idProducto, stockDisponible, talleSeleccionado);
+  // Actualizar UI
+  stockSpan.textContent = stockDisponible > 0 ? stockDisponible : "Sin stock";
+  
+  if (stockDisponible > 0) {
+    stockSpan.classList.remove("text-danger");
+    stockSpan.classList.add("text-success");
+    setTimeout(() => stockSpan.classList.remove("text-success"), 1000);
+    
+    cantidadInput.max = stockDisponible;
+    cantidadInput.disabled = false;
+    const valorActual = parseInt(cantidadInput.value) || 1;
+    cantidadInput.value = Math.min(valorActual, stockDisponible);
+    
+    agregarBtn.disabled = false;
+    agregarBtn.style.opacity = "1";
+    agregarBtn.textContent = "Agregar al carrito";
+  } else {
+    stockSpan.classList.remove("text-success");
+    stockSpan.classList.add("text-danger");
+    
+    cantidadInput.disabled = true;
+    cantidadInput.value = "0";
+    
+    agregarBtn.disabled = true;
+    agregarBtn.style.opacity = "0.5";
+    agregarBtn.textContent = "Sin stock";
+  }
+  
+  console.log(`✅ UI actualizada para talle ${talleSeleccionado}: ${stockDisponible} unidades`);
 }
 
 function actualizarUIStock(idProducto, stockDisponible, talleSeleccionado) {
