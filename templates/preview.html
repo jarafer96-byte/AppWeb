@@ -1481,9 +1481,8 @@ document.getElementById("inputFoto").addEventListener("change", async (e) => {
   }
 });
 
-// Busca esta función en preview.html (~línea 850-950)
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
-  const email = "{{ session.get('email') or '' }}"; // 👈 email inyectado desde la sesión
+  const email = "{{ session.get('email') or '' }}";
   if (!email) {
     alert("❌ No hay email de admin, no se puede guardar");
     return;
@@ -1517,10 +1516,9 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
     // 2. Armar producto con campos obligatorios
     const nombre = document.getElementById("nombreProd").value.trim();
     const precio = parseFloat(document.getElementById("precioProd").value);
-    const stock = parseInt(document.getElementById("stockProd").value) || 1; // 👈 NUEVO: stock con default 1
     const talles = document.getElementById("tallesProd").value.split(",").map(t => t.trim()).filter(Boolean);
 
-    // Grupo y subgrupo: tomados del contexto o default
+    // Grupo y subgrupo
     const grupo = document.getElementById("grupoProd")?.value.trim() || window.grupoActivo || "General";
     const subgrupo = document.getElementById("subgrupoProd")?.value.trim() || window.subgrupoActivo || "general";
 
@@ -1529,13 +1527,26 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       return;
     }
 
+    // 🔥 Crear stock_por_talle según los talles ingresados
+    const stockPorTalle = {};
+    if (talles.length > 0) {
+      // Producto con talles - stock inicial en 0 para cada talle
+      talles.forEach(talle => {
+        stockPorTalle[talle] = 0;
+      });
+    } else {
+      // Producto sin talles - usar "unico" como clave
+      const stockInicial = parseInt(document.getElementById("stockProd").value) || 0;
+      stockPorTalle["unico"] = stockInicial;
+    }
+
     const producto = {
       nombre,
       precio,
-      stock,        // 👈 NUEVO: incluir stock
       talles,
       grupo,
       subgrupo,
+      stock_por_talle: stockPorTalle, // 🔥 SOLO stock_por_talle
       imagen_url: foto_url
     };
     console.log("📦 Producto armado:", { producto, email });
@@ -1561,7 +1572,7 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       // Limpiar formulario
       document.getElementById("nombreProd").value = "";
       document.getElementById("precioProd").value = "";
-      document.getElementById("stockProd").value = "1"; // 👈 Resetear a 1
+      document.getElementById("stockProd").value = "0";
       document.getElementById("tallesProd").value = "";
       document.getElementById("grupoProd").value = "";
       document.getElementById("subgrupoProd").value = "";
@@ -1579,8 +1590,7 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
     alert("❌ Error al guardar producto: " + err.message);
   }
 });
-
-// Función unificada para obtener información de stock
+    
 async function obtenerStockCompleto(productoId, email) {
   try {
     const response = await fetch(`${URL_BACKEND}/api/producto/${productoId}/stock?email=${encodeURIComponent(email)}`);
