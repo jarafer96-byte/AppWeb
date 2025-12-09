@@ -2794,6 +2794,12 @@ def guardar_producto():
             print("[GUARDAR_PRODUCTO] ❌ Falta producto en body")
             return jsonify({"status": "error", "error": "Producto inválido"}), 400
 
+        # 🔥🔥🔥 NUEVO: Verificar si es EDICIÓN (tiene id_base)
+        id_base = producto.get("id_base")
+        es_edicion = bool(id_base)
+        
+        print(f"[GUARDAR_PRODUCTO] 🔍 ¿Es edición? {'SÍ' if es_edicion else 'NO'} - ID base: {id_base}")
+
         # 3) Validar consistencia de stock y variantes
         tiene_variantes = bool(producto.get('tiene_variantes', False))
         variantes = producto.get('variantes', {})
@@ -2808,23 +2814,71 @@ def guardar_producto():
             talles = producto.get('talles', [])
             colores = producto.get('colores', [])
             if talles and colores and producto.get('stock', 0) > 0:
-                # Distribuir stock entre variantes automáticas
                 num_variantes = len(talles) * len(colores)
                 if num_variantes > 0:
                     stock_por_variante = producto.get('stock', 0) // num_variantes
                     print(f"[GUARDAR_PRODUCTO] ℹ️ Producto con talles/colores pero sin variantes explícitas")
-        
+
         print(f"[GUARDAR_PRODUCTO] 📊 Datos validados → email={email}, tiene_variantes={tiene_variantes}")
 
-        # 4) Guardar usando función robusta
-        print("[GUARDAR_PRODUCTO] → Llamando a subir_a_firestore()")
-        resultado = subir_a_firestore(producto, email)
+        # 🔥🔥🔥 NUEVO: Lógica de edición vs creación
+        if es_edicion:
+            # 4A) ACTUALIZAR producto existente
+            print(f"[GUARDAR_PRODUCTO] 🔄 Iniciando ACTUALIZACIÓN del producto {id_base}")
+            
+            # Buscar el producto por id_base y email
+            productos_ref = db.collection('productos').where('id_base', '==', id_base).where('email_vendedor', '==', email)
+            docs = list(productos_ref.stream())
+            
+            if not docs:
+                print(f"[GUARDAR_PRODUCTO] ⚠️ Producto {id_base} no encontrado, CREANDO nuevo")
+                # Si no existe, proceder a creación
+                resultado = subir_a_firestore(producto, email, forzar_nuevo=False)
+            else:
+                # Actualizar documento existente
+                doc_ref = docs[0].reference
+                
+                # Preparar datos para actualizar
+                datos_actualizar = {
+                    'nombre': producto.get('nombre'),
+                    'precio': producto.get('precio'),
+                    'descripcion': producto.get('descripcion', ''),
+                    'talles': producto.get('talles', []),
+                    'grupo': producto.get('grupo'),
+                    'subgrupo': producto.get('subgrupo'),
+                    'stock_por_talle': producto.get('stock_por_talle', {}),
+                    'imagen_url': producto.get('imagen_url', ''),
+                    'fecha_actualizacion': firestore.SERVER_TIMESTAMP
+                }
+                
+                # Añadir campos opcionales si existen
+                if 'tiene_variantes' in producto:
+                    datos_actualizar['tiene_variantes'] = producto.get('tiene_variantes')
+                if 'variantes' in producto:
+                    datos_actualizar['variantes'] = producto.get('variantes')
+                if 'stock' in producto:
+                    datos_actualizar['stock'] = producto.get('stock')
+                
+                # Actualizar
+                doc_ref.update(datos_actualizar)
+                print(f"[GUARDAR_PRODUCTO] ✅ Producto {id_base} ACTUALIZADO exitosamente")
+                
+                resultado = {
+                    'id_base': id_base,
+                    'accion': 'actualizado',
+                    'timestamp': firestore.SERVER_TIMESTAMP
+                }
+        else:
+            # 4B) CREAR nuevo producto
+            print("[GUARDAR_PRODUCTO] ➕ Iniciando CREACIÓN de nuevo producto")
+            resultado = subir_a_firestore(producto, email, forzar_nuevo=True)
 
         # 5) Respuesta normalizada
         response_data = {
             "status": "ok",
             "email": email,
-            "producto_id": producto.get("id_base"),
+            "producto_id": id_base or resultado.get('id_base'),
+            "accion": "actualizado" if es_edicion else "creado",
             "resultado": resultado
         }
         print(f"[GUARDAR_PRODUCTO] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
