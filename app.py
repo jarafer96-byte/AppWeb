@@ -2072,20 +2072,22 @@ def actualizar_stock_talle():
 def guardar_talles_stock():
     try:
         data = request.json
-        id_base = data.get('id') or data.get('id_base')  # 🔥 Aceptar ambos
+        id_base = data.get('id') or data.get('id_base')
         stock_por_talle = data.get('stock_por_talle')
-        email = data.get('email')  # 🔥 Cambiado de email_vendedor a email
+        email = data.get('email')
         
         if not all([id_base, stock_por_talle, email]):
             return jsonify({'error': 'Faltan datos'}), 400
         
-        # Validar que stock_por_talle sea un diccionario
+        # 🔥 VALIDACIÓN: Asegurar que stock_por_talle sea un diccionario
         if not isinstance(stock_por_talle, dict):
-            return jsonify({'error': 'stock_por_talle debe ser un objeto'}), 400
+            print(f"[GUARDAR-TALLES-STOCK] ❌ stock_por_talle no es dict: {type(stock_por_talle)}")
+            return jsonify({'error': 'stock_por_talle debe ser un objeto JSON'}), 400
         
         print(f"[GUARDAR-TALLES-STOCK] 🔍 Buscando: email={email}, id_base={id_base}")
+        print(f"[GUARDAR-TALLES-STOCK] 📊 stock_por_talle recibido: {stock_por_talle}")
         
-        # 🔥 CAMBIADO: Buscar en la ruta correcta de usuarios
+        # Buscar producto
         producto_ref = db.collection('usuarios').document(email).collection('productos').document(id_base)
         producto = producto_ref.get()
         
@@ -2095,26 +2097,56 @@ def guardar_talles_stock():
         
         producto_data = producto.to_dict()
         print(f"[GUARDAR-TALLES-STOCK] 📊 Producto encontrado: {producto_data.get('nombre')}")
+        print(f"[GUARDAR-TALLES-STOCK] 📊 Stock actual: {producto_data.get('stock')}")
+        print(f"[GUARDAR-TALLES-STOCK] 📊 Talles actuales: {producto_data.get('talles')}")
         
-        # Calcular stock total
-        stock_total = sum(stock_por_talle.values())
+        # 🔥 CORRECCIÓN: Calcular stock total correctamente
+        stock_total = 0
+        stock_por_talle_validado = {}
+        
+        for talle, stock in stock_por_talle.items():
+            if talle and talle.strip():
+                talle_limpio = talle.strip()
+                try:
+                    stock_int = int(stock) if stock is not None else 0
+                    if stock_int < 0:
+                        stock_int = 0
+                    stock_por_talle_validado[talle_limpio] = stock_int
+                    stock_total += stock_int
+                except (ValueError, TypeError) as e:
+                    print(f"[GUARDAR-TALLES-STOCK] ⚠️ Error con talle {talle}: {e}")
+        
+        print(f"[GUARDAR-TALLES-STOCK] 📊 Stock total calculado: {stock_total}")
+        print(f"[GUARDAR-TALLES-STOCK] 📊 Stock por talle validado: {stock_por_talle_validado}")
+        
+        # 🔥 CORRECCIÓN: Actualizar también el campo 'talles' con las claves
+        talles_actualizados = list(stock_por_talle_validado.keys())
+        
+        # Preparar datos de actualización
+        update_data = {
+            'stock_por_talle': stock_por_talle_validado,
+            'stock': stock_total,
+            'talles': talles_actualizados,
+            'actualizado': firestore.SERVER_TIMESTAMP
+        }
+        
+        # 🔥 CORRECCIÓN: Si el producto tenía variantes, desactivarlas
+        # porque ahora estamos usando stock_por_talle
+        if producto_data.get('tiene_variantes'):
+            update_data['tiene_variantes'] = False
+            print(f"[GUARDAR-TALLES-STOCK] ⚠️ Desactivando variantes para usar stock_por_talle")
         
         # Actualizar en Firestore
-        producto_ref.update({
-            'stock_por_talle': stock_por_talle,
-            'stock': stock_total,
-            'talles': list(stock_por_talle.keys()),  # Actualizar lista de talles
-            'actualizado': firestore.SERVER_TIMESTAMP
-        })
+        producto_ref.update(update_data)
         
-        print(f"[GUARDAR-TALLES-STOCK] ✅ Actualizado: talles={list(stock_por_talle.keys())}, total={stock_total}")
+        print(f"[GUARDAR-TALLES-STOCK] ✅ Actualizado: talles={talles_actualizados}, total={stock_total}")
         
         return jsonify({
             'status': 'ok',
             'id_base': id_base,
             'stock_total': stock_total,
-            'talles': list(stock_por_talle.keys()),
-            'stock_por_talle': stock_por_talle
+            'talles': talles_actualizados,
+            'stock_por_talle': stock_por_talle_validado
         })
         
     except Exception as e:
