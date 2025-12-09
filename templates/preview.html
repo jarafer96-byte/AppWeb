@@ -789,12 +789,15 @@ function guardarStock(id) {
     return;
   }
 
-  // DEBUG: Ver qué estamos enviando
+  // 🔥 Obtener el talle seleccionado
+  const talleSelect = document.getElementById(`talle_${id}`);
+  const talle = talleSelect?.value || "unico"; // "unico" para productos sin talles
+  
   console.log("📡 [guardarStock] Enviando a backend:", { 
     id: id, 
-    stock: nuevoStock, 
-    email: email,  // ← USAMOS LA CONSTANTE LOCAL
-    emailDefinido: !!email  // ← USAMOS LA CONSTANTE LOCAL
+    talle: talle,
+    stock: nuevoStock,
+    email: email
   });
 
   if (!email || email === "") {
@@ -803,14 +806,15 @@ function guardarStock(id) {
     return;
   }
 
-  // ✅ ENVIAR CORRECTAMENTE - stock va en "campos"
-  fetch("https://mpagina.onrender.com/actualizar-firestore", {
+  // 🔥 Enviar actualización del stock por talle
+  fetch(`${URL_BACKEND}/actualizar-stock-talle`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ 
-      id: id,            // id_base del producto
-      stock: nuevoStock, // Esto va en "campos" automáticamente
-      email: email  // ← USAMOS LA CONSTANTE LOCAL
+      id: id,
+      talle: talle,
+      stock: nuevoStock,
+      email: email
     })
   })
   .then(res => {
@@ -821,10 +825,16 @@ function guardarStock(id) {
     return res.json();
   })
   .then(data => {
-    console.log("📩 Respuesta backend actualizar-firestore:", data);
+    console.log("📩 Respuesta backend actualizar-stock-talle:", data);
 
     if (data.status === "ok") {
-      // 1. Actualizar texto en DOM
+      // 1. Actualizar la variable local stock_por_talle
+      if (!window[`stock_por_talle_${id}`]) {
+        window[`stock_por_talle_${id}`] = {};
+      }
+      window[`stock_por_talle_${id}`][talle] = nuevoStock;
+      
+      // 2. Actualizar texto en DOM
       const span = document.createElement("span");
       span.id = "stock_" + id;
       span.textContent = nuevoStock > 0 ? nuevoStock : "Sin stock";
@@ -835,7 +845,7 @@ function guardarStock(id) {
         span.className = nuevoStock > 0 ? "" : "text-danger";
       }, 1000);
       
-      // 2. Actualizar el input de cantidad
+      // 3. Actualizar el input de cantidad
       const cantidadInput = document.getElementById("cantidad_" + id);
       const agregarBtn = cantidadInput?.closest(".d-flex")?.querySelector("button");
       
@@ -843,7 +853,6 @@ function guardarStock(id) {
         if (nuevoStock > 0) {
           cantidadInput.max = nuevoStock;
           cantidadInput.disabled = false;
-          // Ajustar valor si es mayor al nuevo stock
           const valorActual = parseInt(cantidadInput.value) || 1;
           cantidadInput.value = Math.min(valorActual, nuevoStock);
           agregarBtn.disabled = false;
@@ -859,7 +868,7 @@ function guardarStock(id) {
         console.log("✅ Input cantidad actualizado, nuevo stock=", nuevoStock);
       }
       
-      // 3. Mostrar aviso visual
+      // 4. Mostrar aviso visual
       mostrarAvisoStock();
       
     } else {
