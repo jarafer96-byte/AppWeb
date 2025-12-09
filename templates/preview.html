@@ -2329,37 +2329,25 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
   }
   
   // 🔥 OBTENER TALLE (obligatorio si el producto tiene talles)
-  const talleElegido = talleSelect?.value || "";
-  
-  if (talleSelect && !talleElegido) {
-    alert("❌ Por favor selecciona un talle");
-    return;
-  }
+  const talleElegido = talleSelect?.value || "unico";
   
   // Verificar stock para el talle seleccionado
   let stockDisponible = 0;
   const stockPorTalle = window[`stock_por_talle_${id_base}`];
   
-  if (stockPorTalle && talleElegido) {
+  if (stockPorTalle) {
     stockDisponible = stockPorTalle[talleElegido] || 0;
-  } else if (!talleSelect) {
-    // Producto sin talles
-    const stockSpan = document.getElementById(`stock_${id_base}`);
-    if (stockSpan) {
-      const stockTexto = stockSpan.textContent.trim();
-      stockDisponible = stockTexto === "Sin stock" ? 0 : parseInt(stockTexto) || 0;
-    }
   }
   
   if (stockDisponible <= 0) {
-    alert("❌ No hay stock disponible" + (talleElegido ? ` para el talle ${talleElegido}` : ""));
+    alert("❌ No hay stock disponible" + (talleElegido !== "unico" ? ` para el talle ${talleElegido}` : ""));
     return;
   }
   
   const cantidad = parseInt(cantidadInput.value) || 1;
   
   if (cantidad > stockDisponible) {
-    alert(`❌ Solo hay ${stockDisponible} unidades disponibles${talleElegido ? ` para el talle ${talleElegido}` : ""}`);
+    alert(`❌ Solo hay ${stockDisponible} unidades disponibles${talleElegido !== "unico" ? ` para el talle ${talleElegido}` : ""}`);
     cantidadInput.value = stockDisponible;
     return;
   }
@@ -2376,7 +2364,7 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
     const nuevoTotal = existente.cantidad + cantidad;
     
     if (nuevoTotal > stockDisponible) {
-      alert(`❌ No puedes llevar más de ${stockDisponible} unidades${talleElegido ? ` del talle ${talleElegido}` : ""}`);
+      alert(`❌ No puedes llevar más de ${stockDisponible} unidades${talleElegido !== "unico" ? ` del talle ${talleElegido}` : ""}`);
       return;
     }
     
@@ -2395,7 +2383,7 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
   }
   
   actualizarCarrito();
-  console.log(`✅ Producto agregado al carrito: ${nombre} ${talleElegido ? `(Talle: ${talleElegido})` : ""}`);
+  console.log(`✅ Producto agregado al carrito: ${nombre} ${talleElegido !== "unico" ? `(Talle: ${talleElegido})` : ""}`);
 }
 
 function editarPrecio(id) {
