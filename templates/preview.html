@@ -2022,14 +2022,9 @@ function guardarTallesYStock(idProducto) {
   
   if (hayErrores) return;
   
-  if (Object.keys(stockPorTalle).length === 0) {
-    alert("❌ Debes ingresar al menos un talle");
-    return;
-  }
-  
   console.log("📦 Datos a guardar:", { idProducto, stockPorTalle, email });
   
-  // Enviar al backend
+  // 🔥 Enviar SOLO stock_por_talle al backend
   fetch(`${URL_BACKEND}/guardar-talles-stock`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -2054,13 +2049,17 @@ function guardarTallesYStock(idProducto) {
       // 3. Actualizar select de talles en la card
       const talleSelect = document.getElementById(`talle_${idProducto}`);
       if (talleSelect) {
-        talleSelect.innerHTML = Object.keys(stockPorTalle)
-          .map(talle => `<option value="${talle}">${talle}</option>`)
-          .join('');
+        const opciones = Object.keys(stockPorTalle).map(talle => {
+          const stock = stockPorTalle[talle];
+          return `<option value="${talle}">${talle} (${stock} disponible${stock > 1 ? 's' : ''})</option>`;
+        }).join('');
+        
+        talleSelect.innerHTML = '<option value="">Seleccionar talle...</option>' + opciones;
         
         // Actualizar stock del primer talle
         const primerTalle = Object.keys(stockPorTalle)[0];
         if (primerTalle) {
+          talleSelect.value = primerTalle;
           actualizarStockPorTalle(idProducto, primerTalle);
         }
       }
