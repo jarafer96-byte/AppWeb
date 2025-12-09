@@ -3054,11 +3054,11 @@ def actualizar_firestore():
         doc = query[0]
         doc_data = doc.to_dict()
         
-        # 🔥 CORRECCIÓN CRÍTICA: Si se actualiza 'stock', mantener sincronía con stock_por_talle
+        # 🔥 CORRECCIÓN CRÍTICA: Si se actualiza 'stock', REDIRIGIR A stock_por_talle
         if 'stock' in campos:
             stock_nuevo = campos['stock']
             
-            # Si el producto tiene stock_por_talle
+            # Si el producto tiene stock_por_talle, actualizar todos los talles
             if doc_data.get('stock_por_talle'):
                 stock_por_talle_actual = doc_data.get('stock_por_talle', {})
                 
@@ -3070,8 +3070,8 @@ def actualizar_firestore():
                     campos['stock_por_talle'] = nuevo_stock_por_talle
                     print(f"[ACTUALIZAR] ⚠️ Stock=0 → Todos los talles puestos en 0")
                 else:
-                    # 🔥 CORRECCIÓN: Calcular cómo distribuir el nuevo stock entre talles
-                    # Opción 1: Mantener proporciones actuales
+                    # 🔥 CORRECCIÓN: Distribuir el nuevo stock entre talles existentes
+                    # Mantener proporciones actuales o distribuir equitativamente
                     stock_actual_total = sum(stock_por_talle_actual.values())
                     
                     if stock_actual_total > 0:
@@ -3095,14 +3095,22 @@ def actualizar_firestore():
                                 nuevo_stock_por_talle[talle] = stock_por_talle
                             campos['stock_por_talle'] = nuevo_stock_por_talle
                             print(f"[ACTUALIZAR] 🔄 Distribuido {stock_nuevo} entre {len(talles)} talles = {stock_por_talle} c/u")
+            
+            # 🔥 REMOVER EL CAMPO 'stock' DE LOS CAMPOS A ACTUALIZAR
+            # No queremos actualizar el campo stock, solo stock_por_talle
+            del campos['stock']
         
         # 🔥 CORRECCIÓN: Si se actualiza 'stock_por_talle', calcular el stock total
         elif 'stock_por_talle' in campos:
             nuevo_stock_por_talle = campos['stock_por_talle']
             if isinstance(nuevo_stock_por_talle, dict):
                 stock_total = sum(nuevo_stock_por_talle.values())
-                campos['stock'] = stock_total
-                print(f"[ACTUALIZAR] 🔄 Stock total recalculado: {stock_total}")
+                # 🔥 NO ACTUALIZAMOS EL CAMPO 'stock'
+                print(f"[ACTUALIZAR] 🔄 Stock total calculado (no guardado): {stock_total}")
+        
+        # 🔥 MARCAR QUE USA STOCK_POR_TALLE SI SE ACTUALIZA
+        if 'stock_por_talle' in campos:
+            campos['tiene_stock_por_talle'] = True
         
         doc.reference.update(campos)
         print(f"[ACTUALIZAR] ✅ Firestore actualizado para {id_base}")
