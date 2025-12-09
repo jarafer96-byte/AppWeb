@@ -3019,6 +3019,8 @@ function renderProducto(p) {
           <strong>Disponible:</strong> 
           <span id="stock_${p.id_base}" class="${claseStock}">${mostrarStock}</span>
           ${window.modoAdmin && Object.keys(stockData).length > 0 && Object.keys(stockData)[0] !== "unico" ? `
+             <button type="button" class="btn btn-sm btn-outline-primary ms-2"
+              onclick="editarStockTalleActual('${p.id_base}')">✎ Editar stock</button>
           ` : ""}
         </p>
         
