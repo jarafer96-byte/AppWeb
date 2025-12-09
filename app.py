@@ -137,9 +137,10 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def subir_a_firestore(producto, email):
+def subir_a_firestore(producto, email, es_edicion=False):
     try:
         print(f"[FIRESTORE] 🚀 Iniciando subida de producto para email={email}")
+        print(f"[FIRESTORE] ¿Es edición? {es_edicion}")
         print(f"[FIRESTORE] Datos recibidos: {producto}")
 
         if not isinstance(producto, dict):
@@ -150,18 +151,28 @@ def subir_a_firestore(producto, email):
             print("[FIRESTORE] ❌ Faltan campos obligatorios: nombre/grupo/precio")
             return {"status": "error", "error": "Faltan campos obligatorios: nombre/grupo/precio"}
 
-        grupo_original = producto["grupo"].strip()
-        subgrupo_original = (producto.get("subgrupo", "") or "").strip() or f"General_{grupo_original}"
-        nombre_original = producto["nombre"].strip()
-        print(f"[FIRESTORE] Campos normalizados: nombre={nombre_original}, grupo={grupo_original}, subgrupo={subgrupo_original}")
+        # 🔥🔥🔥 NUEVO: Si es edición y ya tiene id_base, usar ese
+        id_base_existente = producto.get("id_base")
+        
+        if es_edicion and id_base_existente:
+            custom_id = id_base_existente
+            print(f"[FIRESTORE] 🔄 USANDO id_base EXISTENTE para edición: {custom_id}")
+            fecha = "EDITADO"  # No usar nueva fecha para mantener consistencia
+        else:
+            # Solo generar nuevo ID si es creación
+            grupo_original = producto["grupo"].strip()
+            subgrupo_original = (producto.get("subgrupo", "") or "").strip() or f"General_{grupo_original}"
+            nombre_original = producto["nombre"].strip()
+            print(f"[FIRESTORE] Campos normalizados: nombre={nombre_original}, grupo={grupo_original}, subgrupo={subgrupo_original}")
 
-        nombre_id = nombre_original.replace(" ", "_").lower()
-        subgrupo_id = subgrupo_original.replace(" ", "_").lower()
-        fecha = time.strftime("%Y%m%d")
-        sufijo = uuid.uuid4().hex[:6]
-        custom_id = f"{nombre_id}_{fecha}_{subgrupo_id}_{sufijo}"
-        print(f"[FIRESTORE] ID generado (id_base): {custom_id}")
+            nombre_id = nombre_original.replace(" ", "_").lower()
+            subgrupo_id = subgrupo_original.replace(" ", "_").lower()
+            fecha = time.strftime("%Y%m%d")
+            sufijo = uuid.uuid4().hex[:6]
+            custom_id = f"{nombre_id}_{fecha}_{subgrupo_id}_{sufijo}"
+            print(f"[FIRESTORE] ID generado NUEVO (id_base): {custom_id}")
 
+        # Resto del código se mantiene igual...
         precio_raw = producto["precio"]
         price_str = str(precio_raw).strip()
         price_clean = re.sub(r"[^\d,\.]", "", price_str)
@@ -271,6 +282,7 @@ def subir_a_firestore(producto, email):
                 tiene_stock_por_talle = False
                 print(f"[FIRESTORE] ⚠️ Error parseando stock: {e}, usando 0")
 
+        # 🔥 Actualizar el id_base en el producto si no lo tenía
         producto["id_base"] = custom_id
 
         imagen_url = producto.get("imagen_url")
@@ -283,11 +295,11 @@ def subir_a_firestore(producto, email):
             print(f"[FIRESTORE] Generada imagen_url por fallback: {imagen_url}")
 
         doc = {
-            "nombre": nombre_original,
+            "nombre": producto.get("nombre", "").strip(),
             "id_base": custom_id,
             "precio": precio,
-            "grupo": grupo_original,
-            "subgrupo": subgrupo_original,
+            "grupo": producto.get("grupo", "").strip(),
+            "subgrupo": (producto.get("subgrupo", "") or "").strip() or f"General_{producto.get('grupo', '').strip()}",
             "descripcion": producto.get("descripcion", ""),
             "imagen_url": imagen_url,
             "orden": orden,
@@ -295,7 +307,8 @@ def subir_a_firestore(producto, email):
             "colores": colores,  # Lista de colores
             "variantes": variantes,  # Estructura de variantes
             "tiene_variantes": usar_variantes,  # Flag para saber si usa variantes
-            "timestamp": firestore.SERVER_TIMESTAMP
+            "timestamp": firestore.SERVER_TIMESTAMP,
+            "email_vendedor": email  # 🔥 Asegurar que este campo esté siempre
         }
 
         if stock_por_talle_directo:
@@ -307,10 +320,25 @@ def subir_a_firestore(producto, email):
 
         ruta = f"usuarios/{email}/productos/{custom_id}"
         print(f"[FIRESTORE] Guardando en ruta: {ruta}")
-        db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
-        print(f"[FIRESTORE] ✅ Producto guardado correctamente en Firestore: {custom_id} para {email}")
+        
+        # 🔥 Si es edición, usar set() con merge=True para actualizar
+        if es_edicion:
+            print(f"[FIRESTORE] 🔄 Actualizando documento existente (merge=True)")
+            db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc, merge=True)
+        else:
+            print(f"[FIRESTORE] ➕ Creando nuevo documento")
+            db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
+            
+        print(f"[FIRESTORE] ✅ Producto {'actualizado' if es_edicion else 'guardado'} correctamente en Firestore: {custom_id} para {email}")
 
-        return {"status": "ok", "ok": True, "id_base": custom_id, "tiene_variantes": usar_variantes, "tiene_stock_por_talle": bool(stock_por_talle_directo)}
+        return {
+            "status": "ok", 
+            "ok": True, 
+            "id_base": custom_id, 
+            "tiene_variantes": usar_variantes, 
+            "tiene_stock_por_talle": bool(stock_por_talle_directo),
+            "es_edicion": es_edicion
+        }
 
     except Exception as e:
         tb = traceback.format_exc()
