@@ -524,16 +524,23 @@ def api_productos():
         for doc in docs:
             data = doc.to_dict() or {}
             
-            # Calcular stock disponible según si tiene variantes o no
-            tiene_variantes = data.get("tiene_variantes", False)
-            variantes = data.get("variantes", {})
+            # 🔥 CALCULAR STOCK DISPONIBLE SEGÚN EL SISTEMA USADO
+            tiene_stock_por_talle = data.get("tiene_stock_por_talle", False)
+            stock_por_talle = data.get("stock_por_talle", {})
             
-            if tiene_variantes and variantes:
-                # Si tiene variantes, calcular stock total sumando todas las variantes
+            if tiene_stock_por_talle and stock_por_talle:
+                # 🔥 PRIORIDAD 1: Usar stock_por_talle
+                stock_disponible = sum(stock_por_talle.values())
+                sistema = "stock_por_talle"
+            elif data.get("tiene_variantes", False):
+                # 🔥 PRIORIDAD 2: Calcular de variantes
+                variantes = data.get("variantes", {})
                 stock_disponible = sum(v.get('stock', 0) for v in variantes.values())
+                sistema = "variantes"
             else:
-                # Usar stock general
+                # 🔥 PRIORIDAD 3: Stock general (compatibilidad temporal)
                 stock_disponible = data.get("stock", 0)
+                sistema = "general"
             
             # Determinar si está disponible (stock > 0)
             disponible = stock_disponible > 0
@@ -543,7 +550,8 @@ def api_productos():
                 "id_base": data.get("id_base"),
                 "nombre": data.get("nombre"),
                 "precio": data.get("precio"),
-                "stock": stock_disponible,  # Stock total (suma de variantes si aplica)
+                "stock": stock_disponible,  # Stock total calculado
+                "stock_por_talle": stock_por_talle,  # Incluir stock_por_talle en la respuesta
                 "disponible": disponible,
                 "grupo": data.get("grupo"),
                 "subgrupo": data.get("subgrupo"),
@@ -553,7 +561,9 @@ def api_productos():
                 "talles": data.get("talles", []),
                 "colores": data.get("colores", []),
                 "variantes": data.get("variantes", {}),
-                "tiene_variantes": tiene_variantes,
+                "tiene_variantes": data.get("tiene_variantes", False),
+                "tiene_stock_por_talle": tiene_stock_por_talle,
+                "sistema_stock": sistema,  # Para debug
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
             })
 
