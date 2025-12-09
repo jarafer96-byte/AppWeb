@@ -162,7 +162,6 @@ def subir_a_firestore(producto, email):
         custom_id = f"{nombre_id}_{fecha}_{subgrupo_id}_{sufijo}"
         print(f"[FIRESTORE] ID generado (id_base): {custom_id}")
 
-        # Parseo de precio
         precio_raw = producto["precio"]
         price_str = str(precio_raw).strip()
         price_clean = re.sub(r"[^\d,\.]", "", price_str)
@@ -186,7 +185,6 @@ def subir_a_firestore(producto, email):
             orden = 999
         print(f"[FIRESTORE] Orden final: {orden}")
 
-        # 👇 PARSEO MEJORADO DE TALLES Y COLORES
         talles = producto.get("talles") or []
         if isinstance(talles, str):
             talles = [t.strip() for t in talles.split(',') if t.strip()]
@@ -197,43 +195,9 @@ def subir_a_firestore(producto, email):
         
         print(f"[FIRESTORE] Talles procesados: {talles}")
         print(f"[FIRESTORE] Colores procesados: {colores}")
-
-        # 👇 PARSEO MEJORADO DE STOCK GENERAL
-        stock_raw = producto.get("stock")
-        print(f"[FIRESTORE] Stock recibido (raw): {stock_raw}, tipo: {type(stock_raw)}")
-        
-        stock_general = 0  # default
-        if stock_raw is not None:
-            try:
-                # Si es string, convertir a int
-                if isinstance(stock_raw, str):
-                    stock_raw = stock_raw.strip()
-                    if stock_raw == "":
-                        stock_general = 0
-                    else:
-                        stock_general = int(stock_raw)
-                # Si ya es int o float
-                elif isinstance(stock_raw, (int, float)):
-                    stock_general = int(stock_raw)
-                
-                # Validar que no sea negativo
-                if stock_general < 0:
-                    stock_general = 0
-                    print(f"[FIRESTORE] ⚠️ Stock negativo ajustado a 0")
-                    
-            except (ValueError, TypeError) as e:
-                print(f"[FIRESTORE] ⚠️ Error parseando stock '{stock_raw}': {e}, usando default 0")
-                stock_general = 0
-        else:
-            print(f"[FIRESTORE] ℹ️ Stock no proporcionado, usando default 0")
-        
-        print(f"[FIRESTORE] ✅ Stock general final: {stock_general}")
-
-        # 👇 NUEVO: PROCESAR VARIANTES
         variantes = {}
         variantes_raw = producto.get("variantes") or {}
         
-        # Bandera para saber si el producto usa variantes
         usar_variantes = False
         
         if isinstance(variantes_raw, dict) and variantes_raw:
@@ -260,13 +224,11 @@ def subir_a_firestore(producto, email):
         elif talles and colores:
             print(f"[FIRESTORE] Creando variantes automáticamente de talles x colores")
             usar_variantes = True
-            
-            # Distribuir stock equitativamente entre variantes
+
             num_variantes = len(talles) * len(colores)
             if num_variantes > 0:
-                # Si hay stock general, distribuir equitativamente
-                stock_por_variante = stock_general // num_variantes
-                print(f"[FIRESTORE] Distribuyendo stock {stock_general} entre {num_variantes} variantes = {stock_por_variante} cada una")
+                stock_por_variante = 0  # 👈 Cambiado a 0 por defecto
+                print(f"[FIRESTORE] Distribuyendo stock {stock_por_variante} entre {num_variantes} variantes = {stock_por_variante} cada una")
                 
                 for talle in talles:
                     for color in colores:
@@ -281,17 +243,36 @@ def subir_a_firestore(producto, email):
             else:
                 print(f"[FIRESTORE] ⚠️ No se pueden crear variantes: talles={len(talles)}, colores={len(colores)}")
 
-        # Calcular stock total basado en variantes si las hay
-        if usar_variantes and variantes:
+        stock_por_talle_directo = producto.get("stock_por_talle", {})
+        stock_total = 0
+        
+        if stock_por_talle_directo:
+            print(f"[FIRESTORE] 🔥 Usando stock_por_talle directo: {stock_por_talle_directo}")
+            stock_total = sum(stock_por_talle_directo.values())
+            tiene_stock_por_talle = True
+        elif usar_variantes and variantes:
             stock_total = sum(v.get('stock', 0) for v in variantes.values())
+            tiene_stock_por_talle = False
             print(f"[FIRESTORE] ✅ Stock total calculado de variantes: {stock_total}")
         else:
-            stock_total = stock_general
-            print(f"[FIRESTORE] ✅ Usando stock general: {stock_total}")
+            stock_raw = producto.get("stock", 0)
+            try:
+                if isinstance(stock_raw, str):
+                    stock_total = int(stock_raw.strip() or 0)
+                else:
+                    stock_total = int(stock_raw or 0)
+                
+                if stock_total < 0:
+                    stock_total = 0
+                tiene_stock_por_talle = False
+                print(f"[FIRESTORE] ✅ Stock general: {stock_total}")
+            except (ValueError, TypeError) as e:
+                stock_total = 0
+                tiene_stock_por_talle = False
+                print(f"[FIRESTORE] ⚠️ Error parseando stock: {e}, usando 0")
 
         producto["id_base"] = custom_id
 
-        # Imagen: usar la URL real si ya viene del upload, si no, fallback a custom_id.webp
         imagen_url = producto.get("imagen_url")
         if imagen_url:
             print(f"[FIRESTORE] Usando imagen_url provista: {imagen_url}")
@@ -305,7 +286,6 @@ def subir_a_firestore(producto, email):
             "nombre": nombre_original,
             "id_base": custom_id,
             "precio": precio,
-            "stock": stock_total,  # Stock total (suma de variantes si aplica)
             "grupo": grupo_original,
             "subgrupo": subgrupo_original,
             "descripcion": producto.get("descripcion", ""),
@@ -317,6 +297,12 @@ def subir_a_firestore(producto, email):
             "tiene_variantes": usar_variantes,  # Flag para saber si usa variantes
             "timestamp": firestore.SERVER_TIMESTAMP
         }
+
+        if stock_por_talle_directo:
+            doc["stock_por_talle"] = stock_por_talle_directo
+            doc["tiene_stock_por_talle"] = True
+            print(f"[FIRESTORE] ✅ Agregado stock_por_talle: {stock_por_talle_directo}")
+        
         print(f"[FIRESTORE] Documento a guardar: {doc}")
 
         ruta = f"usuarios/{email}/productos/{custom_id}"
@@ -324,7 +310,7 @@ def subir_a_firestore(producto, email):
         db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
         print(f"[FIRESTORE] ✅ Producto guardado correctamente en Firestore: {custom_id} para {email}")
 
-        return {"status": "ok", "ok": True, "id_base": custom_id, "tiene_variantes": usar_variantes}
+        return {"status": "ok", "ok": True, "id_base": custom_id, "tiene_variantes": usar_variantes, "tiene_stock_por_talle": bool(stock_por_talle_directo)}
 
     except Exception as e:
         tb = traceback.format_exc()
