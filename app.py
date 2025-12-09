@@ -2102,8 +2102,6 @@ def guardar_talles_stock():
         
         producto_data = producto.to_dict()
         print(f"[GUARDAR-TALLES-STOCK] 📊 Producto encontrado: {producto_data.get('nombre')}")
-        print(f"[GUARDAR-TALLES-STOCK] 📊 Stock actual: {producto_data.get('stock')}")
-        print(f"[GUARDAR-TALLES-STOCK] 📊 Talles actuales: {producto_data.get('talles')}")
         
         # 🔥 CORRECCIÓN: Calcular stock total correctamente
         stock_total = 0
@@ -2127,19 +2125,22 @@ def guardar_talles_stock():
         # 🔥 CORRECCIÓN: Actualizar también el campo 'talles' con las claves
         talles_actualizados = list(stock_por_talle_validado.keys())
         
-        # Preparar datos de actualización
+        # 🔥 PREPARAR DATOS DE ACTUALIZACIÓN SOLO CON STOCK_POR_TALLE
         update_data = {
             'stock_por_talle': stock_por_talle_validado,
-            'stock': stock_total,
             'talles': talles_actualizados,
-            'actualizado': firestore.SERVER_TIMESTAMP
+            'actualizado': firestore.SERVER_TIMESTAMP,
+            'tiene_stock_por_talle': True  # 🔥 Marcar que usa stock_por_talle
         }
         
         # 🔥 CORRECCIÓN: Si el producto tenía variantes, desactivarlas
         # porque ahora estamos usando stock_por_talle
         if producto_data.get('tiene_variantes'):
             update_data['tiene_variantes'] = False
+            update_data['variantes'] = {}  # Limpiar variantes
             print(f"[GUARDAR-TALLES-STOCK] ⚠️ Desactivando variantes para usar stock_por_talle")
+        
+        # 🔥 NO ACTUALIZAMOS EL CAMPO 'stock'
         
         # Actualizar en Firestore
         producto_ref.update(update_data)
