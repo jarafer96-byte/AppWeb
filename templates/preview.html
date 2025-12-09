@@ -1698,18 +1698,14 @@ function editarStockTalleActual(idProducto) {
   console.log(`✏️ [editarStockTalleActual] Editando stock para producto: ${idProducto}`);
   
   const talleSelect = document.getElementById(`talle_${idProducto}`);
-  if (!talleSelect) {
+  if (!talleSelect || !talleSelect.value) {
     alert("❌ Primero selecciona un talle");
     return;
   }
   
   const talleActual = talleSelect.value;
-  if (!talleActual) {
-    alert("❌ No hay talle seleccionado");
-    return;
-  }
-  
   const stockSpan = document.getElementById(`stock_${idProducto}`);
+  
   if (!stockSpan) {
     console.error("❌ No se encontró el span de stock");
     return;
@@ -1723,8 +1719,7 @@ function editarStockTalleActual(idProducto) {
   }
   
   console.log(`📝 Valor actual de stock para talle ${talleActual}:`, valorActual);
-  
-  // Crear input para editar
+
   const input = document.createElement("input");
   input.type = "number";
   input.min = "0";
@@ -1734,9 +1729,9 @@ function editarStockTalleActual(idProducto) {
   input.style.width = "80px";
   input.id = "input_stock_talle_" + idProducto;
   
-  // Guardar referencia al talle actual
   input.dataset.talle = talleActual;
-  input.dataset.idProducto = idProducto;
+  input.dataset.id_base = idProducto;
+  input.dataset.email = email;
   
   input.onblur = () => guardarStockPorTalle(idProducto, talleActual);
   input.addEventListener("keydown", (e) => {
