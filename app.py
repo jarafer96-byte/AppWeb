@@ -2033,18 +2033,27 @@ def actualizar_stock_talle():
         producto_data = producto.to_dict()
         print(f"[ACTUALIZAR-STOCK-TALLE] 📊 Producto encontrado: {producto_data.get('nombre')}")
         
-        # Inicializar o actualizar stock_por_talle
+        # 🔥 INICIALIZAR O ACTUALIZAR SOLO STOCK_POR_TALLE
         stock_por_talle = producto_data.get('stock_por_talle', {})
+        
+        # Si el producto no tenía stock_por_talle pero tiene talles, inicializar
+        if not stock_por_talle and producto_data.get('talles'):
+            print(f"[ACTUALIZAR-STOCK-TALLE] ⚠️ Inicializando stock_por_talle para talles: {producto_data.get('talles')}")
+            for t in producto_data.get('talles', []):
+                stock_por_talle[t] = 0
+        
+        # Actualizar stock del talle específico
         stock_por_talle[talle] = nuevo_stock
         
-        # Calcular stock total (suma de todos los talles)
+        # 🔥 CALCULAR STOCK TOTAL (SUMA DE TODOS LOS TALLES)
         stock_total = sum(stock_por_talle.values())
         
-        # Actualizar en Firestore
+        # 🔥 ACTUALIZAR EN FIRESTORE SOLO STOCK_POR_TALLE
         producto_ref.update({
             'stock_por_talle': stock_por_talle,
-            'stock': stock_total,
-            'actualizado': firestore.SERVER_TIMESTAMP
+            # 🔥 IMPORTANTE: No actualizamos el campo 'stock'
+            'actualizado': firestore.SERVER_TIMESTAMP,
+            'tiene_stock_por_talle': True  # Marcar que usa stock_por_talle
         })
         
         print(f"[ACTUALIZAR-STOCK-TALLE] ✅ Actualizado: talle={talle}, stock={nuevo_stock}, total={stock_total}")
