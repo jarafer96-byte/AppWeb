@@ -522,11 +522,25 @@ input.stock-edit {
     <img id="previewFoto" src="" alt="Sin foto" class="d-none w-100 mb-2">
     <input type="file" id="inputFoto" accept="image/*" class="form-control mb-2">
     <button id="btnQuitarFoto" type="button" class="btn btn-danger mb-2 d-none">❌ Quitar foto</button>
+    
     <!-- Datos -->
     <input type="text" id="nombreProd" placeholder="Nombre producto" class="form-control mb-2">
     <input type="number" id="precioProd" placeholder="Precio" class="form-control mb-2">
+    
+    <!-- Talles -->
     <input type="text" id="tallesProd" placeholder="Talles (S,M,L)" class="form-control mb-2">
-    <input type="number" id="stockProd" placeholder="Stock inicial" min="0" value="" class="form-control mb-2">
+    
+    <!-- Stock (simplificado) -->
+    <div id="stockSimple" class="mb-2">
+      <input type="number" id="stockGeneral" placeholder="Stock inicial" min="0" value="0" class="form-control">
+    </div>
+    
+    <!-- Stock por talle (aparece solo si hay talles) -->
+    <div id="stockPorTalleContainer" class="mb-2" style="display:none;">
+      <label class="form-label">Stock por talle (ej: S:5, M:3, L:2)</label>
+      <input type="text" id="stockPorTalle" placeholder="S:5, M:3, L:2" class="form-control">
+      <small class="text-muted">Separar por comas: talle:cantidad</small>
+    </div>
 
     <!-- Grupo/Subgrupo -->
     <input type="text" id="grupoProd" placeholder="Grupo" class="form-control mb-2">
@@ -1481,6 +1495,20 @@ document.getElementById("inputFoto").addEventListener("change", async (e) => {
   }
 });
 
+document.getElementById("tallesProd").addEventListener("input", function() {
+  const talles = this.value.split(",").map(t => t.trim()).filter(Boolean);
+  const container = document.getElementById("stockPorTalleContainer");
+  const simpleContainer = document.getElementById("stockSimple");
+  
+  if (talles.length > 0) {
+    container.style.display = "block";
+    simpleContainer.style.display = "none";
+  } else {
+    container.style.display = "none";
+    simpleContainer.style.display = "block";
+  }
+});
+    
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
   const email = "{{ session.get('email') or '' }}";
   if (!email) {
@@ -1502,7 +1530,6 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
         body: formData
       });
 
-      console.log("📡 Respuesta recibida del backend subir-foto, status:", respFoto.status);
       if (!respFoto.ok) {
         const text = await respFoto.text();
         throw new Error(`Error al subir foto: ${respFoto.status} ${text}`);
@@ -1510,14 +1537,13 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
       const fotoData = await respFoto.json();
       foto_url = fotoData.url || "";
-      console.log("📩 Respuesta backend subir-foto:", foto_url);
     }
 
-    // 2. Armar producto con campos obligatorios
+    // 2. Obtener datos del formulario
     const nombre = document.getElementById("nombreProd").value.trim();
     const precio = parseFloat(document.getElementById("precioProd").value);
     const talles = document.getElementById("tallesProd").value.split(",").map(t => t.trim()).filter(Boolean);
-
+    
     // Grupo y subgrupo
     const grupo = document.getElementById("grupoProd")?.value.trim() || window.grupoActivo || "General";
     const subgrupo = document.getElementById("subgrupoProd")?.value.trim() || window.subgrupoActivo || "general";
@@ -1527,38 +1553,64 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       return;
     }
 
-    // 🔥 Crear stock_por_talle según los talles ingresados
-    const stockPorTalle = {};
+    // 3. Procesar stock según tipo (con o sin talles)
+    let stockPorTalle = {};
+    
     if (talles.length > 0) {
-      // Producto con talles - stock inicial en 0 para cada talle
-      talles.forEach(talle => {
-        stockPorTalle[talle] = 0;
-      });
+      // PRODUCTO CON TALLES
+      const stockTalleInput = document.getElementById("stockPorTalle").value.trim();
+      
+      if (stockTalleInput) {
+        // Parsear formato "S:5, M:3, L:2"
+        stockTalleInput.split(",").forEach(item => {
+          const parts = item.split(":").map(s => s.trim());
+          if (parts.length >= 2) {
+            const talle = parts[0];
+            const stock = parseInt(parts[1]) || 0;
+            if (talle && !isNaN(stock) && stock >= 0) {
+              stockPorTalle[talle] = stock;
+            }
+          }
+        });
+        
+        // Verificar que todos los talles tengan stock asignado
+        talles.forEach(talle => {
+          if (stockPorTalle[talle] === undefined) {
+            stockPorTalle[talle] = 0; // Si no se especificó, poner 0
+          }
+        });
+      } else {
+        // Si no se ingresó stock por talle, usar 0 para todos
+        talles.forEach(talle => {
+          stockPorTalle[talle] = 0;
+        });
+      }
     } else {
-      // Producto sin talles - usar "unico" como clave
-      const stockInicial = parseInt(document.getElementById("stockProd").value) || 0;
-      stockPorTalle["unico"] = stockInicial;
+      // PRODUCTO SIN TALLES
+      const stockGeneral = parseInt(document.getElementById("stockGeneral").value) || 0;
+      stockPorTalle = {"unico": stockGeneral};
     }
 
+    console.log("📦 Stock por talle procesado:", stockPorTalle);
+
+    // 4. Armar producto
     const producto = {
       nombre,
       precio,
       talles,
       grupo,
       subgrupo,
-      stock_por_talle: stockPorTalle, // 🔥 SOLO stock_por_talle
+      stock_por_talle: stockPorTalle, // 🔥 ENVIAR SOLO stock_por_talle
       imagen_url: foto_url
     };
-    console.log("📦 Producto armado:", { producto, email });
 
-    // 3. Guardar en Firestore
+    // 5. Guardar en Firestore
     const respGuardar = await fetch("https://mpagina.onrender.com/guardar-producto", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ producto, email })
     });
 
-    console.log("📡 Respuesta recibida del backend guardar-producto, status:", respGuardar.status);
     if (!respGuardar.ok) {
       const text = await respGuardar.text();
       throw new Error(`Error al guardar producto: ${respGuardar.status} ${text}`);
@@ -1569,14 +1621,28 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
     if (data.status === "ok") {
       alert("✅ Producto guardado correctamente");
+      
       // Limpiar formulario
       document.getElementById("nombreProd").value = "";
       document.getElementById("precioProd").value = "";
-      document.getElementById("stockProd").value = "0";
       document.getElementById("tallesProd").value = "";
+      document.getElementById("stockGeneral").value = "0";
+      document.getElementById("stockPorTalle").value = "";
       document.getElementById("grupoProd").value = "";
       document.getElementById("subgrupoProd").value = "";
       
+      // Resetear visibilidad de campos de stock
+      document.getElementById("stockPorTalleContainer").style.display = "none";
+      document.getElementById("stockSimple").style.display = "block";
+      
+      // Resetear foto
+      document.getElementById("previewFoto").src = "";
+      document.getElementById("previewFoto").classList.add("d-none");
+      document.getElementById("btnQuitarFoto").classList.add("d-none");
+      document.getElementById("inputFoto").value = "";
+      window.fotoOptimizada = null;
+      
+      // Refrescar productos si la función existe
       if (typeof cargarProductos === "function") {
         console.log("✅ Refrescando catálogo...");
         cargarProductos();
