@@ -2016,70 +2016,85 @@ def webhook_mp():
 def actualizar_stock_talle():
     try:
         data = request.json
-        id_producto = data.get('id')
+        id_base = data.get('id') or data.get('id_base')  # 🔥 Aceptar ambos
         talle = data.get('talle')
         nuevo_stock = data.get('stock')
-        email_vendedor = data.get('email')
+        email = data.get('email')  # 🔥 Cambiado de email_vendedor a email
         
-        if not all([id_producto, talle, nuevo_stock is not None, email_vendedor]):
+        if not all([id_base, talle, nuevo_stock is not None, email]):
             return jsonify({'error': 'Faltan datos'}), 400
         
-        # Buscar producto en Firestore
-        producto_ref = db.collection('productos').document(id_producto)
+        print(f"[ACTUALIZAR-STOCK-TALLE] 🔍 Buscando: email={email}, id_base={id_base}")
+        
+        # 🔥 CAMBIADO: Buscar en la ruta correcta de usuarios
+        producto_ref = db.collection('usuarios').document(email).collection('productos').document(id_base)
         producto = producto_ref.get()
         
         if not producto.exists:
+            print(f"[ACTUALIZAR-STOCK-TALLE] ❌ Producto no encontrado: {email}/{id_base}")
             return jsonify({'error': 'Producto no encontrado'}), 404
         
         producto_data = producto.to_dict()
+        print(f"[ACTUALIZAR-STOCK-TALLE] 📊 Producto encontrado: {producto_data.get('nombre')}")
         
         # Inicializar o actualizar stock_por_talle
-        if 'stock_por_talle' not in producto_data:
-            producto_data['stock_por_talle'] = {}
-        
-        producto_data['stock_por_talle'][talle] = nuevo_stock
+        stock_por_talle = producto_data.get('stock_por_talle', {})
+        stock_por_talle[talle] = nuevo_stock
         
         # Calcular stock total (suma de todos los talles)
-        stock_total = sum(producto_data['stock_por_talle'].values())
+        stock_total = sum(stock_por_talle.values())
         
         # Actualizar en Firestore
         producto_ref.update({
-            'stock_por_talle': producto_data['stock_por_talle'],
-            'stock': stock_total
+            'stock_por_talle': stock_por_talle,
+            'stock': stock_total,
+            'actualizado': firestore.SERVER_TIMESTAMP
         })
+        
+        print(f"[ACTUALIZAR-STOCK-TALLE] ✅ Actualizado: talle={talle}, stock={nuevo_stock}, total={stock_total}")
         
         return jsonify({
             'status': 'ok',
-            'id_producto': id_producto,
+            'id_base': id_base,
             'talle': talle,
             'stock': nuevo_stock,
-            'stock_total': stock_total
+            'stock_total': stock_total,
+            'stock_por_talle': stock_por_talle
         })
         
     except Exception as e:
+        print(f"[ACTUALIZAR-STOCK-TALLE] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/guardar-talles-stock', methods=['POST'])
 def guardar_talles_stock():
     try:
         data = request.json
-        id_producto = data.get('id')
+        id_base = data.get('id') or data.get('id_base')  # 🔥 Aceptar ambos
         stock_por_talle = data.get('stock_por_talle')
-        email_vendedor = data.get('email')
+        email = data.get('email')  # 🔥 Cambiado de email_vendedor a email
         
-        if not all([id_producto, stock_por_talle, email_vendedor]):
+        if not all([id_base, stock_por_talle, email]):
             return jsonify({'error': 'Faltan datos'}), 400
         
         # Validar que stock_por_talle sea un diccionario
         if not isinstance(stock_por_talle, dict):
             return jsonify({'error': 'stock_por_talle debe ser un objeto'}), 400
         
-        # Buscar producto
-        producto_ref = db.collection('productos').document(id_producto)
+        print(f"[GUARDAR-TALLES-STOCK] 🔍 Buscando: email={email}, id_base={id_base}")
+        
+        # 🔥 CAMBIADO: Buscar en la ruta correcta de usuarios
+        producto_ref = db.collection('usuarios').document(email).collection('productos').document(id_base)
         producto = producto_ref.get()
         
         if not producto.exists:
+            print(f"[GUARDAR-TALLES-STOCK] ❌ Producto no encontrado: {email}/{id_base}")
             return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        producto_data = producto.to_dict()
+        print(f"[GUARDAR-TALLES-STOCK] 📊 Producto encontrado: {producto_data.get('nombre')}")
         
         # Calcular stock total
         stock_total = sum(stock_por_talle.values())
@@ -2088,17 +2103,24 @@ def guardar_talles_stock():
         producto_ref.update({
             'stock_por_talle': stock_por_talle,
             'stock': stock_total,
-            'talles': list(stock_por_talle.keys())  # Actualizar lista de talles
+            'talles': list(stock_por_talle.keys()),  # Actualizar lista de talles
+            'actualizado': firestore.SERVER_TIMESTAMP
         })
+        
+        print(f"[GUARDAR-TALLES-STOCK] ✅ Actualizado: talles={list(stock_por_talle.keys())}, total={stock_total}")
         
         return jsonify({
             'status': 'ok',
-            'id_producto': id_producto,
+            'id_base': id_base,
             'stock_total': stock_total,
-            'talles': list(stock_por_talle.keys())
+            'talles': list(stock_por_talle.keys()),
+            'stock_por_talle': stock_por_talle
         })
         
     except Exception as e:
+        print(f"[GUARDAR-TALLES-STOCK] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/variantes/<producto_id>/crear', methods=['POST'])
