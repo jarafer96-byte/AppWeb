@@ -1306,7 +1306,7 @@ def enviar_comprobante(email_vendedor, orden_id):
 def get_stock_completo(producto_id):
     """
     Endpoint unificado para obtener toda la información de stock de un producto.
-    Retorna: stock_por_talle, variantes, stock_total y metadatos.
+    🔥 PRIORIDAD: stock_por_talle > variantes > stock general
     """
     try:
         email = request.args.get('email')
@@ -1328,28 +1328,63 @@ def get_stock_completo(producto_id):
         
         producto_data = producto_doc.to_dict()
         
-        # Obtener información básica
-        nombre = producto_data.get('nombre', '')
-        precio = producto_data.get('precio', 0)
-        stock_general = producto_data.get('stock', 0)
+        # 🔥 PRIORIDAD 1: STOCK_POR_TALLE
+        tiene_stock_por_talle = producto_data.get('tiene_stock_por_talle', False)
+        stock_por_talle = producto_data.get('stock_por_talle', {})
+        
+        if tiene_stock_por_talle and stock_por_talle:
+            print(f"[STOCK-COMPLETO] 🔥 Usando stock_por_talle: {stock_por_talle}")
+            
+            stock_total = sum(stock_por_talle.values())
+            disponible = stock_total > 0
+            
+            # Preparar talles disponibles
+            talles_disponibles = []
+            for talle, stock in stock_por_talle.items():
+                talles_disponibles.append({
+                    'talle': talle,
+                    'stock': stock,
+                    'disponible': stock > 0
+                })
+            
+            response_data = {
+                'status': 'ok',
+                'producto': {
+                    'id': producto_id,
+                    'nombre': producto_data.get('nombre', ''),
+                    'precio': producto_data.get('precio', 0),
+                    'sistema_stock': 'stock_por_talle',
+                    'disponible': disponible,
+                    'stock_total': stock_total,
+                    'tiene_variantes': False,
+                    'tiene_stock_por_talle': True
+                },
+                'stock': {
+                    'total': stock_total,
+                    'por_talle': stock_por_talle,
+                    'talles_disponibles': talles_disponibles,
+                    'talles': list(stock_por_talle.keys())
+                },
+                'metadata': {
+                    'actualizado': str(producto_data.get('timestamp', '')),
+                    'grupo': producto_data.get('grupo', ''),
+                    'subgrupo': producto_data.get('subgrupo', ''),
+                    'imagen_url': producto_data.get('imagen_url', '')
+                }
+            }
+            
+            return jsonify(response_data)
+        
+        # 🔥 PRIORIDAD 2: VARIANTES
         tiene_variantes = producto_data.get('tiene_variantes', False)
         variantes = producto_data.get('variantes', {})
-        stock_por_talle = producto_data.get('stock_por_talle', {})
-        talles_array = producto_data.get('talles', [])
-        colores_array = producto_data.get('colores', [])
-        
-        print(f"[STOCK-COMPLETO] 📊 Datos básicos: nombre={nombre}, stock_general={stock_general}")
-        print(f"[STOCK-COMPLETO] 📊 Tiene variantes: {tiene_variantes}, stock_por_talle: {bool(stock_por_talle)}")
-        
-        # 🔥 LÓGICA UNIFICADA: Calcular stock total y por talle según el sistema usado
-        
-        # Sistema 1: Producto con variantes (talle + color)
-        stock_total_variantes = 0
-        stock_por_talle_variantes = {}
-        variantes_detalladas = []
         
         if tiene_variantes and variantes:
-            print(f"[STOCK-COMPLETO] 🔄 Procesando {len(variantes)} variantes...")
+            print(f"[STOCK-COMPLETO] 🔥 Usando variantes: {len(variantes)} variantes")
+            
+            stock_total_variantes = 0
+            stock_por_talle_variantes = {}
+            variantes_detalladas = []
             
             for key, variante in variantes.items():
                 if not isinstance(variante, dict):
@@ -1359,141 +1394,70 @@ def get_stock_completo(producto_id):
                 color = variante.get('color', '').strip()
                 stock_variante = int(variante.get('stock', 0))
                 
-                # Acumular stock total
                 stock_total_variantes += stock_variante
                 
-                # Acumular stock por talle
                 if talle:
                     if talle not in stock_por_talle_variantes:
                         stock_por_talle_variantes[talle] = 0
                     stock_por_talle_variantes[talle] += stock_variante
                 
-                # Detalle de cada variante
                 variantes_detalladas.append({
                     'key': key,
                     'talle': talle,
                     'color': color,
                     'stock': stock_variante,
-                    'disponible': stock_variante > 0,
-                    'imagen_url': variante.get('imagen_url', '')
+                    'disponible': stock_variante > 0
                 })
             
-            print(f"[STOCK-COMPLETO] ✅ Stock calculado de variantes: total={stock_total_variantes}")
-            print(f"[STOCK-COMPLETO] ✅ Stock por talle (de variantes): {stock_por_talle_variantes}")
+            disponible = stock_total_variantes > 0
+            
+            response_data = {
+                'status': 'ok',
+                'producto': {
+                    'id': producto_id,
+                    'nombre': producto_data.get('nombre', ''),
+                    'precio': producto_data.get('precio', 0),
+                    'sistema_stock': 'variantes',
+                    'disponible': disponible,
+                    'stock_total': stock_total_variantes,
+                    'tiene_variantes': True,
+                    'tiene_stock_por_talle': False
+                },
+                'stock': {
+                    'total': stock_total_variantes,
+                    'por_talle': stock_por_talle_variantes,
+                    'talles_disponibles': [{'talle': k, 'stock': v, 'disponible': v > 0} for k, v in stock_por_talle_variantes.items()]
+                },
+                'variantes': {
+                    'total': len(variantes_detalladas),
+                    'detalle': variantes_detalladas
+                }
+            }
+            
+            return jsonify(response_data)
         
-        # Sistema 2: Producto con stock_por_talle directo
-        stock_total_por_talle = 0
-        if stock_por_talle and isinstance(stock_por_talle, dict):
-            print(f"[STOCK-COMPLETO] 🔄 Procesando stock_por_talle directo...")
-            for talle, stock in stock_por_talle.items():
-                stock_total_por_talle += int(stock or 0)
+        # 🔥 PRIORIDAD 3: STOCK GENERAL (compatibilidad temporal)
+        stock_general = producto_data.get('stock', 0)
+        print(f"[STOCK-COMPLETO] 🔥 Usando stock general: {stock_general}")
         
-        # Sistema 3: Producto con array de talles (modo antiguo)
-        stock_total_talles_array = 0
-        stock_por_talle_array = {}
-        if not tiene_variantes and not stock_por_talle and talles_array:
-            print(f"[STOCK-COMPLETO] 🔄 Procesando array de talles (modo antiguo)...")
-            # Distribuir stock general entre los talles
-            num_talles = len(talles_array)
-            if num_talles > 0:
-                stock_por_talle_uniforme = stock_general // num_talles
-                for talle in talles_array:
-                    stock_por_talle_array[talle] = stock_por_talle_uniforme
-                stock_total_talles_array = stock_general
-        
-        # 🔥 DETERMINAR EL STOCK FINAL (prioridad: variantes > stock_por_talle > array de talles)
-        stock_final_total = 0
-        stock_final_por_talle = {}
-        
-        if tiene_variantes and variantes:
-            stock_final_total = stock_total_variantes
-            stock_final_por_talle = stock_por_talle_variantes
-            sistema_usado = "variantes"
-        elif stock_por_talle:
-            stock_final_total = stock_total_por_talle
-            stock_final_por_talle = stock_por_talle
-            sistema_usado = "stock_por_talle"
-        elif talles_array:
-            stock_final_total = stock_total_talles_array
-            stock_final_por_talle = stock_por_talle_array
-            sistema_usado = "talles_array"
-        else:
-            stock_final_total = stock_general
-            sistema_usado = "stock_general"
-        
-        # Calcular disponibilidad general
-        disponible = stock_final_total > 0
-        
-        # Preparar talles disponibles (con stock > 0)
-        talles_disponibles = []
-        if stock_final_por_talle:
-            for talle, stock in stock_final_por_talle.items():
-                if stock > 0:
-                    talles_disponibles.append({
-                        'talle': talle,
-                        'stock': stock,
-                        'disponible': True
-                    })
-                else:
-                    talles_disponibles.append({
-                        'talle': talle,
-                        'stock': 0,
-                        'disponible': False
-                    })
-        elif talles_array:
-            for talle in talles_array:
-                # En modo array, todos tienen el mismo stock
-                stock = stock_final_total // len(talles_array) if len(talles_array) > 0 else 0
-                talles_disponibles.append({
-                    'talle': talle,
-                    'stock': stock,
-                    'disponible': stock > 0
-                })
-        
-        # Preparar colores disponibles (si hay variantes)
-        colores_disponibles = []
-        if tiene_variantes and variantes:
-            colores_set = set()
-            for variante in variantes_detalladas:
-                if variante['color'] and variante['stock'] > 0:
-                    colores_set.add(variante['color'])
-            colores_disponibles = list(colores_set)
-        
-        # Respuesta unificada
         response_data = {
             'status': 'ok',
             'producto': {
                 'id': producto_id,
-                'nombre': nombre,
-                'precio': precio,
-                'sistema_stock': sistema_usado,
-                'disponible': disponible,
-                'stock_total': stock_final_total,
-                'tiene_variantes': tiene_variantes,
-                'tiene_stock_por_talle': bool(stock_final_por_talle)
+                'nombre': producto_data.get('nombre', ''),
+                'precio': producto_data.get('precio', 0),
+                'sistema_stock': 'general',
+                'disponible': stock_general > 0,
+                'stock_total': stock_general,
+                'tiene_variantes': False,
+                'tiene_stock_por_talle': False
             },
             'stock': {
-                'total': stock_final_total,
-                'por_talle': stock_final_por_talle,
-                'talles_disponibles': talles_disponibles,
-                'talles': list(stock_final_por_talle.keys()) if stock_final_por_talle else talles_array
-            },
-            'variantes': {
-                'total': len(variantes_detalladas),
-                'detalle': variantes_detalladas,
-                'colores_disponibles': colores_disponibles,
-                'colores': colores_array
-            },
-            'metadata': {
-                'actualizado': str(producto_data.get('timestamp', '')),
-                'grupo': producto_data.get('grupo', ''),
-                'subgrupo': producto_data.get('subgrupo', ''),
-                'imagen_url': producto_data.get('imagen_url', '')
+                'total': stock_general,
+                'por_talle': {},
+                'talles_disponibles': []
             }
         }
-        
-        print(f"[STOCK-COMPLETO] ✅ Respuesta preparada: sistema={sistema_usado}, stock_total={stock_final_total}")
-        print(f"[STOCK-COMPLETO] 📊 Talles disponibles: {len(talles_disponibles)}")
         
         return jsonify(response_data)
         
