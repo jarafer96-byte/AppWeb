@@ -2899,7 +2899,7 @@ def guardar_producto():
         else:
             # 4B) CREAR nuevo producto
             print("[GUARDAR_PRODUCTO] ➕ Iniciando CREACIÓN de nuevo producto")
-            resultado = subir_a_firestore(producto, email, forzar_nuevo=True)
+            resultado = subir_a_firestore(producto, email, es_edicion=es_edicion)
 
         # 5) Respuesta normalizada
         response_data = {
