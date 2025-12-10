@@ -1667,7 +1667,7 @@ document.getElementById("tallesProd").addEventListener("input", function() {
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
   const email = "{{ session.get('email') or '' }}";
   if (!email || email.includes("{{")) {
-    alert("❌ No hay email de admin válido, no se puede guardar");
+    alert("&#10060; No hay email de admin válido, no se puede guardar");
     return;
   }
 
