@@ -2861,7 +2861,7 @@ def guardar_producto():
             if not docs:
                 print(f"[GUARDAR_PRODUCTO] ⚠️ Producto {id_base} no encontrado, CREANDO nuevo")
                 # Si no existe, proceder a creación
-                resultado = subir_a_firestore(producto, email, forzar_nuevo=False)
+                resultado = subir_a_firestore(producto, email, es_edicion=es_edicion)
             else:
                 # Actualizar documento existente
                 doc_ref = docs[0].reference
