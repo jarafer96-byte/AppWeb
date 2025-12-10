@@ -1665,22 +1665,21 @@ document.getElementById("tallesProd").addEventListener("input", function() {
 });
     
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
-  // Obtener email usando la función mejorada (reemplaza la línea con Jinja)
-  const email = obtenerEmailAdmin() || "{{ session.get('email') or '' }}";
+  const email = "ferj.9622@gmail.com";
   if (!email || email.includes("{{")) {
     alert("❌ No hay email de admin válido, no se puede guardar");
     return;
   }
 
   try {
-    // 1. Subir foto optimizada (si existe NUEVA foto)
+    // 1. Subir foto optimizada
     let foto_url = "";
     if (window.fotoOptimizada) {
       const formData = new FormData();
       formData.append("file", window.fotoOptimizada, "producto.jpg");
       formData.append("email", email);
 
-      console.log("📡 Enviando foto al backend:", { email });
+      console.log("📡 Subiendo foto...");
       const respFoto = await fetch("https://mpagina.onrender.com/subir-foto", {
         method: "POST",
         body: formData
@@ -1693,95 +1692,95 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
       const fotoData = await respFoto.json();
       foto_url = fotoData.url || "";
+      console.log("✅ Foto subida:", foto_url);
     } else if (window.productoEditandoId) {
-      // Si estamos editando y NO hay foto nueva, mantener la foto existente
       const productoExistente = window.todosLosProductos?.find(p => p.id_base === window.productoEditandoId);
       foto_url = productoExistente?.imagen_url || "";
       console.log("🔄 Manteniendo foto existente:", foto_url);
     }
 
-    // 2. Obtener datos del formulario (INCLUYENDO DESCRIPCIÓN)
+    // 2. Obtener datos del formulario
     const nombre = document.getElementById("nombreProd").value.trim();
     const precio = parseFloat(document.getElementById("precioProd").value);
-    const descripcion = document.getElementById("descripcionProd").value.trim(); // ← NUEVO CAMPO
-    const talles = document.getElementById("tallesProd").value.split(",").map(t => t.trim()).filter(Boolean);
-    
-    // Grupo y subgrupo
-    const grupo = document.getElementById("grupoProd")?.value.trim() || window.grupoActivo || "General";
-    const subgrupo = document.getElementById("subgrupoProd")?.value.trim() || window.subgrupoActivo || "general";
+    const descripcion = document.getElementById("descripcionProd").value.trim();
+    const tallesRaw = document.getElementById("tallesProd").value.trim();
+    const grupo = document.getElementById("grupoProd")?.value.trim() || "General";
+    const subgrupo = document.getElementById("subgrupoProd")?.value.trim() || "general";
 
-    if (!nombre || isNaN(precio) || !grupo) {
+    if (!nombre || isNaN(precio) || precio <= 0 || !grupo) {
       alert("❌ Faltan campos obligatorios: nombre/grupo/precio");
       return;
     }
 
-    // 3. Procesar stock según tipo (con o sin talles)
+    // 3. Procesar stock
     let stockPorTalle = {};
+    const talles = tallesRaw ? tallesRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
     
     if (talles.length > 0) {
-      // PRODUCTO CON TALLES
       const stockTalleInput = document.getElementById("stockPorTalle").value.trim();
       
       if (stockTalleInput) {
-        // Parsear formato "S:5, M:3, L:2"
         stockTalleInput.split(",").forEach(item => {
           const parts = item.split(":").map(s => s.trim());
           if (parts.length >= 2) {
             const talle = parts[0];
             const stock = parseInt(parts[1]) || 0;
-            if (talle && !isNaN(stock) && stock >= 0) {
+            if (talle && !isNaN(stock)) {
               stockPorTalle[talle] = stock;
             }
           }
         });
         
-        // Verificar que todos los talles tengan stock asignado
         talles.forEach(talle => {
           if (stockPorTalle[talle] === undefined) {
-            stockPorTalle[talle] = 0; // Si no se especificó, poner 0
+            stockPorTalle[talle] = 0;
           }
         });
       } else {
-        // Si no se ingresó stock por talle, usar 0 para todos
-        talles.forEach(talle => {
-          stockPorTalle[talle] = 0;
-        });
+        talles.forEach(talle => stockPorTalle[talle] = 0);
       }
     } else {
-      // PRODUCTO SIN TALLES
       const stockGeneral = parseInt(document.getElementById("stockGeneral").value) || 0;
       stockPorTalle = {"unico": stockGeneral};
     }
 
-    console.log("📦 Stock por talle procesado:", stockPorTalle);
+    console.log("📦 Stock procesado:", stockPorTalle);
 
-    // 4. Armar producto - INCLUIR DESCRIPCIÓN
+    // 🔥 4. Crear objeto producto
     const producto = {
-      nombre,
-      precio,
-      descripcion: descripcion || "", // ← AGREGAR DESCRIPCIÓN (vacía si no hay)
-      talles,
-      grupo,
-      subgrupo,
+      nombre: nombre,
+      precio: precio,
+      descripcion: descripcion || "",
+      talles: talles,
+      grupo: grupo,
+      subgrupo: subgrupo,
       stock_por_talle: stockPorTalle,
       imagen_url: foto_url
     };
 
-    // Si estamos EDITANDO un producto existente, incluir su ID
-    if (window.productoEditandoId) {
-      producto.id_base = window.productoEditandoId;
-      console.log("🔄 Editando producto existente:", window.productoEditandoId);
-    }
-
-    // 5. Guardar en Firestore
+    // 🔥 5. Preparar payload con ES_EDICION (no forzar_nuevo)
+    const esEdicion = window.productoEditandoId ? true : false;
     const payload = {
       producto: producto,
-      email: email
+      email: email,
+      es_edicion: esEdicion  // 🔥 CAMBIADO: es_edicion en lugar de forzar_nuevo
     };
 
-    console.log("📤 Enviando a backend:", payload);
+    // Si es edición, también enviar id_base DENTRO del producto
+    if (esEdicion) {
+      payload.producto.id_base = window.productoEditandoId;
+      console.log("🔄 Modo EDICIÓN para ID:", window.productoEditandoId);
+    } else {
+      console.log("➕ Modo CREACIÓN de nuevo producto");
+    }
+
+    console.log("📤 Payload para backend:", JSON.stringify(payload, null, 2));
+    console.log("⚙️ Parámetro es_edicion:", payload.es_edicion);
+
+    // 🔥 6. Enviar al backend
+    const endpoint = "https://mpagina.onrender.com/guardar-producto";
     
-    const respGuardar = await fetch("https://mpagina.onrender.com/guardar-producto", {
+    const respGuardar = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -1789,79 +1788,76 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
     if (!respGuardar.ok) {
       const text = await respGuardar.text();
+      console.error("❌ Error del servidor:", text);
       throw new Error(`Error al guardar producto: ${respGuardar.status} ${text}`);
     }
 
     const data = await respGuardar.json();
-    console.log("📩 Respuesta backend guardar-producto:", data);
+    console.log("📩 Respuesta backend:", data);
 
     if (data.status === "ok") {
-      // Mensaje diferente para creación vs edición
-      const mensaje = window.productoEditandoId ? 
+      const mensaje = esEdicion ? 
         "✅ Producto actualizado correctamente" : 
-        "✅ Producto guardado correctamente";
+        "✅ Producto creado correctamente";
       alert(mensaje);
       
-      // 6. Limpiar formulario COMPLETO (INCLUYENDO DESCRIPCIÓN)
-      document.getElementById("nombreProd").value = "";
-      document.getElementById("precioProd").value = "";
-      document.getElementById("descripcionProd").value = ""; // ← LIMPIAR DESCRIPCIÓN
-      document.getElementById("tallesProd").value = "";
-      document.getElementById("stockGeneral").value = "0";
-      document.getElementById("stockPorTalle").value = "";
-      document.getElementById("grupoProd").value = "";
-      document.getElementById("subgrupoProd").value = "";
+      // 7. Limpiar formulario
+      resetFormularioAdmin();
       
-      // Resetear visibilidad de campos de stock
-      document.getElementById("stockPorTalleContainer").style.display = "none";
-      document.getElementById("stockSimple").style.display = "block";
-      
-      // Resetear foto
-      document.getElementById("previewFoto").src = "";
-      document.getElementById("previewFoto").classList.add("d-none");
-      document.getElementById("btnQuitarFoto").classList.add("d-none");
-      document.getElementById("inputFoto").value = "";
-      
-      // Limpiar variables temporales
-      window.fotoOptimizada = null;
-      window.productoEditandoId = null;
-      
-      // Cambiar botón de vuelta a "Confirmar" (creación)
-      const btnConfirmar = document.getElementById("btnConfirmarProd");
-      btnConfirmar.innerHTML = "✅ Confirmar";
-      btnConfirmar.classList.remove("btn-warning");
-      btnConfirmar.classList.add("btn-success");
-      
-      // Ocultar formulario admin después de guardar
+      // 8. Ocultar formulario
       document.getElementById("adminCard").classList.add("d-none");
       
-      // 7. Refrescar la vista
-      if (typeof cargarProductos === "function") {
-        console.log("✅ Refrescando catálogo...");
-        setTimeout(() => {
+      // 9. Refrescar
+      setTimeout(() => {
+        if (typeof cargarProductos === "function") {
           cargarProductos();
-          // También agregar botones de edición nuevamente
-          if (window.modoAdmin) {
-            setTimeout(agregarBotonesEdicion, 500);
-          }
-        }, 1000);
-      } else {
-        // Si no existe la función, recargar la página
-        setTimeout(() => {
-          console.log("🔄 Recargando página...");
+        } else {
           location.reload();
-        }, 1000);
-      }
+        }
+      }, 1000);
       
     } else {
-      console.error("❌ Error al guardar producto:", data.error || data);
-      alert("❌ " + (data.error || "Error al guardar producto"));
+      console.error("❌ Error al guardar producto:", data);
+      alert("❌ " + (data.error || data.message || "Error al guardar producto"));
     }
   } catch (err) {
     console.error("💥 Error en flujo de confirmación:", err);
     alert("❌ Error al guardar producto: " + err.message);
   }
 });
+
+// 🔥 Función auxiliar para resetear formulario
+function resetFormularioAdmin() {
+  document.getElementById("nombreProd").value = "";
+  document.getElementById("precioProd").value = "";
+  document.getElementById("descripcionProd").value = "";
+  document.getElementById("tallesProd").value = "";
+  document.getElementById("stockGeneral").value = "0";
+  document.getElementById("stockPorTalle").value = "";
+  document.getElementById("grupoProd").value = "";
+  document.getElementById("subgrupoProd").value = "";
+  
+  document.getElementById("stockPorTalleContainer").style.display = "none";
+  document.getElementById("stockSimple").style.display = "block";
+  
+  document.getElementById("previewFoto").src = "";
+  document.getElementById("previewFoto").classList.add("d-none");
+  document.getElementById("btnQuitarFoto").classList.add("d-none");
+  document.getElementById("inputFoto").value = "";
+  
+  window.fotoOptimizada = null;
+  window.productoEditandoId = null;
+  
+  const btnConfirmar = document.getElementById("btnConfirmarProd");
+  btnConfirmar.innerHTML = "✅ Confirmar";
+  btnConfirmar.classList.remove("btn-warning");
+  btnConfirmar.classList.add("btn-success");
+  
+  const btnCancelar = document.getElementById("btnCancelarEdicion");
+  if (btnCancelar) {
+    btnCancelar.style.display = "none";
+  }
+}
 
 // 🔥 FUNCIÓN PARA CARGAR PRODUCTO EN FORMULARIO (EDICIÓN)
 function cargarProductoEnFormulario(producto) {
