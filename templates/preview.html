@@ -1937,47 +1937,6 @@ function cargarProductoEnFormulario(producto) {
   console.log("✅ Producto cargado en formulario para edición:", producto.nombre);
 }
 
-// 🔥 FUNCIÓN PARA AGREGAR BOTONES DE EDICIÓN
-function agregarBotonesEdicion() {
-  if (!window.modoAdmin) return;
-  
-  console.log("🔧 Agregando botones de edición a productos...");
-  
-  document.querySelectorAll('.card-producto').forEach(card => {
-    const idBase = card.dataset.id;
-    if (!idBase) return;
-    
-    // Verificar si ya tiene botón de editar
-    const cardBody = card.querySelector('.card-body');
-    if (!cardBody) return;
-    
-    // Buscar si ya existe botón de editar
-    let btnExistente = cardBody.querySelector('.btn-editar-producto');
-    
-    if (!btnExistente) {
-      // Crear botón de editar
-      const botonEditar = document.createElement('button');
-      botonEditar.className = 'btn btn-sm btn-warning btn-editar-producto mt-2';
-      botonEditar.innerHTML = '✏️ Editar';
-      botonEditar.style.marginRight = '5px';
-      
-      botonEditar.onclick = (e) => {
-        e.stopPropagation();
-        
-        // Buscar el producto en la lista global
-        const producto = window.todosLosProductos?.find(p => p.id_base === idBase);
-        if (producto) {
-          cargarProductoEnFormulario(producto);
-        } else {
-          alert("⚠️ No se encontró el producto para editar");
-        }
-      };
-      
-      cardBody.appendChild(botonEditar);
-    }
-  });
-}
-    
 async function obtenerStockCompleto(productoId, email) {
   try {
     const response = await fetch(`${URL_BACKEND}/api/producto/${productoId}/stock?email=${encodeURIComponent(email)}`);
