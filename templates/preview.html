@@ -1977,66 +1977,6 @@ function agregarBotonesEdicion() {
     }
   });
 }
-
-// 🔥 AGREGAR BOTÓN "NUEVO PRODUCTO" EN MODO ADMIN
-function agregarBotonNuevoProducto() {
-  if (!window.modoAdmin) return;
-  
-  // Verificar si ya existe el botón
-  if (document.getElementById('btnNuevoProducto')) return;
-  
-  // Crear botón flotante
-  const botonNuevo = document.createElement('button');
-  botonNuevo.id = 'btnNuevoProducto';
-  botonNuevo.className = 'btn btn-primary position-fixed';
-  botonNuevo.style.bottom = '80px';
-  botonNuevo.style.right = '20px';
-  botonNuevo.style.zIndex = '999';
-  botonNuevo.innerHTML = '➕ Nuevo Producto';
-  
-  botonNuevo.onclick = () => {
-    // Resetear formulario a modo creación
-    const btnConfirmar = document.getElementById("btnConfirmarProd");
-    btnConfirmar.innerHTML = "✅ Confirmar";
-    btnConfirmar.classList.remove("btn-warning");
-    btnConfirmar.classList.add("btn-success");
-    
-    // Limpiar ID de edición
-    window.productoEditandoId = null;
-    
-    // Mostrar formulario
-    document.getElementById("adminCard").classList.remove("d-none");
-    document.getElementById("adminCard").scrollIntoView({ behavior: 'smooth' });
-  };
-  
-  document.body.appendChild(botonNuevo);
-}
-
-// 🔥 INICIALIZAR TODO CUANDO SE CARGA LA PÁGINA
-document.addEventListener('DOMContentLoaded', function() {
-  // Agregar botones después de que los productos se carguen
-  setTimeout(() => {
-    if (window.modoAdmin) {
-      agregarBotonesEdicion();
-      agregarBotonNuevoProducto();
-    }
-  }, 2000);
-  
-  // También cuando se cargan productos dinámicamente
-  const observer = new MutationObserver(() => {
-    if (window.modoAdmin) {
-      agregarBotonesEdicion();
-    }
-  });
-  
-  const productosContainer = document.getElementById('productos');
-  if (productosContainer) {
-    observer.observe(productosContainer, { 
-      childList: true, 
-      subtree: true 
-    });
-  }
-});
     
 async function obtenerStockCompleto(productoId, email) {
   try {
