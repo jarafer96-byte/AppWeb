@@ -1107,14 +1107,6 @@ function openModal(src) {
   modal.style.display = "flex";
   setTimeout(() => modal.classList.add("show"), 10); // activa animación
 }
-
-function validarStockDisponible(idProducto, talle, cantidad) {
-  const stockPorTalle = window[`stock_por_talle_${idProducto}`];
-  if (!stockPorTalle) return true;
-  
-  const stockActual = stockPorTalle[talle] || 0;
-  return cantidad <= stockActual;
-}
     
 function closeModal() {
   const modal = document.getElementById("imgModal");
