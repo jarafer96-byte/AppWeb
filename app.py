@@ -552,23 +552,53 @@ def api_productos():
         for doc in docs:
             data = doc.to_dict() or {}
             
-            # 🔥 CALCULAR STOCK DISPONIBLE SEGÚN EL SISTEMA USADO
-            tiene_stock_por_talle = data.get("tiene_stock_por_talle", False)
-            stock_por_talle = data.get("stock_por_talle", {})
+            # 🔥 OBTENER TALLES DEFINIDOS
+            talles_originales = data.get("talles", [])
+            if isinstance(talles_originales, str):
+                talles_originales = [t.strip() for t in talles_originales.split(",") if t.strip()]
+            elif not isinstance(talles_originales, list):
+                talles_originales = []
             
-            if tiene_stock_por_talle and stock_por_talle:
-                # 🔥 PRIORIDAD 1: Usar stock_por_talle
-                stock_disponible = sum(stock_por_talle.values())
-                sistema = "stock_por_talle"
+            print(f"[API_PRODUCTOS] 🔍 Producto: {data.get('nombre')}")
+            print(f"[API_PRODUCTOS]   Talles definidos: {talles_originales}")
+            print(f"[API_PRODUCTOS]   Stock por talle completo: {data.get('stock_por_talle', {})}")
+            
+            # 🔥 CALCULAR STOCK DISPONIBLE Y FILTRAR STOCK POR TALLE
+            tiene_stock_por_talle = data.get("tiene_stock_por_talle", False)
+            stock_por_talle_completo = data.get("stock_por_talle", {})
+            
+            # 🔥🔥🔥 CORRECCIÓN CLAVE: FILTRAR stock_por_talle para SOLO INCLUIR TALLES DEFINIDOS
+            stock_por_talle_filtrado = {}
+            
+            if tiene_stock_por_talle and stock_por_talle_completo:
+                # Solo incluir talles que están en la lista de talles definidos
+                for talle in talles_originales:
+                    if talle in stock_por_talle_completo:
+                        stock_por_talle_filtrado[talle] = stock_por_talle_completo[talle]
+                    else:
+                        stock_por_talle_filtrado[talle] = 0  # Talle definido pero sin stock configurado
+                
+                print(f"[API_PRODUCTOS]   Stock por talle filtrado: {stock_por_talle_filtrado}")
+                
+                # Calcular stock total desde el stock filtrado
+                stock_disponible = sum(stock_por_talle_filtrado.values())
+                sistema = "stock_por_talle_filtrado"
+            elif tiene_stock_por_talle and stock_por_talle_completo and "unico" in stock_por_talle_completo:
+                # Producto sin talles (usa clave "unico")
+                stock_disponible = stock_por_talle_completo.get("unico", 0)
+                stock_por_talle_filtrado = {"unico": stock_disponible}
+                sistema = "stock_por_talle_unico"
             elif data.get("tiene_variantes", False):
                 # 🔥 PRIORIDAD 2: Calcular de variantes
                 variantes = data.get("variantes", {})
                 stock_disponible = sum(v.get('stock', 0) for v in variantes.values())
                 sistema = "variantes"
+                stock_por_talle_filtrado = {}
             else:
                 # 🔥 PRIORIDAD 3: Stock general (compatibilidad temporal)
                 stock_disponible = data.get("stock", 0)
                 sistema = "general"
+                stock_por_talle_filtrado = {}
             
             # Determinar si está disponible (stock > 0)
             disponible = stock_disponible > 0
@@ -579,14 +609,14 @@ def api_productos():
                 "nombre": data.get("nombre"),
                 "precio": data.get("precio"),
                 "stock": stock_disponible,  # Stock total calculado
-                "stock_por_talle": stock_por_talle,  # Incluir stock_por_talle en la respuesta
+                "stock_por_talle": stock_por_talle_filtrado,  # 🔥 CAMBIADO: Usar stock_por_talle FILTRADO
                 "disponible": disponible,
                 "grupo": data.get("grupo"),
                 "subgrupo": data.get("subgrupo"),
                 "descripcion": data.get("descripcion"),
                 "imagen_url": data.get("imagen_url"),
                 "orden": data.get("orden"),
-                "talles": data.get("talles", []),
+                "talles": talles_originales,  # Mantener solo talles definidos
                 "colores": data.get("colores", []),
                 "variantes": data.get("variantes", {}),
                 "tiene_variantes": data.get("tiene_variantes", False),
@@ -598,10 +628,16 @@ def api_productos():
         # Ordenar por 'orden'
         productos = sorted(productos, key=lambda p: p.get("orden") or 0)
 
+        print(f"[API_PRODUCTOS] ✅ Total productos procesados: {len(productos)}")
+        for p in productos[:3]:  # Mostrar primeros 3 para debug
+            print(f"  - {p.get('nombre')}: talles={p.get('talles')}, stock_por_talle={p.get('stock_por_talle')}")
+
         return jsonify(productos)
 
     except Exception as e:
         print(f"[API_PRODUCTOS] Error al leer productos: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
         
 @app.route('/upload-image', methods=['POST'])
