@@ -1655,60 +1655,6 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
     alert("❌ Error al guardar producto: " + err.message);
   }
 });
-
-async function obtenerStockCompleto(productoId, email) {
-  try {
-    const response = await fetch(`${URL_BACKEND}/api/producto/${productoId}/stock?email=${encodeURIComponent(email)}`);
-    
-    if (!response.ok) {
-      throw new Error(`Error HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.status === 'ok') {
-      // Guardar datos en variables globales para acceso rápido
-      window[`stock_completo_${productoId}`] = data;
-      window[`stock_por_talle_${productoId}`] = data.stock.por_talle;
-      
-      return data;
-    } else {
-      throw new Error(data.error || 'Error desconocido');
-    }
-  } catch (error) {
-    console.error('❌ Error obteniendo stock completo:', error);
-    return null;
-  }
-}
-
-async function actualizarStockUnificado(productoId, email, tipo, datos) {
-  try {
-    const payload = {
-      email: email,
-      tipo: tipo,
-      ...datos
-    };
-    
-    const response = await fetch(`${URL_BACKEND}/api/producto/${productoId}/stock/actualizar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    
-    const data = await response.json();
-    
-    if (data.status === 'ok') {
-      mostrarAviso(`✅ Stock ${tipo} actualizado`);
-      return data;
-    } else {
-      throw new Error(data.error || 'Error al actualizar stock');
-    }
-  } catch (error) {
-    console.error('❌ Error actualizando stock:', error);
-    mostrarAviso(`❌ ${error.message}`);
-    return null;
-  }
-}
     
 function salirAdmin() {
   console.log("🚪 Saliendo de modo admin, limpiando token...");
