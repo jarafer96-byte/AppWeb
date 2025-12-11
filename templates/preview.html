@@ -1190,54 +1190,6 @@ function toggleModoAdmin(activo) {
   });
 }
 
-function editarVariantes(idProducto) {
-  // Crear modal para gestionar variantes
-  const modalHTML = `
-    <div class="modal fade" id="modalVariantes" tabindex="-1">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">🎨 Gestionar Variantes</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div id="listaVariantes"></div>
-            <hr>
-            <h6>➕ Agregar nueva variante</h6>
-            <div class="row g-2">
-              <div class="col-md-4">
-                <input type="text" id="nuevoTalle" class="form-control" placeholder="Talle">
-              </div>
-              <div class="col-md-4">
-                <input type="text" id="nuevoColor" class="form-control" placeholder="Color">
-              </div>
-              <div class="col-md-4">
-                <input type="number" id="nuevoStock" class="form-control" placeholder="Stock" min="0">
-              </div>
-            </div>
-            <button class="btn btn-success mt-2" onclick="agregarVariante('${idProducto}')">
-              ➕ Agregar Variante
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // Añadir modal al DOM si no existe
-  if (!document.getElementById('modalVariantes')) {
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-  }
-  
-  // Cargar variantes existentes
-  cargarListaVariantes(idProducto);
-  
-  // Mostrar modal
-  const modal = new bootstrap.Modal(document.getElementById('modalVariantes'));
-  modal.show();
-}
-
-// Cargar lista de variantes en el modal
 async function cargarListaVariantes(idProducto) {
   try {
     const response = await fetch(`${URL_BACKEND}/api/variantes/${idProducto}`);
