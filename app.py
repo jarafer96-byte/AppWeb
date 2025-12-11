@@ -900,15 +900,6 @@ def pending():
         return redirect(f"/preview?email={email_vendedor}&pago=pending&orden_id={orden_id}")
     
     return redirect("/?pago_pendiente=true")
-    
-def log_event(tag, data):
-    print(f"[{tag}] {data}")
-    # opcional: guardar en Firestore o en un archivo de logs
-
-def get_platform_token():
-    token = os.environ.get("MERCADO_PAGO_TOKEN")
-    print(f"[TOKEN] 🔑 Token de Mercado Pago obtenido: {'OK' if token else '❌ NO DEFINIDO'}")
-    return token
 
 @app.route("/comprobante/<orden_id>")
 def comprobante(orden_id):
