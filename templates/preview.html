@@ -1893,57 +1893,6 @@ if (window.modoAdmin) {
   }
 }
 
-function editarStockTalleActual(idProducto) {
-  console.log(`✏️ [editarStockTalleActual] Editando stock para producto: ${idProducto}`);
-  
-  const talleSelect = document.getElementById(`talle_${idProducto}`);
-  if (!talleSelect || !talleSelect.value) {
-    alert("❌ Primero selecciona un talle");
-    return;
-  }
-  
-  const talleActual = talleSelect.value;
-  const stockSpan = document.getElementById(`stock_${idProducto}`);
-  
-  if (!stockSpan) {
-    console.error("❌ No se encontró el span de stock");
-    return;
-  }
-  
-  let valorActual = stockSpan.textContent.trim();
-  
-  // Convertir "Sin stock" a 0
-  if (valorActual === "Sin stock" || valorActual === "sin stock") {
-    valorActual = "0";
-  }
-  
-  console.log(`📝 Valor actual de stock para talle ${talleActual}:`, valorActual);
-
-  const input = document.createElement("input");
-  input.type = "number";
-  input.min = "0";
-  input.value = valorActual;
-  input.defaultValue = valorActual;
-  input.className = "form-control form-control-sm d-inline-block";
-  input.style.width = "80px";
-  input.id = "input_stock_talle_" + idProducto;
-  
-  input.dataset.talle = talleActual;
-  input.dataset.id_base = idProducto;
-  input.dataset.email = email;
-  
-  input.onblur = () => guardarStockPorTalle(idProducto, talleActual);
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      input.blur();
-    }
-  });
-  
-  stockSpan.replaceWith(input);
-  input.focus();
-  input.select();
-}
-
 function renderPagina(pagina, productosFiltrados) {
   const cont = document.getElementById("productos"); // 👈 agregar esto
   totalPaginas = Math.ceil(productosFiltrados.length / itemsPorPagina);
