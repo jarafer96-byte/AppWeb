@@ -1568,20 +1568,6 @@ document.getElementById("inputFoto").addEventListener("change", async (e) => {
   }
 });
 
-document.getElementById("tallesProd").addEventListener("input", function() {
-  const talles = this.value.split(",").map(t => t.trim()).filter(Boolean);
-  const container = document.getElementById("stockPorTalleContainer");
-  const simpleContainer = document.getElementById("stockSimple");
-  
-  if (talles.length > 0) {
-    container.style.display = "block";
-    simpleContainer.style.display = "none";
-  } else {
-    container.style.display = "none";
-    simpleContainer.style.display = "block";
-  }
-});
-    
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
   const email = "{{ session.get('email') or '' }}";
   if (!email) {
