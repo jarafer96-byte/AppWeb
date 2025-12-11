@@ -3084,28 +3084,6 @@ setTimeout(() => {
   }
 }, 100);
 
-document.getElementById("inputFoto").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  try {
-    const blobOptimizado = await optimizarImagen(file);
-    window.fotoOptimizada = blobOptimizado;
-
-    const urlPreview = URL.createObjectURL(blobOptimizado);
-    const imgPreview = document.getElementById("previewFoto");
-    imgPreview.src = urlPreview;
-    imgPreview.classList.remove("d-none");
-
-    // Mostrar botón quitar foto
-    document.getElementById("btnQuitarFoto").classList.remove("d-none");
-
-    console.log("👁️ Preview inmediato mostrado");
-  } catch (err) {
-    console.error("💥 Error al optimizar imagen:", err);
-    alert("❌ No se pudo optimizar la imagen");
-  }
-});
-
 document.getElementById("btnQuitarFoto").addEventListener("click", () => {
   // Limpiar input y preview
   document.getElementById("inputFoto").value = "";
