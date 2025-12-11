@@ -2681,16 +2681,6 @@ function renderProducto(p) {
   return card;
 }
 
-// 🔥 NUEVA FUNCIÓN: Cargar producto completo para edición
-function cargarProductoCompletoParaEditar(id_base) {
-  const producto = window.todosLosProductos?.find(p => p.id_base === id_base);
-  if (producto) {
-    cargarProductoEnFormulario(producto);
-  } else {
-    alert("❌ No se encontró el producto para editar");
-  }
-}
-
 function guardarDescripcion(id_base, nuevaDescripcion) {
   const email = obtenerEmailAdmin();
   if (!email) {
