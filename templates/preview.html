@@ -707,7 +707,101 @@ document.getElementById("tallesProd").addEventListener("input", function() {
   }
 });
 
-// 🔥 NUEVO: Función para resetear formulario
+function cargarProductoCompletoParaEditar(id_base) {
+  const producto = window.todosLosProductos?.find(p => p.id_base === id_base);
+  if (producto) {
+    cargarProductoEnFormulario(producto);
+  } else {
+    alert("❌ No se encontró el producto para editar");
+  }
+}
+function cargarProductoEnFormulario(producto) {
+  console.log("📝 Cargando producto para editar:", producto.nombre);
+  
+  // Mostrar formulario admin
+  const adminCard = document.getElementById("adminCard");
+  adminCard.classList.remove("d-none");
+  
+  // Activar modo edición
+  toggleModoEdicion(true);
+  
+  // Llenar campos
+  document.getElementById("nombreProd").value = producto.nombre || "";
+  document.getElementById("precioProd").value = producto.precio || "";
+  document.getElementById("descripcionProd").value = producto.descripcion || "";
+  
+  // Talles
+  if (Array.isArray(producto.talles)) {
+    document.getElementById("tallesProd").value = producto.talles.join(", ");
+  } else if (typeof producto.talles === 'string') {
+    document.getElementById("tallesProd").value = producto.talles;
+  } else {
+    document.getElementById("tallesProd").value = "";
+  }
+  
+  // Detectar si hay talles para mostrar campo de stock correspondiente
+  const tallesArray = document.getElementById("tallesProd").value.split(",").map(t => t.trim()).filter(Boolean);
+  if (tallesArray.length > 0) {
+    document.getElementById("stockPorTalleContainer").style.display = "block";
+    document.getElementById("stockSimple").style.display = "none";
+  }
+  
+  // Stock por talle
+  if (producto.stock_por_talle && Object.keys(producto.stock_por_talle).length > 0) {
+    const stockPorTalle = producto.stock_por_talle;
+    
+    if (Object.keys(stockPorTalle)[0] === "unico") {
+      // Producto sin talles
+      document.getElementById("stockGeneral").value = stockPorTalle["unico"] || 0;
+      document.getElementById("stockPorTalleContainer").style.display = "none";
+      document.getElementById("stockSimple").style.display = "block";
+    } else {
+      // Producto con talles
+      const stockPorTalleStr = Object.entries(stockPorTalle)
+        .map(([talle, stock]) => `${talle}:${stock}`)
+        .join(", ");
+      document.getElementById("stockPorTalle").value = stockPorTalleStr;
+      document.getElementById("stockPorTalleContainer").style.display = "block";
+      document.getElementById("stockSimple").style.display = "none";
+    }
+  } else {
+    // Fallback a stock general
+    document.getElementById("stockGeneral").value = producto.stock || 0;
+  }
+  
+  document.getElementById("grupoProd").value = producto.grupo || "";
+  document.getElementById("subgrupoProd").value = producto.subgrupo || "";
+  
+  // Imagen
+  if (producto.imagen_url) {
+    const previewFoto = document.getElementById("previewFoto");
+    previewFoto.src = producto.imagen_url;
+    previewFoto.classList.remove("d-none");
+    document.getElementById("btnQuitarFoto").classList.remove("d-none");
+  }
+  
+  // Guardar ID del producto que estamos editando
+  window.productoEditandoId = producto.id_base;
+  
+  // Scroll al formulario
+  adminCard.scrollIntoView({ behavior: 'smooth' });
+}
+function toggleModoEdicion(editando) {
+  const btnCancelar = document.getElementById("btnCancelarEdicion");
+  const btnConfirmar = document.getElementById("btnConfirmarProd");
+  
+  if (editando) {
+    btnCancelar.style.display = "block";
+    btnConfirmar.innerHTML = "💾 Actualizar Producto";
+    btnConfirmar.classList.remove("btn-success");
+    btnConfirmar.classList.add("btn-warning");
+  } else {
+    btnCancelar.style.display = "none";
+    btnConfirmar.innerHTML = "✅ Confirmar";
+    btnConfirmar.classList.remove("btn-warning");
+    btnConfirmar.classList.add("btn-success");
+  }
+}
 function resetearFormularioAdmin() {
   // Limpiar todos los campos
   document.getElementById("nombreProd").value = "";
@@ -741,28 +835,7 @@ function resetearFormularioAdmin() {
   
   // Limpiar ID de edición
   window.productoEditandoId = null;
-  
-  console.log("🔄 Formulario admin reseteado para nuevo producto");
-}
-
-// 🔥 NUEVO: Mostrar/ocultar botón cancelar según modo
-function toggleModoEdicion(editando) {
-  const btnCancelar = document.getElementById("btnCancelarEdicion");
-  const btnConfirmar = document.getElementById("btnConfirmarProd");
-  
-  if (editando) {
-    btnCancelar.style.display = "block";
-    btnConfirmar.innerHTML = "💾 Actualizar Producto";
-    btnConfirmar.classList.remove("btn-success");
-    btnConfirmar.classList.add("btn-warning");
-  } else {
-    btnCancelar.style.display = "none";
-    btnConfirmar.innerHTML = "✅ Confirmar";
-    btnConfirmar.classList.remove("btn-warning");
-    btnConfirmar.classList.add("btn-success");
-  }
-}
-
+}    
 // Cuando se hace click en "Editar" en un producto
 window.cargarProductoEnFormulario = function(producto) {
   console.log("📝 Cargando producto para editar:", producto.nombre);
