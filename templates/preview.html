@@ -2696,51 +2696,6 @@ function cargarProductoCompletoParaEditar(id_base) {
   }
 }
 
-// 🔥 NUEVA FUNCIÓN: Editar solo la descripción
-function editarDescripcion(id_base) {
-  const spanDescripcion = document.querySelector(`[data-id="${id_base}"] .card-text.text-muted.small.mb-2`);
-  const producto = window.todosLosProductos?.find(p => p.id_base === id_base);
-  
-  if (!producto) {
-    alert("❌ Producto no encontrado");
-    return;
-  }
-  
-  const descripcionActual = producto.descripcion || "";
-  
-  const input = document.createElement("textarea");
-  input.value = descripcionActual;
-  input.className = "form-control form-control-sm";
-  input.style.width = "100%";
-  input.rows = 3;
-  input.id = "input_descripcion_" + id_base;
-  
-  // Reemplazar el párrafo por el textarea
-  if (spanDescripcion) {
-    spanDescripcion.replaceWith(input);
-  } else {
-    // Si no existe el elemento de descripción, insertarlo después del título
-    const cardTitle = document.querySelector(`[data-id="${id_base}"] .card-title`);
-    if (cardTitle) {
-      cardTitle.after(input);
-    }
-  }
-  
-  input.focus();
-  
-  // Guardar al perder foco
-  input.onblur = () => guardarDescripcion(id_base, input.value);
-  
-  // Guardar con Enter (Ctrl+Enter para nueva línea)
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.ctrlKey) {
-      e.preventDefault();
-      input.blur();
-    }
-  });
-}
-
-// 🔥 NUEVA FUNCIÓN: Guardar descripción
 function guardarDescripcion(id_base, nuevaDescripcion) {
   const email = obtenerEmailAdmin();
   if (!email) {
