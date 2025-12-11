@@ -1781,39 +1781,6 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
   }
 });
 
-// 🔥 Función auxiliar para resetear formulario
-function resetFormularioAdmin() {
-  document.getElementById("nombreProd").value = "";
-  document.getElementById("precioProd").value = "";
-  document.getElementById("descripcionProd").value = "";
-  document.getElementById("tallesProd").value = "";
-  document.getElementById("stockGeneral").value = "0";
-  document.getElementById("stockPorTalle").value = "";
-  document.getElementById("grupoProd").value = "";
-  document.getElementById("subgrupoProd").value = "";
-  
-  document.getElementById("stockPorTalleContainer").style.display = "none";
-  document.getElementById("stockSimple").style.display = "block";
-  
-  document.getElementById("previewFoto").src = "";
-  document.getElementById("previewFoto").classList.add("d-none");
-  document.getElementById("btnQuitarFoto").classList.add("d-none");
-  document.getElementById("inputFoto").value = "";
-  
-  window.fotoOptimizada = null;
-  window.productoEditandoId = null;
-  
-  const btnConfirmar = document.getElementById("btnConfirmarProd");
-  btnConfirmar.innerHTML = "✅ Confirmar";
-  btnConfirmar.classList.remove("btn-warning");
-  btnConfirmar.classList.add("btn-success");
-  
-  const btnCancelar = document.getElementById("btnCancelarEdicion");
-  if (btnCancelar) {
-    btnCancelar.style.display = "none";
-  }
-}
-
 async function obtenerStockCompleto(productoId, email) {
   try {
     const response = await fetch(`${URL_BACKEND}/api/producto/${productoId}/stock?email=${encodeURIComponent(email)}`);
