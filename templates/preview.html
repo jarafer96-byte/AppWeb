@@ -954,7 +954,8 @@ function cargarProductoEnFormulario(producto) {
     talles: producto.talles,
     stock_por_talle: producto.stock_por_talle,
     tiene_talles_array: Array.isArray(producto.talles),
-    tiene_stock_por_talle: !!producto.stock_por_talle
+    tiene_stock_por_talle: !!producto.stock_por_talle,
+    fotos_adicionales_count: producto.fotos_adicionales ? producto.fotos_adicionales.length : 0
   });
   
   // Mostrar formulario admin
@@ -1067,42 +1068,127 @@ function cargarProductoEnFormulario(producto) {
     document.getElementById("stockGeneral").value = stockGeneral;
   }
   
-  // 3. Imagen
+  // 3. Imagen principal
   if (producto.imagen_url) {
     const previewFoto = document.getElementById("previewFoto");
     previewFoto.src = producto.imagen_url;
     previewFoto.classList.remove("d-none");
     document.getElementById("btnQuitarFoto").classList.remove("d-none");
-    console.log("🖼️ Imagen cargada:", producto.imagen_url);
+    console.log("🖼️ Imagen principal cargada:", producto.imagen_url);
   } else {
     document.getElementById("previewFoto").classList.add("d-none");
     document.getElementById("btnQuitarFoto").classList.add("d-none");
-    console.log("🖼️ Sin imagen");
+    console.log("🖼️ Sin imagen principal");
   }
   
-  // 4. Guardar ID del producto que estamos editando
+  // 🔥 4. NUEVO: Cargar fotos adicionales
+  const previewDiv = document.getElementById("previewFotosAdicionales");
+  if (previewDiv) {
+    previewDiv.innerHTML = '';
+    
+    // Guardar las fotos adicionales existentes en variable global
+    window.fotosAdicionalesExistentes = producto.fotos_adicionales || [];
+    
+    if (window.fotosAdicionalesExistentes.length > 0) {
+      console.log(`🖼️ Mostrando ${window.fotosAdicionalesExistentes.length} fotos adicionales existentes`);
+      
+      window.fotosAdicionalesExistentes.forEach((url, index) => {
+        const img = document.createElement("img");
+        img.src = url;
+        img.style.width = '80px';
+        img.style.height = '80px';
+        img.style.objectFit = 'cover';
+        img.style.margin = '5px';
+        img.style.borderRadius = '4px';
+        img.style.cursor = 'pointer';
+        img.style.border = '2px solid #ccc';
+        img.title = `Foto adicional ${index + 1}`;
+        
+        // Agregar botón para eliminar esta foto específica
+        const container = document.createElement("div");
+        container.style.position = 'relative';
+        container.style.display = 'inline-block';
+        
+        const btnEliminar = document.createElement("button");
+        btnEliminar.innerHTML = "×";
+        btnEliminar.style.position = 'absolute';
+        btnEliminar.style.top = '-5px';
+        btnEliminar.style.right = '-5px';
+        btnEliminar.style.background = 'red';
+        btnEliminar.style.color = 'white';
+        btnEliminar.style.border = 'none';
+        btnEliminar.style.borderRadius = '50%';
+        btnEliminar.style.width = '20px';
+        btnEliminar.style.height = '20px';
+        btnEliminar.style.cursor = 'pointer';
+        btnEliminar.style.fontSize = '14px';
+        btnEliminar.style.fontWeight = 'bold';
+        btnEliminar.title = 'Eliminar esta foto';
+        
+        btnEliminar.onclick = (e) => {
+          e.stopPropagation();
+          if (confirm(`¿Eliminar foto adicional ${index + 1}?`)) {
+            // Eliminar de la lista de fotos existentes
+            window.fotosAdicionalesExistentes = window.fotosAdicionalesExistentes.filter((_, i) => i !== index);
+            // Actualizar la vista
+            cargarProductoEnFormulario(producto); // Recargar
+            console.log(`🗑️ Foto adicional ${index + 1} eliminada`);
+          }
+        };
+        
+        img.onclick = () => openModal(url);
+        
+        container.appendChild(img);
+        container.appendChild(btnEliminar);
+        previewDiv.appendChild(container);
+      });
+    } else {
+      console.log("🖼️ No hay fotos adicionales existentes");
+      previewDiv.innerHTML = '<small class="text-muted">No hay fotos adicionales</small>';
+    }
+  } else {
+    console.log("⚠️ No se encontró el div previewFotosAdicionales");
+  }
+  
+  // 5. Guardar ID del producto que estamos editando
   window.productoEditandoId = producto.id_base;
   console.log("🔑 ID del producto en edición:", window.productoEditandoId);
   
-  // 5. Scroll al formulario
+  // 6. Scroll al formulario
   adminCard.scrollIntoView({ behavior: 'smooth' });
   
   console.log("✅ Producto cargado correctamente en formulario");
+  console.log(`📸 Fotos adicionales guardadas para edición: ${window.fotosAdicionalesExistentes ? window.fotosAdicionalesExistentes.length : 0}`);
 }
 function toggleModoEdicion(editando) {
   const btnCancelar = document.getElementById("btnCancelarEdicion");
   const btnConfirmar = document.getElementById("btnConfirmarProd");
+  const titulo = document.getElementById("tituloFormularioAdmin") || document.createElement("h5");
   
   if (editando) {
+    // 🔥 NUEVO: Si hay un elemento para título, actualizarlo
+    if (titulo && titulo.id === "tituloFormularioAdmin") {
+      titulo.textContent = "✏️ Editando Producto";
+      titulo.classList.add("text-warning");
+    }
+    
     btnCancelar.style.display = "block";
     btnConfirmar.innerHTML = "💾 Actualizar Producto";
     btnConfirmar.classList.remove("btn-success");
     btnConfirmar.classList.add("btn-warning");
+    console.log("🔧 Modo edición activado");
   } else {
+    // 🔥 NUEVO: Restaurar título
+    if (titulo && titulo.id === "tituloFormularioAdmin") {
+      titulo.textContent = "➕ Nuevo Producto";
+      titulo.classList.remove("text-warning");
+    }
+    
     btnCancelar.style.display = "none";
     btnConfirmar.innerHTML = "✅ Confirmar";
     btnConfirmar.classList.remove("btn-warning");
     btnConfirmar.classList.add("btn-success");
+    console.log("🔧 Modo creación activado");
   }
 }
 function resetearFormularioAdmin() {
