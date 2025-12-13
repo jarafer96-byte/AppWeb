@@ -1269,7 +1269,29 @@ function mostrarFormulario() {
         }
     }, 100);
 }
+// Función para girar las cards
+function girarCard(elemento) {
+  const cardContenedor = elemento.closest('.card-contenedor');
+  if (cardContenedor) {
+    const estaGirada = cardContenedor.style.transform === 'rotateY(180deg)';
+    cardContenedor.style.transform = estaGirada ? 'rotateY(0deg)' : 'rotateY(180deg)';
+  }
+}
 
+// También girar al pasar mouse (opcional)
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.card-giratoria').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      // Opcional: gira automáticamente al pasar mouse
+      // card.querySelector('.card-contenedor').style.transform = 'rotateY(180deg)';
+    });
+    
+    card.addEventListener('mouseleave', () => {
+      // Opcional: vuelve al frente al sacar mouse  
+      // card.querySelector('.card-contenedor').style.transform = 'rotateY(0deg)';
+    });
+  });
+});
 // 2. Ocultar formulario de datos del cliente (NUEVA)
 function ocultarFormulario() {
     const datosCliente = document.getElementById('datosCliente');
