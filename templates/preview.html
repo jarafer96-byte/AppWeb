@@ -457,6 +457,10 @@ input.stock-edit {
   box-shadow: 0 0 5px rgba(0,0,0,0.5);
 }
   
+#volverArriba { z-index: 997; }
+#loginToggleBtn { z-index: 997; }
+#loginFloatingForm { z-index: 997; }
+  
 </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
@@ -600,11 +604,14 @@ input.stock-edit {
   </div>
 {% endif %}
   
-<form onsubmit="loginAdmin(event)" class="mt-5 text-center">
-  <input type="text" id="usuario_login" placeholder="Usuario" required>
-  <input type="password" id="clave_login" placeholder="Contraseña" required>
-  <button type="submit" class="btn-grupo">Entrar</button>
-</form>
+<div id="loginFloatingForm" style="position:fixed; bottom:70px; left:50%; transform:translateX(-50%); z-index:999; display:none; background:rgba(0,0,0,0.9); padding:15px; border-radius:10px; width:250px;">
+  <form onsubmit="loginAdmin(event)">
+    <!-- MISMOS IDs que antes -->
+    <input type="text" id="usuario_login" placeholder="Usuario" required class="form-control mb-2">
+    <input type="password" id="clave_login" placeholder="Contraseña" required class="form-control mb-2">
+    <button type="submit" class="btn-grupo w-100">Entrar</button>
+  </form>
+</div>
 
 <div class="text-center mt-4" id="logoutAdminWrapper" style="display:none;">
   <button type="button" class="btn-grupo" onclick="salirAdmin()">🚪 Salir de Admin</button>
@@ -654,7 +661,13 @@ input.stock-edit {
 
 <button id="toggleCarrito">🛒</button>
 
-<!-- Aviso flotante de precio actualizado -->
+<button id="loginToggleBtn" 
+        style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); 
+               z-index:997; display:none; background:rgba(0,0,0,0.8); color:white; 
+               border:none; padding:10px 20px; border-radius:20px;">
+  🔐 Admin
+</button>  
+  
 <div id="avisoPrecio" class="alert alert-success text-center" role="alert"
      style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;">
   ✔ Precio actualizado
@@ -692,7 +705,18 @@ if (window.email) {
   document.getElementById('volverArriba').onclick = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+    
 
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('loginToggleBtn');
+  const isBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+  btn.style.display = isBottom ? 'block' : 'none';
+});
+document.getElementById('loginToggleBtn').onclick = () => {
+  const form = document.getElementById('loginFloatingForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+};
+    
 document.getElementById("tallesProd").addEventListener("input", function() {
   const talles = this.value.split(",").map(t => t.trim()).filter(Boolean);
   const container = document.getElementById("stockPorTalleContainer");
