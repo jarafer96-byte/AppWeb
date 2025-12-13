@@ -172,29 +172,73 @@ def subir_a_firestore(producto, email, es_edicion=False):
             custom_id = f"{nombre_id}_{fecha}_{subgrupo_id}_{sufijo}"
             print(f"[FIRESTORE] ID generado NUEVO (id_base): {custom_id}")
 
+        # 🔥🔥🔥 AGREGADO: Procesar precio anterior
+        precio_anterior = 0
+        if "precio_anterior" in producto:
+            try:
+                precio_anterior_raw = producto["precio_anterior"]
+                if precio_anterior_raw:
+                    # Limpiar y convertir precio anterior
+                    precio_anterior_str = str(precio_anterior_raw).strip()
+                    precio_anterior_clean = re.sub(r"[^\d,\.]", "", precio_anterior_str)
+                    print(f"[FIRESTORE] Precio anterior raw='{precio_anterior_raw}' | limpio='{precio_anterior_clean}'")
+
+                    if "," in precio_anterior_clean and "." in precio_anterior_clean:
+                        precio_anterior_clean = precio_anterior_clean.replace(".", "").replace(",", ".")
+                    elif "," in precio_anterior_clean and "." not in precio_anterior_clean:
+                        precio_anterior_clean = precio_anterior_clean.replace(",", ".")
+                    
+                    precio_anterior_float = float(precio_anterior_clean)
+                    precio_anterior = int(round(precio_anterior_float))
+                    print(f"[FIRESTORE] Precio anterior parseado: {precio_anterior}")
+                else:
+                    precio_anterior = 0
+                    print(f"[FIRESTORE] Precio anterior vacío, usando 0")
+            except Exception as e:
+                print(f"[FIRESTORE] ⚠️ Error parseando precio anterior: {e}, usando 0")
+                precio_anterior = 0
+
+        # 🔥🔥🔥 AGREGADO: Validación lógica de precio anterior
+        # Solo guardar precio anterior si es mayor que el precio actual (oferta válida)
+        precio_actual = 0
+        try:
+            # Primero obtenemos el precio actual (de abajo)
+            precio_raw = producto["precio"]
+            price_str = str(precio_raw).strip()
+            price_clean = re.sub(r"[^\d,\.]", "", price_str)
+            print(f"[FIRESTORE] Precio raw='{precio_raw}' | limpio='{price_clean}'")
+
+            if "," in price_clean and "." in price_clean:
+                price_clean = price_clean.replace(".", "").replace(",", ".")
+            elif "," in price_clean and "." not in price_clean:
+                price_clean = price_clean.replace(",", ".")
+            
+            precio_actual_float = float(price_clean)
+            precio_actual = int(round(precio_actual_float))
+        except Exception as e:
+            print(f"[FIRESTORE] ❌ Error parseando precio actual: {e}")
+            return {"status": "error", "error": f"Formato de precio inválido: '{price_str}' -> '{price_clean}'", "detail": str(e)}
+
+        # Validar que el precio anterior sea mayor que el actual (oferta válida)
+        if precio_anterior > 0 and precio_anterior <= precio_actual:
+            print(f"[FIRESTORE] ⚠️ Precio anterior (${precio_anterior}) no es mayor que precio actual (${precio_actual}) - No es oferta válida")
+            precio_anterior = 0  # Resetear a 0 si no es una oferta válida
+
+        if precio_anterior > 0:
+            descuento = int(((precio_anterior - precio_actual) / precio_anterior) * 100)
+            print(f"[FIRESTORE] ✅ Oferta válida detectada: -{descuento}% (Antes: ${precio_anterior}, Ahora: ${precio_actual})")
+        else:
+            print(f"[FIRESTORE] ℹ️ Sin oferta activa")
+
         # 🔥🔥🔥 NUEVO: Obtener fotos_adicionales
         fotos_adicionales = producto.get("fotos_adicionales", [])
         if not isinstance(fotos_adicionales, list):
             fotos_adicionales = []
         print(f"[FIRESTORE] 📸 Fotos adicionales recibidas: {len(fotos_adicionales)} fotos")
 
-        # Resto del código se mantiene igual...
-        precio_raw = producto["precio"]
-        price_str = str(precio_raw).strip()
-        price_clean = re.sub(r"[^\d,\.]", "", price_str)
-        print(f"[FIRESTORE] Precio raw='{precio_raw}' | limpio='{price_clean}'")
-
-        if "," in price_clean and "." in price_clean:
-            price_clean = price_clean.replace(".", "").replace(",", ".")
-        elif "," in price_clean and "." not in price_clean:
-            price_clean = price_clean.replace(",", ".")
-        try:
-            precio_float = float(price_clean)
-            precio = int(round(precio_float))
-            print(f"[FIRESTORE] Precio final parseado: {precio}")
-        except Exception as e:
-            print(f"[FIRESTORE] ❌ Error parseando precio: {e}")
-            return {"status": "error", "error": f"Formato de precio inválido: '{price_str}' -> '{price_clean}'", "detail": str(e)}
+        # Procesar precio actual (ya calculado arriba)
+        precio = precio_actual
+        print(f"[FIRESTORE] Precio final parseado: {precio}")
 
         try:
             orden = int(producto.get("orden", 999))
@@ -300,16 +344,17 @@ def subir_a_firestore(producto, email, es_edicion=False):
             imagen_url = f"https://storage.googleapis.com/mpagina/{email_encoded}/{imagen_nombre}"
             print(f"[FIRESTORE] Generada imagen_url por fallback: {imagen_url}")
 
-        # 🔥🔥🔥 NUEVO: Construir documento con fotos_adicionales
+        # 🔥🔥🔥 NUEVO: Construir documento con fotos_adicionales Y PRECIO ANTERIOR
         doc = {
             "nombre": producto.get("nombre", "").strip(),
             "id_base": custom_id,
             "precio": precio,
+            "precio_anterior": precio_anterior,  # 👈 NUEVO: Campo para ofertas
             "grupo": producto.get("grupo", "").strip(),
             "subgrupo": (producto.get("subgrupo", "") or "").strip() or f"General_{producto.get('grupo', '').strip()}",
             "descripcion": producto.get("descripcion", ""),
             "imagen_url": imagen_url,
-            "fotos_adicionales": fotos_adicionales,  # 👈 NUEVO CAMPO
+            "fotos_adicionales": fotos_adicionales,  # Campo para fotos adicionales
             "orden": orden,
             "talles": talles,  # Mantener para compatibilidad
             "colores": colores,  # Lista de colores
@@ -339,6 +384,7 @@ def subir_a_firestore(producto, email, es_edicion=False):
             
         print(f"[FIRESTORE] ✅ Producto {'actualizado' if es_edicion else 'guardado'} correctamente en Firestore: {custom_id} para {email}")
         print(f"[FIRESTORE] 📸 Fotos adicionales guardadas: {len(fotos_adicionales)}")
+        print(f"[FIRESTORE] 💰 Precio anterior guardado: {precio_anterior} ({'OFERTA ACTIVA' if precio_anterior > 0 else 'Sin oferta'})")
 
         return {
             "status": "ok", 
@@ -347,7 +393,9 @@ def subir_a_firestore(producto, email, es_edicion=False):
             "tiene_variantes": usar_variantes, 
             "tiene_stock_por_talle": bool(stock_por_talle_directo),
             "es_edicion": es_edicion,
-            "fotos_adicionales_count": len(fotos_adicionales)  # 👈 NUEVO en respuesta
+            "fotos_adicionales_count": len(fotos_adicionales),
+            "precio_anterior": precio_anterior,  # 👈 NUEVO: Devolver en respuesta
+            "tiene_oferta": precio_anterior > 0  # 👈 NUEVO: Indicador booleano
         }
 
     except Exception as e:
