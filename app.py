@@ -2267,6 +2267,13 @@ def guardar_producto():
             print("[GUARDAR_PRODUCTO] ❌ Falta producto en body")
             return jsonify({"status": "error", "error": "Producto inválido"}), 400
 
+        # 🔥 NUEVO: Mostrar fotos adicionales si existen
+        fotos_adicionales = producto.get("fotos_adicionales", [])
+        print(f"[GUARDAR_PRODUCTO] 📸 Fotos adicionales recibidas: {len(fotos_adicionales)} fotos")
+        if fotos_adicionales:
+            for i, foto in enumerate(fotos_adicionales[:3]):  # Mostrar primeras 3
+                print(f"  Foto {i+1}: {foto[:50]}...")
+
         # 🔥🔥🔥 NUEVO: Verificar si es EDICIÓN (tiene id_base)
         id_base = producto.get("id_base")
         es_edicion = bool(id_base)
@@ -2278,12 +2285,10 @@ def guardar_producto():
         variantes = producto.get('variantes', {})
         
         if tiene_variantes and variantes:
-            # Si tiene variantes, calcular stock total de las variantes
             stock_total_variantes = sum(v.get('stock', 0) for v in variantes.values())
             producto['stock'] = stock_total_variantes
             print(f"[GUARDAR_PRODUCTO] ✅ Stock sincronizado: {stock_total_variantes} (de {len(variantes)} variantes)")
         elif tiene_variantes and not variantes:
-            # Si tiene variantes pero no datos, verificar talles y colores
             talles = producto.get('talles', [])
             colores = producto.get('colores', [])
             if talles and colores and producto.get('stock', 0) > 0:
@@ -2305,13 +2310,12 @@ def guardar_producto():
             
             if not docs:
                 print(f"[GUARDAR_PRODUCTO] ⚠️ Producto {id_base} no encontrado, CREANDO nuevo")
-                # Si no existe, proceder a creación
                 resultado = subir_a_firestore(producto, email, es_edicion=True)
             else:
                 # Actualizar documento existente
                 doc_ref = docs[0].reference
                 
-                # Preparar datos para actualizar
+                # 🔥 AGREGAR fotos_adicionales A LOS DATOS DE ACTUALIZACIÓN
                 datos_actualizar = {
                     'nombre': producto.get('nombre'),
                     'precio': producto.get('precio'),
@@ -2321,6 +2325,7 @@ def guardar_producto():
                     'subgrupo': producto.get('subgrupo'),
                     'stock_por_talle': producto.get('stock_por_talle', {}),
                     'imagen_url': producto.get('imagen_url', ''),
+                    'fotos_adicionales': producto.get('fotos_adicionales', []),  # 👈 AQUÍ LO IMPORTANTE
                     'fecha_actualizacion': firestore.SERVER_TIMESTAMP
                 }
                 
@@ -2335,15 +2340,22 @@ def guardar_producto():
                 # Actualizar
                 doc_ref.update(datos_actualizar)
                 print(f"[GUARDAR_PRODUCTO] ✅ Producto {id_base} ACTUALIZADO exitosamente")
+                print(f"[GUARDAR_PRODUCTO] 📸 Fotos guardadas: {len(datos_actualizar['fotos_adicionales'])}")
                 
                 resultado = {
                     'id_base': id_base,
                     'accion': 'actualizado',
+                    'fotos_adicionales_count': len(datos_actualizar['fotos_adicionales']),
                     'timestamp': firestore.SERVER_TIMESTAMP
                 }
         else:
             # 4B) CREAR nuevo producto
             print("[GUARDAR_PRODUCTO] ➕ Iniciando CREACIÓN de nuevo producto")
+            
+            # 🔥 Asegurar que fotos_adicionales esté en el producto antes de subir
+            if 'fotos_adicionales' not in producto:
+                producto['fotos_adicionales'] = []
+                
             resultado = subir_a_firestore(producto, email, es_edicion=es_edicion)
 
         # 5) Respuesta normalizada
@@ -2352,6 +2364,7 @@ def guardar_producto():
             "email": email,
             "producto_id": id_base or resultado.get('id_base'),
             "accion": "actualizado" if es_edicion else "creado",
+            "fotos_adicionales_count": len(fotos_adicionales),  # 👈 Informar cuántas fotos
             "resultado": resultado
         }
         print(f"[GUARDAR_PRODUCTO] 📤 Enviando respuesta: {json.dumps(response_data, indent=2)}")
