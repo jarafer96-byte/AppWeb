@@ -1672,6 +1672,13 @@ function salirAdmin() {
   // Limpiar la URL para quitar el ?token=...
   history.replaceState(null, "", "index.html");
 
+  // 🔥 NUEVO: Ocultar botón admin flotante
+  const loginToggleBtn = document.getElementById("loginToggleBtn");
+  if (loginToggleBtn) {
+    loginToggleBtn.style.display = "none";
+    console.log("✅ Botón admin flotante ocultado");
+  }
+  
   // Refrescar productos para que se oculten los botones ✎
   if (window.todosLosProductos) {
     const cont = document.getElementById("productos");
