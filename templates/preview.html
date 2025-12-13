@@ -1781,21 +1781,21 @@ document.getElementById("inputFoto").addEventListener("change", async (e) => {
 });
 
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
-  const email = "{{ session.get('email') or '' }}";
+  const email = "ferj.9622@gmail.com";
   if (!email) {
     alert("❌ No hay email de admin, no se puede guardar");
     return;
   }
 
   try {
-    // 1. Subir foto optimizada
+    // 1. Subir foto principal optimizada
     let foto_url = "";
     if (window.fotoOptimizada) {
       const formData = new FormData();
       formData.append("file", window.fotoOptimizada, "producto.jpg");
       formData.append("email", email);
 
-      console.log("📡 Subiendo foto...");
+      console.log("📡 Subiendo foto principal...");
       const respFoto = await fetch("https://mpagina.onrender.com/subir-foto", {
         method: "POST",
         body: formData
@@ -1808,14 +1808,70 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
       const fotoData = await respFoto.json();
       foto_url = fotoData.url || "";
-      console.log("✅ Foto subida:", foto_url);
+      console.log("✅ Foto principal subida:", foto_url);
     } else if (window.productoEditandoId) {
       const productoExistente = window.todosLosProductos?.find(p => p.id_base === window.productoEditandoId);
       foto_url = productoExistente?.imagen_url || "";
-      console.log("🔄 Manteniendo foto existente:", foto_url);
+      console.log("🔄 Manteniendo foto principal existente:", foto_url);
     }
 
-    // 2. Obtener datos del formulario
+    // 🔥 NUEVO: 2. Subir fotos adicionales
+    const fotosAdicionalesUrls = [];
+    
+    // Primero, incluir fotos existentes si estamos editando
+    if (window.fotosAdicionalesExistentes && window.fotosAdicionalesExistentes.length > 0) {
+      fotosAdicionalesUrls.push(...window.fotosAdicionalesExistentes);
+      console.log(`🔄 Manteniendo ${window.fotosAdicionalesExistentes.length} fotos adicionales existentes`);
+    }
+    
+    // Luego, subir nuevas fotos adicionales
+    const fotosInput = document.getElementById('fotosAdicionales');
+    if (fotosInput && fotosInput.files && fotosInput.files.length > 0) {
+      console.log(`📸 Subiendo ${fotosInput.files.length} nuevas fotos adicionales...`);
+      
+      for (let i = 0; i < fotosInput.files.length; i++) {
+        try {
+          const file = fotosInput.files[i];
+          
+          // Optimizar cada foto adicional
+          let blobOptimizado;
+          try {
+            blobOptimizado = await optimizarImagen(file);
+          } catch (e) {
+            console.warn(`⚠️ No se pudo optimizar foto ${i+1}, subiendo original:`, e);
+            blobOptimizado = file; // Usar archivo original si falla la optimización
+          }
+          
+          const formData = new FormData();
+          formData.append("file", blobOptimizado, `adicional_${Date.now()}_${i}.jpg`);
+          formData.append("email", email);
+
+          const resp = await fetch("https://mpagina.onrender.com/subir-foto", {
+            method: "POST",
+            body: formData
+          });
+
+          if (!resp.ok) {
+            const text = await resp.text();
+            console.warn(`⚠️ Error subiendo foto adicional ${i+1}: ${resp.status} ${text}`);
+            continue; // Continuar con las demás fotos
+          }
+
+          const data = await resp.json();
+          if (data.url) {
+            fotosAdicionalesUrls.push(data.url);
+            console.log(`✅ Foto adicional ${i+1} subida: ${data.url.substring(0, 50)}...`);
+          }
+        } catch (err) {
+          console.error(`❌ Error procesando foto adicional ${i+1}:`, err);
+          // Continuar con las demás fotos
+        }
+      }
+    }
+
+    console.log(`📊 Total fotos adicionales procesadas: ${fotosAdicionalesUrls.length}`);
+
+    // 3. Obtener datos del formulario
     const nombre = document.getElementById("nombreProd").value.trim();
     const precio = parseFloat(document.getElementById("precioProd").value);
     const descripcion = document.getElementById("descripcionProd").value.trim();
@@ -1828,7 +1884,7 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       return;
     }
 
-    // 3. Procesar stock
+    // 4. Procesar stock
     let stockPorTalle = {};
     const talles = tallesRaw ? tallesRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
     
@@ -1862,7 +1918,7 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
     console.log("📦 Stock procesado:", stockPorTalle);
 
-    // 🔥 4. Crear objeto producto
+    // 🔥 5. Crear objeto producto CON FOTOS ADICIONALES
     const producto = {
       nombre: nombre,
       precio: precio,
@@ -1871,29 +1927,32 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       grupo: grupo,
       subgrupo: subgrupo,
       stock_por_talle: stockPorTalle,
-      imagen_url: foto_url
+      imagen_url: foto_url,
+      fotos_adicionales: fotosAdicionalesUrls // 👈 NUEVO campo CRÍTICO
     };
 
-    // 🔥 5. Preparar payload con ES_EDICION (no forzar_nuevo)
+    // 🔥 6. Preparar payload con ES_EDICION
     const esEdicion = window.productoEditandoId ? true : false;
     const payload = {
       producto: producto,
       email: email,
-      es_edicion: esEdicion  // 🔥 CAMBIADO: es_edicion en lugar de forzar_nuevo
+      es_edicion: esEdicion
     };
 
     // Si es edición, también enviar id_base DENTRO del producto
     if (esEdicion) {
       payload.producto.id_base = window.productoEditandoId;
       console.log("🔄 Modo EDICIÓN para ID:", window.productoEditandoId);
+      console.log(`📸 Fotos adicionales a guardar: ${fotosAdicionalesUrls.length}`);
     } else {
       console.log("➕ Modo CREACIÓN de nuevo producto");
     }
 
     console.log("📤 Payload para backend:", JSON.stringify(payload, null, 2));
     console.log("⚙️ Parámetro es_edicion:", payload.es_edicion);
+    console.log("🖼️ Fotos adicionales en payload:", fotosAdicionalesUrls.length);
 
-    // 🔥 6. Enviar al backend
+    // 🔥 7. Enviar al backend
     const endpoint = "https://mpagina.onrender.com/guardar-producto";
     
     const respGuardar = await fetch(endpoint, {
@@ -1913,17 +1972,20 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
     if (data.status === "ok") {
       const mensaje = esEdicion ? 
-        "✅ Producto actualizado correctamente" : 
-        "✅ Producto creado correctamente";
+        `✅ Producto actualizado correctamente (${fotosAdicionalesUrls.length} fotos adicionales)` : 
+        `✅ Producto creado correctamente (${fotosAdicionalesUrls.length} fotos adicionales)`;
       alert(mensaje);
       
-      // 7. Limpiar formulario
+      // 8. Limpiar formulario
       resetearFormularioAdmin();
       
-      // 8. Ocultar formulario
+      // 9. Limpiar variables temporales
+      window.fotosAdicionalesExistentes = null;
+      
+      // 10. Ocultar formulario
       document.getElementById("adminCard").classList.add("d-none");
       
-      // 9. Refrescar
+      // 11. Refrescar productos
       setTimeout(() => {
         if (typeof cargarProductos === "function") {
           cargarProductos();
