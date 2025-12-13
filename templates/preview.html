@@ -1106,7 +1106,9 @@ function toggleModoEdicion(editando) {
   }
 }
 function resetearFormularioAdmin() {
-  // Limpiar todos los campos
+  console.log("🔄 Reseteando formulario admin...");
+  
+  // 1. Limpiar todos los campos
   document.getElementById("nombreProd").value = "";
   document.getElementById("precioProd").value = "";
   document.getElementById("descripcionProd").value = "";
@@ -1116,29 +1118,61 @@ function resetearFormularioAdmin() {
   document.getElementById("grupoProd").value = "";
   document.getElementById("subgrupoProd").value = "";
   
-  // Resetear visibilidad
+  // 2. Resetear visibilidad
   document.getElementById("stockPorTalleContainer").style.display = "none";
   document.getElementById("stockSimple").style.display = "block";
   
-  // Resetear foto
+  // 3. Resetear foto principal
   document.getElementById("previewFoto").src = "";
   document.getElementById("previewFoto").classList.add("d-none");
   document.getElementById("btnQuitarFoto").classList.add("d-none");
   document.getElementById("inputFoto").value = "";
   window.fotoOptimizada = null;
   
-  // Cambiar botón a modo creación
+  // 🔥 4. NUEVO: Resetear fotos adicionales
+  const previewDiv = document.getElementById("previewFotosAdicionales");
+  if (previewDiv) {
+    previewDiv.innerHTML = '';
+    console.log("✅ Preview de fotos adicionales limpiado");
+  }
+  
+  const fotosInput = document.getElementById("fotosAdicionales");
+  if (fotosInput) {
+    fotosInput.value = "";
+    console.log("✅ Input de fotos adicionales limpiado");
+  }
+  
+  // 🔥 5. Limpiar variables temporales de fotos adicionales
+  window.fotosAdicionalesExistentes = null;
+  console.log("✅ Variables de fotos adicionales limpiadas");
+  
+  // 6. Cambiar botón a modo creación
   const btnConfirmar = document.getElementById("btnConfirmarProd");
-  btnConfirmar.innerHTML = "✅ Confirmar";
-  btnConfirmar.classList.remove("btn-warning");
-  btnConfirmar.classList.add("btn-success");
+  if (btnConfirmar) {
+    btnConfirmar.innerHTML = "✅ Confirmar";
+    btnConfirmar.classList.remove("btn-warning");
+    btnConfirmar.classList.add("btn-success");
+    console.log("✅ Botón cambiado a modo creación");
+  }
   
-  // Ocultar botón cancelar
-  document.getElementById("btnCancelarEdicion").style.display = "none";
+  // 7. Ocultar botón cancelar
+  const btnCancelar = document.getElementById("btnCancelarEdicion");
+  if (btnCancelar) {
+    btnCancelar.style.display = "none";
+    console.log("✅ Botón cancelar ocultado");
+  }
   
-  // Limpiar ID de edición
+  // 8. Limpiar ID de edición
   window.productoEditandoId = null;
-}    
+  console.log("✅ ID de edición limpiado");
+  
+  // 🔥 9. NUEVO: Desactivar modo edición
+  if (typeof toggleModoEdicion === "function") {
+    toggleModoEdicion(false);
+  }
+  
+  console.log("✅ Formulario admin completamente reseteado");
+}
 function actualizarStockPorTalle(idProducto, talleSeleccionado) {
   console.log(`📊 [actualizarStockPorTalle] id: ${idProducto}, talle: ${talleSeleccionado}`);
   
