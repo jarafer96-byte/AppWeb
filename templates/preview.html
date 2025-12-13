@@ -707,8 +707,17 @@ if (window.email) {
   };
     
 
+// Mostrar/ocultar botón login al final de página
 window.addEventListener('scroll', () => {
   const btn = document.getElementById('loginToggleBtn');
+  if (!btn) return;
+  
+  // 🔥 NUEVO: No mostrar si ya estamos en modo admin
+  if (window.modoAdmin) {
+    btn.style.display = 'none';
+    return;
+  }
+  
   const isBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
   btn.style.display = isBottom ? 'block' : 'none';
 });
