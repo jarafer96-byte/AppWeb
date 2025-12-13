@@ -2848,7 +2848,75 @@ if (btnProductos) {
     // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
 }
-   
+
+// Animación del logo al hacer click
+document.querySelector('.logo').addEventListener('click', function() {
+  const logo = this;
+  
+  // 1. Desactivar click temporalmente
+  logo.style.pointerEvents = 'none';
+  
+  // 2. Rotación 3D (360° en Y)
+  logo.style.transition = 'transform 0.8s ease, opacity 0.4s ease';
+  logo.style.transform = 'rotateY(360deg)';
+  logo.style.opacity = '0.7';
+  
+  // 3. Crear mensaje flotante
+  const mensaje = document.createElement('div');
+  mensaje.textContent = 'Gracias por la visita! ❤️';
+  mensaje.style.position = 'absolute';
+  mensaje.style.top = '50%';
+  mensaje.style.left = '50%';
+  mensaje.style.transform = 'translate(-50%, -50%)';
+  mensaje.style.backgroundColor = 'rgba(0,0,0,0.8)';
+  mensaje.style.color = 'white';
+  mensaje.style.padding = '15px 25px';
+  mensaje.style.borderRadius = '20px';
+  mensaje.style.fontFamily = "'Raleway', sans-serif";
+  mensaje.style.fontSize = '1.2rem';
+  mensaje.style.fontWeight = 'bold';
+  mensaje.style.zIndex = '10000';
+  mensaje.style.opacity = '0';
+  mensaje.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  mensaje.style.boxShadow = '0 0 20px rgba(255,255,255,0.5)';
+  
+  document.body.appendChild(mensaje);
+  
+  // 4. Animación secuencial
+  setTimeout(() => {
+    // Mostrar mensaje
+    mensaje.style.opacity = '1';
+    mensaje.style.transform = 'translate(-50%, -50%) scale(1.1)';
+    
+    setTimeout(() => {
+      // Escalar mensaje y volver a normal
+      mensaje.style.transform = 'translate(-50%, -50%) scale(1)';
+      
+      setTimeout(() => {
+        // Ocultar mensaje
+        mensaje.style.opacity = '0';
+        mensaje.style.transform = 'translate(-50%, -50%) scale(0.9)';
+        
+        setTimeout(() => {
+          mensaje.remove();
+        }, 500);
+        
+        // 5. Restaurar logo
+        logo.style.transform = 'rotateY(0deg)';
+        logo.style.opacity = '1';
+        
+        setTimeout(() => {
+          logo.style.pointerEvents = 'auto';
+          logo.style.transition = '';
+        }, 800);
+        
+      }, 1500); // Tiempo que se muestra el mensaje
+      
+    }, 300); // Tiempo escala del mensaje
+    
+  }, 400); // Tiempo inicio mensaje después de rotación
+});
+    
 </script>
 <script type="module">
 const usarFirestore = {{ 'true' if config.usarFirestore else 'false' }};
