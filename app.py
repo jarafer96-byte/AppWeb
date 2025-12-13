@@ -172,6 +172,12 @@ def subir_a_firestore(producto, email, es_edicion=False):
             custom_id = f"{nombre_id}_{fecha}_{subgrupo_id}_{sufijo}"
             print(f"[FIRESTORE] ID generado NUEVO (id_base): {custom_id}")
 
+        # 🔥🔥🔥 NUEVO: Obtener fotos_adicionales
+        fotos_adicionales = producto.get("fotos_adicionales", [])
+        if not isinstance(fotos_adicionales, list):
+            fotos_adicionales = []
+        print(f"[FIRESTORE] 📸 Fotos adicionales recibidas: {len(fotos_adicionales)} fotos")
+
         # Resto del código se mantiene igual...
         precio_raw = producto["precio"]
         price_str = str(precio_raw).strip()
@@ -294,6 +300,7 @@ def subir_a_firestore(producto, email, es_edicion=False):
             imagen_url = f"https://storage.googleapis.com/mpagina/{email_encoded}/{imagen_nombre}"
             print(f"[FIRESTORE] Generada imagen_url por fallback: {imagen_url}")
 
+        # 🔥🔥🔥 NUEVO: Construir documento con fotos_adicionales
         doc = {
             "nombre": producto.get("nombre", "").strip(),
             "id_base": custom_id,
@@ -302,6 +309,7 @@ def subir_a_firestore(producto, email, es_edicion=False):
             "subgrupo": (producto.get("subgrupo", "") or "").strip() or f"General_{producto.get('grupo', '').strip()}",
             "descripcion": producto.get("descripcion", ""),
             "imagen_url": imagen_url,
+            "fotos_adicionales": fotos_adicionales,  # 👈 NUEVO CAMPO
             "orden": orden,
             "talles": talles,  # Mantener para compatibilidad
             "colores": colores,  # Lista de colores
@@ -330,6 +338,7 @@ def subir_a_firestore(producto, email, es_edicion=False):
             db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
             
         print(f"[FIRESTORE] ✅ Producto {'actualizado' if es_edicion else 'guardado'} correctamente en Firestore: {custom_id} para {email}")
+        print(f"[FIRESTORE] 📸 Fotos adicionales guardadas: {len(fotos_adicionales)}")
 
         return {
             "status": "ok", 
@@ -337,7 +346,8 @@ def subir_a_firestore(producto, email, es_edicion=False):
             "id_base": custom_id, 
             "tiene_variantes": usar_variantes, 
             "tiene_stock_por_talle": bool(stock_por_talle_directo),
-            "es_edicion": es_edicion
+            "es_edicion": es_edicion,
+            "fotos_adicionales_count": len(fotos_adicionales)  # 👈 NUEVO en respuesta
         }
 
     except Exception as e:
