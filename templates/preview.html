@@ -2063,6 +2063,19 @@ function loginAdmin(event) {
     .then(data => {
       if (data.status === "ok" && data.token) {
         alert("✅ Acceso concedido");
+        
+        // 🔥 NUEVO: Ocultar botón admin flotante al entrar
+        const loginToggleBtn = document.getElementById("loginToggleBtn");
+        if (loginToggleBtn) {
+          loginToggleBtn.style.display = "none";
+        }
+        
+        // Ocultar formulario flotante
+        const loginForm = document.getElementById("loginFloatingForm");
+        if (loginForm) {
+          loginForm.style.display = "none";
+        }
+        
         // redirigir al preview dinámico con token en la URL
         location.href = `index.html?token=${data.token}`;
       } else {
