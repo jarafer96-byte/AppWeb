@@ -2321,16 +2321,6 @@ function renderProducto(p) {
           </div>
         ` : ""}
         
-        <!-- Stock disponible -->
-        <p class="mb-2">
-          <strong>Disponible:</strong> 
-          <span id="stock_${p.id_base}" class="${claseStock}">${mostrarStock}</span>
-          ${window.modoAdmin && Object.keys(stockData).length > 0 && Object.keys(stockData)[0] !== "unico" ? `
-             <button type="button" class="btn btn-sm btn-outline-primary ms-2"
-              onclick="editarStockTalleActual('${p.id_base}')">✎ Editar stock</button>
-          ` : ""}
-        </p>
-        
         ${configWhatsApp ? `<a href="${configWhatsApp}" class="btn btn-whatsapp">Contactar por WhatsApp</a>` : ""}
         
         <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
