@@ -573,6 +573,13 @@ def api_productos():
             print(f"[API_PRODUCTOS]   Talles definidos: {talles_originales}")
             print(f"[API_PRODUCTOS]   Stock por talle completo: {data.get('stock_por_talle', {})}")
             
+            # 🔥 NUEVO: Obtener fotos adicionales
+            fotos_adicionales = data.get("fotos_adicionales", [])
+            if not isinstance(fotos_adicionales, list):
+                fotos_adicionales = []
+            
+            print(f"[API_PRODUCTOS]   Fotos adicionales: {len(fotos_adicionales)} fotos")
+            
             # 🔥 CALCULAR STOCK DISPONIBLE Y FILTRAR STOCK POR TALLE
             tiene_stock_por_talle = data.get("tiene_stock_por_talle", False)
             stock_por_talle_completo = data.get("stock_por_talle", {})
@@ -613,6 +620,7 @@ def api_productos():
             # Determinar si está disponible (stock > 0)
             disponible = stock_disponible > 0
             
+            # 🔥 NUEVO: Incluir fotos_adicionales en la respuesta
             productos.append({
                 "id": doc.id,
                 "id_base": data.get("id_base"),
@@ -625,6 +633,7 @@ def api_productos():
                 "subgrupo": data.get("subgrupo"),
                 "descripcion": data.get("descripcion"),
                 "imagen_url": data.get("imagen_url"),
+                "fotos_adicionales": fotos_adicionales,  # 👈 NUEVO: Incluir fotos adicionales
                 "orden": data.get("orden"),
                 "talles": talles_originales,  # Mantener solo talles definidos
                 "colores": data.get("colores", []),
@@ -641,6 +650,7 @@ def api_productos():
         print(f"[API_PRODUCTOS] ✅ Total productos procesados: {len(productos)}")
         for p in productos[:3]:  # Mostrar primeros 3 para debug
             print(f"  - {p.get('nombre')}: talles={p.get('talles')}, stock_por_talle={p.get('stock_por_talle')}")
+            print(f"  - Fotos adicionales: {len(p.get('fotos_adicionales', []))} fotos")
 
         return jsonify(productos)
 
