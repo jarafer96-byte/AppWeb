@@ -2603,6 +2603,13 @@ function renderProducto(p) {
   card.dataset.id = p.id_base;
   card.dataset.precio = p.precio;
 
+  // 🔥 NUEVO: Verificar si es oferta
+  const precioActual = p.precio;
+  const precioAnterior = p.precio_anterior || 0;
+  const esOferta = precioAnterior > 0 && precioActual < precioAnterior;
+  const descuentoPorcentaje = esOferta ? 
+    Math.round(((precioAnterior - precioActual) / precioAnterior) * 100) : 0;
+
   // 🔥 SOLO usar stock_por_talle
   const tieneStockPorTalle = p.stock_por_talle && Object.keys(p.stock_por_talle).length > 0;
   
@@ -2638,9 +2645,8 @@ function renderProducto(p) {
       stockInicial = stockData[talleInicial] || 0;
     }
   } else {
-    // 🔥 Producto sin talles: en este caso podrías usar un stock general
-    // Pero vamos a crear un campo stock_por_talle con clave "unico"
-    const stockGeneral = p.stock || 0; // Para compatibilidad temporal
+    // 🔥 Producto sin talles
+    const stockGeneral = p.stock || 0;
     stockData = { "unico": stockGeneral };
     window[`stock_por_talle_${p.id_base}`] = stockData;
     stockInicial = stockGeneral;
@@ -2656,24 +2662,66 @@ function renderProducto(p) {
   const grupoEscapado = (p.grupo || "").replace(/'/g, "\\'");
   const subgrupoEscapado = (p.subgrupo || "").replace(/'/g, "\\'");
   
+  // Escapar URLs de fotos adicionales
+  const fotosAdicionalesSeguras = (p.fotos_adicionales || []).map(foto => 
+    foto.replace(/'/g, "\\'").replace(/"/g, '\\"')
+  );
+  
   const onclickAgregar = `agregarAlCarritoDOM('${nombreEscapado}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${grupoEscapado}', '${subgrupoEscapado}')`;
   
-  // 🔥 NUEVO: Mostrar descripción en la card (tanto admin como público)
-  const mostrarDescripcion = p.descripcion ? 
-    `<p class="card-text text-muted small mb-2">${p.descripcion}</p>` : 
-    '';
+  // 🔥 CREAR URL DE WHATSAPP ESPECÍFICA PARA ESTE PRODUCTO
+  let whatsappUrl = configWhatsApp;
   
-  // 🔥 NUEVO: Botón para editar descripción en modo admin
-  const botonEditarDescripcion = window.modoAdmin ? 
-    `<button type="button" class="btn btn-sm btn-outline-secondary ms-2" 
-      onclick="editarDescripcion('${p.id_base}')">📝 Editar descripción</button>` : 
-    '';
+  if (configWhatsApp && configWhatsApp.includes("wa.me")) {
+    const mensaje = encodeURIComponent(`Hola! Me interesa el producto: "${p.nombre}" - Precio: $${p.precio}\n\n¿Podrías darme más información?`);
+    const match = configWhatsApp.match(/wa\.me\/(\d+)/);
+    if (match) {
+      const numero = match[1];
+      whatsappUrl = `https://wa.me/${numero}?text=${mensaje}`;
+    } else {
+      whatsappUrl = `${configWhatsApp}?text=${mensaje}`;
+    }
+  }
+  
+  // 🔥 FOTOS ADICIONALES - SIN TEXTO
+  const fotosAdicionalesHTML = fotosAdicionalesSeguras.length > 0 ? `
+    <div class="fotos-adicionales mt-2">
+      <div class="d-flex flex-wrap mt-1" style="gap: 3px;">
+        ${fotosAdicionalesSeguras.slice(0, 3).map((foto, idx) => `
+          <img src="${foto}" 
+               alt="Foto ${idx+1}" 
+               style="width: 40px; height: 40px; object-fit: cover; border-radius: 3px; cursor: pointer;"
+               onclick="openModal('${foto}')">
+        `).join('')}
+        ${fotosAdicionalesSeguras.length > 3 ? `<span class="ms-1 text-muted">+${fotosAdicionalesSeguras.length - 3}</span>` : ''}
+      </div>
+    </div>
+  ` : '';
   
   card.innerHTML = `
   <div class="card-giratoria">
     <div class="card-contenedor">
-      <!-- FRENTE -->
+      <!-- FRENTE (COMPLETO) -->
       <div class="card-front">
+        <!-- 🔥 ETIQUETA OFERTA (SOLO AGREGADO ESTO) -->
+        ${esOferta ? `
+          <div class="oferta-badge" style="
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: linear-gradient(45deg, #ff4757, #ff3838);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+          ">
+            🔥 OFERTA -${descuentoPorcentaje}%
+          </div>
+        ` : ''}
+        
         <!-- Botón para girar -->
         <button class="btn-girar" onclick="girarCard(this)">
           🔄
@@ -2684,16 +2732,21 @@ function renderProducto(p) {
              loading="lazy"
              width="300" 
              height="180"
-             style="width:100%; height:180px; object-fit:contain; border-radius:4px; cursor:pointer;"
-             onload="this.style.opacity='1'"
-             style="opacity:0; transition: opacity 0.3s ease;"
+             style="width:100%; height:180px; object-fit:contain; border-radius:4px; cursor:pointer; opacity:1;"
              onclick="openModal('${imagenUrl}')">
         <div class="card-body">
           <h5 class="card-title">${p.nombre}</h5>
           
           <p class="mb-2">
             <strong>Precio:</strong> 
-            $<span id="precio_${p.id_base}">${p.precio}</span>
+            <!-- 🔥 PRECIO ANTERIOR TACHADO (SOLO AGREGADO ESTO) -->
+            ${esOferta ? `
+              <span style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-right: 5px;">
+                $${precioAnterior}
+              </span>
+            ` : ''}
+            <!-- 🔥 PRECIO ACTUAL EN ROJO (SOLO AGREGADO ESTO) -->
+            $<span id="precio_${p.id_base}" style="${esOferta ? 'color: #ff4757; font-weight: bold;' : ''}">${p.precio}</span>
           </p>
           
           ${Object.keys(stockData).length > 0 && Object.keys(stockData)[0] !== "unico" ? `
@@ -2717,67 +2770,126 @@ function renderProducto(p) {
             <button type="button" class="btn btn-secondary btn-sm" id="btn_agregar_${p.id_base}"
               onclick="${onclickAgregar}"
               ${stockInicial <= 0 ? "disabled style='opacity:0.5'" : ""}>
-              ${stockInicial > 0 ? "➕ Agregar" : "❌ Sin stock"}
+              ${stockInicial > 0 ? "Agregar al carrito" : "❌ Sin stock"}
             </button>
           </div>
           
-          ${configWhatsApp ? `
+          <!-- 🔥 FOTOS ADICIONALES (SIN TEXTO) -->
+          ${fotosAdicionalesHTML}
+          
+          <!-- 🔥 BOTÓN WHATSAPP ESPECÍFICO -->
+          ${whatsappUrl ? `
             <div class="mt-3">
-              <a href="${configWhatsApp}" class="btn btn-whatsapp btn-sm w-100">
-                Contactar por WhatsApp
+              <a href="${whatsappUrl}" class="btn btn-whatsapp btn-sm w-100" target="_blank">
+                💬 Consultar
               </a>
             </div>
           ` : ""}
         </div>
       </div>
       
-      <!-- REVERSO -->
-      <div class="card-back">
-        <!-- Botón para volver al frente -->
-        <button class="btn-reversa" onclick="girarCard(this)">
+      <!-- REVERSO (SOLO DESCRIPCIÓN) -->
+      <div class="card-back" style="display: flex; flex-direction: column; height: 100%;">
+        <!-- Botón para volver al frente (arriba a la derecha) -->
+        <button class="btn-reversa" onclick="girarCard(this)" style="position: absolute; top: 10px; right: 10px;">
           ↩️
         </button>
         
-        <h5>${p.nombre}</h5>
-        
-        <div class="precio">$${p.precio}</div>
-        
-        ${p.descripcion ? `
-  <div class="descripcion mt-2" style="white-space: pre-line;">
-    ${p.descripcion}
-  </div>
-` : '<div class="descripcion text-muted">Sin descripción adicional</div>'}
-        
-        ${Object.keys(stockData).length > 0 && Object.keys(stockData)[0] !== "unico" ? `
-          <div class="mt-2">
-            <small><strong>Talles:</strong> ${Object.keys(stockData).join(", ")}</small>
+        <!-- 🔥 ÁREA DE DESCRIPCIÓN (OCUPA TODO EL ESPACIO DISPONIBLE) -->
+        <div class="descripcion-area" style="
+          flex: 1;
+          padding: 80px 80px 80px 80px;
+          overflow-y: auto;
+          text-align: center;
+          flex-direction: column;
+          justify-content: center;
+          /* 🔥 OCULTAR BARRA DE SCROLL PERO PERMITIR SCROLL */
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE/Edge */
+        ">
+          <div class="descripcion-area::-webkit-scrollbar {
+            display: none; /* Chrome/Safari/Opera */
+          }">
+            ${p.descripcion ? `
+              <div style="
+                font-size: 1rem;
+                line-height: 1.5;
+                color: #f8f9fa;
+                white-space: pre-line;
+                max-height: 100%;
+              ">
+                ${p.descripcion}
+              </div>
+            ` : `
+              <div style="
+                font-size: 1rem;
+                color: #adb5bd;
+                font-style: italic;
+              ">
+                Este producto no tiene descripción adicional.
+              </div>
+            `}
           </div>
-        ` : ""}
-        
-        <div class="mt-3">
-          <button class="btn btn-secondary btn-sm" onclick="girarCard(this)">
-            🔄 Ver frente
-          </button>
         </div>
         
-        ${window.modoAdmin ? `
-          <div class="mt-3 d-flex gap-2">
-            <button type="button" class="btn btn-warning btn-sm"
-              onclick="cargarProductoCompletoParaEditar('${p.id_base}')">
-              ✏️ Editar
-            </button>
-            <button type="button" class="btn btn-danger btn-sm"
-              onclick="eliminarProducto('${p.id_base}')">
-              🗑️ Eliminar
+        <!-- 🔥 SECCIÓN INFERIOR (FUERA DEL ÁREA DE DESCRIPCIÓN) -->
+        <div class="card-back-footer" style="
+          padding: 15px;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          background: rgba(0,0,0,0.2);
+        ">
+          ${Object.keys(stockData).length > 0 && Object.keys(stockData)[0] !== "unico" ? `
+            <div class="mb-2" style="
+              background: rgba(255,255,255,0.05);
+              padding: 8px 12px;
+              border-radius: 6px;
+              font-size: 0.9rem;
+              color: #dee2e6;
+            ">
+              <strong>Talles:</strong> ${Object.keys(stockData).join(", ")}
+            </div>
+          ` : ""}
+          
+          <!-- 🔥 INFO OFERTA EN EL REVERSO (SOLO AGREGADO ESTO) -->
+          ${esOferta ? `
+            <div class="mb-2" style="
+              background: linear-gradient(45deg, rgba(255,71,87,0.2), rgba(255,56,56,0.2));
+              padding: 8px 12px;
+              border-radius: 6px;
+              font-size: 0.9rem;
+              color: #ffcccb;
+              border-left: 3px solid #ff4757;
+            ">
+              <strong>🔥 OFERTA ESPECIAL</strong><br>
+              <small>Antes: $${precioAnterior} | Ahora: $${precioActual}</small>
+            </div>
+          ` : ""}
+          
+          <div class="mt-2">
+            <button class="btn btn-secondary btn-sm w-100" onclick="girarCard(this)">
+              🔄 Volver al frente
             </button>
           </div>
-        ` : ""}
+          
+          ${window.modoAdmin ? `
+            <div class="mt-2 d-flex gap-2">
+              <button type="button" class="btn btn-warning btn-sm w-50"
+                onclick="cargarProductoCompletoParaEditar('${p.id_base}')">
+                ✏️ Editar
+              </button>
+              <button type="button" class="btn btn-danger btn-sm w-50"
+                onclick="eliminarProducto('${p.id_base}')">
+                🗑️ Eliminar
+              </button>
+            </div>
+          ` : ""}
+        </div>
       </div>
     </div>
   </div>
 `;
 
-  // 🔥 Configurar talle inicial después de renderizar
+  // 🔥 Configurar talle inicial
   if (talleInicial) {
     setTimeout(() => {
       const talleSelect = document.getElementById(`talle_${p.id_base}`);
