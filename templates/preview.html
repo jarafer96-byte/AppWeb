@@ -672,6 +672,15 @@ input.stock-edit {
     <img id="previewFoto" src="" alt="Sin foto" class="d-none w-100 mb-2">
     <input type="file" id="inputFoto" accept="image/*" class="form-control mb-2">
     <button id="btnQuitarFoto" type="button" class="btn btn-danger mb-2 d-none">❌ Quitar foto</button>
+
+    <!-- Fotos adicionales -->
+    <div class="mb-2">
+      <label class="form-label">Fotos adicionales (opcional)</label>
+      <input type="file" id="fotosAdicionales" accept="image/*" 
+             class="form-control" multiple>
+      <small class="text-muted">Puedes seleccionar varias fotos</small>
+      <div id="previewFotosAdicionales" class="mt-2"></div>
+    </div>
     
     <!-- Datos -->
     <input type="text" id="nombreProd" placeholder="Nombre producto *" class="form-control mb-2">
