@@ -2209,6 +2209,37 @@ fetch(urlProductos)
     window.todosLosProductos = productosOrdenados;
     console.log("🌐 Productos recibidos y ordenados:", window.todosLosProductos.length);
 
+    // 🔥 AGREGAR SUGERENCIAS SIMPLES PARA FORMULARIO ADMIN
+    setTimeout(() => {
+      // Extraer grupos y subgrupos únicos
+      const gruposUnicos = [...new Set(productosOrdenados.map(p => p.grupo).filter(Boolean))];
+      const subgruposUnicos = [...new Set(productosOrdenados.map(p => p.subgrupo).filter(Boolean))];
+      
+      // Llenar datalist de grupos
+      const datalistGrupos = document.getElementById('grupos-sugeridos');
+      if (datalistGrupos && gruposUnicos.length > 0) {
+        datalistGrupos.innerHTML = '';
+        gruposUnicos.forEach(grupo => {
+          const option = document.createElement('option');
+          option.value = grupo;
+          datalistGrupos.appendChild(option);
+        });
+        console.log(`✅ ${gruposUnicos.length} grupos para sugerencias`);
+      }
+      
+      // Llenar datalist de subgrupos
+      const datalistSubgrupos = document.getElementById('subgrupos-sugeridos');
+      if (datalistSubgrupos && subgruposUnicos.length > 0) {
+        datalistSubgrupos.innerHTML = '';
+        subgruposUnicos.forEach(subgrupo => {
+          const option = document.createElement('option');
+          option.value = subgrupo;
+          datalistSubgrupos.appendChild(option);
+        });
+        console.log(`✅ ${subgruposUnicos.length} subgrupos para sugerencias`);
+      }
+    }, 100);
+
     const cont = document.getElementById("productos");
     const contGrupos = document.getElementById("panelGrupos");
     const contSub = document.getElementById("panelSubcategorias");
