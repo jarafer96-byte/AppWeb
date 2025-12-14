@@ -884,38 +884,66 @@ document.getElementById("tallesProd").addEventListener("input", function() {
     container.style.display = "block";
     simpleContainer.style.display = "none";
     
-    // 🔥 NUEVO: Limpiar automáticamente el stock por talle
     const stockPorTalleInput = document.getElementById("stockPorTalle");
-    if (stockPorTalleInput && stockPorTalleInput.value) {
-      try {
-        // Parsear stock existente
-        const stockExistente = {};
-        stockPorTalleInput.value.split(",").forEach(item => {
-          const parts = item.split(":").map(s => s.trim());
-          if (parts.length >= 2) {
-            const talle = parts[0];
-            const stock = parseInt(parts[1]) || 0;
-            stockExistente[talle] = stock;
-          }
-        });
-        
-        // Crear nuevo stock solo con talles actuales
-        const nuevoStock = talles.map(talle => {
-          if (stockExistente[talle] !== undefined) {
-            return `${talle}:${stockExistente[talle]}`;
-          } else {
-            return `${talle}:0`; // Nuevo talle, stock en 0
-          }
-        }).join(", ");
-        
-        stockPorTalleInput.value = nuevoStock;
-        console.log("🔄 Stock por talle actualizado:", nuevoStock);
-        
-      } catch (error) {
-        console.error("❌ Error procesando stock:", error);
-        // Si hay error, crear stock desde cero
+    if (stockPorTalleInput) {
+      // 🔥 NUEVO: Solo actualizar si estamos CREANDO un producto nuevo
+      // o si el campo de stock está vacío
+      const estaEditando = !!window.productoEditandoId;
+      const stockEstaVacio = !stockPorTalleInput.value.trim();
+      
+      console.log("📝 Estado:", {
+        editando: estaEditando,
+        stockVacio: stockEstaVacio,
+        valorActual: stockPorTalleInput.value
+      });
+      
+      // Solo actualizar automáticamente si:
+      // 1. NO estamos editando un producto (creando nuevo) Y el campo está vacío
+      // 2. O si estamos editando PERO el usuario acaba de borrar un talle
+      if ((!estaEditando && stockEstaVacio) || stockEstaVacio) {
+        // Crear stock inicial desde cero
         const nuevoStock = talles.map(t => `${t}:0`).join(", ");
         stockPorTalleInput.value = nuevoStock;
+        console.log("🔄 Stock por talle inicializado:", nuevoStock);
+      } 
+      // Si estamos editando Y ya hay stock definido, mantenerlo
+      else if (estaEditando && !stockEstaVacio) {
+        console.log("📌 Manteniendo stock existente durante edición");
+        // No hacer nada - mantener el stock que ya estaba
+      }
+      // Si estamos creando nuevo pero ya hay algo escrito, actualizar manteniendo valores
+      else if (!estaEditando && !stockEstaVacio) {
+        try {
+          // Parsear stock existente
+          const stockExistente = {};
+          stockPorTalleInput.value.split(",").forEach(item => {
+            const parts = item.split(":").map(s => s.trim());
+            if (parts.length >= 2) {
+              const talle = parts[0];
+              const stock = parseInt(parts[1]) || 0;
+              stockExistente[talle] = stock;
+            }
+          });
+          
+          // Crear nuevo stock manteniendo valores existentes para talles que siguen
+          const nuevoStock = talles.map(talle => {
+            if (stockExistente[talle] !== undefined) {
+              return `${talle}:${stockExistente[talle]}`;
+            } else {
+              return `${talle}:0`; // Nuevo talle, stock en 0
+            }
+          }).join(", ");
+          
+          // También eliminar talles que ya no están en la lista
+          stockPorTalleInput.value = nuevoStock;
+          console.log("🔄 Stock por talle actualizado manteniendo valores:", nuevoStock);
+          
+        } catch (error) {
+          console.error("❌ Error procesando stock:", error);
+          // Si hay error, crear stock desde cero
+          const nuevoStock = talles.map(t => `${t}:0`).join(", ");
+          stockPorTalleInput.value = nuevoStock;
+        }
       }
     }
     
