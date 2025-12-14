@@ -2151,8 +2151,27 @@ fetch(urlProductos)
     return r.json();
   })
   .then(lista => {
-    window.todosLosProductos = Array.isArray(lista) ? lista : [];
-    console.log("🌐 Productos recibidos de la API:", window.todosLosProductos.length, window.todosLosProductos);
+    // ORDENAR LOS PRODUCTOS: primero con stock, luego por precio
+    const productosOrdenados = Array.isArray(lista) ? lista : [];
+    
+    productosOrdenados.sort((a, b) => {
+      // 1. Primero verificar si tienen stock
+      const stockA = (a.stock_por_talle && Object.values(a.stock_por_talle).some(v => v > 0)) || 
+                     (a.stock && a.stock > 0);
+      const stockB = (b.stock_por_talle && Object.values(b.stock_por_talle).some(v => v > 0)) || 
+                     (b.stock && b.stock > 0);
+      
+      // Si A tiene stock y B no, A va primero
+      if (stockA && !stockB) return -1;
+      // Si B tiene stock y A no, B va primero
+      if (!stockA && stockB) return 1;
+      
+      // 2. Si ambos tienen o no tienen stock, ordenar por precio (menor a mayor)
+      return (a.precio || 0) - (b.precio || 0);
+    });
+    
+    window.todosLosProductos = productosOrdenados;
+    console.log("🌐 Productos recibidos y ordenados:", window.todosLosProductos.length);
 
     const cont = document.getElementById("productos");
     const contGrupos = document.getElementById("panelGrupos");
