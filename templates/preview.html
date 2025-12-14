@@ -1874,6 +1874,18 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
     // 3. Obtener datos del formulario
     const nombre = document.getElementById("nombreProd").value.trim();
     const precio = parseFloat(document.getElementById("precioProd").value);
+    
+    // 🔥 NUEVO: Obtener precio anterior
+    const precioAnteriorInput = document.getElementById("precioAnteriorProd");
+    let precioAnterior = 0;
+    if (precioAnteriorInput) {
+      precioAnterior = parseFloat(precioAnteriorInput.value) || 0;
+      // Solo guardar precio anterior si es mayor que el precio actual (es oferta)
+      if (precioAnterior <= precio) {
+        precioAnterior = 0; // No es oferta
+      }
+    }
+    
     const descripcion = document.getElementById("descripcionProd").value.trim();
     const tallesRaw = document.getElementById("tallesProd").value.trim();
     const grupo = document.getElementById("grupoProd")?.value.trim() || "General";
@@ -1918,17 +1930,18 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
     console.log("📦 Stock procesado:", stockPorTalle);
 
-    // 🔥 5. Crear objeto producto CON FOTOS ADICIONALES
+    // 🔥 5. Crear objeto producto CON FOTOS ADICIONALES Y PRECIO ANTERIOR
     const producto = {
       nombre: nombre,
       precio: precio,
+      precio_anterior: precioAnterior, // 🔥 NUEVO: Campo para ofertas
       descripcion: descripcion || "",
       talles: talles,
       grupo: grupo,
       subgrupo: subgrupo,
       stock_por_talle: stockPorTalle,
       imagen_url: foto_url,
-      fotos_adicionales: fotosAdicionalesUrls // 👈 NUEVO campo CRÍTICO
+      fotos_adicionales: fotosAdicionalesUrls
     };
 
     // 🔥 6. Preparar payload con ES_EDICION
@@ -1951,6 +1964,7 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
     console.log("📤 Payload para backend:", JSON.stringify(payload, null, 2));
     console.log("⚙️ Parámetro es_edicion:", payload.es_edicion);
     console.log("🖼️ Fotos adicionales en payload:", fotosAdicionalesUrls.length);
+    console.log("💰 Precio anterior:", precioAnterior > 0 ? `$${precioAnterior} (OFERTA -${Math.round(((precioAnterior - precio) / precioAnterior) * 100)}%)` : "No es oferta");
 
     // 🔥 7. Enviar al backend
     const endpoint = "https://mpagina.onrender.com/guardar-producto";
@@ -1974,7 +1988,13 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       const mensaje = esEdicion ? 
         `✅ Producto actualizado correctamente (${fotosAdicionalesUrls.length} fotos adicionales)` : 
         `✅ Producto creado correctamente (${fotosAdicionalesUrls.length} fotos adicionales)`;
-      alert(mensaje);
+      
+      if (precioAnterior > 0) {
+        const descuento = Math.round(((precioAnterior - precio) / precioAnterior) * 100);
+        alert(`${mensaje}\n🔥 ¡OFERTA REGISTRADA! -${descuento}% de descuento`);
+      } else {
+        alert(mensaje);
+      }
       
       // 8. Limpiar formulario
       resetearFormularioAdmin();
