@@ -705,9 +705,17 @@ input.stock-edit {
       <small class="text-muted">Separar por comas: talle:cantidad</small>
     </div>
 
-    <!-- Grupo/Subgrupo -->
-    <input type="text" id="grupoProd" placeholder="Grupo *" class="form-control mb-2">
-    <input type="text" id="subgrupoProd" placeholder="Subgrupo *" class="form-control mb-2">
+    <!-- 🔥 MODIFICADO: Grupo con sugerencias -->
+    <input type="text" id="grupoProd" list="grupos-sugeridos" placeholder="Grupo *" class="form-control mb-2">
+    <datalist id="grupos-sugeridos">
+      <!-- Las opciones se llenarán automáticamente con JavaScript -->
+    </datalist>
+    
+    <!-- 🔥 MODIFICADO: Subgrupo con sugerencias -->
+    <input type="text" id="subgrupoProd" list="subgrupos-sugeridos" placeholder="Subgrupo *" class="form-control mb-2">
+    <datalist id="subgrupos-sugeridos">
+      <!-- Las opciones se llenarán automáticamente con JavaScript -->
+    </datalist>
 
     <!-- Confirmar -->
     <button id="btnConfirmarProd" class="btn btn-success">✅ Confirmar</button>
