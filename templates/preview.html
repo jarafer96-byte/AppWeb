@@ -51,7 +51,7 @@ body {
   {% else %}
   background-color: #121212; /* fallback seguro */
   {% endif %}
-  background-size: cover; background-repeat: no-repeat; background-attachment: fixed; background-position: center; padding-top: 70px;
+  background-size: cover; background-repeat: no-repeat; background-attachment: fixed; background-position: top center; padding-top: 70px;
 }
 /* 📱 Para móviles */
 @media (max-width: 768px) {
@@ -59,8 +59,8 @@ body {
     background-image: url("/static/img/fondo-movil.jpg");
     background-size: cover;
     background-repeat: no-repeat;
-    background-attachment: fixed;
-    background-position: center;
+    background-attachment: scroll;
+    background-position: top center;
   }
 }
 /* 📱 En pantallas chicas (celulares) */
