@@ -38,560 +38,122 @@
   margin-right: auto;
 }
 body {
-  font-family: {{ config.fuente | safe }};
-  {% if config.estilo_visual %}
-  background-image: url("/static/img/{{ config.estilo_visual }}.jpeg");
-  {% else %}
-  background-color: #121212; /* fallback seguro */
-  {% endif %}
-  background-size: cover; background-repeat: no-repeat; background-attachment: fixed; background-position: top center; padding-top: 70px;
+  background-color: #64636d;
 }
-/* 📱 Para móviles */
-@media (max-width: 768px) {
-  body {
-    background-image: url("/static/img/fondo-movil.jpg");
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-attachment: scroll;
-    background-position: top center;
-  }
-  .barra-navegacion {
-    border: 1px solid #000000f5; /* borde solo en móvil */
-  }
-  #adminCard {
-    max-width: 95%;
-  }
+body.container.py-5.modo-oscuro {
+  position: relative !important;
+  border-radius: 40px !important;
+  padding: 60px !important;
+  margin: 20px auto;
 }
 
-h1, h2, h3, .btn, .card { font-family: {{ config.fuente | safe }}; }
+body.container.py-5.modo-oscuro::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%),
+    radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.2) 0%, transparent 30%),
+    radial-gradient(circle at 85% 85%, rgba(14, 165, 233, 0.2) 0%, transparent 30%);
+  backdrop-filter: blur(40px) saturate(220%) brightness(1.2);
+  -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(1.2);
+  border-radius: 40px;
+  z-index: -1;
+}
 
-body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: -1; }
-
-.fade-reorder { opacity: 0; transform: scale(0.95); transition: opacity 0.3s ease, transform 0.3s ease; }
-
-.fade-reorder.show { opacity: 1; transform: scale(1); }
-
-.show { opacity: 1; transform: scale(1); transition: opacity 0.3s ease, transform 0.3s ease; }
-
-.fondo-animado { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -2; background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.06), transparent 40%); animation: moverFondo 40s ease-in-out infinite; background-size: 200% 200%; pointer-events: none; }
-
-html { scroll-behavior: auto; }
+/* Mantén el box-shadow en el body */
+body.container.py-5.modo-oscuro {
+  box-shadow: 
+    0 50px 120px rgba(0, 0, 0, 0.8),
+    0 0 0 2px rgba(255, 255, 255, 0.2),
+    inset 0 4px 30px rgba(255, 255, 255, 0.1),
+    inset 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+  
+h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 
 .card { transition: transform 0.3s ease, box-shadow 0.3s ease; border-radius: 12px; overflow: hidden; will-change: transform, box-shadow; padding: 12px; }
-
 .card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 
-.modo-oscuro .card:hover { box-shadow: 0 8px 20px rgba(255,255,255,0.2); }
-
-.modo-claro .card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
-
-.card-img-top { width: 100%; max-width: 300px; height: auto; display: block; margin-left: auto; margin-right: auto; }
-
-.card-body { padding: 10px; }
-
-.card-title { font-size: 1rem; line-height: inherit; }
-
-.card-text { font-size: 0.9rem; line-height: inherit; }
-
-.modo-claro .card { background-color: #fff; color: #333; border: none; }
-
-.modo-oscuro .card { background-color: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); }
-
-.color-principal { color: inherit; /* o un color fijo, ej. #ff6f61 */ }
-
-.bg-principal { background-color: transparent; /* o un color fijo */ }
-
 .modo-oscuro { color: white; }
-
 .modo-claro { color: #333; }
-
-.barra-navegacion { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); display: flex; justify-content: center; gap: 16px; padding: 12px 20px; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
-
-.barra-navegacion button { font-family: {{ config.fuente | safe }}; font-weight: 600; font-size: 16px; padding: 10px 20px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); transition: all 0.3s ease; }
-
-/* Animaciones */
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-@keyframes moverFondo { 0% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } 100% { background-position: 0% 0%; } }
-
-.barra-navegacion button:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); box-shadow: 0 0 8px rgba(255, 255, 255, 0.3); }
-
-.barra-wrapper { z-index: 1000; }
-  
-.panel-grupos::-webkit-scrollbar {
-  display: none;
-}
-.panel-subcategorias::-webkit-scrollbar {
-  display: none;
-} 
-.panel-grupos { position: fixed; scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-y: hidden; overflow-x: auto; white-space: nowrap; cursor: grab; cursor: -webkit-grab; border: 1px solid #000000f5; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 906; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
-
-.panel-grupos button { font-family: {{ config.fuente | safe }}; font-weight: 600; margin: 6px; padding: 2px 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
-
-.panel-grupos button:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); box-shadow: 0 0 8px rgba(255, 255, 255, 0.3); }
 
 .oculta { display: none !important; }
 
-.logo { height: 40vw; max-height: 380px; filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px white); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
+.barra-navegacion { position: fixed; padding: 8px 10px; gap: 8px; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); display: flex; justify-content: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
+.barra-navegacion button { font-family: 'Raleway', sans-serif; font-weight: 600; font-size: 14px; padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); transition: all 0.3s ease; }
+.barra-navegacion button:hover { background-color: #fff; color: #333; transform: scale(1.05); box-shadow: 0 0 8px none; }
 
-@keyframes pulsoLogo { 0%, 100% { filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px none); } 50% { filter: brightness(1.8) contrast(1.3) drop-shadow(0 0 20px none); } }
+.panel-grupos { position: fixed; scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-y: hidden; overflow-x: auto; white-space: nowrap; cursor: grab; cursor: -webkit-grab; border: 1px solid #000000f5; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 906; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
+.panel-grupos button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
+.panel-grupos button:hover { background-color: #fff; color: #333; transform: scale(1.05); box-shadow: 0 0 8px none; }
+
+.panel-subcategorias { position: fixed; scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-y: hidden; overflow-x: auto; white-space: nowrap; cursor: grab; cursor: -webkit-grab; border: 1px solid #000000f5; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 908; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
+.panel-subcategorias button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
+.panel-subcategorias button:hover { background-color: #fff; color: #333; transform: scale(1.05); box-shadow: 0 0 8px none; }
+
+
+.logo { height: 40vw; max-height: 380px; filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px white); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
+@media (min-width: 1024px) { .logo { width: 150px; height: 150px; max-height: none; } }
+
 
 .descripcion-emprendimiento { background-color: rgba(0, 0, 0, 0.5); color: white; padding: 20px; border-radius: 10px; display: inline-block; max-width: 800px; white-space: pre-line; text-align: center; text-indent: 20px; font-size: 16px; line-height: 1.6; box-shadow: 0 0 6px rgba(255,255,255,0.3); }
 
-.btn-grupo { position: relative; padding: 8px 16px; margin: 5px; border-radius: 20px; font-weight: bold; background-color: rgba(0, 0, 0, 0.5); color: white; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 0 6px rgba(255,255,255,0.3); transition: all 0.3s ease; overflow: hidden; }
-
-.modo-claro .btn-grupo { background-color: transparent; color: white; border: none; }
-
-.modo-oscuro .btn-grupo { background-color: rgba(255, 255, 255, 0.05); color: white; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 0 4px rgba(255,255,255,0.1); }
-
-.btn-grupo::before { content: ""; position: absolute; inset: 0; border-radius: 20px; z-index: -1; }
-
-.modo-claro .btn-grupo::before { background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 70%); }
-
-.modo-oscuro .btn-grupo::before { background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05), transparent 70%); }
-
-.btn-grupo:hover { background-color: #fff; color: #333; transform: scale(1.05); box-shadow: 0 0 8px none; }
-
-.btn-grupo.active { box-shadow: none; }
-
-.btn-whatsapp { background-color: #25D366; border: none; padding: 8px 16px; color: white; border-radius: 5px; font-size: 14px; }
-
 .btn-volver-arriba { background-color: white; color: black; border: none; font-size: 20px; box-shadow: 0 0 6px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; -webkit-tap-highlight-color: transparent; }
-
 .btn-volver-arriba:hover { background-color: #f0f0f0; transform: scale(1.1); }
 
-.btn-volver-arriba:focus, .btn-volver-arriba:active, .btn-volver-arriba:visited { outline: none; box-shadow: none; background-color: white; color: black; }
-
-.grupo-section.active { display: block !important; }
-
-/* Bloque de grupo */
-.grupo-section { display: block; min-height: 100vh; margin: 20px 0; padding: 15px; border: 2px solid #333; border-radius: 6px; background: #fafafa; }
-
-/* Título de grupo */
-.grupo-section > h3 { margin: 0 0 10px; font-size: 1.4rem; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-
-/* Bloque de subgrupo dentro del grupo */
-.subgrupo-bloque { margin: 15px 0; padding: 10px; border: 1px dashed #666; border-radius: 4px; background: #fff; }
-
-/* Título de subgrupo */
-.subgrupo-bloque > h4 { margin: 0 0 8px; font-size: 1.1rem; font-weight: 600; color: #444; border-bottom: 1px dotted #aaa; padding-bottom: 4px; }
-
-.subgrupo-bloque .card-producto { margin-bottom: 12px; }
-
 .social-icons { margin-top: 40px; display: flex; justify-content: center; gap: 20px; }
-
 .social-icons img { width: 40px; transition: transform 0.3s ease; }
-
 .social-icons img:hover { transform: scale(1.1); filter: drop-shadow(0 0 0 transparent); }
-
+  
 .bloque-ubicacion { background-color: rgba(0, 0, 0, 0.5); color: white; padding: 12px 16px; border-radius: 10px; text-align: center; max-width: 600px; margin: 20px auto 0; box-shadow: 0 0 6px rgba(255,255,255,0.3); }
 
-/* Contenedor flotante del carrito */
-#carrito {
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-  padding: 15px;
-  border-radius: 10px;
-  width: 320px;              /* un poco más ancho para el carrusel */
-  z-index: 999;
-  display: none;             /* oculto por defecto */
-}
-
-/* Modo oscuro */
-.modo-oscuro #carrito {
-  background-color: rgba(0,0,0,0.85);
-  color: white;
-  border: 1px solid white;
-  box-shadow: 0 0 10px white;
-}
-
-/* Modo claro */
-.modo-claro #carrito {
-  background-color: #fff;
-  color: #333;
-  border: 1px solid #ccc;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
-}
-
-/* Botón flotante para abrir/cerrar */
-#toggleCarrito {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1000;
-  padding: 10px 14px;
-  border-radius: 50px;
-  font-weight: bold;
-  box-shadow: 0 0 5px white;
-  cursor: pointer;
-}
-
-.modo-oscuro #toggleCarrito {
-  background-color: transparent;
-  color: black;
-  border: none;
-}
-
-.modo-claro #toggleCarrito {
-  background-color: transparent;
-  color: white;
-  border: none;
-}
-
-/* Carrusel interno */
-#carritoCarousel .carousel-item {
-  padding: 10px;
-}
-
-#carritoCarousel h3 {
-  font-size: 1.2rem;
-  margin-bottom: 10px;
-}
-/* Añadir al bloque de estilos existente */
-.modal-talles-stock .row {
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
-}
-
-.modal-talles-stock input[type="text"],
-.modal-talles-stock input[type="number"] {
-  font-size: 14px;
-}
-
-/* Badge para productos con stock por talle */
-.badge-stock-talle {
-  font-size: 0.8em;
-  padding: 3px 8px;
-  background: linear-gradient(45deg, #17a2b8, #20c997);
-  color: white;
-}
-
-/* Input para editar stock en línea */
-input.stock-edit {
-  width: 70px;
-  display: inline-block;
-  margin: 0 5px;
-}
-#carritoCarousel ul {
-  padding-left: 0;
-  list-style: none;
-  margin-bottom: 10px;
-}
-
-#carritoCarousel li {
-  font-size: 0.9rem;
-  margin-bottom: 4px;
-}
-
-/* Botones dentro del carrusel */
-#carritoCarousel .btn {
-  font-size: 0.9rem;
-  padding: 6px 10px;
-}
-.panel-grupos,
-.panel-subcategorias {
-  scroll-behavior: smooth; /* hace que el scroll sea animado */
-}
-.panel-grupos,
-.panel-subcategorias {
-  cursor: default; /* cursor normal por defecto */
-}
-
-.panel-grupos:hover,
-.panel-subcategorias:hover {
-  cursor: ew-resize; /* flechas izquierda-derecha al pasar el mouse */
-}
-.panel-subcategorias { position: fixed; scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-y: hidden; overflow-x: auto; white-space: nowrap; cursor: grab; cursor: -webkit-grab; border: 1px solid #000000f5; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 908; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
-
-.panel-subcategorias button { font-family: {{ config.fuente | safe }}; font-weight: 600; margin: 6px; padding: 1px 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
-
-.panel-subcategorias button:hover { background: rgba(255, 255, 255, 0.15); transform: scale(1.05); }
-
-@media (min-width: 1024px) { .logo { width: 150px; height: 150px; max-height: none; } }
-
-.barra-navegacion { padding: 8px 10px; gap: 8px; }
-
-.barra-navegacion button { font-size: 14px; padding: 8px 15px; }
-
-.panel-grupos { padding: 1px 0; max-height: 50vh; overflow-y: hidden; }
-
-.panel-grupos button { font-size: 13px; padding: 1px 6px; border-radius: 8px; }
-
-.panel-subcategorias { padding: 1px 0; max-height: 50vh; overflow-y: hidden; }
-
-.panel-subcategorias button { font-size: 13px; padding: 1px 6px; border-radius: 8px; }
+#carrito { position: fixed; bottom: 80px; right: 20px; padding: 15px; border-radius: 10px; width: 320px; z-index: 999; display: none; }
+#toggleCarrito { position: fixed; bottom: 20px; right: 20px; z-index: 1000; padding: 10px 14px; border-radius: 50px; font-weight: bold; box-shadow: 0 0 5px white; cursor: pointer; }
+.modo-oscuro #carrito { background-color: rgba(0,0,0,0.85); color: white; border: 1px solid white; box-shadow: 0 0 10px white; }
 
 .productos-container { margin-top: 30px; }
-.logo-wrapper {
-  margin-top: 20px;   /* espacio fijo arriba */
-  margin-bottom: 20px;/* espacio fijo abajo */
-}
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-@keyframes moverFondo { 0% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } 100% { background-position: 0% 0%; } }
-/* Imagen dentro de la card */
-#previewFoto {
-  width: 300px;
-  height: 180px;
-  object-fit: contain; /* o cover según prefieras */
-  cursor: pointer;     /* indica que se puede hacer click */
-  transition: transform 0.3s ease;
-}
-#previewFoto:hover {
-  transform: scale(1.05); /* pequeño zoom al pasar el mouse */
-}
+.modal-talles-stock input[type="text"],
+.modal-talles-stock input[type="number"] { font-size: 14px; }
 
-/* Modal */
-#imgModal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.8);
-  display: none; /* oculto por defecto */
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  transition: opacity 0.3s ease;
-  opacity: 0;
-}
-#imgModal.show {
-  display: flex;
-  opacity: 1;
-}
+.panel-grupos,
+.panel-subcategorias { scroll-behavior: smooth; }
 
-/* Imagen dentro del modal */
-#imgModal img {
-  max-width: 95%;
-  max-height: 95%;
-  border-radius: 8px;
-  transform: scale(0.8);
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  opacity: 0;
-}
-#imgModal.show img {
-  transform: scale(1.5); /* zoom suave */
-  opacity: 1;
-}
+.panel-grupos:hover,
+.panel-subcategorias:hover { cursor: ew-resize; }
 
-/* Botón de cierre */
-#imgModal .close {
-  position: absolute;
-  top: 20px; right: 30px;
-  font-size: 40px;
-  color: white;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-#imgModal .close:hover {
-  opacity: 0.7;
-}
-/* Aviso flotante de stock actualizado */
-#avisoStock {
-  display: none;
-  position: fixed;
-  bottom: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  padding: 10px 20px;
-  border-radius: 5px;
-  background-color: #17a2b8;
-  color: white;
-  font-weight: bold;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
-}  
-/* Añadir al final del bloque de estilos */
-
-/* Indicador de colores en las cards */
-.color-indicator {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  margin-right: 5px;
-  border: 1px solid #ccc;
-  vertical-align: middle;
-}
-
-/* Badge para productos con variantes */
-.badge-variantes {
-  font-size: 0.8em;
-  padding: 3px 8px;
-  background: linear-gradient(45deg, #6f42c1, #20c997);
-  color: white;
-}
-
-/* Modal de variantes */
-.modal-variantes table {
-  font-size: 0.9em;
-}
-
-.modal-variantes th {
-  background-color: #f8f9fa;
-}
-
-/* Selector de color mejorado */
-.color-selector {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  margin-top: 5px;
-}
-
-.color-option {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: border 0.2s;
-}
-
-.color-option.selected {
-  border: 2px solid #000;
-  box-shadow: 0 0 5px rgba(0,0,0,0.5);
-}
-/* Card giratoria mejorada */
-.card-giratoria {
-  perspective: 1000px;
-  height: 470px;
-  border-radius: 12px !important;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  background: transparent !important;
-}
-
-.card-contenedor {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  transform-style: preserve-3d;
-}
-
-.card-front, .card-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  border-radius: 12px;
-  padding: 15px;
-  background-color: rgba(0,0,0,0.6);
-  border: 1px solid rgba(255,255,255,0.2);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-}
-
-.card-front:hover, .card-back:hover {
-  box-shadow: 0 12px 25px rgba(0,0,0,0.4);
-}
-
-.card-back {
-  transform: rotateY(180deg);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  overflow-y: auto;
-}
-
-.card-back h5 {
-  color: #ff6b8b;
-  margin-bottom: 15px;
-  font-size: 1.2rem;
-}
-
-.card-back .precio {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #4cd964;
-  margin: 10px 0;
-}
-
-.card-back .descripcion {
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin: 10px 0;
-  max-height: 150px;
-  overflow-y: auto;
-  padding: 0 10px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 8px;
-  padding: 10px;
-}
-
-/* Botón girar */
-.btn-girar {
-  position: absolute;
-  right: 10px;
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.3);
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-}
-
-.btn-girar:hover {
-  background: rgba(255,255,255,0.2);
-  transform: scale(1.1);
-}
-
-/* Botón reversa */
-.btn-reversa {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.3);
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-}
-.preservar-saltos {
-  white-space: pre-line;
-  word-wrap: break-word;
-}
-.btn-reversa:hover {
-  background: rgba(255,255,255,0.2);
-}  
-.fotos-adicionales {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-.fotos-adicionales img {
-  transition: transform 0.2s;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-
-.fotos-adicionales img:hover {
-  transform: scale(1.2);
-  z-index: 10;
-  position: relative;
-}  
-#volverArriba { z-index: 997; }
 #loginToggleBtn { z-index: 997; }
 #loginFloatingForm { z-index: 997; }
-  
+
+#imgModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none;  align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.3s ease; opacity: 0; }
+#imgModal.show { display: flex; opacity: 1; }
+
+.card-giratoria { perspective: 1000px; height: 470px; border-radius: 12px !important; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.2) !important; background: transparent !important; }
+
+.card-contenedor { position: relative; width: 100%; height: 100%; transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; }
+
+.card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 12px; padding: 15px; background-color: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+.card-front:hover, .card-back:hover { box-shadow: 0 12px 25px rgba(0,0,0,0.4); }
+
+.card-back { transform: rotateY(180deg); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; overflow-y: auto; }
+.card-back h5 { color: #ff6b8b; margin-bottom: 15px; font-size: 1.2rem; }
+.card-back .precio { font-size: 1.5rem; font-weight: bold; color: #4cd964; margin: 10px 0; }
+.card-back .descripcion { font-size: 0.9rem; line-height: 1.5; margin: 10px 0; max-height: 150px; overflow-y: auto; padding: 0 10px; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; }
+
+.btn-girar { position: absolute; right: 10px; width: 35px; height: 35px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 18px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+.btn-girar:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
+.btn-reversa { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 16px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+.preservar-saltos { white-space: pre-line; word-wrap: break-word; }
+.btn-reversa:hover { background: rgba(255,255,255,0.2); }  
+
+.fotos-adicionales { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
+.fotos-adicionales img { transition: transform 0.2s; border: 1px solid rgba(255,255,255,0.2); }
+.fotos-adicionales img:hover { transform: scale(1.2); z-index: 10; position: relative; }  
+
 </style>
 </head>
 <body class="container py-5 {{ modo_visual }}">
@@ -631,16 +193,13 @@ input.stock-edit {
       <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
       <button id="btnContacto" onclick="irAContacto()">Contacto</button>
     </nav>
-
-    <!-- Panel de grupos: ahora vacío, se llena con JS -->
+    
     <div id="panelGrupos" class="panel-grupos oculta">
-      <!-- Los botones de grupo se generan dinámicamente desde la API -->
     </div>
   </div>
 
-  <!-- Panel de subcategorías: también se llena con JS -->
-  <div id="panelSubcategorias" class="panel-subcategorias oculta"></div>
-  <!-- Contenedor principal de productos -->
+<div id="panelSubcategorias" class="panel-subcategorias oculta"></div>
+
 <div id="productos" class="row productos-container"></div>
 
 
@@ -653,12 +212,11 @@ input.stock-edit {
   
 <div id="adminCard" class="card producto-card admin-card d-none">
   <div class="card-body">
-    <!-- Foto -->
+
     <img id="previewFoto" src="" alt="Sin foto" class="d-none w-100 mb-2">
     <input type="file" id="inputFoto" accept="image/*" class="form-control mb-2">
     <button id="btnQuitarFoto" type="button" class="btn btn-danger mb-2 d-none">❌ Quitar foto</button>
 
-    <!-- Fotos adicionales -->
     <div class="mb-2">
       <label class="form-label">Fotos adicionales (opcional)</label>
       <input type="file" id="fotosAdicionales" accept="image/*" 
@@ -667,45 +225,34 @@ input.stock-edit {
       <div id="previewFotosAdicionales" class="mt-2"></div>
     </div>
     
-    <!-- Datos -->
     <input type="text" id="nombreProd" placeholder="Nombre producto *" class="form-control mb-2">
     <input type="number" id="precioProd" placeholder="Precio *" class="form-control mb-2">
     
-    <!-- 🔥 NUEVO: Campo de descripción -->
     <textarea id="descripcionProd" placeholder="Descripción del producto (opcional)" 
           class="form-control mb-2 preservar-saltos" rows="3"></textarea>
     
-    <!-- Talles -->
     <input type="text" id="tallesProd" placeholder="Talles (S,M,L)" class="form-control mb-2">
-    
-    <!-- Stock (simplificado) -->
+
     <div id="stockSimple" class="mb-2">
       <input type="number" id="stockGeneral" placeholder="Stock inicial" min="0" value="0" class="form-control">
     </div>
     
-    <!-- Stock por talle (aparece solo si hay talles) -->
     <div id="stockPorTalleContainer" class="mb-2" style="display:none;">
       <label class="form-label">Stock por talle (ej: S:5, M:3, L:2)</label>
       <input type="text" id="stockPorTalle" placeholder="S:5, M:3, L:2" class="form-control">
       <small class="text-muted">Separar por comas: talle:cantidad</small>
     </div>
 
-    <!-- 🔥 MODIFICADO: Grupo con sugerencias -->
     <input type="text" id="grupoProd" list="grupos-sugeridos" placeholder="Grupo *" class="form-control mb-2">
     <datalist id="grupos-sugeridos">
-      <!-- Las opciones se llenarán automáticamente con JavaScript -->
-    </datalist>
-    
-    <!-- 🔥 MODIFICADO: Subgrupo con sugerencias -->
-    <input type="text" id="subgrupoProd" list="subgrupos-sugeridos" placeholder="Subgrupo *" class="form-control mb-2">
-    <datalist id="subgrupos-sugeridos">
-      <!-- Las opciones se llenarán automáticamente con JavaScript -->
     </datalist>
 
-    <!-- Confirmar -->
+    <input type="text" id="subgrupoProd" list="subgrupos-sugeridos" placeholder="Subgrupo *" class="form-control mb-2">
+    <datalist id="subgrupos-sugeridos">
+    </datalist>
+
     <button id="btnConfirmarProd" class="btn btn-success">✅ Confirmar</button>
     
-    <!-- 🔥 NUEVO: Botón para cancelar edición -->
     <button id="btnCancelarEdicion" class="btn btn-secondary mt-2" onclick="resetearFormularioAdmin()" style="display:none;">
       ❌ Cancelar edición
     </button>
@@ -754,7 +301,6 @@ input.stock-edit {
   
 <div id="loginFloatingForm" style="position:fixed; bottom:70px; left:50%; transform:translateX(-50%); z-index:999; display:none; background:rgba(0,0,0,0.9); padding:15px; border-radius:10px; width:250px;">
   <form onsubmit="loginAdmin(event)">
-    <!-- MISMOS IDs que antes -->
     <input type="text" id="usuario_login" placeholder="Usuario" required class="form-control mb-2">
     <input type="password" id="clave_login" placeholder="Contraseña" required class="form-control mb-2">
     <button type="submit" class="btn-grupo w-100">Entrar</button>
@@ -765,12 +311,10 @@ input.stock-edit {
   <button type="button" class="btn-grupo" onclick="salirAdmin()">🚪 Salir de Admin</button>
 </div>
   
-<!-- Modifica tu HTML para un solo flujo -->
 <div id="carrito">
   <div id="carritoCarousel" class="carousel slide" data-bs-ride="false">
     <div class="carousel-inner">
-      
-      <!-- Slide 1: Carrito -->
+
       <div class="carousel-item active">
         <h3>🛒 Tu carrito</h3>
         <ul id="listaCarrito"></ul>
@@ -812,8 +356,7 @@ input.stock-edit {
      style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;">
   ✔ Precio actualizado
 </div>
-
-<!-- Aviso flotante de talle actualizado -->
+  
 <div id="avisoTalle" class="alert alert-info text-center" role="alert"
      style="display: none; position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 9999;">
   ✔ Talle actualizado
@@ -826,15 +369,13 @@ input.stock-edit {
   
   <script>
 const configWhatsApp = "{{ config.whatsapp }}";
-// Opción B: leerlo de la URL si lo pasás como query param
 const email = "{{ session.get('email') or '' }}";
-const URL_BACKEND = "https://mpagina.onrender.com"; // Tu URL central
+const URL_BACKEND = "https://mpagina.onrender.com"; 
 
 if (window.email) {
     email = window.email;
 }
-    
-  // Mostrar/ocultar botón volver arriba
+
   window.addEventListener('scroll', () => {
     const btn = document.getElementById('volverArriba');
     btn.style.display = window.scrollY > 300 ? 'block' : 'none';
@@ -846,13 +387,10 @@ if (window.email) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
     
-
-// Mostrar/ocultar botón login al final de página
 window.addEventListener('scroll', () => {
   const btn = document.getElementById('loginToggleBtn');
   if (!btn) return;
-  
-  // 🔥 NUEVO: No mostrar si ya estamos en modo admin
+
   if (window.modoAdmin) {
     btn.style.display = 'none';
     return;
@@ -879,8 +417,6 @@ document.getElementById("tallesProd").addEventListener("input", function() {
     
     const stockPorTalleInput = document.getElementById("stockPorTalle");
     if (stockPorTalleInput) {
-      // 🔥 NUEVO: Solo actualizar si estamos CREANDO un producto nuevo
-      // o si el campo de stock está vacío
       const estaEditando = !!window.productoEditandoId;
       const stockEstaVacio = !stockPorTalleInput.value.trim();
       
@@ -889,25 +425,18 @@ document.getElementById("tallesProd").addEventListener("input", function() {
         stockVacio: stockEstaVacio,
         valorActual: stockPorTalleInput.value
       });
-      
-      // Solo actualizar automáticamente si:
-      // 1. NO estamos editando un producto (creando nuevo) Y el campo está vacío
-      // 2. O si estamos editando PERO el usuario acaba de borrar un talle
       if ((!estaEditando && stockEstaVacio) || stockEstaVacio) {
-        // Crear stock inicial desde cero
         const nuevoStock = talles.map(t => `${t}:0`).join(", ");
         stockPorTalleInput.value = nuevoStock;
         console.log("🔄 Stock por talle inicializado:", nuevoStock);
       } 
-      // Si estamos editando Y ya hay stock definido, mantenerlo
+
       else if (estaEditando && !stockEstaVacio) {
         console.log("📌 Manteniendo stock existente durante edición");
-        // No hacer nada - mantener el stock que ya estaba
       }
-      // Si estamos creando nuevo pero ya hay algo escrito, actualizar manteniendo valores
+
       else if (!estaEditando && !stockEstaVacio) {
         try {
-          // Parsear stock existente
           const stockExistente = {};
           stockPorTalleInput.value.split(",").forEach(item => {
             const parts = item.split(":").map(s => s.trim());
@@ -917,23 +446,20 @@ document.getElementById("tallesProd").addEventListener("input", function() {
               stockExistente[talle] = stock;
             }
           });
-          
-          // Crear nuevo stock manteniendo valores existentes para talles que siguen
+
           const nuevoStock = talles.map(talle => {
             if (stockExistente[talle] !== undefined) {
               return `${talle}:${stockExistente[talle]}`;
             } else {
-              return `${talle}:0`; // Nuevo talle, stock en 0
+              return `${talle}:0`; 
             }
           }).join(", ");
-          
-          // También eliminar talles que ya no están en la lista
+
           stockPorTalleInput.value = nuevoStock;
           console.log("🔄 Stock por talle actualizado manteniendo valores:", nuevoStock);
           
         } catch (error) {
           console.error("❌ Error procesando stock:", error);
-          // Si hay error, crear stock desde cero
           const nuevoStock = talles.map(t => `${t}:0`).join(", ");
           stockPorTalleInput.value = nuevoStock;
         }
@@ -955,13 +481,12 @@ function renderizarProductos(productos) {
     return;
   }
   
-  cont.innerHTML = ""; // Limpiar contenedor
+  cont.innerHTML = ""; 
   
   productos.forEach(p => {
     const card = renderProducto(p);
     cont.appendChild(card);
-    
-    // Animación
+
     setTimeout(() => {
       card.classList.remove("fade-reorder");
       card.classList.add("show");
@@ -988,21 +513,17 @@ function cargarProductoEnFormulario(producto) {
     fotos_adicionales_count: producto.fotos_adicionales ? producto.fotos_adicionales.length : 0
   });
   
-  // Mostrar formulario admin
   const adminCard = document.getElementById("adminCard");
   adminCard.classList.remove("d-none");
   
-  // Activar modo edición
   toggleModoEdicion(true);
   
-  // Llenar campos con datos del producto
   document.getElementById("nombreProd").value = producto.nombre || "";
   document.getElementById("precioProd").value = producto.precio || "";
   document.getElementById("descripcionProd").value = producto.descripcion || "";
   document.getElementById("grupoProd").value = producto.grupo || "";
   document.getElementById("subgrupoProd").value = producto.subgrupo || "";
   
-  // 1. Obtener talles del producto - CON MÁS DEBUG
   let tallesArray = [];
   console.log("🔍 Analizando talles del producto...");
   
@@ -1021,13 +542,11 @@ function cargarProductoEnFormulario(producto) {
   
   console.log("📋 Talles finales:", tallesArray);
   
-  // 2. Determinar qué campo de stock mostrar
   if (tallesArray.length > 0) {
     console.log("🔄 Producto CON talles, mostrando stock por talle");
     document.getElementById("stockPorTalleContainer").style.display = "block";
     document.getElementById("stockSimple").style.display = "none";
     
-    // 🔥 CORRECCIÓN MEJORADA con más logs
     let stockPorTalleStr = "";
     
     if (producto.stock_por_talle && Object.keys(producto.stock_por_talle).length > 0) {
@@ -1038,7 +557,6 @@ function cargarProductoEnFormulario(producto) {
       let tallesFiltrados = 0;
       let tallesIgnorados = [];
       
-      // Solo incluir stock para los talles que existen
       tallesArray.forEach(talle => {
         if (stockPorTalle[talle] !== undefined) {
           stockFiltrado[talle] = stockPorTalle[talle];
@@ -1050,7 +568,6 @@ function cargarProductoEnFormulario(producto) {
         }
       });
       
-      // Verificar si hay talles en stock que ya no están en tallesArray
       Object.keys(stockPorTalle).forEach(talle => {
         if (!tallesArray.includes(talle) && talle !== "unico") {
           tallesIgnorados.push(`${talle}:${stockPorTalle[talle]}`);
@@ -1061,8 +578,7 @@ function cargarProductoEnFormulario(producto) {
       if (tallesIgnorados.length > 0) {
         console.log("📌 Talles ignorados del stock:", tallesIgnorados.join(", "));
       }
-      
-      // Crear string para el input
+
       stockPorTalleStr = Object.entries(stockFiltrado)
         .map(([talle, stock]) => `${talle}:${stock}`)
         .join(", ");
@@ -1071,7 +587,6 @@ function cargarProductoEnFormulario(producto) {
       console.log("📝 String generado:", stockPorTalleStr);
       
     } else {
-      // Si no hay stock definido, crear uno inicial
       stockPorTalleStr = tallesArray.map(t => `${t}:0`).join(", ");
       console.log("➕ Creando stock inicial:", stockPorTalleStr);
     }
@@ -1083,7 +598,6 @@ function cargarProductoEnFormulario(producto) {
     document.getElementById("stockPorTalleContainer").style.display = "none";
     document.getElementById("stockSimple").style.display = "block";
     
-    // Determinar stock general
     let stockGeneral = 0;
     if (producto.stock_por_talle && producto.stock_por_talle["unico"] !== undefined) {
       stockGeneral = producto.stock_por_talle["unico"];
@@ -1097,8 +611,7 @@ function cargarProductoEnFormulario(producto) {
     
     document.getElementById("stockGeneral").value = stockGeneral;
   }
-  
-  // 3. Imagen principal
+
   if (producto.imagen_url) {
     const previewFoto = document.getElementById("previewFoto");
     previewFoto.src = producto.imagen_url;
@@ -1111,12 +624,10 @@ function cargarProductoEnFormulario(producto) {
     console.log("🖼️ Sin imagen principal");
   }
   
-  // 🔥 4. NUEVO: Cargar fotos adicionales
   const previewDiv = document.getElementById("previewFotosAdicionales");
   if (previewDiv) {
     previewDiv.innerHTML = '';
     
-    // Guardar las fotos adicionales existentes en variable global
     window.fotosAdicionalesExistentes = producto.fotos_adicionales || [];
     
     if (window.fotosAdicionalesExistentes.length > 0) {
@@ -1134,7 +645,6 @@ function cargarProductoEnFormulario(producto) {
         img.style.border = '2px solid #ccc';
         img.title = `Foto adicional ${index + 1}`;
         
-        // Agregar botón para eliminar esta foto específica
         const container = document.createElement("div");
         container.style.position = 'relative';
         container.style.display = 'inline-block';
@@ -1158,10 +668,8 @@ function cargarProductoEnFormulario(producto) {
         btnEliminar.onclick = (e) => {
           e.stopPropagation();
           if (confirm(`¿Eliminar foto adicional ${index + 1}?`)) {
-            // Eliminar de la lista de fotos existentes
             window.fotosAdicionalesExistentes = window.fotosAdicionalesExistentes.filter((_, i) => i !== index);
-            // Actualizar la vista
-            cargarProductoEnFormulario(producto); // Recargar
+            cargarProductoEnFormulario(producto);
             console.log(`🗑️ Foto adicional ${index + 1} eliminada`);
           }
         };
@@ -1180,11 +688,9 @@ function cargarProductoEnFormulario(producto) {
     console.log("⚠️ No se encontró el div previewFotosAdicionales");
   }
   
-  // 5. Guardar ID del producto que estamos editando
   window.productoEditandoId = producto.id_base;
   console.log("🔑 ID del producto en edición:", window.productoEditandoId);
   
-  // 6. Scroll al formulario
   adminCard.scrollIntoView({ behavior: 'smooth' });
   
   console.log("✅ Producto cargado correctamente en formulario");
@@ -1196,7 +702,6 @@ function toggleModoEdicion(editando) {
   const titulo = document.getElementById("tituloFormularioAdmin") || document.createElement("h5");
   
   if (editando) {
-    // 🔥 NUEVO: Si hay un elemento para título, actualizarlo
     if (titulo && titulo.id === "tituloFormularioAdmin") {
       titulo.textContent = "✏️ Editando Producto";
       titulo.classList.add("text-warning");
@@ -1208,7 +713,6 @@ function toggleModoEdicion(editando) {
     btnConfirmar.classList.add("btn-warning");
     console.log("🔧 Modo edición activado");
   } else {
-    // 🔥 NUEVO: Restaurar título
     if (titulo && titulo.id === "tituloFormularioAdmin") {
       titulo.textContent = "➕ Nuevo Producto";
       titulo.classList.remove("text-warning");
@@ -1223,8 +727,7 @@ function toggleModoEdicion(editando) {
 }
 function resetearFormularioAdmin() {
   console.log("🔄 Reseteando formulario admin...");
-  
-  // 1. Limpiar todos los campos
+
   document.getElementById("nombreProd").value = "";
   document.getElementById("precioProd").value = "";
   document.getElementById("descripcionProd").value = "";
@@ -1234,18 +737,15 @@ function resetearFormularioAdmin() {
   document.getElementById("grupoProd").value = "";
   document.getElementById("subgrupoProd").value = "";
   
-  // 2. Resetear visibilidad
   document.getElementById("stockPorTalleContainer").style.display = "none";
   document.getElementById("stockSimple").style.display = "block";
   
-  // 3. Resetear foto principal
   document.getElementById("previewFoto").src = "";
   document.getElementById("previewFoto").classList.add("d-none");
   document.getElementById("btnQuitarFoto").classList.add("d-none");
   document.getElementById("inputFoto").value = "";
   window.fotoOptimizada = null;
   
-  // 🔥 4. NUEVO: Resetear fotos adicionales
   const previewDiv = document.getElementById("previewFotosAdicionales");
   if (previewDiv) {
     previewDiv.innerHTML = '';
@@ -1257,12 +757,10 @@ function resetearFormularioAdmin() {
     fotosInput.value = "";
     console.log("✅ Input de fotos adicionales limpiado");
   }
-  
-  // 🔥 5. Limpiar variables temporales de fotos adicionales
+ 
   window.fotosAdicionalesExistentes = null;
   console.log("✅ Variables de fotos adicionales limpiadas");
-  
-  // 6. Cambiar botón a modo creación
+
   const btnConfirmar = document.getElementById("btnConfirmarProd");
   if (btnConfirmar) {
     btnConfirmar.innerHTML = "✅ Confirmar";
@@ -1270,19 +768,16 @@ function resetearFormularioAdmin() {
     btnConfirmar.classList.add("btn-success");
     console.log("✅ Botón cambiado a modo creación");
   }
-  
-  // 7. Ocultar botón cancelar
+
   const btnCancelar = document.getElementById("btnCancelarEdicion");
   if (btnCancelar) {
     btnCancelar.style.display = "none";
     console.log("✅ Botón cancelar ocultado");
   }
   
-  // 8. Limpiar ID de edición
   window.productoEditandoId = null;
   console.log("✅ ID de edición limpiado");
   
-  // 🔥 9. NUEVO: Desactivar modo edición
   if (typeof toggleModoEdicion === "function") {
     toggleModoEdicion(false);
   }
@@ -1300,8 +795,7 @@ function actualizarStockPorTalle(idProducto, talleSeleccionado) {
     console.warn("⚠️ Elementos no encontrados");
     return;
   }
-  
-  // 🔥 Obtener stock del talle seleccionado
+
   let stockDisponible = 0;
   const stockPorTalle = window[`stock_por_talle_${idProducto}`];
   
@@ -1312,8 +806,7 @@ function actualizarStockPorTalle(idProducto, talleSeleccionado) {
     console.warn(`⚠️ Talle ${talleSeleccionado} no encontrado en stock_por_talle`);
     stockDisponible = 0;
   }
-  
-  // Actualizar UI
+
   stockSpan.textContent = stockDisponible > 0 ? stockDisponible : "Sin stock";
   
   if (stockDisponible > 0) {
@@ -1341,29 +834,25 @@ function actualizarStockPorTalle(idProducto, talleSeleccionado) {
     agregarBtn.textContent = "Sin stock";
   }
 }
-    
-/////////////////////////////////
+
 function habilitarScrollHorizontal(selector) {
   const panel = document.querySelector(selector);
   if (!panel) return;
 
-  // 1️⃣ Scroll horizontal con la rueda del mouse (animado)
   panel.addEventListener('wheel', (e) => {
-    e.preventDefault(); // evita scroll vertical
+    e.preventDefault(); 
     panel.scrollBy({
       left: e.deltaY,
-      behavior: 'smooth' // animación suave
+      behavior: 'smooth' 
     });
   });
-
-  // 2️⃣ Scroll horizontal arrastrando con el mouse
   let isDown = false;
   let startX;
   let scrollLeft;
 
   panel.addEventListener('mousedown', (e) => {
     isDown = true;
-    panel.classList.add('active'); // opcional: estilo visual
+    panel.classList.add('active'); /
     startX = e.pageX - panel.offsetLeft;
     scrollLeft = panel.scrollLeft;
   });
@@ -1382,21 +871,17 @@ function habilitarScrollHorizontal(selector) {
     if (!isDown) return;
     e.preventDefault();
     const x = e.pageX - panel.offsetLeft;
-    const walk = (x - startX); // cantidad de movimiento
+    const walk = (x - startX); 
     panel.scrollLeft = scrollLeft - walk;
   });
 }
 
-// Activar en ambos paneles
 habilitarScrollHorizontal('.panel-grupos');
 habilitarScrollHorizontal('.panel-subcategorias');
 
-////////////////////////////////////////////////////     
-// Configuración de paginación
 const itemsPorPagina = 12;
 let totalPaginas = 0;
 
-// 👉 Flag de admin (puede venir de tu token backend)
 const modoAdmin = window.tokenAdminEmail ? true : false;
 
 if (modoAdmin) {
@@ -1407,39 +892,33 @@ function openModal(src) {
   const modal = document.getElementById("imgModal");
   document.getElementById("modal-img").src = src;
   modal.style.display = "flex";
-  setTimeout(() => modal.classList.add("show"), 10); // activa animación
+  setTimeout(() => modal.classList.add("show"), 10); 
 }
     
 function closeModal() {
   const modal = document.getElementById("imgModal");
   modal.classList.remove("show");
-  setTimeout(() => modal.style.display = "none", 300); // espera animación
+  setTimeout(() => modal.style.display = "none", 300);
 }
-// ========== FUNCIONES NUEVAS PARA EL CARRITO ==========
 
-// 1. Mostrar formulario de datos del cliente (NUEVA)
 function mostrarFormulario() {
     console.log("📝 Mostrando formulario de datos del cliente");
-    
-    // Mostrar el formulario de datos del cliente
+
     const datosCliente = document.getElementById('datosCliente');
     if (datosCliente) {
         datosCliente.style.display = 'block';
     }
-    
-    // Ocultar el botón "Continuar con la compra"
+
     const btnContinuar = document.getElementById('btnContinuar');
     if (btnContinuar) {
         btnContinuar.style.display = 'none';
     }
-    
-    // Mostrar el botón "Pagar con Mercado Pago"
+
     const btnPagarFinal = document.getElementById('btnPagarFinal');
     if (btnPagarFinal) {
         btnPagarFinal.style.display = 'block';
     }
-    
-    // Hacer scroll al formulario
+
     setTimeout(() => {
         const carrito = document.getElementById('carrito');
         if (carrito) {
@@ -1447,7 +926,7 @@ function mostrarFormulario() {
         }
     }, 100);
 }
-// Función para girar las cards
+    
 function girarCard(elemento) {
   const cardContenedor = elemento.closest('.card-contenedor');
   if (cardContenedor) {
@@ -1456,21 +935,17 @@ function girarCard(elemento) {
   }
 }
 
-// También girar al pasar mouse (opcional)
+
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.card-giratoria').forEach(card => {
     card.addEventListener('mouseenter', () => {
-      // Opcional: gira automáticamente al pasar mouse
-      // card.querySelector('.card-contenedor').style.transform = 'rotateY(180deg)';
     });
     
     card.addEventListener('mouseleave', () => {
-      // Opcional: vuelve al frente al sacar mouse  
-      // card.querySelector('.card-contenedor').style.transform = 'rotateY(0deg)';
     });
   });
 });
-// 2. Ocultar formulario de datos del cliente (NUEVA)
+
 function ocultarFormulario() {
     const datosCliente = document.getElementById('datosCliente');
     if (datosCliente) {
@@ -1488,17 +963,15 @@ function ocultarFormulario() {
     }
 }
 
-// 3. Procesar pago completo (NUEVA)
+
 async function pagarTodoJunto() {
     console.log("🛒 Iniciando proceso de pago...");
     
-    // 1. Validar que hay productos en el carrito
     if (carrito.length === 0) {
         alert("❌ El carrito está vacío");
         return;
     }
-    
-    // 2. Obtener datos del formulario
+
     const nombreInput = document.querySelector('input[name="nombre"]');
     const apellidoInput = document.querySelector('input[name="apellido"]');
     const emailInput = document.querySelector('input[name="email"]');
@@ -1518,24 +991,20 @@ async function pagarTodoJunto() {
         alert("❌ Nombre, apellido y email son obligatorios");
         return;
     }
-    
-    // 3. Validar email
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailCliente)) {
         alert("❌ Por favor ingresa un email válido");
         return;
     }
-    
-    // 4. Generar un ID único para esta orden
+
     const orden_id = 'ORD_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
-    // 5. Función para convertir precio a número
+
     function convertirPrecio(precio) {
         if (typeof precio === 'number') {
             return precio;
         }
         if (typeof precio === 'string') {
-            // Remover símbolo $, comas y espacios
             const limpio = precio.replace(/[$\s,]/g, '').trim();
             const num = parseFloat(limpio);
             return isNaN(num) ? 0 : num;
@@ -1543,26 +1012,22 @@ async function pagarTodoJunto() {
         return 0;
     }
     
-    // 6. Función para convertir cantidad a número
     function convertirCantidad(cantidad) {
         const num = parseInt(cantidad);
         return isNaN(num) || num < 1 ? 1 : num;
     }
     
-    // 7. Preparar el payload para el backend
-    const itemsMP = []; // Para Mercado Pago
-    const itemsCarrito = []; // Para Firestore
+    const itemsMP = []; 
+    const itemsCarrito = []; 
     
     let totalCalculado = 0;
     
     carrito.forEach(item => {
-        // Convertir precios y cantidades
         const precio = convertirPrecio(item.precio);
         const cantidad = convertirCantidad(item.cantidad);
         const subtotal = precio * cantidad;
         totalCalculado += subtotal;
         
-        // Item para Mercado Pago
         itemsMP.push({
             title: item.nombre + (item.talle ? ` (${item.talle})` : ""),
             quantity: cantidad,
@@ -1570,7 +1035,6 @@ async function pagarTodoJunto() {
             currency_id: "ARS"
         });
         
-        // Item para Firestore (formato completo)
         itemsCarrito.push({
             nombre: item.nombre,
             precio: precio,
@@ -1585,8 +1049,8 @@ async function pagarTodoJunto() {
     
     const payload = {
         email_vendedor: email,
-        carrito: itemsCarrito,  // Enviar carrito completo con precios convertidos
-        items_mp: itemsMP,      // Enviar también items formateados para MP
+        carrito: itemsCarrito,  
+        items_mp: itemsMP,      
         total: totalCalculado,
         cliente_nombre: `${nombre} ${apellido}`.trim(),
         cliente_email: emailCliente,
@@ -1599,20 +1063,17 @@ async function pagarTodoJunto() {
     console.log("💰 Total calculado:", totalCalculado);
     console.log("🛒 Items procesados:", itemsCarrito.length);
     
-    // Debug: mostrar precios convertidos
     itemsCarrito.forEach((item, idx) => {
         console.log(`  ${idx+1}. ${item.nombre}: $${item.precio} x ${item.cantidad} = $${item.subtotal}`);
     });
     
     try {
-        // Mostrar indicador de carga
         const btnPagarFinal = document.getElementById('btnPagarFinal');
         if (btnPagarFinal) {
             btnPagarFinal.disabled = true;
             btnPagarFinal.textContent = 'Procesando...';
         }
         
-        // 8. Enviar al backend para crear la preferencia de pago
         const response = await fetch(`${URL_BACKEND}/pagar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1627,11 +1088,9 @@ async function pagarTodoJunto() {
         const data = await response.json();
         console.log("✅ Respuesta del backend:", data);
         
-        // 9. Manejar la respuesta
         if (data.error) {
             alert("❌ Error: " + data.error);
         } else if (data.init_point) {
-            // Guardar el ID de la orden en localStorage para referencia
             localStorage.setItem('ultima_orden_id', orden_id);
             localStorage.setItem('ultima_orden_data', JSON.stringify({
                 fecha: new Date().toISOString(),
@@ -1641,11 +1100,9 @@ async function pagarTodoJunto() {
                 email: emailCliente
             }));
             
-            // Redirigir a Mercado Pago
             console.log("➡️ Redirigiendo a Mercado Pago...");
             window.location.href = data.init_point;
         } else if (data.preference_id && window.mp) {
-            // Usar SDK de Mercado Pago si está disponible
             localStorage.setItem('ultima_orden_id', orden_id);
             
             window.mp.checkout({
@@ -1661,7 +1118,6 @@ async function pagarTodoJunto() {
         console.error("💥 Error al procesar el pago:", error);
         alert("❌ Error al procesar el pago: " + error.message);
     } finally {
-        // Restaurar botón
         const btnPagarFinal = document.getElementById('btnPagarFinal');
         if (btnPagarFinal) {
             btnPagarFinal.disabled = false;
@@ -1670,15 +1126,12 @@ async function pagarTodoJunto() {
     }
 }
 
-// 4. Modificar la función vaciarCarrito existente para que también oculte el formulario
-// Reemplaza tu función vaciarCarrito existente con esta:
 function vaciarCarrito() {
     carrito = [];
     actualizarCarrito();
-    ocultarFormulario(); // Esto es lo nuevo que agregamos
+    ocultarFormulario(); 
 }
-    
-// 👉 Mostrar/ocultar botones eliminar según modo admin
+
 function toggleModoAdmin(activo) {
   document.querySelectorAll(".btnEliminarCard").forEach(btn => {
     if (activo) {
@@ -1691,11 +1144,8 @@ function toggleModoAdmin(activo) {
     
 function abrirConfigMercadoPago() {
     console.log("⚙️ Redirigiendo a configuración de Mercado Pago...");
-    
-    // 👉 Obtener la URL actual del vendedor (SU página)
     const urlRetorno = window.location.href;
-    
-    // 👉 Usamos URL_BACKEND para que siempre apunte al backend correcto
+
     const configUrl = `${URL_BACKEND}/conectar_mp?email=${encodeURIComponent(email)}&url_retorno=${encodeURIComponent(urlRetorno)}`;
     
     console.log("🔗 Redirigiendo a:", configUrl);
@@ -1712,7 +1162,7 @@ async function eliminarProducto(id_base) {
     const resp = await fetch("https://mpagina.onrender.com/eliminar-producto", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id_base, email }) // 👈 usa la variable global
+      body: JSON.stringify({ id_base, email }) 
     });
 
     console.log("[ELIMINAR_PRODUCTO] 📥 Status HTTP:", resp.status);
@@ -1736,8 +1186,7 @@ async function eliminarProducto(id_base) {
     alert("Error al eliminar producto: " + err.message);
   }
 }
-    
-// 👉 Optimizar imagen igual que Step0 → resize a 300x180, WebP q=0.8
+
 async function optimizarImagen(file) {
   console.log(`📂 [optimizarImagen] Iniciando optimización: ${file.name} (${file.size} bytes)`);
 
@@ -1790,7 +1239,6 @@ async function optimizarImagen(file) {
   }
 }
 
-// 👉 Preview inmediato de la foto optimizada
 document.getElementById("inputFoto").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1818,7 +1266,6 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
   }
 
   try {
-    // 1. Subir foto principal optimizada
     let foto_url = "";
     if (window.fotoOptimizada) {
       const formData = new FormData();
@@ -1845,16 +1292,13 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       console.log("🔄 Manteniendo foto principal existente:", foto_url);
     }
 
-    // 🔥 NUEVO: 2. Subir fotos adicionales
     const fotosAdicionalesUrls = [];
     
-    // Primero, incluir fotos existentes si estamos editando
     if (window.fotosAdicionalesExistentes && window.fotosAdicionalesExistentes.length > 0) {
       fotosAdicionalesUrls.push(...window.fotosAdicionalesExistentes);
       console.log(`🔄 Manteniendo ${window.fotosAdicionalesExistentes.length} fotos adicionales existentes`);
     }
-    
-    // Luego, subir nuevas fotos adicionales
+
     const fotosInput = document.getElementById('fotosAdicionales');
     if (fotosInput && fotosInput.files && fotosInput.files.length > 0) {
       console.log(`📸 Subiendo ${fotosInput.files.length} nuevas fotos adicionales...`);
@@ -1862,14 +1306,13 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       for (let i = 0; i < fotosInput.files.length; i++) {
         try {
           const file = fotosInput.files[i];
-          
-          // Optimizar cada foto adicional
+
           let blobOptimizado;
           try {
             blobOptimizado = await optimizarImagen(file);
           } catch (e) {
             console.warn(`⚠️ No se pudo optimizar foto ${i+1}, subiendo original:`, e);
-            blobOptimizado = file; // Usar archivo original si falla la optimización
+            blobOptimizado = file; 
           }
           
           const formData = new FormData();
@@ -1884,7 +1327,7 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
           if (!resp.ok) {
             const text = await resp.text();
             console.warn(`⚠️ Error subiendo foto adicional ${i+1}: ${resp.status} ${text}`);
-            continue; // Continuar con las demás fotos
+            continue; 
           }
 
           const data = await resp.json();
@@ -1894,25 +1337,21 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
           }
         } catch (err) {
           console.error(`❌ Error procesando foto adicional ${i+1}:`, err);
-          // Continuar con las demás fotos
         }
       }
     }
 
     console.log(`📊 Total fotos adicionales procesadas: ${fotosAdicionalesUrls.length}`);
 
-    // 3. Obtener datos del formulario
     const nombre = document.getElementById("nombreProd").value.trim();
     const precio = parseFloat(document.getElementById("precioProd").value);
     
-    // 🔥 NUEVO: Obtener precio anterior
     const precioAnteriorInput = document.getElementById("precioAnteriorProd");
     let precioAnterior = 0;
     if (precioAnteriorInput) {
       precioAnterior = parseFloat(precioAnteriorInput.value) || 0;
-      // Solo guardar precio anterior si es mayor que el precio actual (es oferta)
       if (precioAnterior <= precio) {
-        precioAnterior = 0; // No es oferta
+        precioAnterior = 0; 
       }
     }
     
@@ -1926,7 +1365,6 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       return;
     }
 
-    // 4. Procesar stock
     let stockPorTalle = {};
     const talles = tallesRaw ? tallesRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
     
@@ -1960,11 +1398,10 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 
     console.log("📦 Stock procesado:", stockPorTalle);
 
-    // 🔥 5. Crear objeto producto CON FOTOS ADICIONALES Y PRECIO ANTERIOR
     const producto = {
       nombre: nombre,
       precio: precio,
-      precio_anterior: precioAnterior, // 🔥 NUEVO: Campo para ofertas
+      precio_anterior: precioAnterior, 
       descripcion: descripcion || "",
       talles: talles,
       grupo: grupo,
@@ -1974,7 +1411,6 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       fotos_adicionales: fotosAdicionalesUrls
     };
 
-    // 🔥 6. Preparar payload con ES_EDICION
     const esEdicion = window.productoEditandoId ? true : false;
     const payload = {
       producto: producto,
@@ -1982,7 +1418,6 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       es_edicion: esEdicion
     };
 
-    // Si es edición, también enviar id_base DENTRO del producto
     if (esEdicion) {
       payload.producto.id_base = window.productoEditandoId;
       console.log("🔄 Modo EDICIÓN para ID:", window.productoEditandoId);
@@ -1996,7 +1431,6 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
     console.log("🖼️ Fotos adicionales en payload:", fotosAdicionalesUrls.length);
     console.log("💰 Precio anterior:", precioAnterior > 0 ? `$${precioAnterior} (OFERTA -${Math.round(((precioAnterior - precio) / precioAnterior) * 100)}%)` : "No es oferta");
 
-    // 🔥 7. Enviar al backend
     const endpoint = "https://mpagina.onrender.com/guardar-producto";
     
     const respGuardar = await fetch(endpoint, {
@@ -2025,17 +1459,13 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
       } else {
         alert(mensaje);
       }
-      
-      // 8. Limpiar formulario
+
       resetearFormularioAdmin();
       
-      // 9. Limpiar variables temporales
       window.fotosAdicionalesExistentes = null;
       
-      // 10. Ocultar formulario
       document.getElementById("adminCard").classList.add("d-none");
       
-      // 11. Refrescar productos
       setTimeout(() => {
         if (typeof cargarProductos === "function") {
           cargarProductos();
@@ -2057,21 +1487,17 @@ document.getElementById("btnConfirmarProd").addEventListener("click", async () =
 function salirAdmin() {
   console.log("🚪 Saliendo de modo admin, limpiando token...");
 
-  // Desactivar modo admin y limpiar token
   window.modoAdmin = false;
   window.tokenAdmin = null;
 
-  // Limpiar la URL para quitar el ?token=...
   history.replaceState(null, "", "index.html");
 
-  // 🔥 NUEVO: Ocultar botón admin flotante
   const loginToggleBtn = document.getElementById("loginToggleBtn");
   if (loginToggleBtn) {
     loginToggleBtn.style.display = "none";
     console.log("✅ Botón admin flotante ocultado");
   }
   
-  // Refrescar productos para que se oculten los botones ✎
   if (window.todosLosProductos) {
     const cont = document.getElementById("productos");
     if (cont) {
@@ -2083,7 +1509,6 @@ function salirAdmin() {
     }
   }
 
-  // Ocultar botón de logout
   const logoutWrapper = document.getElementById("logoutAdminWrapper");
   if (logoutWrapper) {
     logoutWrapper.style.display = "none";
@@ -2092,7 +1517,6 @@ function salirAdmin() {
     console.warn("⚠️ No se encontró #logoutAdminWrapper en el DOM");
   }
 
-  // Ocultar paneles de administración
   const adminCard = document.getElementById("adminCard");
   if (adminCard) {
     adminCard.classList.add("d-none");
@@ -2106,7 +1530,6 @@ function salirAdmin() {
   }
 }
 
-// Mostrar el botón solo si modoAdmin está activo
 if (window.modoAdmin) {
   const logoutWrapper = document.getElementById("logoutAdminWrapper");
   if (logoutWrapper) {
@@ -2114,7 +1537,6 @@ if (window.modoAdmin) {
     console.log("🔑 Modo admin activo, mostrando botón de logout");
   }
 
-  // Mostrar paneles de administración
   const adminCard = document.getElementById("adminCard");
   if (adminCard) {
     adminCard.classList.remove("d-none");
@@ -2155,9 +1577,7 @@ function renderPaginacion(productosFiltrados) {
   }
 }
 
-// const EMAIL_VENDEDOR = urlParams.get("usuario") || "usuario@ejemplo.com";
 let urlProductos = `https://mpagina.onrender.com/api/productos?usuario=${encodeURIComponent(email)}`;
-// Si estás en modo admin y tenés token, lo incluimos
 if (window.modoAdmin && window.tokenAdmin) {
   urlProductos += `&token=${encodeURIComponent(window.tokenAdmin)}`;
 }
@@ -2172,35 +1592,28 @@ fetch(urlProductos)
     return r.json();
   })
   .then(lista => {
-    // ORDENAR LOS PRODUCTOS: primero con stock, luego por precio
     const productosOrdenados = Array.isArray(lista) ? lista : [];
     
     productosOrdenados.sort((a, b) => {
-      // 1. Primero verificar si tienen stock
       const stockA = (a.stock_por_talle && Object.values(a.stock_por_talle).some(v => v > 0)) || 
                      (a.stock && a.stock > 0);
       const stockB = (b.stock_por_talle && Object.values(b.stock_por_talle).some(v => v > 0)) || 
                      (b.stock && b.stock > 0);
       
-      // Si A tiene stock y B no, A va primero
       if (stockA && !stockB) return -1;
-      // Si B tiene stock y A no, B va primero
+
       if (!stockA && stockB) return 1;
       
-      // 2. Si ambos tienen o no tienen stock, ordenar por precio (menor a mayor)
       return (a.precio || 0) - (b.precio || 0);
     });
     
     window.todosLosProductos = productosOrdenados;
     console.log("🌐 Productos recibidos y ordenados:", window.todosLosProductos.length);
 
-    // 🔥 AGREGAR SUGERENCIAS SIMPLES PARA FORMULARIO ADMIN
     setTimeout(() => {
-      // Extraer grupos y subgrupos únicos
       const gruposUnicos = [...new Set(productosOrdenados.map(p => p.grupo).filter(Boolean))];
       const subgruposUnicos = [...new Set(productosOrdenados.map(p => p.subgrupo).filter(Boolean))];
       
-      // Llenar datalist de grupos
       const datalistGrupos = document.getElementById('grupos-sugeridos');
       if (datalistGrupos && gruposUnicos.length > 0) {
         datalistGrupos.innerHTML = '';
@@ -2212,7 +1625,6 @@ fetch(urlProductos)
         console.log(`✅ ${gruposUnicos.length} grupos para sugerencias`);
       }
       
-      // Llenar datalist de subgrupos
       const datalistSubgrupos = document.getElementById('subgrupos-sugeridos');
       if (datalistSubgrupos && subgruposUnicos.length > 0) {
         datalistSubgrupos.innerHTML = '';
@@ -2241,7 +1653,7 @@ fetch(urlProductos)
     console.log("📂 Grupos detectados:", grupos);
 
     if (contGrupos) {
-      contGrupos.innerHTML = ""; // limpiar antes de insertar
+      contGrupos.innerHTML = ""; 
       grupos.forEach(g => {
         const btn = document.createElement("button");
         btn.className = "btn-grupo";
@@ -2255,7 +1667,6 @@ fetch(urlProductos)
       });
     }
 
-    // Render inicial: primer grupo y subgrupo
     const primerGrupo = grupos[0];
     const subgruposPrimer = [...new Set(window.todosLosProductos
       .filter(p => p.grupo === primerGrupo)
@@ -2289,7 +1700,6 @@ function mostrarGrupo(nombre, event, auto = false) {
     return;
   }
 
-  // Resetear botones de grupo
   document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
   if (event?.target) {
     event.target.classList.add('active');
@@ -2303,7 +1713,6 @@ function mostrarGrupo(nombre, event, auto = false) {
   }
   panel.innerHTML = "";
 
-  // Normalizar y guardar grupo activo
   const grupoCanon = String(nombre || "").trim();
   window.currentGrupo = grupoCanon.toLowerCase();
   console.log("🎯 Grupo activo (canon):", grupoCanon);
@@ -2318,7 +1727,6 @@ function mostrarGrupo(nombre, event, auto = false) {
   )];
   console.log("📂 Subcategorías detectadas:", subcategorias);
 
-  // Crear botones de subgrupo
   subcategorias.forEach(sub => {
     const btn = document.createElement('button');
     btn.textContent = sub;
@@ -2328,7 +1736,6 @@ function mostrarGrupo(nombre, event, auto = false) {
     console.log("➕ Botón subgrupo creado:", sub);
   });
 
-  // 🔁 Usar paginación en lugar de volcar todo
   renderPagina(1, productosGrupo);
   renderPaginacion(productosGrupo);
 
@@ -2350,7 +1757,6 @@ function mostrarGrupo(nombre, event, auto = false) {
 }
 window.mostrarGrupo = mostrarGrupo;
 
-// Extra: log de clicks en botones
 document.addEventListener("click", (e) => {
   if (e.target.classList.contains("btn-grupo")) {
     console.log("🟢 Click en botón grupo:", e.target.textContent);
@@ -2374,7 +1780,6 @@ function filtrarSubcategoria(grupo, subgrupo) {
   const subCanon = String(subgrupo || "").trim();
   console.log("🎯 Grupo canon:", grupoCanon, " | Subgrupo canon:", subCanon || `General_${grupoCanon}`);
 
-  // Filtrar productos
   let productosFiltrados;
   if (subCanon) {
     productosFiltrados = window.todosLosProductos.filter(p =>
@@ -2391,7 +1796,6 @@ function filtrarSubcategoria(grupo, subgrupo) {
 
   console.log("📦 Productos filtrados:", productosFiltrados.length);
 
-  // 🔁 Usar paginación en lugar de volcar todo
   renderPagina(1, productosFiltrados);
   renderPaginacion(productosFiltrados);
 
@@ -2428,10 +1832,8 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
     return;
   }
   
-  // 🔥 OBTENER TALLE (obligatorio si el producto tiene talles)
   const talleElegido = talleSelect?.value || "unico";
   
-  // Verificar stock para el talle seleccionado
   let stockDisponible = 0;
   const stockPorTalle = window[`stock_por_talle_${id_base}`];
   
@@ -2454,7 +1856,6 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
   
   const precio = parseFloat(precioSpan.textContent.replace("$", "").replace(",", "")) || 0;
   
-  // Buscar si ya existe en el carrito (mismo producto y mismo talle)
   const existente = carrito.find(item => 
     item.id_base === id_base && 
     item.talle === talleElegido
@@ -2513,19 +1914,16 @@ function loginAdmin(event) {
       if (data.status === "ok" && data.token) {
         alert("✅ Acceso concedido");
         
-        // 🔥 NUEVO: Ocultar botón admin flotante al entrar
         const loginToggleBtn = document.getElementById("loginToggleBtn");
         if (loginToggleBtn) {
           loginToggleBtn.style.display = "none";
         }
         
-        // Ocultar formulario flotante
         const loginForm = document.getElementById("loginFloatingForm");
         if (loginForm) {
           loginForm.style.display = "none";
         }
         
-        // redirigir al preview dinámico con token en la URL
         location.href = `index.html?token=${data.token}`;
       } else {
         alert("❌ " + data.message);
@@ -2561,7 +1959,6 @@ function eliminarDelCarrito(id_base, talle, event) {
 function mostrarSubgrupo(subgrupo, event) {
   console.log("🟩 mostrarSubgrupo llamada con:", subgrupo);
 
-  // Buscar el grupo actualmente activo (botón marcado)
   const grupoActivoBtn = document.querySelector('.btn-grupo.active');
   const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
   console.log("🎯 Grupo activo detectado:", grupoActivo);
@@ -2571,14 +1968,12 @@ function mostrarSubgrupo(subgrupo, event) {
     return;
   }
 
-  // Resetear botones de subgrupo
   document.querySelectorAll('.btn-subgrupo').forEach(btn => btn.classList.remove('active'));
   if (event?.target) {
     event.target.classList.add('active');
     console.log("👉 Botón subgrupo marcado:", event.target.textContent);
   }
 
-  // Actualizar estado canónico
   const grupoCanon = String(grupoActivo).trim();
   const subCanon = String(subgrupo || "").trim();
 
@@ -2586,11 +1981,9 @@ function mostrarSubgrupo(subgrupo, event) {
   window.currentSub = subCanon.toLowerCase();
   console.log("📌 Estado canónico actualizado:", { currentGrupo: window.currentGrupo, currentSub: window.currentSub });
 
-  // Filtrar y renderizar productos del grupo + subgrupo
   console.log("➡️ Llamando a filtrarSubcategoria con:", { grupoCanon, subCanon });
   filtrarSubcategoria(grupoCanon, subCanon);
 
-  // Logs extra para verificar DOM y estilos
   const cont = document.getElementById("productos");
   if (cont) {
     console.log("📥 Hijos actuales en #productos después de mostrarSubgrupo:", cont.children.length);
@@ -2600,8 +1993,7 @@ function mostrarSubgrupo(subgrupo, event) {
   }
 }
 window.mostrarSubgrupo = mostrarSubgrupo;
-
-// Extra: log de clicks en botones de subgrupo
+    
 document.addEventListener("click", (e) => {
   if (e.target.classList.contains("btn-subgrupo")) {
     console.log("🟢 Click detectado en botón subgrupo:", e.target.textContent);
@@ -2653,8 +2045,7 @@ function actualizarCarrito() {
   carrito.forEach(item => {
     const subtotal = item.precio * item.cantidad;
     suma += subtotal;
-
-    // Crear descripción con talle y color
+    
     let descripcion = item.nombre;
     if (item.talle) descripcion += ` (Talle: ${item.talle})`;
     if (item.color) descripcion += ` (Color: ${item.color})`;
@@ -2695,7 +2086,7 @@ function irAContacto() {
   const contacto = document.getElementById('ubicacion');
   if (contacto) contacto.scrollIntoView({ behavior: 'smooth' });
 }
-window.irAContacto = irAContacto; // si usás módulos
+window.irAContacto = irAContacto; 
     
 function renderProducto(p) {
   const card = document.createElement("div");
@@ -2703,14 +2094,12 @@ function renderProducto(p) {
   card.dataset.id = p.id_base;
   card.dataset.precio = p.precio;
 
-  // 🔥 NUEVO: Verificar si es oferta
   const precioActual = p.precio;
   const precioAnterior = p.precio_anterior || 0;
   const esOferta = precioAnterior > 0 && precioActual < precioAnterior;
   const descuentoPorcentaje = esOferta ? 
     Math.round(((precioAnterior - precioActual) / precioAnterior) * 100) : 0;
 
-  // 🔥 SOLO usar stock_por_talle
   const tieneStockPorTalle = p.stock_por_talle && Object.keys(p.stock_por_talle).length > 0;
   
   let stockData = {};
@@ -2719,11 +2108,9 @@ function renderProducto(p) {
   let stockInicial = 0;
   
   if (tieneStockPorTalle) {
-    // 🔥 PRIORIDAD ÚNICA: Usar stock_por_talle
     stockData = p.stock_por_talle;
     window[`stock_por_talle_${p.id_base}`] = stockData;
     
-    // Generar opciones de talles
     const tallesDisponibles = Object.keys(stockData);
     tallesDisponibles.forEach(talle => {
       const stock = stockData[talle] || 0;
@@ -2732,20 +2119,18 @@ function renderProducto(p) {
         `<option value="${talle}" disabled>${talle} (Agotado)</option>`;
       opcionesTalles += opcion;
       
-      // Si es el primer talle con stock, usarlo como valor inicial
       if (stockInicial === 0 && stock > 0) {
         stockInicial = stock;
         talleInicial = talle;
       }
     });
     
-    // Si ningún talle tiene stock, usar el primero disponible
     if (stockInicial === 0 && tallesDisponibles.length > 0) {
       talleInicial = tallesDisponibles[0];
       stockInicial = stockData[talleInicial] || 0;
     }
   } else {
-    // 🔥 Producto sin talles
+
     const stockGeneral = p.stock || 0;
     stockData = { "unico": stockGeneral };
     window[`stock_por_talle_${p.id_base}`] = stockData;
@@ -2755,21 +2140,18 @@ function renderProducto(p) {
   const mostrarStock = stockInicial > 0 ? stockInicial : "Sin stock";
   const claseStock = stockInicial > 0 ? "" : "text-danger";
 
-  // Escape de caracteres
   const nombreEscapado = p.nombre.replace(/'/g, "\\'").replace(/"/g, '\\"');
   const descripcionEscapada = (p.descripcion || "").replace(/'/g, "\\'").replace(/"/g, '\\"');
   const imagenUrl = p.imagen_url || '/static/img/fallback.webp';
   const grupoEscapado = (p.grupo || "").replace(/'/g, "\\'");
   const subgrupoEscapado = (p.subgrupo || "").replace(/'/g, "\\'");
   
-  // Escapar URLs de fotos adicionales
   const fotosAdicionalesSeguras = (p.fotos_adicionales || []).map(foto => 
     foto.replace(/'/g, "\\'").replace(/"/g, '\\"')
   );
   
   const onclickAgregar = `agregarAlCarritoDOM('${nombreEscapado}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${grupoEscapado}', '${subgrupoEscapado}')`;
   
-  // 🔥 CREAR URL DE WHATSAPP ESPECÍFICA PARA ESTE PRODUCTO
   let whatsappUrl = configWhatsApp;
   
   if (configWhatsApp && configWhatsApp.includes("wa.me")) {
@@ -2783,7 +2165,6 @@ function renderProducto(p) {
     }
   }
   
-  // 🔥 FOTOS ADICIONALES - SIN TEXTO
   const fotosAdicionalesHTML = fotosAdicionalesSeguras.length > 0 ? `
     <div class="fotos-adicionales mt-2">
       <div class="d-flex flex-wrap mt-1" style="gap: 3px;">
@@ -2990,7 +2371,6 @@ function renderProducto(p) {
   </div>
 `;
 
-  // 🔥 Configurar talle inicial
   if (talleInicial) {
     setTimeout(() => {
       const talleSelect = document.getElementById(`talle_${p.id_base}`);
@@ -3012,10 +2392,8 @@ function actualizarUIStock(idProducto, stockDisponible, talleSeleccionado) {
   const cantidadInput = document.getElementById(`cantidad_${idProducto}`);
   const agregarBtn = document.getElementById(`btn_agregar_${idProducto}`);
   
-  // Actualizar el texto del stock
   stockSpan.textContent = stockDisponible > 0 ? stockDisponible : "Sin stock";
   
-  // Actualizar clases de estilo
   if (stockDisponible > 0) {
     stockSpan.classList.remove("text-danger");
     stockSpan.classList.add("text-success");
@@ -3025,7 +2403,6 @@ function actualizarUIStock(idProducto, stockDisponible, talleSeleccionado) {
     stockSpan.classList.add("text-danger");
   }
   
-  // Actualizar el input de cantidad
   cantidadInput.max = stockDisponible;
   
   if (stockDisponible > 0) {
@@ -3048,18 +2425,14 @@ function actualizarUIStock(idProducto, stockDisponible, talleSeleccionado) {
   console.log(`✅ Stock actualizado: Talle ${talleSeleccionado} → ${stockDisponible} unidades`);
 }
     
-// 👉 Función que arma el array de items reales desde el carrito
 function obtenerCarrito() {
   console.log("🛒 [obtenerCarrito] Mapeando carrito a formato MP:");
   
   return carrito.map(item => {
-    // Debug: mostrar qué datos tenemos
     console.log("  - Item original:", item);
     
-    // Asegurar que precio sea número
     let precio = item.precio;
     if (typeof precio === 'string') {
-      // Remover símbolo $ y comas, convertir a float
       precio = parseFloat(precio.replace(/[$,]/g, '').trim());
       console.log(`  - Precio convertido de "${item.precio}" a ${precio}`);
     } else if (typeof precio === 'number') {
@@ -3069,7 +2442,6 @@ function obtenerCarrito() {
       console.warn(`  - ⚠️ Precio no válido: ${precio}, usando 0`);
     }
     
-    // Asegurar que cantidad sea número
     let cantidad = parseInt(item.cantidad) || 1;
     
     const itemFormateado = {
@@ -3079,9 +2451,8 @@ function obtenerCarrito() {
       id_base: item.id_base,
       grupo: item.grupo || "",
       subgrupo: item.subgrupo || "",
-      // 👇 MANTENER también los campos originales para Firestore
       nombre: item.nombre,
-      precio: precio,  // precio convertido a número
+      precio: precio, 
       cantidad: cantidad,
       talle: item.talle || ""
     };
@@ -3129,20 +2500,16 @@ function ajustarPosicionesPaneles() {
     console.log("📂 Panel subcategorias oculto");
   }
 
-  // Extra: log de estilos calculados
   const styleGrupos = window.getComputedStyle(panelGrupos);
   const styleSub = window.getComputedStyle(panelSub);
   console.log("👁️ Estilo panelGrupos:", { display: styleGrupos.display, top: styleGrupos.top });
   console.log("👁️ Estilo panelSub:", { display: styleSub.display, top: styleSub.top });
 }
 
-////////////////////////////////////////////////////
 document.addEventListener("DOMContentLoaded", () => {
-  // Ajustar posiciones al cargar y al redimensionar
   window.addEventListener("load", ajustarPosicionesPaneles);
   window.addEventListener("resize", ajustarPosicionesPaneles);
 
-  // Botón Productos
   const btnProductos = document.getElementById("btnProductos");
   if (btnProductos) {
     btnProductos.addEventListener("click", () => {
@@ -3151,8 +2518,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
-
-  // Detectar token admin
+  
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
 
@@ -3164,10 +2530,8 @@ document.addEventListener("DOMContentLoaded", () => {
     window.modoAdmin = false;
   }
 
-  // Inicializar variables de stock por talle
   window.stockPorTalleData = {};
   
-  // Delegación de eventos para actualización de stock por talle
   document.addEventListener('change', (e) => {
     if (e.target.id && e.target.id.startsWith('talle_')) {
       const idProducto = e.target.id.replace('talle_', '');
@@ -3177,8 +2541,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   });
-
-  // Botón Subcategorías
+  
   const btnSubcategorias = document.getElementById("btnSubcategorias");
   if (btnSubcategorias) {
     btnSubcategorias.addEventListener("click", () => {
@@ -3188,7 +2551,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Delegación de eventos para botones de grupo dinámicos
   document.addEventListener("click", (e) => {
     if (e.target.classList.contains("btn-grupo")) {
       setTimeout(ajustarPosicionesPaneles, 0);
@@ -3219,11 +2581,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 👉 Ordenar por precio
   const ordenSelect = document.getElementById("ordenPrecio");
   if (ordenSelect) {
     ordenSelect.addEventListener("change", (e) => {
-      const valor = e.target.value; // "asc" o "desc"
+      const valor = e.target.value; 
 
       const grupoActivoBtn = document.querySelector(".btn-grupo.active");
       const grupoActivo = grupoActivoBtn ? grupoActivoBtn.textContent.trim() : null;
@@ -3262,7 +2623,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 👉 Mostrar card de admin y botón Mercado Pago si corresponde
   if (window.modoAdmin) {
     const adminCard = document.getElementById("adminCard");
     if (adminCard) adminCard.classList.remove("d-none");
@@ -3273,7 +2633,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 👉 Inicializar Mercado Pago dinámicamente
   async function initMercadoPago() {
     try {
       const resp = await fetch(`${URL_BACKEND}/api/mp_public_key?email=${encodeURIComponent(email)}`);
@@ -3294,8 +2653,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   initMercadoPago();
-
-  // 👉 Función de pago limpia con integración de orden_id
+  
   async function pagarConMercadoPago() {
     try {
       if (!carrito.length) {
@@ -3326,7 +2684,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (data && data.preference_id && window.mp) {
-        // 👇 Guardar el external_reference para usarlo en el formulario cliente
         window.orden_id = data.external_reference;
 
         window.mp.checkout({
@@ -3334,7 +2691,6 @@ document.addEventListener("DOMContentLoaded", () => {
           autoOpen: true
         });
       } else if (data && data.init_point) {
-        // 👇 Guardar también aquí
         window.orden_id = data.external_reference;
         window.location.href = data.init_point;
       }
@@ -3348,8 +2704,6 @@ document.addEventListener("DOMContentLoaded", () => {
     pagarBtn.addEventListener("click", pagarConMercadoPago);
   }
 
-  // 👉 VERIFICAR SI VENIMOS DE CONFIGURACIÓN EXITOSA DE MERCADO PAGO
-  // Esto debe ejecutarse después de todo lo anterior
   setTimeout(() => {
     const urlParams = new URLSearchParams(window.location.search);
     
@@ -3357,14 +2711,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const emailVendedor = urlParams.get('email');
         console.log('✅ Mercado Pago configurado exitosamente para:', emailVendedor);
         
-        // Mostrar mensaje de éxito
         alert('✅ ¡Mercado Pago configurado exitosamente! Ahora puedes recibir pagos.');
-        
-        // Limpiar la URL (quitar parámetros)
+
         const nuevaURL = window.location.pathname + '?email=' + encodeURIComponent(emailVendedor);
         window.history.replaceState({}, document.title, nuevaURL);
         
-        // Recargar para actualizar el estado (mostrar botón de pago, etc.)
         setTimeout(() => {
             location.reload();
         }, 1500);
@@ -3373,14 +2724,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (urlParams.get('mp_error') === '1') {
         alert('❌ Hubo un error al configurar Mercado Pago. Por favor, intenta nuevamente.');
         
-        // Limpiar la URL
         const nuevaURL = window.location.pathname;
         window.history.replaceState({}, document.title, nuevaURL);
     }
   }, 100);
 });
     
-// 👉 Nueva función ordenarGrupo
 function ordenarGrupo(valor) {
   console.log("🔄 ordenarGrupo llamada con:", valor);
 
@@ -3429,36 +2778,27 @@ function ordenarGrupo(valor) {
 
 window.ordenarGrupo = ordenarGrupo;
 
-// Botón Productos (SOLO cierra los paneles)
 const btnProductos = document.getElementById('btnProductos');
 if (btnProductos) {
   btnProductos.addEventListener('click', (e) => {
-    e.stopPropagation(); // Evita conflictos con otros clicks
+    e.stopPropagation(); 
 
-    // Solo ocultamos los paneles
     document.getElementById('panelGrupos').classList.add('oculta');
     document.getElementById('panelSubcategorias').classList.add('oculta');
-    
-    // Eliminamos mostrarTodos() y scrollTo() para no alterar la vista
   });
 }
 
-// Animación del logo al hacer click
 document.querySelector('.logo').addEventListener('click', function() {
   const logo = this;
   
-  // 1. Desactivar click temporalmente
   logo.style.pointerEvents = 'none';
-  
-  // 2. Rotación 3D (360° en Y)
   logo.style.transition = 'transform 0.8s ease, opacity 0.4s ease';
   logo.style.transform = 'rotateY(360deg)';
   logo.style.opacity = '0.7';
   
-  // 3. Crear mensaje flotante - POSICIÓN FIJA en lugar de absoluta
   const mensaje = document.createElement('div');
   mensaje.textContent = 'Gracias por la visita! ❤️';
-  mensaje.style.position = 'fixed'; // Cambiado de absolute a fixed
+  mensaje.style.position = 'fixed'; 
   mensaje.style.top = '50%';
   mensaje.style.left = '50%';
   mensaje.style.transform = 'translate(-50%, -50%) scale(0.8)';
@@ -3469,7 +2809,7 @@ document.querySelector('.logo').addEventListener('click', function() {
   mensaje.style.fontFamily = "'Raleway', sans-serif";
   mensaje.style.fontSize = '1.2rem';
   mensaje.style.fontWeight = 'bold';
-  mensaje.style.zIndex = '999999'; // Valor MUY alto
+  mensaje.style.zIndex = '999999'; /
   mensaje.style.opacity = '0';
   mensaje.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
   mensaje.style.boxShadow = '0 0 30px rgba(255, 255, 255, 0.7), 0 0 60px rgba(139, 92, 246, 0.5)';
@@ -3477,21 +2817,16 @@ document.querySelector('.logo').addEventListener('click', function() {
   mensaje.style.webkitBackdropFilter = 'blur(10px)';
   mensaje.style.border = '2px solid rgba(255, 255, 255, 0.3)';
   
-  // Asegurar que no esté dentro del contenedor con overflow:hidden
   document.body.appendChild(mensaje);
   
-  // 4. Animación secuencial
   setTimeout(() => {
-    // Mostrar mensaje
     mensaje.style.opacity = '1';
     mensaje.style.transform = 'translate(-50%, -50%) scale(1.1)';
     
     setTimeout(() => {
-      // Escalar mensaje y volver a normal
       mensaje.style.transform = 'translate(-50%, -50%) scale(1)';
       
       setTimeout(() => {
-        // Ocultar mensaje
         mensaje.style.opacity = '0';
         mensaje.style.transform = 'translate(-50%, -50%) scale(0.8)';
         
@@ -3499,7 +2834,6 @@ document.querySelector('.logo').addEventListener('click', function() {
           mensaje.remove();
         }, 500);
         
-        // 5. Restaurar logo
         logo.style.transform = 'rotateY(0deg)';
         logo.style.opacity = '1';
         
@@ -3508,11 +2842,11 @@ document.querySelector('.logo').addEventListener('click', function() {
           logo.style.transition = '';
         }, 800);
         
-      }, 1500); // Tiempo que se muestra el mensaje
+      }, 1500); 
       
-    }, 300); // Tiempo escala del mensaje
+    }, 300); 
     
-  }, 400); // Tiempo inicio mensaje después de rotación
+  }, 400); 
 });
     
 </script>
@@ -3534,7 +2868,6 @@ setTimeout(() => {
     .filter(p => p.grupo === primerGrupo)
     .map(p => p.subgrupo))];
 
-  // Normalizar: si no hay subgrupo, usar General_{grupo}
   let primerSubgrupoNombre = subgrupos[0]?.trim();
   if (!primerSubgrupoNombre) {
     primerSubgrupoNombre = `General_${primerGrupo}`;
@@ -3546,13 +2879,11 @@ setTimeout(() => {
 }, 100);
 
 document.getElementById("btnQuitarFoto").addEventListener("click", () => {
-  // Limpiar input y preview
   document.getElementById("inputFoto").value = "";
   const imgPreview = document.getElementById("previewFoto");
   imgPreview.src = "";
   imgPreview.classList.add("d-none");
 
-  // Ocultar botón y limpiar referencia global
   document.getElementById("btnQuitarFoto").classList.add("d-none");
   window.fotoOptimizada = null;
 
@@ -3561,23 +2892,21 @@ document.getElementById("btnQuitarFoto").addEventListener("click", () => {
    
 </script>
 <script>
-// FRONTEND - Enviar TODO en una sola llamada
+
 async function procesarPago() {
-    // 1. Obtener datos del formulario
     const nombre = document.querySelector('input[name="nombre"]').value;
     const apellido = document.querySelector('input[name="apellido"]').value;
     const email = document.querySelector('input[name="email"]').value;
     const telefono = document.querySelector('input[name="telefono"]').value;
     
-    // 2. Preparar payload
     const payload = {
-        email_vendedor: window.email_vendedor, // Asegúrate de tener esto
+        email_vendedor: window.email_vendedor,
         numero_vendedor: window.numero_vendedor,
         items: window.carritoActual,
         cliente_nombre: `${nombre} ${apellido}`.trim(),
         cliente_email: email,
         cliente_telefono: telefono,
-        orden_id: window.orden_id // Si tienes preorden, si no lo quitas
+        orden_id: window.orden_id 
     };
     
     console.log("[PAGAR] Enviando:", payload);
@@ -3594,9 +2923,7 @@ async function procesarPago() {
         if (data.error) {
             alert("Error: " + data.error);
         } else if (data.init_point) {
-            // Guardar el external_reference en localStorage para referencia
             localStorage.setItem('ultima_orden', data.external_reference);
-            // Redirigir a Mercado Pago
             window.location.href = data.init_point;
         }
         
