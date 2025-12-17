@@ -3455,25 +3455,29 @@ document.querySelector('.logo').addEventListener('click', function() {
   logo.style.transform = 'rotateY(360deg)';
   logo.style.opacity = '0.7';
   
-  // 3. Crear mensaje flotante
+  // 3. Crear mensaje flotante - POSICIÓN FIJA en lugar de absoluta
   const mensaje = document.createElement('div');
   mensaje.textContent = 'Gracias por la visita! ❤️';
-  mensaje.style.position = 'absolute';
+  mensaje.style.position = 'fixed'; // Cambiado de absolute a fixed
   mensaje.style.top = '50%';
   mensaje.style.left = '50%';
-  mensaje.style.transform = 'translate(-50%, -50%)';
-  mensaje.style.backgroundColor = 'black';
+  mensaje.style.transform = 'translate(-50%, -50%) scale(0.8)';
+  mensaje.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
   mensaje.style.color = 'white';
   mensaje.style.padding = '15px 25px';
   mensaje.style.borderRadius = '20px';
   mensaje.style.fontFamily = "'Raleway', sans-serif";
   mensaje.style.fontSize = '1.2rem';
   mensaje.style.fontWeight = 'bold';
-  mensaje.style.zIndex = '10000';
+  mensaje.style.zIndex = '999999'; // Valor MUY alto
   mensaje.style.opacity = '0';
   mensaje.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-  mensaje.style.boxShadow = '0 0 20px rgba(255,255,255,0.5)';
+  mensaje.style.boxShadow = '0 0 30px rgba(255, 255, 255, 0.7), 0 0 60px rgba(139, 92, 246, 0.5)';
+  mensaje.style.backdropFilter = 'blur(10px)';
+  mensaje.style.webkitBackdropFilter = 'blur(10px)';
+  mensaje.style.border = '2px solid rgba(255, 255, 255, 0.3)';
   
+  // Asegurar que no esté dentro del contenedor con overflow:hidden
   document.body.appendChild(mensaje);
   
   // 4. Animación secuencial
@@ -3489,7 +3493,7 @@ document.querySelector('.logo').addEventListener('click', function() {
       setTimeout(() => {
         // Ocultar mensaje
         mensaje.style.opacity = '0';
-        mensaje.style.transform = 'translate(-50%, -50%) scale(0.9)';
+        mensaje.style.transform = 'translate(-50%, -50%) scale(0.8)';
         
         setTimeout(() => {
           mensaje.remove();
