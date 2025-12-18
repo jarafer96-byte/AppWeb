@@ -2645,27 +2645,6 @@ document.addEventListener("DOMContentLoaded", () => {
       btnConfigMP.classList.remove("d-none");
     }
   }
-
-  async function initMercadoPago() {
-    try {
-      const resp = await fetch(`${URL_BACKEND}/api/mp_public_key?email=${encodeURIComponent(email)}`);
-      const data = await resp.json();
-
-      if (data.public_key) {
-        window.mp = new MercadoPago(data.public_key, { locale: 'es-AR' });
-        const pagarBtn = document.getElementById('btn_pagar');
-        if (pagarBtn) pagarBtn.disabled = false;
-      } else {
-        const pagarBtn = document.getElementById('btn_pagar');
-        if (pagarBtn) pagarBtn.disabled = true;
-      }
-    } catch (err) {
-      const pagarBtn = document.getElementById('btn_pagar');
-      if (pagarBtn) pagarBtn.disabled = true;
-    }
-  }
-
-  initMercadoPago();
   
   async function pagarConMercadoPago() {
     try {
