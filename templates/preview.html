@@ -2742,54 +2742,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, 100);
 });
-    
-function ordenarGrupo(valor) {
-  console.log("🔄 ordenarGrupo llamada con:", valor);
-
-  const cont = document.getElementById("productos");
-  if (!cont) return;
-
-  const grupoCanon = window.currentGrupo;
-  const subCanon = window.currentSub;
-
-  let productosFiltrados = window.todosLosProductos.filter(p =>
-    String(p.grupo || "").toLowerCase() === grupoCanon.toLowerCase() &&
-    String(p.subgrupo || "").toLowerCase() === subCanon.toLowerCase()
-  );
-
-  productosFiltrados.sort((a, b) => {
-    const pa = Number(a.precio) || 0;
-    const pb = Number(b.precio) || 0;
-    return valor === "asc" ? pa - pb : pb - pa;
-  });
-  console.log("📊 Productos ordenados:", valor, productosFiltrados);
-
-  cont.innerHTML = "";
-
-  const grupoDiv = document.createElement("div");
-  grupoDiv.className = "grupo-section";
-  grupoDiv.innerHTML = `<h3>${grupoCanon}</h3>`;
-
-  const subDiv = document.createElement("div");
-  subDiv.className = "subgrupo-bloque";
-  subDiv.innerHTML = `<h4>${subCanon}</h4>`;
-
-  productosFiltrados.forEach(p => {
-    const card = renderProducto(p);
-    subDiv.appendChild(card);
-
-    requestAnimationFrame(() => card.classList.add("show"));
-    setTimeout(() => card.classList.remove("fade-reorder"), 50);
-
-    console.log("🛒 Card insertada en subgrupo:", p.nombre);
-  });
-
-  grupoDiv.appendChild(subDiv);
-  cont.appendChild(grupoDiv);
-  console.log("✅ Bloque renderizado en ordenarGrupo, hijos finales:", cont.children.length);
-}
-
-window.ordenarGrupo = ordenarGrupo;
 
 const btnProductos = document.getElementById('btnProductos');
 if (btnProductos) {
@@ -2904,48 +2856,6 @@ document.getElementById("btnQuitarFoto").addEventListener("click", () => {
 });
    
 </script>
-<script>
-
-async function procesarPago() {
-    const nombre = document.querySelector('input[name="nombre"]').value;
-    const apellido = document.querySelector('input[name="apellido"]').value;
-    const email = document.querySelector('input[name="email"]').value;
-    const telefono = document.querySelector('input[name="telefono"]').value;
-    
-    const payload = {
-        email_vendedor: window.email_vendedor,
-        numero_vendedor: window.numero_vendedor,
-        items: window.carritoActual,
-        cliente_nombre: `${nombre} ${apellido}`.trim(),
-        cliente_email: email,
-        cliente_telefono: telefono,
-        orden_id: window.orden_id 
-    };
-    
-    console.log("[PAGAR] Enviando:", payload);
-    
-    try {
-        const response = await fetch('/pagar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        
-        const data = await response.json();
-        
-        if (data.error) {
-            alert("Error: " + data.error);
-        } else if (data.init_point) {
-            localStorage.setItem('ultima_orden', data.external_reference);
-            window.location.href = data.init_point;
-        }
-        
-    } catch (error) {
-        console.error("Error:", error);
-        alert("Error al procesar el pago");
-    }
-}
-</script>  
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>  
 <script>
