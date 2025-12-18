@@ -1565,21 +1565,6 @@ function renderPagina(pagina, productosFiltrados) {
   productosPagina.forEach(p => cont.appendChild(renderProducto(p)));
 }
 
-
-function renderPaginacion(productosFiltrados) {
-  const pagDiv = document.getElementById("paginacion");
-  pagDiv.innerHTML = "";
-  totalPaginas = Math.ceil(productosFiltrados.length / itemsPorPagina);
-
-  for (let i = 1; i <= totalPaginas; i++) {
-    const btn = document.createElement("button");
-    btn.textContent = i;
-    btn.className = "btn btn-light mx-1";
-    btn.onclick = () => renderPagina(i, productosFiltrados);
-    pagDiv.appendChild(btn);
-  }
-}
-
 let urlProductos = `https://mpagina.onrender.com/api/productos?usuario=${encodeURIComponent(email)}`;
 if (window.modoAdmin && window.tokenAdmin) {
   urlProductos += `&token=${encodeURIComponent(window.tokenAdmin)}`;
