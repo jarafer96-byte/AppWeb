@@ -682,6 +682,7 @@ def api_productos():
                 "descripcion": data.get("descripcion"),
                 "imagen_url": data.get("imagen_url"),
                 "fotos_adicionales": fotos_adicionales,  # 👈 NUEVO: Incluir fotos adicionales
+                "precio_anterior": data.get("precio_anterior", 0), 
                 "orden": data.get("orden"),
                 "talles": talles_originales,  # Mantener solo talles definidos
                 "colores": data.get("colores", []),
