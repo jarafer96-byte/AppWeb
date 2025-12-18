@@ -91,6 +91,19 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 .panel-subcategorias button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
 .panel-subcategorias button:hover { background-color: #fff; color: #333; transform: scale(1.05); box-shadow: 0 0 8px none; }
 
+.panel-grupos:not(.oculta), .panel-subcategorias:not(.oculta) { transform: translateY(0); opacity: 1; visibility: visible; }
+.panel-grupos:not(.oculta) { animation: slideDown 0.3s ease-out; }
+.panel-subcategorias:not(.oculta) { animation: slideDown 0.4s ease-out 0.1s both; }
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
 
 .logo { height: 40vw; max-height: 380px; filter: brightness(1.5) contrast(1.2) drop-shadow(0 0 14px white); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
 @media (min-width: 1024px) { .logo { width: 150px; height: 150px; max-height: none; } }
