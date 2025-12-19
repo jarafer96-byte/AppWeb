@@ -67,15 +67,17 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 
 .oculta { display: none !important; }
 
+.barra-wrapper { position: relative; }
+
 .barra-navegacion { position: fixed; padding: 8px 10px; gap: 8px; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); display: flex; justify-content: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
 .barra-navegacion button { font-family: 'Raleway', sans-serif; font-weight: 600; font-size: 14px; padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); transition: all 0.3s ease; }
 .barra-navegacion button:hover { background-color: #fff; color: #333; transform: scale(1.05); }
 
-.panel-grupos { position: fixed; scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-y: hidden; overflow-x: auto; white-space: nowrap; cursor: grab; cursor: -webkit-grab; border: 1px solid #000000f5; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 906; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
+.panel-grupos { position: fixed; scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-y: hidden; overflow-x: auto; white-space: nowrap; cursor: grab; cursor: -webkit-grab; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 999; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
 .panel-grupos button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
 .panel-grupos button:hover { background-color: #fff; color: #333; transform: scale(1.05); box-shadow: 0 0 8px none; }
 
-.panel-subcategorias { position: fixed; scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-y: hidden; overflow-x: auto; white-space: nowrap; cursor: grab; cursor: -webkit-grab; border: 1px solid #000000f5; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 908; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
+.panel-subcategorias { position: fixed; scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-y: hidden; overflow-x: auto; white-space: nowrap; cursor: grab; cursor: -webkit-grab; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 998; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
 .panel-subcategorias button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
 .panel-subcategorias button:hover { background-color: #fff; color: #333; transform: scale(1.05); box-shadow: 0 0 8px none; }
 
@@ -192,11 +194,9 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
       <button id="btnContacto" onclick="irAContacto()">Contacto</button>
     </nav>
     
-    <div id="panelGrupos" class="panel-grupos oculta">
-    </div>
+    <div id="panelGrupos" class="panel-grupos oculta"></div>
+    <div id="panelSubcategorias" class="panel-subcategorias oculta"></div>
   </div>
-
-<div id="panelSubcategorias" class="panel-subcategorias oculta"></div>
 
 <div id="productos" class="row productos-container"></div>
 
@@ -3013,7 +3013,7 @@ function ajustarPosicionesPaneles() {
     const margenAdicional = 19;
     const desplazamientoArriba = -20;
     const topCalc = alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba;
-    panelSub.style.top = topCalc + 'px';
+    panelSub.style.top = '93px';
     panelSub.style.position = 'fixed';
     panelSub.style.left = '0';
     panelSub.style.right = '0';
