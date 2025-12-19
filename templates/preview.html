@@ -23,11 +23,9 @@
 <style>
 .lazy-image { background-size: 200% 100%; animation: shimmer 1.5s infinite; transition: opacity 0.5s ease !important; }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@media (max-width: 768px) {
-  .lazy-image { animation-duration: 2s; background-size: 400% 100%; }
-}    
+@media (max-width: 768px) { .lazy-image { animation-duration: 2s; background-size: 400% 100%; } }    
   
-#adminCard { max-width: 500px; margin-left: auto; margin-right: auto; }
+#adminCard { max-width: 500px; margin-left: auto; margin-right: auto; background: #00000088 !important; }
 #logoutAdminWrapper button { font-family: 'Raleway', sans-serif; font-weight: 600; font-size: 14px; padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2); background: #212529; color: #f8f9fa; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); transition: all 0.3s ease; }
   
 body { background-color: #64636d; }
