@@ -2643,7 +2643,167 @@ function ajustarPosicionesPaneles() {
   console.log("👁️ Estilo panelSub:", { display: styleSub.display, top: styleSub.top });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
+  console.log("🎬 Inicializando efectos interactivos...");
+  document.querySelectorAll('.card-giratoria').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      card.style.transition = 'transform 0.5s ease, box-shadow 0.3s ease';
+      card.style.boxShadow = '0 15px 35px rgba(0,0,0,0.2)';
+    });
+    
+    card.addEventListener('mouseleave', () => {
+      card.style.boxShadow = '';
+    });
+
+    card.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      card.style.transform = 'scale(0.98)';
+    }, { passive: false });
+    
+    card.addEventListener('touchend', () => {
+      card.style.transform = '';
+    });
+
+    let touchStartTime = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    
+    card.addEventListener('touchstart', (e) => {
+      touchStartTime = Date.now();
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    
+    card.addEventListener('touchend', (e) => {
+      const touchEndTime = Date.now();
+      const touchDuration = touchEndTime - touchStartTime;
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaX = Math.abs(touchEndX - touchStartX);
+      const deltaY = Math.abs(touchEndY - touchStartY);
+      
+      // Si fue un tap rápido y no un deslizamiento
+      if (touchDuration < 300 && deltaX < 10 && deltaY < 10) {
+        const girarBtn = card.querySelector('.btn-girar');
+        if (girarBtn) {
+          girarBtn.click();
+        }
+      }
+    });
+  });
+  
+  function loadVisibleImagesFirst() {
+    const lazyImages = document.querySelectorAll('.card-giratoria img[data-src]');
+    if (lazyImages.length === 0) return;
+    
+    const viewportHeight = window.innerHeight;
+    let loadedCount = 0;
+    
+    lazyImages.forEach(img => {
+      const rect = img.getBoundingClientRect();
+      const isVisible = rect.top < viewportHeight + 300 && rect.bottom > -100;
+      
+      if (isVisible && img.dataset.src) {
+        img.src = img.dataset.src;
+        img.onload = () => {
+          img.removeAttribute('data-src');
+          img.style.opacity = '0';
+          setTimeout(() => {
+            img.style.opacity = '1';
+            img.style.transition = 'opacity 0.3s ease';
+          }, 10);
+        };
+        
+        loadedCount++;
+
+        if (window.innerWidth < 768 && loadedCount >= 3) return;
+      }
+    });
+    
+    if (loadedCount > 0) {
+      console.log(`🖼️ Lazy: Cargadas ${loadedCount} imágenes en cards`);
+    }
+  }
+  
+  function setupEnhancedLazyLoading() {
+    const lazyImages = document.querySelectorAll('.card-giratoria img[data-src]');
+    if (lazyImages.length === 0) return;
+    if (lazyImages.length <= 8) {
+      lazyImages.forEach(img => {
+        if (img.dataset.src) {
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+        }
+      });
+      return;
+    }
+  
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            if (img.dataset.src) {
+              const tempImg = new Image();
+              tempImg.src = img.dataset.src;
+              
+              tempImg.onload = () => {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+                img.style.opacity = '1';
+              };
+            }
+            observer.unobserve(img);
+          }
+        });
+      }, {
+        rootMargin: window.innerWidth < 768 ? '200px' : '100px',
+        threshold: 0.01
+      });
+
+      lazyImages.forEach(img => observer.observe(img));
+      
+      console.log(`👁️ Observando ${lazyImages.length} imágenes en cards`);
+    }
+  }
+  setTimeout(loadVisibleImagesFirst, 300);
+  setTimeout(setupEnhancedLazyLoading, 800);
+  
+  let scrollTimer;
+  let isScrolling = false;
+  
+  window.addEventListener('scroll', () => {
+    if (!isScrolling) {
+      isScrolling = true;
+      loadVisibleImagesFirst();
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        loadVisibleImagesFirst();
+        isScrolling = false;
+      }, 150);
+    }
+  }, { passive: true });
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('btn-girar') || 
+        e.target.classList.contains('btn-reversa')) {
+      const card = e.target.closest('.card-giratoria');
+      if (card) {
+        setTimeout(() => {
+          const images = card.querySelectorAll('img[data-src]');
+          images.forEach(img => {
+            if (img.dataset.src) {
+              img.src = img.dataset.src;
+              img.removeAttribute('data-src');
+            }
+          });
+        }, 100);
+      }
+    }
+  });
+  
+  console.log("✅ Interactividad de cards + lazy loading inicializada");
+
+  // --- SEGUNDA PARTE DEL CÓDIGO ---
   window.addEventListener("load", ajustarPosicionesPaneles);
   window.addEventListener("resize", ajustarPosicionesPaneles);
 
