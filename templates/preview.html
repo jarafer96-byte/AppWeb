@@ -57,10 +57,10 @@ body.container.py-5.modo-oscuro {
   
 h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 
-.card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 12px; overflow: hidden; will-change: transform, box-shadow; padding: 12px; }
-.card:hover, .card-giratoria:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+.card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 12px; overflow: hidden; contain: content; padding: 12px; }
+.card:hover, .card-giratoria:hover { transform: translateY(-5px); will-change: transform, box-shadow; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 
-.card, .card-giratoria, .btn, .panel-grupos { will-change: transform, opacity; contain: content; }
+.btn, .panel-grupos, .panel-subcategorias { will-change: transform, opacity; contain: content; }
 .logo, .card img { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
   
 .modo-oscuro { color: white; isolation: isolate; }
