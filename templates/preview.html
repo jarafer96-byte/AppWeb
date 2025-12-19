@@ -20,13 +20,6 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/img/faviconmovil.png">
 
-  {% set estilo = config.estilo_visual.lower() %}
-  {% if 'claro' in estilo or 'esferas' in estilo or 'blanco' in estilo %}
-    {% set modo_visual = 'modo-claro' %}
-  {% else %}
-    {% set modo_visual = 'modo-oscuro' %}
-  {% endif %}
-
 <style>
 .lazy-image { background-size: 200% 100%; animation: shimmer 1.5s infinite; transition: opacity 0.5s ease !important; }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
