@@ -1769,15 +1769,6 @@ function mostrarGrupo(nombre, event, auto = false) {
 }
 window.mostrarGrupo = mostrarGrupo;
 
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("btn-grupo")) {
-    console.log("🟢 Click en botón grupo:", e.target.textContent);
-  }
-  if (e.target.classList.contains("btn-subgrupo")) {
-    console.log("🟢 Click en botón subgrupo:", e.target.textContent);
-  }
-});
-
 function filtrarSubcategoria(grupo, subgrupo) {
   console.log("🟨 filtrarSubcategoria llamada con:", { grupo, subgrupo });
 
