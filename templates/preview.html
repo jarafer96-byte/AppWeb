@@ -57,7 +57,7 @@ body.container.py-5.modo-oscuro {
   
 h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 
-.card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 12px; overflow: hidden; contain: content; padding: 12px; }
+.card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1); contain: content; padding: 12px; }
 .card:hover, .card-giratoria:hover { transform: translateY(-5px); will-change: transform, box-shadow; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 
 .btn, .panel-grupos, .panel-subcategorias { will-change: transform, opacity; contain: content; }
@@ -131,7 +131,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 #imgModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none;  align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.3s ease; opacity: 0; }
 #imgModal.show { display: flex; opacity: 1; }
 
-.card-giratoria { perspective: 1000px; height: 470px; border-radius: 12px !important; overflow: hidden; background: transparent !important; }
+.card-giratoria { perspective: 1000px; height: 470px; overflow: hidden; background: transparent !important; }
 
 .card-contenedor { position: relative; width: 100%; height: 100%; transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; }
 
