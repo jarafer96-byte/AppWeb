@@ -2008,12 +2008,6 @@ function mostrarSubgrupo(subgrupo, event) {
   }
 }
 window.mostrarSubgrupo = mostrarSubgrupo;
-    
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("btn-subgrupo")) {
-    console.log("🟢 Click detectado en botón subgrupo:", e.target.textContent);
-  }
-});
 
 function actualizarPrecioEnCarrito(nombre, nuevoPrecio) {
   let cambio = false;
