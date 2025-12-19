@@ -59,7 +59,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 .card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1); contain: content; padding: 12px; }
 .card:hover, .card-giratoria:hover { transform: translateY(-5px); will-change: transform, box-shadow; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 
-.btn, .panel-grupos, .panel-subcategorias { will-change: transform, opacity; contain: content; }
+.btn, .panel-grupos, .panel-subcategorias { contain: content; }
 .logo, .card img { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
   
 .modo-oscuro { color: white; isolation: isolate; }
@@ -69,7 +69,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 
 .barra-navegacion { position: fixed; padding: 8px 10px; gap: 8px; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); display: flex; justify-content: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
 .barra-navegacion button { font-family: 'Raleway', sans-serif; font-weight: 600; font-size: 14px; padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); transition: all 0.3s ease; }
-.barra-navegacion button:hover { background-color: #fff; color: #333; transform: scale(1.05); box-shadow: 0 0 8px none; }
+.barra-navegacion button:hover { background-color: #fff; color: #333; transform: scale(1.05); }
 
 .panel-grupos { position: fixed; scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-y: hidden; overflow-x: auto; white-space: nowrap; cursor: grab; cursor: -webkit-grab; border: 1px solid #000000f5; max-height: 50vh; overflow-y: auto; left: 0; right: 0; z-index: 906; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
 .panel-grupos button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
@@ -121,7 +121,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 .panel-subcategorias { scroll-behavior: smooth; }
 
 .panel-grupos:hover,
-.panel-subcategorias:hover { cursor: ew-resize; }
+.panel-subcategorias:hover { cursor: grab; }
 
 #loginToggleBtn { z-index: 997; }
 #loginFloatingForm { z-index: 997; }
