@@ -1988,18 +1988,30 @@ function filtrarSubcategoria(grupo, subgrupo) {
 window.filtrarSubcategoria = filtrarSubcategoria;
 
 
-window.onload = function() {
+(function setupImmediate() {
+  // Ocultar paneles si existen
   const panelSubcategorias = document.getElementById('panelSubcategorias');
   const panelGrupos = document.getElementById('panelGrupos');
-  panelSubcategorias.classList.add('oculta');
-  panelGrupos.classList.add('oculta');
-
-  document.getElementById('toggleCarrito').onclick = function() {
-    const carritoDiv = document.getElementById('carrito');
-    if (!carritoDiv) return;
-    carritoDiv.style.display = carritoDiv.style.display === 'none' ? 'block' : 'none';
-  };
-};
+  if (panelSubcategorias) panelSubcategorias.classList.add('oculta');
+  if (panelGrupos) panelGrupos.classList.add('oculta');
+  
+  // Configurar carrito con reintento
+  const toggleBtn = document.getElementById('toggleCarrito');
+  if (toggleBtn) {
+    toggleBtn.onclick = function() {
+      const carritoDiv = document.getElementById('carrito');
+      if (!carritoDiv) return;
+      
+      // Usar getComputedStyle para mayor precisión
+      const isVisible = window.getComputedStyle(carritoDiv).display !== 'none';
+      carritoDiv.style.display = isVisible ? 'none' : 'block';
+    };
+    console.log("✅ Carrito configurado inmediatamente");
+  } else {
+    // Si no existe, reintentar en 50ms
+    setTimeout(setupImmediate, 50);
+  }
+})();
 
 let carrito = [];
 
