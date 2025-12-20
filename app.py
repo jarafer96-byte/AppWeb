@@ -535,6 +535,504 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         import traceback
         print(traceback.format_exc())
         return {"ok": False, "error": str(e)}
+/////////////////////////////////////////
+
+@app.route("/api/payment-methods", methods=["GET"])
+def get_payment_methods():
+    """
+    Obtiene todos los métodos de pago disponibles de Mercado Pago
+    """
+    try:
+        email = request.args.get("email")
+        if not email:
+            return jsonify({"error": "Falta email del vendedor"}), 400
+
+        access_token = get_mp_token(email)
+        if not access_token:
+            return jsonify({"error": "Vendedor no tiene credenciales de Mercado Pago"}), 400
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+
+        response = requests.get(
+            "https://api.mercadopago.com/v1/payment_methods",
+            headers=headers,
+            timeout=10
+        )
+
+        if response.status_code != 200:
+            print(f"[PAYMENT_METHODS] Error API MP: {response.status_code} - {response.text}")
+            return jsonify({"error": "Error al obtener métodos de pago"}), 500
+
+        all_methods = response.json()
+
+        processed_methods = process_payment_methods(all_methods)
+
+        cache_key = f"payment_methods_{email}"
+        cache_doc = db.collection("cache").document(cache_key)
+        cache_doc.set({
+            "methods": processed_methods,
+            "timestamp": firestore.SERVER_TIMESTAMP,
+            "expires_at": datetime.now() + timedelta(hours=24)
+        })
+        
+        return jsonify({
+            "status": "ok",
+            "methods": processed_methods,
+            "total_methods": len(processed_methods["all"]),
+            "source": "api"
+        })
+
+    except Exception as e:
+        print(f"[PAYMENT_METHODS] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+def process_payment_methods(methods_data):
+    """
+    Procesa y organiza los métodos de pago de Mercado Pago
+    """
+    if not isinstance(methods_data, list):
+        return {"all": [], "credit_cards": [], "debit_cards": [], "other": []}
+
+    organized = {
+        "all": [],
+        "credit_cards": [],
+        "debit_cards": [],
+        "other": [],
+        "categories": {}
+    }
+
+    for method in methods_data:
+        try:
+            method_id = method.get("id")
+            name = method.get("name", "")
+            payment_type_id = method.get("payment_type_id", "")
+            status = method.get("status", "")
+
+            if status != "active":
+                continue
+
+            min_accreditation_days = method.get("min_accreditation_days", 0)
+            max_accreditation_days = method.get("max_accreditation_days", 0)
+            financial_institutions = method.get("financial_institutions", [])
+
+            settings = method.get("settings", [])
+            installments_info = {}
+            
+            for setting in settings:
+                if setting.get("type") == "installments":
+                    bin_pattern = setting.get("bin", {}).get("pattern", "")
+                    installments_pattern = setting.get("bin", {}).get("installments_pattern", "")
+                    installments = setting.get("installments", [])
+                    
+                    if installments:
+                        installments_info = {
+                            "bin_pattern": bin_pattern,
+                            "installments_pattern": installments_pattern,
+                            "available_installments": installments,
+                            "max_installments": max(installments) if installments else 1
+                        }
+
+            thumbnail = method.get("thumbnail", "")
+            secure_thumbnail = method.get("secure_thumbnail", "")
+
+            card_info = {}
+            if payment_type_id in ["credit_card", "debit_card"]:
+                card_settings = method.get("settings", [{}])[0]
+                if card_settings:
+                    card_number = card_settings.get("card_number", {})
+                    security_code = card_settings.get("security_code", {})
+                    
+                    card_info = {
+                        "card_number_length": card_number.get("length", 16),
+                        "card_number_validation": card_number.get("validation", "standard"),
+                        "security_code_length": security_code.get("length", 3),
+                        "security_code_location": security_code.get("card_location", "back"),
+                        "security_code_mode": security_code.get("mode", "mandatory")
+                    }
+
+            method_obj = {
+                "id": method_id,
+                "name": name,
+                "payment_type_id": payment_type_id,
+                "thumbnail": thumbnail,
+                "secure_thumbnail": secure_thumbnail,
+                "min_accreditation_days": min_accreditation_days,
+                "max_accreditation_days": max_accreditation_days,
+                "financial_institutions": financial_institutions,
+                "installments_info": installments_info,
+                "card_info": card_info if card_info else None,
+                "additional_info_needed": method.get("additional_info_needed", []),
+                "status": status
+            }
+
+            organized["all"].append(method_obj)
+
+            if payment_type_id == "credit_card":
+                organized["credit_cards"].append(method_obj)
+            elif payment_type_id == "debit_card":
+                organized["debit_cards"].append(method_obj)
+            else:
+                organized["other"].append(method_obj)
+
+            category = method.get("payment_type_id", "other")
+            if category not in organized["categories"]:
+                organized["categories"][category] = []
+            organized["categories"][category].append(method_obj)
+
+        except Exception as e:
+            print(f"[PROCESS_METHODS] Error procesando método {method.get('id')}: {e}")
+            continue
+
+    return organized
+
+
+@app.route("/api/installments", methods=["GET"])
+def get_installments():
+    """
+    Obtiene información de cuotas para un monto específico
+    """
+    try:
+        email = request.args.get("email")
+        amount = request.args.get("amount")
+        payment_method_id = request.args.get("payment_method_id")
+        
+        if not email or not amount:
+            return jsonify({"error": "Falta email o amount"}), 400
+
+        try:
+            amount_float = float(amount)
+            if amount_float <= 0:
+                return jsonify({"error": "El monto debe ser mayor a 0"}), 400
+        except ValueError:
+            return jsonify({"error": "Monto inválido"}), 400
+
+        # Obtener token del vendedor
+        access_token = get_mp_token(email)
+        if not access_token:
+            return jsonify({"error": "Vendedor no tiene credenciales de Mercado Pago"}), 400
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+
+        url = f"https://api.mercadopago.com/v1/payment_methods/installments"
+        params = {
+            "amount": amount,
+            "payment_method_id": payment_method_id,
+            "locale": "es-AR"
+        }
+
+        if not payment_method_id:
+            params.pop("payment_method_id", None)
+            params["issuer.id"] = "null" 
+
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+
+        if response.status_code != 200:
+            print(f"[INSTALLMENTS] Error API MP: {response.status_code} - {response.text}")
+            return jsonify({"error": "Error al obtener información de cuotas"}), 500
+
+        installments_data = response.json()
+
+        processed_installments = process_installments_data(installments_data, amount_float)
+        
+        return jsonify({
+            "status": "ok",
+            "amount": amount_float,
+            "installments": processed_installments,
+            "payment_method_id": payment_method_id,
+            "source": "api"
+        })
+
+    except Exception as e:
+        print(f"[INSTALLMENTS] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+def process_installments_data(installments_data, amount):
+    """
+    Procesa la información de cuotas de Mercado Pago
+    """
+    if not isinstance(installments_data, list):
+        return []
+
+    processed = []
+    
+    for item in installments_data:
+        try:
+            payment_method_id = item.get("payment_method_id")
+            payment_type_id = item.get("payment_type_id")
+            
+            issuers = item.get("issuers", [])
+            
+            for issuer in issuers:
+                issuer_id = issuer.get("id")
+                issuer_name = issuer.get("name", "Sin nombre")
+                
+                payer_costs = issuer.get("payer_costs", [])
+                
+                for cost in payer_costs:
+                    installments = cost.get("installments", 1)
+                    installment_rate = cost.get("installment_rate", 0)
+                    total_amount = cost.get("total_amount", amount)
+  
+                    installment_amount = total_amount / installments if installments > 0 else total_amount
+   
+                    has_interest = installment_rate > 0
+
+                    labels = cost.get("labels", [])
+                    interest_free = "interest_free" in labels
+                    recommended_message = cost.get("recommended_message", "")
+                    
+                    installment_info = {
+                        "payment_method_id": payment_method_id,
+                        "payment_type_id": payment_type_id,
+                        "issuer": {
+                            "id": issuer_id,
+                            "name": issuer_name
+                        },
+                        "installments": installments,
+                        "installment_amount": round(installment_amount, 2),
+                        "total_amount": round(total_amount, 2),
+                        "original_amount": round(amount, 2),
+                        "installment_rate": installment_rate,
+                        "has_interest": has_interest,
+                        "interest_free": interest_free,
+                        "labels": labels,
+                        "recommended_message": recommended_message,
+                        "processing_mode": item.get("processing_mode", "aggregator")
+                    }
+                    
+                    processed.append(installment_info)
+                    
+        except Exception as e:
+            print(f"[PROCESS_INSTALLMENTS] Error procesando cuota: {e}")
+            continue
+
+    processed.sort(key=lambda x: x["installments"])
+    
+    return processed
+
+
+@app.route("/api/cached-payment-methods", methods=["GET"])
+def get_cached_payment_methods():
+    """
+    Obtiene métodos de pago desde cache de Firestore
+    Útil para evitar llamadas frecuentes a la API de MP
+    """
+    try:
+        email = request.args.get("email")
+        if not email:
+            return jsonify({"error": "Falta email"}), 400
+
+        cache_key = f"payment_methods_{email}"
+        cache_doc = db.collection("cache").document(cache_key).get()
+        
+        if not cache_doc.exists:
+            return jsonify({"error": "No hay datos en cache"}), 404
+        
+        cache_data = cache_doc.to_dict()
+
+        timestamp = cache_data.get("timestamp")
+        expires_at = cache_data.get("expires_at")
+        
+        if timestamp and expires_at:
+            from datetime import datetime
+            expires_datetime = expires_at if isinstance(expires_at, datetime) else datetime.fromisoformat(str(expires_at))
+            
+            if datetime.now() > expires_datetime:
+                db.collection("cache").document(cache_key).delete()
+                return jsonify({"error": "Cache expirado"}), 404
+        
+        return jsonify({
+            "status": "ok",
+            "methods": cache_data.get("methods", {}),
+            "timestamp": str(timestamp),
+            "expires_at": str(expires_at),
+            "source": "cache"
+        })
+
+    except Exception as e:
+        print(f"[CACHED_METHODS] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/simple-payment-info", methods=["GET"])
+def get_simple_payment_info():
+    """
+    Versión simplificada para mostrar en las cards de productos
+    Retorna solo la información esencial: tarjetas aceptadas y cuotas sin interés
+    """
+    try:
+        email = request.args.get("email")
+        product_price = request.args.get("price", 0)
+        
+        if not email:
+            return jsonify({"error": "Falta email"}), 400
+
+        cache_key = f"simple_payment_info_{email}"
+        cache_doc = db.collection("cache").document(cache_key).get()
+        
+        use_cache = False
+        cached_data = None
+        
+        if cache_doc.exists:
+            cache_data = cache_doc.to_dict()
+            timestamp = cache_data.get("timestamp")
+            
+            if timestamp:
+                from datetime import datetime
+                cache_time = timestamp if isinstance(timestamp, datetime) else datetime.fromisoformat(str(timestamp))
+                # Cache válido por 6 horas
+                if (datetime.now() - cache_time).total_seconds() < 6 * 3600:
+                    use_cache = True
+                    cached_data = cache_data.get("data", {})
+        
+        if not use_cache:
+            # Obtener token del vendedor
+            access_token = get_mp_token(email)
+            if not access_token:
+                return jsonify({"error": "Vendedor no tiene credenciales de Mercado Pago"}), 400
+
+            headers = {"Authorization": f"Bearer {access_token}"}
+            
+            # 1. Obtener métodos de pago
+            methods_response = requests.get(
+                "https://api.mercadopago.com/v1/payment_methods",
+                headers=headers,
+                timeout=10
+            )
+            
+            if methods_response.status_code != 200:
+                print(f"[SIMPLE_INFO] Error métodos de pago: {methods_response.status_code}")
+                if cached_data:
+                    return jsonify(cached_data)
+                return jsonify({"error": "Error al obtener métodos de pago"}), 500
+            
+            methods_data = methods_response.json()
+     
+            credit_cards = []
+            debit_cards = []
+            
+            for method in methods_data:
+                if method.get("status") == "active":
+                    payment_type = method.get("payment_type_id")
+                    if payment_type == "credit_card":
+                        credit_cards.append({
+                            "id": method.get("id"),
+                            "name": method.get("name"),
+                            "thumbnail": method.get("thumbnail")
+                        })
+                    elif payment_type == "debit_card":
+                        debit_cards.append({
+                            "id": method.get("id"),
+                            "name": method.get("name"),
+                            "thumbnail": method.get("thumbnail")
+                        })
+
+            interest_free_info = []
+            if product_price and float(product_price) > 0:
+                try:
+                    price_float = float(product_price)
+                    
+                    for card in credit_cards[:3]:  # Limitar a 3 tarjetas para no sobrecargar
+                        installments_response = requests.get(
+                            f"https://api.mercadopago.com/v1/payment_methods/installments",
+                            headers=headers,
+                            params={
+                                "amount": price_float,
+                                "payment_method_id": card["id"],
+                                "locale": "es-AR"
+                            },
+                            timeout=5
+                        )
+                        
+                        if installments_response.status_code == 200:
+                            installments_data = installments_response.json()
+                            for item in installments_data:
+                                for issuer in item.get("issuers", []):
+                                    for cost in issuer.get("payer_costs", []):
+                                        if "interest_free" in cost.get("labels", []):
+                                            interest_free_info.append({
+                                                "card_name": card["name"],
+                                                "installments": cost.get("installments", 0),
+                                                "installment_amount": cost.get("installment_amount", 0),
+                                                "total_amount": cost.get("total_amount", 0)
+                                            })
+                                            break 
+                except Exception as e:
+                    print(f"[SIMPLE_INFO] Error obteniendo cuotas: {e}")
+
+            simple_data = {
+                "credit_cards": credit_cards,
+                "debit_cards": debit_cards,
+                "interest_free_installments": interest_free_info,
+                "accepted_cards_count": len(credit_cards) + len(debit_cards),
+                "has_credit_cards": len(credit_cards) > 0,
+                "has_debit_cards": len(debit_cards) > 0,
+                "timestamp": datetime.now().isoformat()
+            }
+
+            db.collection("cache").document(cache_key).set({
+                "data": simple_data,
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
+            
+            cached_data = simple_data
+
+        if product_price and float(product_price) > 0:
+            cached_data["product_price"] = float(product_price)
+            cached_data["currency"] = "ARS"
+        
+        return jsonify(cached_data)
+
+    except Exception as e:
+        print(f"[SIMPLE_INFO] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/refresh-payment-cache", methods=["POST"])
+def refresh_payment_cache():
+    """
+    Forzar actualización del cache de métodos de pago
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        email = data.get("email")
+        
+        if not email:
+            return jsonify({"error": "Falta email"}), 400
+        
+        # Eliminar cache existente
+        cache_key = f"payment_methods_{email}"
+        db.collection("cache").document(cache_key).delete()
+        
+        # También eliminar cache simple
+        simple_cache_key = f"simple_payment_info_{email}"
+        db.collection("cache").document(simple_cache_key).delete()
+        
+        return jsonify({
+            "status": "ok",
+            "message": "Cache eliminado. Se recargará en la próxima consulta."
+        })
+        
+    except Exception as e:
+        print(f"[REFRESH_CACHE] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+////////////////////////////////////////////////////////////////////////
+
 
 @app.route("/subir-foto", methods=["POST"])
 def subir_foto():
