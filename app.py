@@ -1205,7 +1205,29 @@ def get_simple_payment_info():
         traceback.print_exc()
         return jsonify({"error": str(e), "message": "Error interno del servidor"}), 500
 
-
+@app.route("/api/all-cards-summary", methods=["GET"])
+def get_all_cards_summary():
+    """
+    Resumen completo de TODAS las tarjetas y métodos de pago
+    """
+    try:
+        email = request.args.get("email")
+        if not email:
+            return jsonify({"error": "Falta email"}), 400
+        
+        # Usar la función principal
+        result = get_simple_payment_info()
+        
+        if isinstance(result, tuple):  # Si hay error
+            return jsonify({"error": "No se pudieron obtener los métodos de pago"}), 500
+        
+        # Devolver directamente
+        return result
+        
+    except Exception as e:
+        print(f"[ALL_CARDS_SUMMARY] Error: {e}")
+        return jsonify({"error": str(e)}), 500
+        
 @app.route("/api/refresh-payment-cache", methods=["POST"])
 def refresh_payment_cache():
     """
