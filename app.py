@@ -1332,7 +1332,8 @@ def refresh_payment_cache():
         print(f"[REFRESH_CACHE] Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-////////////////////////////////////////////////////////////////////////
+
+
 
 
 @app.route("/subir-foto", methods=["POST"])
