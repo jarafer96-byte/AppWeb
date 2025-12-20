@@ -870,34 +870,50 @@ def get_cached_payment_methods():
 def get_simple_payment_info():
     """
     Versión simplificada para mostrar en las cards de productos
-    Retorna solo la información esencial: tarjetas aceptadas y cuotas sin interés
+    Retorna TODAS las tarjetas aceptadas y cuotas sin interés
     """
     try:
         email = request.args.get("email")
         product_price = request.args.get("price", 0)
+        force_refresh = request.args.get("refresh", "false").lower() == "true"
         
         if not email:
             return jsonify({"error": "Falta email"}), 400
 
+        # Cache key
         cache_key = f"simple_payment_info_{email}"
-        cache_doc = db.collection("cache").document(cache_key).get()
         
+        # Forzar refresco si se solicita
+        if force_refresh:
+            db.collection("cache").document(cache_key).delete()
+            print(f"[SIMPLE_INFO] Cache forzado a refrescar para {email}")
+
+        # Verificar cache (6 horas de validez)
+        cache_doc = db.collection("cache").document(cache_key).get()
         use_cache = False
         cached_data = None
         
-        if cache_doc.exists:
+        if cache_doc.exists and not force_refresh:
             cache_data = cache_doc.to_dict()
             timestamp = cache_data.get("timestamp")
             
             if timestamp:
                 from datetime import datetime
-                cache_time = timestamp if isinstance(timestamp, datetime) else datetime.fromisoformat(str(timestamp))
-                # Cache válido por 6 horas
-                if (datetime.now() - cache_time).total_seconds() < 6 * 3600:
-                    use_cache = True
-                    cached_data = cache_data.get("data", {})
+                try:
+                    cache_time = timestamp if isinstance(timestamp, datetime) else datetime.fromisoformat(str(timestamp))
+                    # Cache válido por 6 horas (21600 segundos)
+                    cache_age = (datetime.now() - cache_time).total_seconds()
+                    
+                    if cache_age < 21600:  # 6 horas
+                        use_cache = True
+                        cached_data = cache_data.get("data", {})
+                        print(f"[SIMPLE_INFO] Usando cache (edad: {cache_age:.0f}s)")
+                    else:
+                        print(f"[SIMPLE_INFO] Cache expirado ({cache_age:.0f}s), refrescando")
+                except Exception as e:
+                    print(f"[SIMPLE_INFO] Error procesando timestamp cache: {e}")
         
-        if not use_cache:
+        if not use_cache or force_refresh:
             # Obtener token del vendedor
             access_token = get_mp_token(email)
             if not access_token:
@@ -905,101 +921,203 @@ def get_simple_payment_info():
 
             headers = {"Authorization": f"Bearer {access_token}"}
             
-            # 1. Obtener métodos de pago
+            # 1. Obtener TODOS los métodos de pago
+            print(f"[SIMPLE_INFO] Consultando API MP para {email}")
             methods_response = requests.get(
                 "https://api.mercadopago.com/v1/payment_methods",
                 headers=headers,
-                timeout=10
+                timeout=15
             )
             
             if methods_response.status_code != 200:
-                print(f"[SIMPLE_INFO] Error métodos de pago: {methods_response.status_code}")
+                error_msg = f"Error API MP: {methods_response.status_code}"
+                print(f"[SIMPLE_INFO] {error_msg}")
+                
+                # Si hay cache viejo, usarlo aunque esté expirado
                 if cached_data:
+                    print(f"[SIMPLE_INFO] Usando cache expirado como fallback")
+                    cached_data["warning"] = "Datos pueden estar desactualizados"
+                    cached_data["source"] = "cache_expired"
                     return jsonify(cached_data)
-                return jsonify({"error": "Error al obtener métodos de pago"}), 500
+                    
+                return jsonify({"error": error_msg}), 500
             
             methods_data = methods_response.json()
-     
+            print(f"[SIMPLE_INFO] Métodos recibidos: {len(methods_data)}")
+            
+            # 2. Filtrar TODAS las tarjetas activas
             credit_cards = []
             debit_cards = []
+            other_methods = []
             
             for method in methods_data:
                 if method.get("status") == "active":
                     payment_type = method.get("payment_type_id")
+                    method_id = method.get("id")
+                    method_name = method.get("name")
+                    
+                    # Procesar thumbnail
+                    thumbnail = method.get("thumbnail", "")
+                    secure_thumbnail = method.get("secure_thumbnail", "")
+                    logo_url = secure_thumbnail if secure_thumbnail else thumbnail
+                    
+                    method_info = {
+                        "id": method_id,
+                        "name": method_name,
+                        "thumbnail": logo_url,
+                        "payment_type_id": payment_type
+                    }
+                    
                     if payment_type == "credit_card":
-                        credit_cards.append({
-                            "id": method.get("id"),
-                            "name": method.get("name"),
-                            "thumbnail": method.get("thumbnail")
-                        })
+                        credit_cards.append(method_info)
                     elif payment_type == "debit_card":
-                        debit_cards.append({
-                            "id": method.get("id"),
-                            "name": method.get("name"),
-                            "thumbnail": method.get("thumbnail")
-                        })
-
+                        debit_cards.append(method_info)
+                    elif payment_type not in ["credit_card", "debit_card"]:
+                        # Incluir otros métodos como transferencia, efectivo, etc.
+                        other_methods.append(method_info)
+            
+            print(f"[SIMPLE_INFO] Tarjetas de crédito encontradas: {len(credit_cards)}")
+            print(f"[SIMPLE_INFO] Tarjetas de débito encontradas: {len(debit_cards)}")
+            print(f"[SIMPLE_INFO] Otros métodos: {len(other_methods)}")
+            
+            # 3. Obtener información de cuotas para TODAS las tarjetas de crédito
             interest_free_info = []
+            max_installments_info = []
+            
             if product_price and float(product_price) > 0:
                 try:
                     price_float = float(product_price)
+                    print(f"[SIMPLE_INFO] Consultando cuotas para monto: ${price_float}")
                     
-                    for card in credit_cards[:3]:  # Limitar a 3 tarjetas para no sobrecargar
-                        installments_response = requests.get(
-                            f"https://api.mercadopago.com/v1/payment_methods/installments",
-                            headers=headers,
-                            params={
-                                "amount": price_float,
-                                "payment_method_id": card["id"],
-                                "locale": "es-AR"
-                            },
-                            timeout=5
-                        )
-                        
-                        if installments_response.status_code == 200:
-                            installments_data = installments_response.json()
-                            for item in installments_data:
-                                for issuer in item.get("issuers", []):
-                                    for cost in issuer.get("payer_costs", []):
-                                        if "interest_free" in cost.get("labels", []):
-                                            interest_free_info.append({
-                                                "card_name": card["name"],
-                                                "installments": cost.get("installments", 0),
-                                                "installment_amount": cost.get("installment_amount", 0),
-                                                "total_amount": cost.get("total_amount", 0)
-                                            })
-                                            break 
+                    # Consultar cuotas para CADA tarjeta de crédito
+                    for card in credit_cards:
+                        try:
+                            print(f"[SIMPLE_INFO] Consultando cuotas para: {card['name']}")
+                            
+                            installments_response = requests.get(
+                                f"https://api.mercadopago.com/v1/payment_methods/installments",
+                                headers=headers,
+                                params={
+                                    "amount": price_float,
+                                    "payment_method_id": card["id"],
+                                    "locale": "es-AR",
+                                    "issuer.id": "null"  # Todos los emisores
+                                },
+                                timeout=8
+                            )
+                            
+                            if installments_response.status_code == 200:
+                                installments_data = installments_response.json()
+                                
+                                # Variables para esta tarjeta
+                                card_interest_free = []
+                                card_max_installments = 0
+                                
+                                for item in installments_data:
+                                    for issuer in item.get("issuers", []):
+                                        issuer_name = issuer.get("name", "Varios emisores")
+                                        
+                                        for cost in issuer.get("payer_costs", []):
+                                            installments = cost.get("installments", 1)
+                                            installment_amount = cost.get("installment_amount", 0)
+                                            total_amount = cost.get("total_amount", 0)
+                                            labels = cost.get("labels", [])
+                                            
+                                            # Guardar cuota sin interés
+                                            if "interest_free" in labels:
+                                                card_interest_free.append({
+                                                    "issuer": issuer_name,
+                                                    "installments": installments,
+                                                    "installment_amount": round(installment_amount, 2),
+                                                    "total_amount": round(total_amount, 2),
+                                                    "card_name": card["name"],
+                                                    "card_id": card["id"]
+                                                })
+                                            
+                                            # Actualizar máximo de cuotas
+                                            if installments > card_max_installments:
+                                                card_max_installments = installments
+                                
+                                # Si esta tarjeta tiene cuotas sin interés, agregar la mejor (más cuotas)
+                                if card_interest_free:
+                                    # Ordenar por número de cuotas (mayor primero)
+                                    card_interest_free.sort(key=lambda x: x["installments"], reverse=True)
+                                    best_offer = card_interest_free[0]
+                                    interest_free_info.append(best_offer)
+                                    print(f"[SIMPLE_INFO] {card['name']}: {best_offer['installments']} cuotas sin interés")
+                                
+                                # Guardar máximo de cuotas para esta tarjeta
+                                if card_max_installments > 0:
+                                    max_installments_info.append({
+                                        "card_name": card["name"],
+                                        "card_id": card["id"],
+                                        "max_installments": card_max_installments
+                                    })
+                                    
+                        except requests.exceptions.Timeout:
+                            print(f"[SIMPLE_INFO] Timeout consultando cuotas para {card['name']}")
+                            continue
+                        except Exception as e:
+                            print(f"[SIMPLE_INFO] Error procesando {card['name']}: {e}")
+                            continue
+                    
+                    print(f"[SIMPLE_INFO] Cuotas sin interés encontradas: {len(interest_free_info)}")
+                    
                 except Exception as e:
-                    print(f"[SIMPLE_INFO] Error obteniendo cuotas: {e}")
-
+                    print(f"[SIMPLE_INFO] Error general obteniendo cuotas: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
+            # 4. Construir respuesta COMPLETA
             simple_data = {
                 "credit_cards": credit_cards,
                 "debit_cards": debit_cards,
+                "other_methods": other_methods,
                 "interest_free_installments": interest_free_info,
+                "max_installments": max_installments_info,
                 "accepted_cards_count": len(credit_cards) + len(debit_cards),
+                "total_methods_count": len(credit_cards) + len(debit_cards) + len(other_methods),
                 "has_credit_cards": len(credit_cards) > 0,
                 "has_debit_cards": len(debit_cards) > 0,
-                "timestamp": datetime.now().isoformat()
+                "has_other_methods": len(other_methods) > 0,
+                "timestamp": datetime.now().isoformat(),
+                "source": "api_fresh"
             }
-
-            db.collection("cache").document(cache_key).set({
-                "data": simple_data,
-                "timestamp": firestore.SERVER_TIMESTAMP
-            })
+            
+            # 5. Guardar en cache
+            try:
+                db.collection("cache").document(cache_key).set({
+                    "data": simple_data,
+                    "timestamp": firestore.SERVER_TIMESTAMP,
+                    "email": email
+                })
+                print(f"[SIMPLE_INFO] Cache actualizado para {email}")
+            except Exception as e:
+                print(f"[SIMPLE_INFO] Error guardando cache: {e}")
             
             cached_data = simple_data
-
+        else:
+            cached_data["source"] = "cache"
+        
+        # 6. Agregar precio específico si se proporcionó
         if product_price and float(product_price) > 0:
-            cached_data["product_price"] = float(product_price)
-            cached_data["currency"] = "ARS"
+            try:
+                cached_data["product_price"] = float(product_price)
+                cached_data["currency"] = "ARS"
+                
+                # Si viene de cache y no tiene info de cuotas, intentar agregarla
+                if cached_data.get("source") == "cache" and product_price:
+                    cached_data["price_note"] = "Las cuotas pueden variar según el monto actual"
+            except:
+                pass
         
         return jsonify(cached_data)
 
     except Exception as e:
-        print(f"[SIMPLE_INFO] Error: {e}")
+        print(f"[SIMPLE_INFO] Error general: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "message": "Error interno del servidor"}), 500
 
 
 @app.route("/api/refresh-payment-cache", methods=["POST"])
