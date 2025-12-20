@@ -535,7 +535,13 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         import traceback
         print(traceback.format_exc())
         return {"ok": False, "error": str(e)}
-/////////////////////////////////////////
+
+
+
+
+
+
+
 
 @app.route("/api/payment-methods", methods=["GET"])
 def get_payment_methods():
