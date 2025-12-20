@@ -757,7 +757,76 @@ def get_installments():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+def process_installments_data(installments_data, amount):
+    """
+    Procesa la información de cuotas de Mercado Pago
+    """
+    if not isinstance(installments_data, list):
+        return []
 
+    processed = []
+    
+    for item in installments_data:
+        try:
+            payment_method_id = item.get("payment_method_id")
+            payment_type_id = item.get("payment_type_id")
+            
+            # Procesar cada emisor (issuer)
+            issuers = item.get("issuers", [])
+            
+            for issuer in issuers:
+                issuer_id = issuer.get("id")
+                issuer_name = issuer.get("name", "Sin nombre")
+                
+                # Procesar planes de cuotas
+                payer_costs = issuer.get("payer_costs", [])
+                
+                for cost in payer_costs:
+                    installments = cost.get("installments", 1)
+                    installment_rate = cost.get("installment_rate", 0)
+                    total_amount = cost.get("total_amount", amount)
+                    
+                    # Calcular monto de cada cuota
+                    installment_amount = total_amount / installments if installments > 0 else total_amount
+                    
+                    # Determinar si tiene interés
+                    has_interest = installment_rate > 0
+                    
+                    # Determinar si es cuota promocional
+                    labels = cost.get("labels", [])
+                    interest_free = "interest_free" in labels
+                    recommended_message = cost.get("recommended_message", "")
+                    
+                    installment_info = {
+                        "payment_method_id": payment_method_id,
+                        "payment_type_id": payment_type_id,
+                        "issuer": {
+                            "id": issuer_id,
+                            "name": issuer_name
+                        },
+                        "installments": installments,
+                        "installment_amount": round(installment_amount, 2),
+                        "total_amount": round(total_amount, 2),
+                        "original_amount": round(amount, 2),
+                        "installment_rate": installment_rate,
+                        "has_interest": has_interest,
+                        "interest_free": interest_free,
+                        "labels": labels,
+                        "recommended_message": recommended_message,
+                        "processing_mode": item.get("processing_mode", "aggregator")
+                    }
+                    
+                    processed.append(installment_info)
+                    
+        except Exception as e:
+            print(f"[PROCESS_INSTALLMENTS] Error procesando cuota: {e}")
+            continue
+    
+    # Ordenar por número de cuotas
+    processed.sort(key=lambda x: x["installments"])
+    
+    return processed
+    
 @app.route("/api/card-details/<card_id>", methods=["GET"])
 def get_card_details(card_id):
     """
