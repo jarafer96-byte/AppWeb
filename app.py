@@ -758,66 +758,152 @@ def get_installments():
         return jsonify({"error": str(e)}), 500
 
 
-def process_installments_data(installments_data, amount):
+@app.route("/api/card-details/<card_id>", methods=["GET"])
+def get_card_details(card_id):
     """
-    Procesa la información de cuotas de Mercado Pago
+    Obtiene información DETALLADA de una tarjeta específica
     """
-    if not isinstance(installments_data, list):
-        return []
+    try:
+        email = request.args.get("email")
+        if not email:
+            return jsonify({"error": "Falta email"}), 400
+        
+        # Obtener token del vendedor
+        access_token = get_mp_token(email)
+        if not access_token:
+            return jsonify({"error": "Vendedor no tiene credenciales de Mercado Pago"}), 400
+        
+        headers = {"Authorization": f"Bearer {access_token}"}
+        
+        # 1. Obtener todos los métodos
+        response = requests.get(
+            "https://api.mercadopago.com/v1/payment_methods",
+            headers=headers,
+            timeout=10
+        )
+        
+        if response.status_code != 200:
+            return jsonify({"error": "Error al obtener métodos de pago"}), 500
+        
+        methods_data = response.json()
+        
+        # 2. Buscar la tarjeta específica
+        target_card = None
+        for method in methods_data:
+            if method.get("id") == card_id and method.get("status") == "active":
+                target_card = method
+                break
+        
+        if not target_card:
+            return jsonify({"error": "Tarjeta no encontrada o inactiva"}), 404
+        
+        # 3. Procesar información DETALLADA
+        payment_type = target_card.get("payment_type_id")
+        settings = target_card.get("settings", [{}])[0]
+        
+        # Información de la tarjeta
+        card_details = {
+            "id": target_card.get("id"),
+            "name": target_card.get("name"),
+            "payment_type": payment_type,
+            "payment_type_name": "Crédito" if payment_type == "credit_card" else "Débito" if payment_type == "debit_card" else "Otro",
+            "thumbnail": target_card.get("thumbnail"),
+            "secure_thumbnail": target_card.get("secure_thumbnail"),
+            "status": target_card.get("status"),
+            "min_accreditation_days": target_card.get("min_accreditation_days", 0),
+            "max_accreditation_days": target_card.get("max_accreditation_days", 0),
+            "financial_institutions": target_card.get("financial_institutions", []),
+            "additional_info_needed": target_card.get("additional_info_needed", []),
+        }
+        
+        # Detalles técnicos de la tarjeta
+        if settings:
+            card_number = settings.get("card_number", {})
+            security_code = settings.get("security_code", {})
+            
+            card_details["technical"] = {
+                "card_number": {
+                    "length": card_number.get("length", 16),
+                    "validation": card_number.get("validation", "standard")
+                },
+                "security_code": {
+                    "length": security_code.get("length", 3),
+                    "card_location": security_code.get("card_location", "back"),
+                    "mode": security_code.get("mode", "mandatory")
+                },
+                "bin": settings.get("bin", {}),
+                "additional_info": settings.get("additional_info_needed", [])
+            }
+        
+        # 4. Obtener información de cuotas (solo para crédito)
+        if payment_type == "credit_card":
+            amount = request.args.get("amount")
+            if amount and float(amount) > 0:
+                try:
+                    installments_response = requests.get(
+                        f"https://api.mercadopago.com/v1/payment_methods/installments",
+                        headers=headers,
+                        params={
+                            "amount": float(amount),
+                            "payment_method_id": card_id,
+                            "locale": "es-AR",
+                            "issuer.id": "null"
+                        },
+                        timeout=8
+                    )
+                    
+                    if installments_response.status_code == 200:
+                        installments_data = installments_response.json()
+                        card_details["installments"] = process_installments_for_card(installments_data, float(amount))
+                except Exception as e:
+                    print(f"[CARD_DETAILS] Error obteniendo cuotas: {e}")
+                    card_details["installments_error"] = str(e)
+        
+        return jsonify({
+            "status": "ok",
+            "card": card_details,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"[CARD_DETAILS] Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
+
+def process_installments_for_card(installments_data, amount):
+    """
+    Procesa cuotas para una tarjeta específica
+    """
     processed = []
     
     for item in installments_data:
-        try:
-            payment_method_id = item.get("payment_method_id")
-            payment_type_id = item.get("payment_type_id")
+        for issuer in item.get("issuers", []):
+            issuer_name = issuer.get("name", "Varios")
             
-            issuers = item.get("issuers", [])
-            
-            for issuer in issuers:
-                issuer_id = issuer.get("id")
-                issuer_name = issuer.get("name", "Sin nombre")
+            for cost in issuer.get("payer_costs", []):
+                installments = cost.get("installments", 1)
+                installment_rate = cost.get("installment_rate", 0)
+                installment_amount = cost.get("installment_amount", amount)
+                total_amount = cost.get("total_amount", amount)
+                labels = cost.get("labels", [])
                 
-                payer_costs = issuer.get("payer_costs", [])
+                installment_info = {
+                    "issuer": issuer_name,
+                    "installments": installments,
+                    "installment_amount": round(installment_amount, 2),
+                    "total_amount": round(total_amount, 2),
+                    "interest_rate": installment_rate,
+                    "has_interest": installment_rate > 0,
+                    "interest_free": "interest_free" in labels,
+                    "promotional": "promotional" in labels,
+                    "recommended": "recommended" in labels,
+                    "labels": labels,
+                    "recommended_message": cost.get("recommended_message", "")
+                }
                 
-                for cost in payer_costs:
-                    installments = cost.get("installments", 1)
-                    installment_rate = cost.get("installment_rate", 0)
-                    total_amount = cost.get("total_amount", amount)
-  
-                    installment_amount = total_amount / installments if installments > 0 else total_amount
-   
-                    has_interest = installment_rate > 0
-
-                    labels = cost.get("labels", [])
-                    interest_free = "interest_free" in labels
-                    recommended_message = cost.get("recommended_message", "")
-                    
-                    installment_info = {
-                        "payment_method_id": payment_method_id,
-                        "payment_type_id": payment_type_id,
-                        "issuer": {
-                            "id": issuer_id,
-                            "name": issuer_name
-                        },
-                        "installments": installments,
-                        "installment_amount": round(installment_amount, 2),
-                        "total_amount": round(total_amount, 2),
-                        "original_amount": round(amount, 2),
-                        "installment_rate": installment_rate,
-                        "has_interest": has_interest,
-                        "interest_free": interest_free,
-                        "labels": labels,
-                        "recommended_message": recommended_message,
-                        "processing_mode": item.get("processing_mode", "aggregator")
-                    }
-                    
-                    processed.append(installment_info)
-                    
-        except Exception as e:
-            print(f"[PROCESS_INSTALLMENTS] Error procesando cuota: {e}")
-            continue
-
+                processed.append(installment_info)
+    
+    # Ordenar por número de cuotas
     processed.sort(key=lambda x: x["installments"])
     
     return processed
