@@ -139,7 +139,7 @@ Talisman(
     strict_transport_security_max_age=31536000, 
     strict_transport_security_include_subdomains=True,
     strict_transport_security_preload=True,
-    content_type_options=True,     
+    x_content_type_options=True,  
     x_xss_protection=True                 
 )
 # 🔧 Configuración de Firebase Frontend (si se usa en JS)
