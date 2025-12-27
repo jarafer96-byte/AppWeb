@@ -20,7 +20,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/img/faviconmovil.png">
 
-<style nonce="{{ csp_nonce() }}">
+<style>
 .lazy-image { opacity: 0; transition: opacity 0.3s ease !important; } 
 .lazy-image.loaded { opacity: 1; }     
   
@@ -365,7 +365,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
   <img id="modal-img" style="max-width:90%; max-height:90%;">
 </div>
   
-<script nonce="{{ csp_nonce() }}">
+<script>
 const configWhatsApp = "{{ config.whatsapp }}";
 const email = "{{ session.get('email') or '' }}";
 const URL_BACKEND = "https://mpagina.onrender.com"; 
