@@ -122,8 +122,9 @@ csp = {
         "'self'",
         "https://mpagina.onrender.com",    
         "https://api.mercadopago.com",     
-        "https://storage.googleapis.com"  
-        "https://cdn.jsdelivr.net" 
+        "https://storage.googleapis.com",  
+        "https://cdn.jsdelivr.net", 
+        "https://*.onrender.com" 
     ],
     'frame-src': [
         "'self'",
@@ -134,6 +135,7 @@ csp = {
 Talisman(
     app,
     content_security_policy=csp,
+    content_security_policy_nonce_in=[], 
     force_https=True,               
     frame_options='DENY',               
     strict_transport_security=True,    
@@ -152,12 +154,6 @@ firebase_config = {
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
-CORS(app, resources={
-    r"/api/*": {"origins": "https://*.onrender.com"},
-    r"/pagar": {"origins": "https://*.onrender.com"},
-    r"/webhook_*": {"origins": "*"},  # Webhooks pueden venir de cualquier lado (MP, MODO)
-    r"/subir-foto": {"origins": "https://*.onrender.com"}
-}, supports_credentials=True)
 ###################
 # Inicialización de Google Cloud Storage
 key_json = os.environ.get("GOOGLE_CLOUD_KEY")
