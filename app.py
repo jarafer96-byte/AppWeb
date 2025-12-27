@@ -121,7 +121,8 @@ csp = {
         "'self'",
         "https://mpagina.onrender.com",    
         "https://api.mercadopago.com",     
-        "https://storage.googleapis.com"   
+        "https://storage.googleapis.com"  
+        "https://cdn.jsdelivr.net" 
     ],
     'frame-src': [
         "'self'",
@@ -132,7 +133,6 @@ csp = {
 Talisman(
     app,
     content_security_policy=csp,
-    content_security_policy_nonce_in=['script-src', 'style-src'],
     force_https=True,               
     frame_options='DENY',               
     strict_transport_security=True,    
