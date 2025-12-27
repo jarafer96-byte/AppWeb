@@ -31,6 +31,7 @@ from googleapiclient.discovery import build
 from urllib.parse import urlencode, quote, unquote
 from google.cloud.firestore import ArrayUnion
 from flask_talisman import Talisman
+from flask_cors import CORS
 ##################
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -151,6 +152,12 @@ firebase_config = {
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
+CORS(app, resources={
+    r"/api/*": {"origins": "https://*.onrender.com"},
+    r"/pagar": {"origins": "https://*.onrender.com"},
+    r"/webhook_*": {"origins": "*"},  # Webhooks pueden venir de cualquier lado (MP, MODO)
+    r"/subir-foto": {"origins": "https://*.onrender.com"}
+}, supports_credentials=True)
 ###################
 # Inicialización de Google Cloud Storage
 key_json = os.environ.get("GOOGLE_CLOUD_KEY")
