@@ -30,6 +30,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from urllib.parse import urlencode, quote, unquote
 from google.cloud.firestore import ArrayUnion
+from flask_talisman import Talisman
 ##################
 # 🔐 Inicialización segura de Firebase con logs
 db = None
@@ -89,6 +90,58 @@ app.config['SESSION_COOKIE_SECURE'] = not app.debug
 app.config['SESSION_PERMANENT'] = True
 app.permanent_session_lifetime = timedelta(days=7)
 ###################
+csp = {
+    'default-src': ["'self'"],
+    'style-src': [
+        "'self'",
+        "https://fonts.googleapis.com",  
+        "https://cdn.jsdelivr.net",       
+        "'unsafe-inline'"                 
+    ],
+    'script-src': [
+        "'self'",
+        "https://cdn.jsdelivr.net",       
+        "https://sdk.mercadopago.com",    
+        "https://storage.googleapis.com"   
+    ],
+    'img-src': [
+        "'self'",
+        "data:",                           
+        "https://storage.googleapis.com",  
+        "https://raw.githubusercontent.com", 
+        "https://*.cloudinary.com",        
+        "https://*.fbcdn.net",            
+        "https://*.instagram.com"          
+    ],
+    'font-src': [
+        "'self'",
+        "https://fonts.gstatic.com"       
+    ],
+    'connect-src': [
+        "'self'",
+        "https://mpagina.onrender.com",    
+        "https://api.mercadopago.com",     
+        "https://storage.googleapis.com"   
+    ],
+    'frame-src': [
+        "'self'",
+        "https://www.mercadopago.com.ar"   
+    ]
+}
+
+Talisman(
+    app,
+    content_security_policy=csp,
+    content_security_policy_nonce_in=['script-src', 'style-src'],
+    force_https=True,               
+    frame_options='DENY',               
+    strict_transport_security=True,    
+    strict_transport_security_max_age=31536000, 
+    strict_transport_security_include_subdomains=True,
+    strict_transport_security_preload=True,
+    content_type_options=True,     
+    x_xss_protection=True                 
+)
 # 🔧 Configuración de Firebase Frontend (si se usa en JS)
 firebase_config = {
     "apiKey": os.getenv("FIREBASE_API_KEY"),
