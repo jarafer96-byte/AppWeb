@@ -1,5 +1,5 @@
-const configWhatsApp = "{{ config.whatsapp }}";
-var email = "{{ session.get('email') or '' }}";
+const configWhatsApp = window.configWhatsApp;
+const email = window.email; 
 const URL_BACKEND = "https://mpagina.onrender.com"; 
 
 if (window.email) {
