@@ -101,6 +101,7 @@ csp = {
     ],
     'script-src': [
         "'self'",
+        "'unsafe-inline'",
         "https://cdn.jsdelivr.net",       
         "https://sdk.mercadopago.com",    
         "https://storage.googleapis.com"   
