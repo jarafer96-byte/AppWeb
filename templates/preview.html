@@ -70,6 +70,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
       window.modoAdmin = urlParams.has("token");
       window.tokenAdmin = urlParams.get("token");
       window.email = {{ session.get('email') or '' }}";
+      window.configWhatsApp = "{{ config.whatsapp }}"; 
       window.URL_BACKEND = "https://mpagina.onrender.com";
       window.carrito = [];
       
