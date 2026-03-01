@@ -65,15 +65,21 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
   
 <script>
     (function() {
+      window.cliente = {
+        email: "{{ session.get('email') }}",
+        whatsapp: "{{ config.whatsapp }}",
+        mercado_pago: "{{ config.mercado_pago }}"
+      };
+      
+      window.URL_BACKEND = "https://mpagina.onrender.com"; // Corregido (window, no windo)
+      window.carrito = [];
+      
       // Detectar admin por URL
       const urlParams = new URLSearchParams(window.location.search);
       window.modoAdmin = urlParams.has("token");
       window.tokenAdmin = urlParams.get("token");
-      window.email = "{{ session.get('email') }}";
-      windo.URL_BACKEND = "https://mpagina.onrender.com";
-      window.carrito = [];
       
-      // Reservar espacio para evitar CLS
+      // Reservar espacio para CLS
       const style = document.createElement('style');
       style.textContent = '#productos { min-height: 500px; }';
       document.head.appendChild(style);
