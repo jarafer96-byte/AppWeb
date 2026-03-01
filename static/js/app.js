@@ -1,6 +1,6 @@
 const configWhatsApp = window.cliente?.whatsapp;
 const email = window.cliente?.email;
-const URL_BACKEND = window.URL_BACKEND;
+const URL_BACKEND = "https://mpagina.onrender.com";
 const usarFirestore = false;
 
 if (window.email) {
