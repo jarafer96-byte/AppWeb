@@ -1327,7 +1327,7 @@ document.getElementById("inputFoto").addEventListener("change", async (e) => {
 });
 
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
-  const email = "{{ session.get('email') or '' }}";
+  const email = window.email;
   if (!email) {
     alert("❌ No hay email de admin, no se puede guardar");
     return;
