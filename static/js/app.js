@@ -1,7 +1,7 @@
-const configWhatsApp = "{{ config.whatsapp }}";
-const email = window.email;
-const URL_BACKEND = "https://mpagina.onrender.com"; 
-const usarFirestore = false;  
+const configWhatsApp = window.cliente?.whatsapp;
+const email = window.cliente?.email;
+const URL_BACKEND = window.URL_BACKEND;
+const usarFirestore = false;
 
 if (window.email) {
     email = window.email;
