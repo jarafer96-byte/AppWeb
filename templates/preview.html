@@ -69,7 +69,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
       const urlParams = new URLSearchParams(window.location.search);
       window.modoAdmin = urlParams.has("token");
       window.tokenAdmin = urlParams.get("token");
-      window.email = "jarafer96@gmail.com";
+      var email = "{{ config.email }}";
       window.URL_BACKEND = "https://mpagina.onrender.com";
       window.carrito = [];
       
