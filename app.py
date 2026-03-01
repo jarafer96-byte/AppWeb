@@ -108,7 +108,8 @@ csp = {
     ],
     'img-src': [
         "'self'",
-        "data:",                           
+        "data:",      
+        "blob:",
         "https://storage.googleapis.com",  
         "https://raw.githubusercontent.com", 
         "https://*.cloudinary.com",        
