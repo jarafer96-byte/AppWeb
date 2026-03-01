@@ -2864,6 +2864,29 @@ def step3():
             except Exception as e:
                 print("[Step3] Error subiendo index.html:", e)
 
+            # Subir archivos estáticos (JavaScript y CSS)
+try:
+    js_path = os.path.join(app.root_path, 'static', 'js', 'app.js')
+    if os.path.exists(js_path):
+        with open(js_path, 'rb') as f:
+            subir_archivo(repo_name, f.read(), 'static/js/app.js')
+        print("✅ app.js subido a GitHub")
+    else:
+        print("⚠️ No se encontró app.js en la ruta esperada")
+except Exception as e:
+    print("❌ Error subiendo app.js:", e)
+
+try:
+    css_path = os.path.join(app.root_path, 'static', 'css', 'estilos.min.css')
+    if os.path.exists(css_path):
+        with open(css_path, 'rb') as f:
+            subir_archivo(repo_name, f.read(), 'static/css/estilos.min.css')
+        print("✅ estilos.min.css subido a GitHub")
+    else:
+        print("⚠️ No se encontró estilos.min.css")
+except Exception as e:
+    print("❌ Error subiendo estilos.min.css:", e)
+    
             try:
                 subir_iconos_png(repo_name)
                 print("✅ [Step3] Iconos subidos a GitHub")
