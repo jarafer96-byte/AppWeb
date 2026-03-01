@@ -1,5 +1,5 @@
 const configWhatsApp = "{{ config.whatsapp }}";
-var email = "{{ session.get('email') or '' }}";
+const email = "{{ session.get('email') or '' }}";
 const URL_BACKEND = "https://mpagina.onrender.com"; 
 const usarFirestore = false;  
 
@@ -1327,7 +1327,7 @@ document.getElementById("inputFoto").addEventListener("change", async (e) => {
 });
 
 document.getElementById("btnConfirmarProd").addEventListener("click", async () => {
-  const email = "jarafer96@gmail.com";
+  const email = "{{ session.get('email') or '' }}";
   if (!email) {
     alert("❌ No hay email de admin, no se puede guardar");
     return;
