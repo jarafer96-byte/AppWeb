@@ -32,6 +32,8 @@ from urllib.parse import urlencode, quote, unquote
 from google.cloud.firestore import ArrayUnion
 from flask_talisman import Talisman
 from flask_cors import CORS
+import builtins
+builtins.print = lambda *args, **kwargs: None
 ##################
 # 🔐 Inicialización segura de Firebase con logs
 db = None
