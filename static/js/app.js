@@ -1,3 +1,4 @@
+console.log = function() {};
 const configWhatsApp = window.cliente?.whatsapp;
 const email = window.cliente?.email;
 const URL_BACKEND = "https://mpagina.onrender.com";
@@ -551,6 +552,7 @@ document.getElementById("tallesProd").addEventListener("input", function() {
     console.log("📭 Sin talles, mostrando stock simple");
   }
 });
+
 function renderizarProductos(productos) {
   console.log("🎨 Renderizando productos:", productos.length);
   
@@ -574,6 +576,7 @@ function renderizarProductos(productos) {
   
   console.log("✅ " + productos.length + " productos renderizados");
 }
+
 function cargarProductoCompletoParaEditar(id_base) {
   const producto = window.todosLosProductos?.find(p => p.id_base === id_base);
   if (producto) {
@@ -582,16 +585,8 @@ function cargarProductoCompletoParaEditar(id_base) {
     alert("❌ No se encontró el producto para editar");
   }
 }
+
 function cargarProductoEnFormulario(producto) {
-  console.log("📝 Cargando producto para editar:", producto.nombre);
-  console.log("🔍 Datos del producto recibidos:", {
-    talles: producto.talles,
-    stock_por_talle: producto.stock_por_talle,
-    tiene_talles_array: Array.isArray(producto.talles),
-    tiene_stock_por_talle: !!producto.stock_por_talle,
-    fotos_adicionales_count: producto.fotos_adicionales ? producto.fotos_adicionales.length : 0
-  });
-  
   const adminCard = document.getElementById("adminCard");
   adminCard.classList.remove("d-none");
   
@@ -604,25 +599,18 @@ function cargarProductoEnFormulario(producto) {
   document.getElementById("subgrupoProd").value = producto.subgrupo || "";
   
   let tallesArray = [];
-  console.log("🔍 Analizando talles del producto...");
   
   if (Array.isArray(producto.talles)) {
     tallesArray = producto.talles;
-    console.log("✅ Talles como array:", tallesArray);
     document.getElementById("tallesProd").value = producto.talles.join(", ");
   } else if (typeof producto.talles === 'string') {
     tallesArray = producto.talles.split(",").map(t => t.trim()).filter(Boolean);
-    console.log("✅ Talles como string convertido:", tallesArray);
     document.getElementById("tallesProd").value = producto.talles;
   } else {
-    console.log("⚠️ No se encontraron talles o formato inválido:", producto.talles);
     document.getElementById("tallesProd").value = "";
   }
   
-  console.log("📋 Talles finales:", tallesArray);
-  
   if (tallesArray.length > 0) {
-    console.log("🔄 Producto CON talles, mostrando stock por talle");
     document.getElementById("stockPorTalleContainer").style.display = "block";
     document.getElementById("stockSimple").style.display = "none";
     
@@ -630,62 +618,36 @@ function cargarProductoEnFormulario(producto) {
     
     if (producto.stock_por_talle && Object.keys(producto.stock_por_talle).length > 0) {
       const stockPorTalle = producto.stock_por_talle;
-      console.log("📊 Stock por talle original:", stockPorTalle);
       
       const stockFiltrado = {};
-      let tallesFiltrados = 0;
-      let tallesIgnorados = [];
       
       tallesArray.forEach(talle => {
         if (stockPorTalle[talle] !== undefined) {
           stockFiltrado[talle] = stockPorTalle[talle];
-          tallesFiltrados++;
-          console.log(`✅ Talle "${talle}" encontrado en stock: ${stockPorTalle[talle]}`);
         } else {
-          stockFiltrado[talle] = 0; // Talle nuevo, stock en 0
-          console.log(`⚠️ Talle "${talle}" NO encontrado en stock, asignando 0`);
+          stockFiltrado[talle] = 0;
         }
       });
       
-      Object.keys(stockPorTalle).forEach(talle => {
-        if (!tallesArray.includes(talle) && talle !== "unico") {
-          tallesIgnorados.push(`${talle}:${stockPorTalle[talle]}`);
-          console.log(`🗑️ Talle "${talle}" será ignorado porque no está en tallesArray`);
-        }
-      });
-      
-      if (tallesIgnorados.length > 0) {
-        console.log("📌 Talles ignorados del stock:", tallesIgnorados.join(", "));
-      }
-
       stockPorTalleStr = Object.entries(stockFiltrado)
         .map(([talle, stock]) => `${talle}:${stock}`)
         .join(", ");
       
-      console.log("🔄 Stock por talle filtrado:", stockFiltrado);
-      console.log("📝 String generado:", stockPorTalleStr);
-      
     } else {
       stockPorTalleStr = tallesArray.map(t => `${t}:0`).join(", ");
-      console.log("➕ Creando stock inicial:", stockPorTalleStr);
     }
     
     document.getElementById("stockPorTalle").value = stockPorTalleStr;
     
   } else {
-    console.log("🔄 Producto SIN talles, mostrando stock simple");
     document.getElementById("stockPorTalleContainer").style.display = "none";
     document.getElementById("stockSimple").style.display = "block";
     
     let stockGeneral = 0;
     if (producto.stock_por_talle && producto.stock_por_talle["unico"] !== undefined) {
       stockGeneral = producto.stock_por_talle["unico"];
-      console.log("📊 Stock general (unico):", stockGeneral);
     } else if (producto.stock) {
       stockGeneral = producto.stock;
-      console.log("📊 Stock general (stock):", stockGeneral);
-    } else {
-      console.log("📊 Sin stock definido, usando 0");
     }
     
     document.getElementById("stockGeneral").value = stockGeneral;
@@ -696,11 +658,9 @@ function cargarProductoEnFormulario(producto) {
     previewFoto.src = producto.imagen_url;
     previewFoto.classList.remove("d-none");
     document.getElementById("btnQuitarFoto").classList.remove("d-none");
-    console.log("🖼️ Imagen principal cargada:", producto.imagen_url);
   } else {
     document.getElementById("previewFoto").classList.add("d-none");
     document.getElementById("btnQuitarFoto").classList.add("d-none");
-    console.log("🖼️ Sin imagen principal");
   }
   
   const previewDiv = document.getElementById("previewFotosAdicionales");
@@ -710,7 +670,6 @@ function cargarProductoEnFormulario(producto) {
     window.fotosAdicionalesExistentes = producto.fotos_adicionales || [];
     
     if (window.fotosAdicionalesExistentes.length > 0) {
-      console.log(`🖼️ Mostrando ${window.fotosAdicionalesExistentes.length} fotos adicionales existentes`);
       
       window.fotosAdicionalesExistentes.forEach((url, index) => {
         const img = document.createElement("img");
@@ -749,7 +708,6 @@ function cargarProductoEnFormulario(producto) {
           if (confirm(`¿Eliminar foto adicional ${index + 1}?`)) {
             window.fotosAdicionalesExistentes = window.fotosAdicionalesExistentes.filter((_, i) => i !== index);
             cargarProductoEnFormulario(producto);
-            console.log(`🗑️ Foto adicional ${index + 1} eliminada`);
           }
         };
         
@@ -760,21 +718,15 @@ function cargarProductoEnFormulario(producto) {
         previewDiv.appendChild(container);
       });
     } else {
-      console.log("🖼️ No hay fotos adicionales existentes");
       previewDiv.innerHTML = '<small class="text-muted">No hay fotos adicionales</small>';
     }
-  } else {
-    console.log("⚠️ No se encontró el div previewFotosAdicionales");
   }
   
   window.productoEditandoId = producto.id_base;
-  console.log("🔑 ID del producto en edición:", window.productoEditandoId);
   
   adminCard.scrollIntoView({ behavior: 'smooth' });
-  
-  console.log("✅ Producto cargado correctamente en formulario");
-  console.log(`📸 Fotos adicionales guardadas para edición: ${window.fotosAdicionalesExistentes ? window.fotosAdicionalesExistentes.length : 0}`);
 }
+
 function toggleModoEdicion(editando) {
   const btnCancelar = document.getElementById("btnCancelarEdicion");
   const btnConfirmar = document.getElementById("btnConfirmarProd");
