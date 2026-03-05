@@ -1795,8 +1795,9 @@ function mostrarGrupo(nombre, event, auto = false) {
     console.log("📂 Grupo sin subcategorías");
   }
 
-  console.log("✅ Productos renderizados con paginación en #productos");
-  window.scrollTo({ top: 0, behavior: 'auto' });
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, 0);
 }
 window.mostrarGrupo = mostrarGrupo;
 
@@ -1833,10 +1834,9 @@ function filtrarSubcategoria(grupo, subgrupo) {
   renderPagina(1, productosFiltrados);
   renderPaginacion(productosFiltrados);
 
-  console.log("✅ Productos renderizados con paginación en #productos");
-  console.log("📥 Hijos actuales en #productos:", cont.children.length);
-
-  window.scrollTo({ top: 0, behavior: 'auto' });
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, 0);
 }
 window.filtrarSubcategoria = filtrarSubcategoria;
 
