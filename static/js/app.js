@@ -2380,7 +2380,7 @@ function renderProducto(p, esLCP = false) {
           ${whatsappUrl ? `
             <div class="mt-3">
               <a href="${whatsappUrl}" class="btn btn-whatsapp btn-sm w-100 d-flex align-items-center justify-content-center gap-2" target="_blank" style="background-color: #0c6909; color: white;">
-                <img src="/static/img/whatsapp.png" alt="WhatsApp" style="width: 20px; height: 20px;">
+                <img src="/static/img/whatsapp.webp" alt="WhatsApp" style="width: 20px; height: 20px;">
                 Consultar
               </a>
             </div>
