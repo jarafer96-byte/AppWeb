@@ -20,6 +20,8 @@
   <meta name="format-detection" content="telephone=no">
  
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <link rel="preload" as="image" href="/static/img/1234.webp" fetchpriority="high">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,9 +53,9 @@ html, body { background-color: #64636d; margin: 0; padding: 0; width: 100%; min-
 
 h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 
-.logo-wrapper { height: clamp(120px, 30vw, 250px) !important; min-height: 120px !important; margin: 2rem 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; contain: layout style paint !important; }
+.logo-wrapper {  width: 100%; max-width: 380px; aspect-ratio: 1/1; margin: 0rem auto !important; display: flex !important; align-items: center !important; justify-content: center !important; contain: layout style paint !important; }
 
-.logo { width: auto !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 14px black); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
+.logo { width: 80% !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 14px black); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
 
 </style>
 <link rel="stylesheet" href="static/css/estilos.min.css" 
@@ -105,18 +107,14 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 </div>  
   
 {% if config.logo %}
-  <div class="text-center my-5 logo-wrapper"
-       style="height: clamp(120px, 30vw, 250px); min-height: 120px; display: flex; align-items: center; justify-content: center;">
+  <div class="text-center logo-wrapper">
     <img src="{{ url_for('static', filename='img/' + config.logo) }}"
          alt="Logo"
-         class="img-fluid logo mx-auto d-block"
-         width="150" 
-         height="150" 
          loading="eager"
+         class="img-fluid logo"
          fetchpriority="high"
          decoding="async"
-         importance="high"
-         style="width: auto; height: 80%; max-width: 80%;">
+         importance="high">
   </div>
 {% endif %}
 
