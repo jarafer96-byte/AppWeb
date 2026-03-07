@@ -603,19 +603,24 @@ def api_productos():
             
             stock_por_talle_filtrado = {}
             
+            # 🔥 CORRECCIÓN: Primero verificar si es producto sin talles (clave "unico")
             if tiene_stock_por_talle and stock_por_talle_completo:
-                for talle in talles_originales:
-                    if talle in stock_por_talle_completo:
-                        stock_por_talle_filtrado[talle] = stock_por_talle_completo[talle]
-                    else:
-                        stock_por_talle_filtrado[talle] = 0
-                
-                stock_disponible = sum(stock_por_talle_filtrado.values())
-                sistema = "stock_por_talle_filtrado"
-            elif tiene_stock_por_talle and stock_por_talle_completo and "unico" in stock_por_talle_completo:
-                stock_disponible = stock_por_talle_completo.get("unico", 0)
-                stock_por_talle_filtrado = {"unico": stock_disponible}
-                sistema = "stock_por_talle_unico"
+                if "unico" in stock_por_talle_completo:
+                    # Producto sin talles: usar la clave "unico"
+                    stock_disponible = stock_por_talle_completo.get("unico", 0)
+                    stock_por_talle_filtrado = {"unico": stock_disponible}
+                    sistema = "stock_por_talle_unico"
+                elif talles_originales:
+                    # Producto con talles: filtrar solo los talles definidos
+                    for talle in talles_originales:
+                        stock_por_talle_filtrado[talle] = stock_por_talle_completo.get(talle, 0)
+                    stock_disponible = sum(stock_por_talle_filtrado.values())
+                    sistema = "stock_por_talle_filtrado"
+                else:
+                    # Caso improbable: tiene stock_por_talle pero no talles ni unico
+                    stock_disponible = 0
+                    stock_por_talle_filtrado = {}
+                    sistema = "stock_por_talle_vacio"
             elif data.get("tiene_variantes", False):
                 variantes = data.get("variantes", {})
                 stock_disponible = sum(v.get('stock', 0) for v in variantes.values())
