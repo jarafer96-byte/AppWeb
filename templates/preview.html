@@ -49,11 +49,11 @@
 
 <style>
   
-html, body { background-color: #64636d; margin: 0; padding: 0; width: 100%; min-height: 100vh; overflow-x: hidden; position: relative; }
+html, body { background-color: #64636d; overflow-x: hidden; position: relative; }
 
 h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 
-.logo-wrapper {  width: 100%; max-width: 380px; aspect-ratio: 1/1; margin: 0rem auto !important; display: flex !important; align-items: center !important; justify-content: center !important; contain: layout style paint !important; }
+.logo-wrapper {  width: 100%; max-width: 230px;  height: min(80vw, 230px); margin: 2rem auto !important; display: flex !important; align-items: center !important; justify-content: center !important; contain: layout style paint !important; }
 
 .logo { width: 80% !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 14px black); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
 
@@ -100,10 +100,10 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
     })();
 </script>    
 </head>
-<body class="container py-5 modo-oscuro">
+<body class="container modo-oscuro">
 
 <div id="splash-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: black; display: flex; align-items: center; justify-content: center; z-index: 9999;">
-  <img src="/static/img/1234.webp" alt="Logo" width="150" height="150" style="width: 150px; height: auto; animation: pulsoLogo 2s infinite;">
+  <img src="/static/img/1234.webp" alt="Logo" style="width: 150px; height: auto; animation: pulsoLogo 2s infinite;">
 </div>  
   
 {% if config.logo %}
@@ -144,6 +144,10 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
       <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
       <button id="btnContacto" onclick="irAContacto()">Contacto</button>
     </nav>
+
+    <div id="splash-deslizable" class="splash-deslizable oculta">
+      ← Desliza →
+    </div>
     
     <div id="panelGrupos" class="panel-grupos oculta"></div>
     <div id="panelSubcategorias" class="panel-subcategorias oculta"></div>
