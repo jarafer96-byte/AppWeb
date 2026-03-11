@@ -1,3 +1,71 @@
+.skeleton-card {
+  background: rgba(30, 30, 40, 0.6);
+  border-radius: 12px;
+  padding: 16px;
+  height: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.skeleton-image {
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(90deg, #3a3a4a 25%, #4a4a5a 50%, #3a3a4a 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.8s infinite ease-in-out;
+  border-radius: 8px;
+}
+.skeleton-line {
+  height: 24px;
+  background: #3a3a4a;
+  border-radius: 6px;
+  width: 100%;
+  animation: skeleton-loading 1.8s infinite ease-in-out;
+}
+.skeleton-line.short { width: 60%; }
+.skeleton-line.medium { width: 80%; }
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.carrito-contador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #888;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 4px;
+  margin-left: 4px;
+  transition: background 0.2s;
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.4); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.pop-animation {
+  animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(10deg); }
+  75% { transform: rotate(-10deg); }
+}
+.carrito-shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+
 .splash-deslizable {
   position: fixed;
   top: 95px; /* Ajusta según la altura de tu barra */
