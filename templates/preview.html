@@ -140,13 +140,20 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
       <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
       <button id="btnContacto" onclick="irAContacto()">Contacto</button>
     </nav>
-
-    <div id="splash-deslizable" class="splash-deslizable oculta">
-      ← Desliza →
-    </div>
     
-    <div id="panelGrupos" class="panel-grupos oculta"></div>
-    <div id="panelSubcategorias" class="panel-subcategorias oculta"></div>
+    <div class="contenedor-panel">
+        <button class="flecha-scroll flecha-izq" style="display: none;">‹</button>
+        <div id="panelGrupos" class="panel-grupos oculta">
+        </div>
+        <button class="flecha-scroll flecha-der" style="display: none;">›</button>
+    </div>
+
+    <div class="contenedor-panel">
+        <button class="flecha-scroll flecha-izq" style="display: none;">‹</button>
+        <div id="panelSubcategorias" class="panel-subcategorias oculta">
+        </div>
+        <button class="flecha-scroll flecha-der" style="display: none;">›</button>
+     </div>
   </div>
 
 <div id="productos" class="row productos-container"></div>
