@@ -2385,13 +2385,29 @@ def step3():
             except Exception:
                 pass
 
-            try:
-                js_path = os.path.join(app.root_path, 'static', 'js', 'app.js')
-                if os.path.exists(js_path):
-                    with open(js_path, 'rb') as f:
-                        subir_archivo(repo_name, f.read(), 'static/js/app.js')
-            except Exception:
-                pass
+            # Subir core.js (nuevo)
+            core_js_path = os.path.join(app.root_path, 'static', 'js', 'core.js')
+            if os.path.exists(core_js_path):
+                with open(core_js_path, 'rb') as f:
+                    subir_archivo(repo_name, f.read(), 'static/js/core.js')
+            else:
+                print("⚠️ No se encontró core.js")
+
+            # Subir admin.js (nuevo)
+            admin_js_path = os.path.join(app.root_path, 'static', 'js', 'admin.js')
+            if os.path.exists(admin_js_path):
+                with open(admin_js_path, 'rb') as f:
+                    subir_archivo(repo_name, f.read(), 'static/js/admin.js')
+            else:
+                print("⚠️ No se encontró admin.js")
+
+            # Subir mercadopago.js (nuevo)
+            mercadopago_js_path = os.path.join(app.root_path, 'static', 'js', 'mercadopago.js')
+            if os.path.exists(mercadopago_js_path):
+                with open(mercadopago_js_path, 'rb') as f:
+                    subir_archivo(repo_name, f.read(), 'static/js/mercadopago.js')
+            else:
+                print("⚠️ No se encontró mercadopago.js")
 
             try:
                 css_path = os.path.join(app.root_path, 'static', 'css', 'estilos.min.css')
