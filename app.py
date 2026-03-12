@@ -667,43 +667,53 @@ def api_productos():
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
-        email = session.get("email", "anonimo")
-        imagenes = request.files.getlist('imagenes')
-
-        if not imagenes:
-            return jsonify({"ok": False, "error": "No se recibieron imágenes"}), 400
-
+        # Obtener email de la sesión, si no existe usar 'anonimo'
+        email = session.get('email', 'anonimo')
+        
+        # Inicializar la lista en sesión si no existe
         if 'imagenes_step0' not in session:
             session['imagenes_step0'] = []
 
+        imagenes = request.files.getlist('imagenes')
+        if not imagenes:
+            return jsonify({"ok": False, "error": "No se recibieron imágenes"}), 400
+
         urls = []
-        for idx, img in enumerate(imagenes, start=1):
-            if img and img.filename:
-                try:
-                    contenido_bytes = img.read()
-                    ext = os.path.splitext(img.filename)[1].lower() or ".webp"
-                    filename = f"{uuid.uuid4().hex}{ext}"
+        for img in imagenes:
+            if not img or not img.filename:
+                continue
+            try:
+                contenido_bytes = img.read()
+                # Generar nombre único
+                ext = os.path.splitext(img.filename)[1].lower() or ".webp"
+                filename = f"{uuid.uuid4().hex}{ext}"
 
-                    blob_path = f"{email}/{filename}"
-                    blob = bucket.blob(blob_path)
+                # Ruta en el bucket: email / filename
+                blob_path = f"{email}/{filename}"
+                blob = bucket.blob(blob_path)
 
-                    blob.upload_from_string(
-                        contenido_bytes,
-                        content_type="image/webp",
-                        headers={"Cache-Control": "public, max-age=31536000"}
-                    )
+                blob.upload_from_string(
+                    contenido_bytes,
+                    content_type=img.content_type or "image/webp",
+                    headers={"Cache-Control": "public, max-age=31536000"}
+                )
 
-                    ruta_publica = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
+                ruta_publica = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
+                urls.append(ruta_publica)
+                session['imagenes_step0'].append(ruta_publica)
+                session.modified = True  # Importante para que Flask guarde cambios
 
-                    urls.append(ruta_publica)
-                    session['imagenes_step0'].append(ruta_publica)
-
-                except Exception as e:
-                    return jsonify({"ok": False, "error": str(e)}), 500
+            except Exception as e:
+                # Registrar error y continuar con las demás
+                print(f"Error subiendo {img.filename}: {e}")
+                continue
 
         return jsonify({"ok": True, "imagenes": urls})
 
     except Exception as e:
+        print(f"Error general en /upload-image: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
 
 def subir_iconos_png(repo):
