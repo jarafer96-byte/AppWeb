@@ -667,10 +667,16 @@ def api_productos():
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
-        # Obtener email de la sesión, si no existe usar 'anonimo'
-        email = session.get('email', 'anonimo')
-        
-        # Inicializar la lista en sesión si no existe
+        # 1. Obtener email de la sesión (viene de step1)
+        email = session.get('email')
+        if not email:
+            # Si no hay sesión, no podemos asociar las imágenes a un usuario
+            return jsonify({"ok": False, "error": "No hay sesión activa. Por favor, vuelve a step1."}), 403
+
+        # 2. Sanitizar email para usarlo como prefijo de carpeta en GCS
+        email_safe = email.replace('@', '_at_').replace('.', '_dot_')
+
+        # 3. Inicializar lista en sesión si no existe
         if 'imagenes_step0' not in session:
             session['imagenes_step0'] = []
 
@@ -679,17 +685,18 @@ def upload_image():
             return jsonify({"ok": False, "error": "No se recibieron imágenes"}), 400
 
         urls = []
+        errores = []
+
         for img in imagenes:
             if not img or not img.filename:
                 continue
             try:
                 contenido_bytes = img.read()
-                # Generar nombre único
                 ext = os.path.splitext(img.filename)[1].lower() or ".webp"
                 filename = f"{uuid.uuid4().hex}{ext}"
 
-                # Ruta en el bucket: email / filename
-                blob_path = f"{email}/{filename}"
+                # Ruta en el bucket: usuarios/email_safe/nombre_unico.webp
+                blob_path = f"usuarios/{email_safe}/{filename}"
                 blob = bucket.blob(blob_path)
 
                 blob.upload_from_string(
@@ -701,17 +708,27 @@ def upload_image():
                 ruta_publica = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
                 urls.append(ruta_publica)
                 session['imagenes_step0'].append(ruta_publica)
-                session.modified = True  # Importante para que Flask guarde cambios
+                session.modified = True  # Forzar guardado de sesión
+
+                print(f"✅ [UPLOAD] Subida exitosa: {filename} para {email}")
 
             except Exception as e:
-                # Registrar error y continuar con las demás
-                print(f"Error subiendo {img.filename}: {e}")
+                error_msg = f"Error con {img.filename}: {str(e)}"
+                print(f"❌ [UPLOAD] {error_msg}")
+                errores.append(error_msg)
                 continue
 
-        return jsonify({"ok": True, "imagenes": urls})
+        # 4. Responder con éxito aunque haya errores parciales
+        return jsonify({
+            "ok": True,
+            "imagenes": urls,
+            "errores": errores,
+            "total": len(urls),
+            "mensaje": f"Se subieron {len(urls)} imágenes correctamente. {len(errores)} fallos."
+        })
 
     except Exception as e:
-        print(f"Error general en /upload-image: {e}")
+        print(f"💥 Error general en /upload-image: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
