@@ -16,7 +16,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, viewport-fit=cover">
   
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
  
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -49,14 +49,14 @@
 
 <style>
   
-html, body { background-color: #64636d; overflow-x: hidden; position: relative; }
+html, body { background-color: #64636d; min-height: 100vh; overflow-x: hidden; }
 
 h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 
 .logo-wrapper {  width: 100%; max-width: 230px;  height: min(80vw, 230px); margin: 2rem auto !important; display: flex !important; align-items: center !important; justify-content: center !important; contain: layout style paint !important; }
 
-.logo { width: 80% !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 14px black); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
-
+.logo { width: 80% !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 10px violet); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
+  
 </style>
 <link rel="stylesheet" href="static/css/estilos.min.css" 
       media="print" 
@@ -73,20 +73,17 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
         mercado_pago: "{{ config.mercado_pago }}"
       };
       
-      window.URL_BACKEND = "https://mpagina.onrender.com"; // Corregido (window, no windo)
+      window.URL_BACKEND = "https://mpagina.onrender.com"; 
       window.carrito = [];
-      
-      // Detectar admin por URL
+
       const urlParams = new URLSearchParams(window.location.search);
       window.modoAdmin = urlParams.has("token");
       window.tokenAdmin = urlParams.get("token");
-      
-      // Reservar espacio para CLS
+ 
       const style = document.createElement('style');
       style.textContent = '#productos { min-height: 500px; }';
       document.head.appendChild(style);
       
-      // Mostrar elementos de admin cuando el DOM esté listo
       if (window.modoAdmin) {
         document.addEventListener('DOMContentLoaded', function() {
           const adminCard = document.getElementById('adminCard');
@@ -96,9 +93,14 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
           if (configMP) configMP.classList.remove('d-none');
           if (logoutWrapper) logoutWrapper.style.display = 'block';
         });
+
+        const script = document.createElement('script');
+        script.src = 'static/js/admin.js';
+        script.defer = true;
+        document.head.appendChild(script);
       }
     })();
-</script>    
+</script>      
 </head>
 <body class="container modo-oscuro">
   
@@ -283,9 +285,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
           <button id="btnContinuar" class="btn btn-sm btn-success" onclick="mostrarFormulario()">
             Continuar con la compra
           </button>
-          <button id="btnPagarFinal" class="btn btn-sm btn-primary" style="display: none;" onclick="pagarTodoJunto()">
-            Pagar con Mercado Pago
-          </button>
+          <button id="btnPagarFinal" class="btn btn-sm btn-primary" style="display: none;">Pagar con Mercado Pago</button>
         </div>
       </div>
       
@@ -319,11 +319,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
   <img id="modal-img" style="max-width:90%; max-height:90%;">
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" 
-          defer 
-          crossorigin="anonymous"></script>  
-  
-<script src="static/js/app.js" defer></script>  
+<script src="static/js/core.js" defer></script>
   
 </body>
 </html>
