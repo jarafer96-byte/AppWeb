@@ -698,12 +698,10 @@ def upload_image():
                 blob_path = f"usuarios/{email_safe}/{filename}"
                 blob = bucket.blob(blob_path)
 
-                blob.upload_from_string(
-                    contenido_bytes,
-                    content_type=img.content_type or "image/webp",
-                    headers={"Cache-Control": "public, max-age=31536000"}
-                )
-
+                blob.upload_from_string(contenido_bytes, content_type="image/webp")
+                blob.cache_control = "public, max-age=31536000"
+                blob.patch()
+    
                 ruta_publica = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
                 urls.append(ruta_publica)
                 session['imagenes_step0'].append(ruta_publica)
