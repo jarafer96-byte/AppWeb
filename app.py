@@ -667,13 +667,12 @@ def api_productos():
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
-        # 1. Obtener email de la sesión (viene de step1)
+        # 1. Verificar que haya sesión activa con email
         email = session.get('email')
         if not email:
-            # Si no hay sesión, no podemos asociar las imágenes a un usuario
             return jsonify({"ok": False, "error": "No hay sesión activa. Por favor, vuelve a step1."}), 403
 
-        # 2. Sanitizar email para usarlo como prefijo de carpeta en GCS
+        # 2. Sanitizar email para usarlo como carpeta en GCS
         email_safe = email.replace('@', '_at_').replace('.', '_dot_')
 
         # 3. Inicializar lista en sesión si no existe
@@ -695,7 +694,7 @@ def upload_image():
                 ext = os.path.splitext(img.filename)[1].lower() or ".webp"
                 filename = f"{uuid.uuid4().hex}{ext}"
 
-                # Ruta en el bucket: usuarios/email_safe/nombre_unico.webp
+                # Ruta: usuarios/email_safe/uuid.webp
                 blob_path = f"usuarios/{email_safe}/{filename}"
                 blob = bucket.blob(blob_path)
 
@@ -708,7 +707,7 @@ def upload_image():
                 ruta_publica = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
                 urls.append(ruta_publica)
                 session['imagenes_step0'].append(ruta_publica)
-                session.modified = True  # Forzar guardado de sesión
+                session.modified = True  # Forzar guardado
 
                 print(f"✅ [UPLOAD] Subida exitosa: {filename} para {email}")
 
@@ -718,7 +717,6 @@ def upload_image():
                 errores.append(error_msg)
                 continue
 
-        # 4. Responder con éxito aunque haya errores parciales
         return jsonify({
             "ok": True,
             "imagenes": urls,
