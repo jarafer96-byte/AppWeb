@@ -1,3 +1,41 @@
+#paginacion button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.flecha-scroll {
+    position: fixed;
+    transform: translateY(0); /* O puedes mantener translateY si lo necesitas */
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1002;
+    transition: opacity 0.3s ease, transform 0.2s;
+    font-size: 20px;
+    top: calc(var(--barra-altura) + 5px);
+}
+:root {
+    --barra-altura: 60px; 
+}
+
+.flecha-scroll:hover {
+    background: white;
+    color: black;
+    transform: scale(1.1);
+}
+
+.flecha-izq { left: 10px; }
+.flecha-der { right: 10px; }
+
 .skeleton-card {
   background: rgba(30, 30, 40, 0.6);
   border-radius: 12px;
@@ -65,38 +103,6 @@
   animation: shake 0.3s ease-in-out;
 }
 
-
-.splash-deslizable {
-  position: fixed;
-  top: 95px; /* Ajusta según la altura de tu barra */
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 30px;
-  font-size: 14px;
-  font-family: 'Raleway', sans-serif;
-  white-space: nowrap;
-  z-index: 1001;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-  animation: fadeOut 10s forwards;
-  pointer-events: none; /* Para que no interfiera con clics */
-}
-
-@keyframes fadeOut {
-  0% { opacity: 1; }
-  70% { opacity: 1; }
-  100% { opacity: 0; display: none; }
-}
-
-/* En móvil, lo mostramos; en desktop, lo ocultamos si quieres */
-@media (min-width: 768px) {
-  .splash-deslizable {
-    display: none;
-  }
-}
-
 #ubicacion a {
   display: inline-flex !important;
   align-items: center !important;
@@ -156,14 +162,6 @@ body.container.modo-oscuro::before {
   z-index: -1;
 }
 
-body.container.py-5.modo-oscuro {
-  box-shadow: 
-    0 50px 120px rgba(0, 0, 0, 0.8),
-    0 0 0 2px rgba(255, 255, 255, 0.2),
-    inset 0 4px 30px rgba(255, 255, 255, 0.1),
-    inset 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
-}
-
 .card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1); contain: content; padding: 12px; }
 .card:hover, .card-giratoria:hover { transform: translateY(-5px); will-change: transform, box-shadow; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
 
@@ -183,7 +181,7 @@ body.container.py-5.modo-oscuro {
 
 .panel-grupos { scrollbar-width: none; overflow-x: auto; white-space: nowrap; max-height: 50vh; overflow-y: auto; z-index: 999; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
 .panel-grupos button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
-.panel-grupos button:hover { background-color: #fff; color: #333; transform: scale(1.05); box-shadow: 0 0 8px none; }
+.panel-grupos button:hover { background-color: #fff; color: #333; transform: scale(1.05); }
 
 .panel-subcategorias { scrollbar-width: none; overflow-x: auto; white-space: nowrap; max-height: 50vh; overflow-y: auto; z-index: 998; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
 .panel-subcategorias button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
@@ -226,9 +224,6 @@ body.container.py-5.modo-oscuro {
     contain-intrinsic-size: 1px 5000px;
   }
 }
-
-.modal-talles-stock input[type="text"],
-.modal-talles-stock input[type="number"] { font-size: 14px; }
 
 .panel-grupos,
 .panel-subcategorias { scroll-behavior: smooth; }
