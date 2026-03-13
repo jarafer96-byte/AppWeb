@@ -405,6 +405,32 @@ def subir_a_firestore(producto, email, es_edicion=False):
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
+
+
+
+
+
+@app.route('/test-gmail')
+def test_gmail():
+    try:
+        service = get_gmail_service()
+        # Crear un mensaje simple
+        import base64
+        from email.mime.text import MIMEText
+        msg = MIMEText("Prueba de conexión")
+        msg["Subject"] = "Test Gmail API"
+        msg["From"] = "ferj6009@gmail.com"
+        msg["To"] = "ferj.9622@gmail.com"
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+        service.users().messages().send(userId="me", body={"raw": raw}).execute()
+        return "✅ Correo de prueba enviado"
+    except Exception as e:
+        return f"❌ Error: {e}"
+
+
+
+
+
 @app.route("/authorize")
 def authorize():
     flow = build_flow()
