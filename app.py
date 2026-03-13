@@ -1777,7 +1777,7 @@ def pagar():
                         "precio": precio,
                         "cantidad": cantidad,
                         "talle": talle,
-                        "color": color
+                        "color": color,
                         "imagen_url": imagen_url
                     }
                     if item.get('grupo'):
