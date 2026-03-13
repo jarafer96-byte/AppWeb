@@ -448,9 +448,23 @@ def get_gmail_service():
         raise RuntimeError("No hay token guardado en Firestore")
 
     creds_json = doc.to_dict()["token"]
-    print("[GMAIL] 📦 Token recuperado de Firestore:", creds_json[:80], "...")  # mostramos solo el inicio
-
     creds = Credentials.from_authorized_user_info(json.loads(creds_json), SCOPES)
+
+    # Si el token expiró y tenemos refresh_token, lo refrescamos
+    if creds.expired and creds.refresh_token:
+        print("[GMAIL] 🔄 Token expirado, refrescando...")
+        try:
+            creds.refresh(Request())
+            # Guardar el nuevo token en Firestore
+            db.collection("_tokens").document("gmail").set({
+                "token": creds.to_json(),
+                "actualizado": firestore.SERVER_TIMESTAMP
+            })
+            print("[GMAIL] ✅ Token refrescado y guardado")
+        except Exception as e:
+            print(f"[GMAIL] ❌ Error al refrescar token: {e}")
+            raise
+
     print("[GMAIL] ✅ Cliente Gmail inicializado correctamente")
     return build("gmail", "v1", credentials=creds)
     
