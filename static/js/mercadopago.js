@@ -1,8 +1,6 @@
 (function() {
-  // Variable interna para evitar cargar el SDK múltiples veces
   let sdkCargado = false;
 
-  // Función auxiliar para cargar el SDK de Mercado Pago
   async function cargarSDK() {
     if (window.MercadoPago) return Promise.resolve();
     return new Promise((resolve, reject) => {
@@ -14,7 +12,6 @@
     });
   }
 
-  // Inicializa Mercado Pago con la clave pública
   async function initMercadoPago() {
   try {
     await cargarSDK();
@@ -34,7 +31,6 @@
   }
 }
 
-  // Función principal de pago (la que se llama desde el botón "Pagar con Mercado Pago")
   async function pagarTodoJunto() {
     console.log("🛒 Iniciando proceso de pago...");
 
@@ -44,7 +40,6 @@
       return;
     }
 
-    // Obtener datos del formulario
     const nombreInput = document.querySelector('input[name="nombre"]');
     const apellidoInput = document.querySelector('input[name="apellido"]');
     const emailInput = document.querySelector('input[name="email"]');
@@ -71,7 +66,6 @@
       return;
     }
 
-    // Preparar items
     function convertirPrecio(precio) {
       if (typeof precio === 'number') return precio;
       if (typeof precio === 'string') {
@@ -137,7 +131,6 @@
         btnPagarFinal.textContent = 'Procesando...';
       }
 
-      // Asegurar que el SDK esté cargado
       await cargarSDK();
 
       const response = await fetch(`${window.URL_BACKEND}/pagar`, {
@@ -187,7 +180,6 @@
     }
   }
 
-  // Verificación de configuración de Mercado Pago (parámetros en URL)
   setTimeout(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('mp_configurado') === 'true') {
@@ -202,7 +194,7 @@
     }
   }, 100);
 
-  // Exponer solo las funciones necesarias
   window.initMercadoPago = initMercadoPago;
   window.pagarTodoJunto = pagarTodoJunto;
+
 })();
