@@ -406,6 +406,13 @@ def subir_a_firestore(producto, email, es_edicion=False):
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
+def generate_code_verifier():
+    return secrets.token_urlsafe(100)
+
+def generate_code_challenge(verifier):
+    digest = hashlib.sha256(verifier.encode()).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
+    
 @app.route("/authorize")
 def authorize():
     flow = build_flow()
