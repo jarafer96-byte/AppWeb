@@ -1754,6 +1754,7 @@ def pagar():
                         "description": nombre,
                         "quantity": cantidad,
                         "unit_price": precio,
+                        "imagen_url": imagen_url,
                         "currency_id": "ARS"
                     }
                     
