@@ -261,10 +261,8 @@ function cargarProductoEnFormulario(producto) {
         btnEliminar.onclick = (e) => {
           e.stopPropagation();
           if (confirm(`¿Eliminar foto adicional ${index + 1}?`)) {
-            // Actualizar el array de fotos
             const nuevasFotos = window.fotosAdicionalesExistentes.filter((_, i) => i !== index);
             window.fotosAdicionalesExistentes = nuevasFotos;
-            // Crear una copia del producto con las fotos actualizadas
             const productoActualizado = { ...producto, fotos_adicionales: nuevasFotos };
             cargarProductoEnFormulario(productoActualizado);
             console.log(`🗑️ Foto adicional ${index + 1} eliminada`);
@@ -575,7 +573,6 @@ document.getElementById("btnConfirmarProd")?.addEventListener("click", async () 
   }
 });
 
-// Manejo de talles en tiempo real
 document.getElementById("tallesProd")?.addEventListener("input", function() {
   const talles = this.value.split(",").map(t => t.trim()).filter(Boolean);
   const container = document.getElementById("stockPorTalleContainer");
@@ -618,7 +615,6 @@ document.getElementById("tallesProd")?.addEventListener("input", function() {
   }
 });
 
-// Salir del modo admin
 function salirAdmin() {
   console.log("🚪 Saliendo de modo admin, limpiando token...");
   window.modoAdmin = false;
