@@ -1781,6 +1781,7 @@ def pagar():
                         "cantidad": cantidad,
                         "talle": talle,
                         "color": color
+                        "imagen_url": imagen_url
                     }
                     if item.get('grupo'):
                         metadata_item["grupo"] = item.get('grupo')
