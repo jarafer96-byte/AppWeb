@@ -34,7 +34,7 @@ from flask_talisman import Talisman
 from flask_cors import CORS
 from google.auth.transport.requests import Request
 import builtins
-builtins.print = lambda *args, **kwargs: None
+# builtins.print = lambda *args, **kwargs: None
 ##################
 # 🔐 Inicialización segura de Firebase con logs
 db = None
