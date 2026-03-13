@@ -238,14 +238,16 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 </div>
 
 {% if config.ubicacion %}
-  <div id="ubicacion" class="bloque-ubicacion text-center mt-4" style="margin-bottom:120px;">
-    <p style="margin-bottom: 6px;">
-      📍 {{ config.ubicacion }}
-    </p>
+  <div id="ubicacion" class="bloque-ubicacion text-center mt-4">
+    <span>📍 {{ config.ubicacion }} </span>
     {% if config.link_mapa %}
-      <a href="{{ config.link_mapa }}" target="_blank" style="text-decoration: none;">
-        <span style="margin-right: 6px;">➜</span>
-        <img src="/static/img/map.webp" alt="Ver en Google Maps" style="width: 30px;" loading="lazy">
+      <a href="{{ config.link_mapa }}">
+        <span>➜</span>
+        <img src="/static/img/map.webp"
+             alt="Ver en Google Maps" 
+             loading="lazy"
+             width="24"
+             height="24">
       </a>
     {% endif %}
   </div>
