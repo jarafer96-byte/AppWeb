@@ -409,7 +409,14 @@ def subir_a_firestore(producto, email, es_edicion=False):
 @app.route("/authorize")
 def authorize():
     flow = build_flow()
-    auth_url, _ = flow.authorization_url(prompt="consent")
+    code_verifier = generate_code_verifier()
+    session['code_verifier'] = code_verifier
+    code_challenge = generate_code_challenge(code_verifier)
+    auth_url, _ = flow.authorization_url(
+        prompt="consent",
+        code_challenge=code_challenge,
+        code_challenge_method='S256'
+    )
     return redirect(auth_url)
 
 @app.route("/oauth2callback")
