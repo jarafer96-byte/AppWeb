@@ -6,6 +6,7 @@ import re
 import time
 import json
 import gc
+import hashlib
 import pandas as pd
 import traceback
 from werkzeug.utils import secure_filename
