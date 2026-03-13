@@ -417,14 +417,13 @@ def oauth2callback():
     print("\n[OAUTH] 📥 Callback recibido con URL:", request.url)
     try:
         flow = build_flow()
+        print("[OAUTH] Flow construido, intentando fetch_token...")
         flow.fetch_token(authorization_response=request.url)
         creds = flow.credentials
         print("[OAUTH] ✅ Token obtenido correctamente")
 
         # Guardar token en Firestore
         token_data = creds.to_json()
-        print("[OAUTH] 📦 Token JSON generado:", token_data[:80], "...")  # mostramos solo el inicio por seguridad
-
         db.collection("_tokens").document("gmail").set({
             "token": token_data,
             "actualizado": firestore.SERVER_TIMESTAMP
@@ -434,11 +433,12 @@ def oauth2callback():
         return "✅ Autorización completada y token guardado en Firestore"
 
     except Exception as e:
+        import traceback
         tb = traceback.format_exc()
         print("[OAUTH] ❌ Error en oauth2callback:", e)
         print(tb)
-        return "❌ Error en oauth2callback", 500
-
+        # Devolver el error en la respuesta para verlo en el navegador
+        return f"❌ Error en oauth2callback: {e}<br><pre>{tb}</pre>", 500
 
 def get_gmail_service():
     print("\n[GMAIL] 🔎 Intentando recuperar token desde Firestore...")
