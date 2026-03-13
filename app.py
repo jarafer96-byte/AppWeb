@@ -707,32 +707,79 @@ def upload_image():
         if 'imagenes_step0' not in session:
             session['imagenes_step0'] = []
 
-        urls = []
-        for idx, img in enumerate(imagenes, start=1):
-            if img and img.filename:
-                try:
-                    contenido_bytes = img.read()
-                    ext = os.path.splitext(img.filename)[1].lower() or ".webp"
-                    filename = f"{uuid.uuid4().hex}{ext}"
+        urls_grandes = []      # 500x500
+        urls_medianas = []     # 180x180
+        urls_miniaturas = []   # 58x58
+        errores = []
 
+        for img in imagenes:
+            if not img or not img.filename:
+                continue
+            try:
+                contenido_bytes = img.read()
+                # Abrir la imagen con Pillow
+                imagen_original = Image.open(BytesIO(contenido_bytes)).convert('RGB')
+
+                # UUID base para los nombres
+                base_uuid = uuid.uuid4().hex
+
+                # Función auxiliar para redimensionar y subir
+                def subir_version(tamaño, sufijo):
+                    img_copy = imagen_original.copy()
+                    img_copy.thumbnail((tamaño, tamaño), Image.Resampling.LANCZOS)
+                    # Crear canvas cuadrado
+                    canvas = Image.new('RGB', (tamaño, tamaño), (0, 0, 0))
+                    offset = ((tamaño - img_copy.width) // 2, (tamaño - img_copy.height) // 2)
+                    canvas.paste(img_copy, offset)
+                    buffer = BytesIO()
+                    canvas.save(buffer, format='WEBP', quality=80)
+                    buffer.seek(0)
+                    filename = f"{base_uuid}_{sufijo}.webp"
                     blob_path = f"{email}/{filename}"
                     blob = bucket.blob(blob_path)
+                    blob.upload_from_string(
+                        buffer.read(),
+                        content_type='image/webp',
+                        headers={"Cache-Control": "public, max-age=31536000"}
+                    )
+                    return f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
 
-                    blob.upload_from_string(contenido_bytes, content_type="image/webp")
-                    blob.cache_control = "public, max-age=31536000"
-                    blob.patch()
+                # Subir las tres versiones
+                url_500 = subir_version(500, '500')
+                url_180 = subir_version(180, '180')
+                url_58  = subir_version(58, '58')
 
-                    ruta_publica = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
+                # Guardar las URLs en las listas correspondientes
+                urls_grandes.append(url_500)
+                urls_medianas.append(url_180)
+                urls_miniaturas.append(url_58)
 
-                    urls.append(ruta_publica)
-                    session['imagenes_step0'].append(ruta_publica)
+                # Para mantener compatibilidad con step3 (que espera una sola URL por imagen)
+                # guardamos la grande en la sesión
+                session['imagenes_step0'].append(url_500)
+                session.modified = True
 
-                except Exception as e:
-                    return jsonify({"ok": False, "error": str(e)}), 500
+                print(f"✅ [UPLOAD] Subidas: {url_500}, {url_180}, {url_58}")
 
-        return jsonify({"ok": True, "imagenes": urls})
+            except Exception as e:
+                errores.append(f"Error con {img.filename}: {str(e)}")
+                print(f"❌ [UPLOAD] {errores[-1]}")
+                continue
+
+        return jsonify({
+            "ok": True,
+            "imagenes": urls_grandes,      // para el modal (500x500)
+            "mediums": urls_medianas,      // para las cards (180x180)
+            "thumbs": urls_miniaturas,     // para miniaturas (58x58)
+            "errores": errores,
+            "total": len(urls_grandes),
+            "mensaje": f"Se subieron {len(urls_grandes)} imágenes. {len(errores)} fallos."
+        })
 
     except Exception as e:
+        print(f"💥 Error general en /upload-image: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
