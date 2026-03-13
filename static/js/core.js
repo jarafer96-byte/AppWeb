@@ -7,7 +7,6 @@ const usarFirestore = false;
 let paginaActual = 1;
 let productosFiltradosActuales = [];
 let isMobile = window.matchMedia("(max-width: 767px)").matches;
-let carrito = [];
 let scrollTimer;
 let isScrolling = false;
 window.stockPorTalleData = {};
@@ -26,8 +25,7 @@ fetch(urlProductos)
   })
   .then(lista => {
     const productosOrdenados = Array.isArray(lista) ? lista : [];
-    
-    // Ordenar: primero con stock, luego por precio ascendente
+  
     productosOrdenados.sort((a, b) => {
       const stockA = (a.stock_por_talle && Object.values(a.stock_por_talle).some(v => v > 0)) || 
                      (a.stock && a.stock > 0);
@@ -43,7 +41,6 @@ fetch(urlProductos)
     window.todosLosProductos = productosOrdenados;
     console.log("🌐 Productos recibidos y ordenados:", window.todosLosProductos.length);
 
-    // Poblar datalists para sugerencias en admin (con retraso para no bloquear)
     setTimeout(() => {
       const gruposUnicos = [...new Set(productosOrdenados.map(p => p.grupo).filter(Boolean))];
       const subgruposUnicos = [...new Set(productosOrdenados.map(p => p.subgrupo).filter(Boolean))];
@@ -109,7 +106,6 @@ fetch(urlProductos)
     console.log("🎯 Primer grupo:", primerGrupo);
     console.log("📂 Subgrupos del primer grupo:", subgruposPrimer);
 
-    // Render inicial: si hay subgrupos, mostrar el primero; si no, mostrar todo el grupo
     if (primerGrupo) {
       if (subgruposPrimer.length > 0) {
         console.log("➡️ Render inicial con subgrupo:", subgruposPrimer[0]);
@@ -172,7 +168,7 @@ function renderPaginacion(productosFiltrados) {
   const pagDiv = document.getElementById("paginacion");
   if (!pagDiv) return;
   
-  const itemsPorPagina = getItemsPorPagina(); // ✅ Usa la función, no una variable
+  const itemsPorPagina = getItemsPorPagina(); 
   const totalPaginas = Math.ceil(productosFiltrados.length / itemsPorPagina);
   
   pagDiv.innerHTML = "";
@@ -561,36 +557,30 @@ function closeModal() {
 }
 
 function mostrarGrupo(nombre, event, auto = false) {
-  // 1. Actualizar estado global: grupo actual y reseteo de subgrupo [1], [2]
   const grupoCanon = String(nombre || "").trim();
   window.currentGrupo = grupoCanon.toLowerCase();
-  window.currentSub = null; // Limpiamos el subgrupo para mostrar todo el grupo [1]
+  window.currentSub = null; 
 
   const cont = document.getElementById("productos");
   if (!cont) return;
 
-  // 2. Manejo visual de botones de grupo [3]
   document.querySelectorAll('.btn-grupo').forEach(btn => btn.classList.remove('active'));
   if (event?.target) {
     event.target.classList.add('active');
   }
 
-  // 3. Limpiar panel de subcategorías [1]
   const panel = document.getElementById('panelSubcategorias');
   if (!panel) return;
   panel.innerHTML = "";
 
-  // 4. Filtrar productos del grupo [1]
   const productosGrupo = (window.todosLosProductos || []).filter(
     p => String(p.grupo || "").toLowerCase() === window.currentGrupo
   );
 
-  // 5. Obtener subcategorías únicas (excluyendo 'general') [1]
   const subcategorias = [...new Set(
     productosGrupo.map(p => p.subgrupo).filter(s => s && String(s).toLowerCase() !== 'general')
   )];
 
-  // 6. Crear botones de subcategoría dinámicamente [1]
   subcategorias.forEach(sub => {
     const btn = document.createElement('button');
     btn.textContent = sub;
@@ -599,11 +589,9 @@ function mostrarGrupo(nombre, event, auto = false) {
     panel.appendChild(btn);
   });
 
-  // 7. Renderizar productos y paginación inicial del grupo [4]
   renderPagina(1, productosGrupo);
   renderPaginacion(productosGrupo);
 
-  // 8. Mostrar/ocultar panel de subcategorías [4]
   if (subcategorias.length > 0) {
     if (!auto) {
       panel.classList.remove('oculta');
@@ -613,20 +601,14 @@ function mostrarGrupo(nombre, event, auto = false) {
   } else {
     panel.classList.add('oculta');
   }
-
-  // 9. AJUSTES FINALES (Flechas y Posiciones)
-  // Recalcular la posición de los paneles (fijar top según la barra nav) [5], [6]
   setTimeout(() => {
     ajustarPosicionesPaneles(); 
-    
-    // Actualizar visibilidad de las flechas de desplazamiento [Conversación previa]
+
     if (typeof gestionarFlechas === 'function') {
       gestionarFlechas('panelSubcategorias');
       gestionarFlechas('panelGrupos');
     }
   }, 0);
-
-  // 10. Scroll al inicio de la página [4]
   setTimeout(() => window.scrollTo({ top: 0, behavior: 'auto' }), 0);
 }
 
@@ -636,15 +618,12 @@ function filtrarSubcategoria(grupo, subgrupo) {
   const cont = document.getElementById("productos");
   if (!cont) return;
 
-  // Normalizar valores
   const grupoCanon = String(grupo || "").trim().toLowerCase();
   const subCanon = String(subgrupo || "").trim().toLowerCase();
 
-  // Actualizar estado global
   window.currentGrupo = grupoCanon;
-  window.currentSub = subCanon || null; // si subCanon es vacío, asignamos null
+  window.currentSub = subCanon || null; 
 
-  // Quitar clase active de todos los subgrupos (si existen)
   document.querySelectorAll('.btn-subgrupo').forEach(btn => btn.classList.remove('active'));
 
   if (subCanon) {
@@ -673,26 +652,22 @@ function filtrarSubcategoria(grupo, subgrupo) {
 window.filtrarSubcategoria = filtrarSubcategoria;
 
 (function setupImmediate() {
-  // Ocultar paneles si existen
   const panelSubcategorias = document.getElementById('panelSubcategorias');
   const panelGrupos = document.getElementById('panelGrupos');
   if (panelSubcategorias) panelSubcategorias.classList.add('oculta');
   if (panelGrupos) panelGrupos.classList.add('oculta');
-  
-  // Configurar carrito con reintento
+
   const toggleBtn = document.getElementById('toggleCarrito');
   if (toggleBtn) {
     toggleBtn.onclick = function() {
       const carritoDiv = document.getElementById('carrito');
       if (!carritoDiv) return;
-      
-      // Usar getComputedStyle para mayor precisión
+
       const isVisible = window.getComputedStyle(carritoDiv).display !== 'none';
       carritoDiv.style.display = isVisible ? 'none' : 'block';
     };
     console.log("✅ Carrito configurado inmediatamente");
   } else {
-    // Si no existe, reintentar en 50ms
     setTimeout(setupImmediate, 50);
   }
 })();  
@@ -722,7 +697,7 @@ function mostrarSubgrupo(subgrupo, event) {
 window.mostrarSubgrupo = mostrarSubgrupo;
 
 function sincronizarPreciosDelCarrito() {
-  carrito.forEach(item => {
+  window.carrito.forEach(item => {
     const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
     const precioSpan = document.getElementById(idPrecio);
     if (precioSpan) {
@@ -744,10 +719,9 @@ function actualizarCarrito(conAnimacion = false) {
   lista.innerHTML = '';
   let suma = 0;
 
-  if (carrito.length === 0) {
+  if (window.carrito.length === 0) {
     lista.innerHTML = "<li>🛒 Carrito vacío</li>";
     totalSpan.textContent = "0.00";
-    // Actualizar contador a 0 sin animación
     const contadorSpan = document.getElementById('carrito-contador');
     if (contadorSpan) {
       contadorSpan.textContent = '0';
@@ -758,10 +732,9 @@ function actualizarCarrito(conAnimacion = false) {
 
   const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  // Función para escapar comillas simples en los valores (para el onclick)
   const escape = str => (str || '').replace(/'/g, "\\'");
 
-  carrito.forEach(item => {
+  window.carrito.forEach(item => {
     const subtotal = item.precio * item.cantidad;
     suma += subtotal;
     
@@ -786,14 +759,12 @@ function actualizarCarrito(conAnimacion = false) {
 
   totalSpan.textContent = fmt.format(suma);
 
-  // Actualizar contador
   const contadorSpan = document.getElementById('carrito-contador');
   if (contadorSpan) {
     const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
     contadorSpan.textContent = totalItems;
     contadorSpan.style.background = totalItems > 0 ? '#ff4757' : '#888';
 
-    // Añadir animación si se solicita (pop)
     if (conAnimacion) {
       contadorSpan.classList.add('pop-animation');
       setTimeout(() => contadorSpan.classList.remove('pop-animation'), 400);
@@ -823,7 +794,6 @@ function actualizarStockPorTalle(idProducto, talleSeleccionado) {
     stockDisponible = 0;
   }
 
-  // Actualizar input y botón según el stock disponible
   cantidadInput.max = stockDisponible;
   if (stockDisponible > 0) {
     cantidadInput.disabled = false;
@@ -888,7 +858,6 @@ habilitarScrollHorizontal('.panel-subcategorias');
 isMobile = window.matchMedia("(max-width: 767px)").matches;
 window.matchMedia("(max-width: 767px)").addEventListener('change', (e) => {
     isMobile = e.matches;
-    // Re-renderizar la página actual si hay productos filtrados
     if (productosFiltradosActuales && productosFiltradosActuales.length > 0) {
         renderPagina(paginaActual, productosFiltradosActuales);
         renderPaginacion(productosFiltradosActuales);
@@ -898,7 +867,6 @@ window.matchMedia("(max-width: 767px)").addEventListener('change', (e) => {
         ajustarPosicionesPaneles();
     }
 });
-
 
 function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = "", subgrupo = "") {
   const cantidadInput = document.getElementById(idCantidad);
@@ -958,7 +926,7 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
       grupo, 
       subgrupo 
     };
-    carrito.push(nuevoItem);
+    window.carrito.push(nuevoItem);
   }
   
   actualizarCarrito(true);
@@ -979,7 +947,7 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
 }
 
 function vaciarCarrito() {
-    carrito = [];
+    window.carrito = [];
     actualizarCarrito();
     ocultarFormulario(); 
 }
@@ -989,7 +957,7 @@ function eliminarDelCarrito(id_base, talle, event) {
 
   console.log("[CARRITO] ❌ Eliminando:", { id_base, talle });
 
-  carrito = carrito.filter(p => {
+  window.carrito = window.carrito.filter(p => {
     if (talle && talle !== "unico") {
       return !(p.id_base === id_base && p.talle === talle);
     } else {
@@ -1010,7 +978,6 @@ function gestionarFlechas(panelId) {
 
   if (!flechaIzq || !flechaDer) return;
 
-  // Si el panel está oculto, ocultar flechas
   if (panel.classList.contains('oculta')) {
     flechaIzq.style.display = 'none';
     flechaDer.style.display = 'none';
@@ -1018,19 +985,14 @@ function gestionarFlechas(panelId) {
   }
 
   const actualizarVisibilidad = () => {
-    // Mostrar flecha izquierda si hay scroll hacia la izquierda
     flechaIzq.style.display = panel.scrollLeft > 5 ? 'flex' : 'none';
-    
-    // Mostrar flecha derecha si hay más contenido a la derecha
     const tieneMas = panel.scrollLeft + panel.clientWidth < panel.scrollWidth - 5;
     flechaDer.style.display = tieneMas ? 'flex' : 'none';
   };
 
-  // Asignar eventos
   panel.onscroll = actualizarVisibilidad;
-  window.onresize = actualizarVisibilidad; // Nota: esto sobrescribe otros listeners, mejor usar addEventListener
+  window.onresize = actualizarVisibilidad; 
 
-  // Eventos de clic para desplazar
   flechaIzq.onclick = () => panel.scrollBy({ left: -200, behavior: 'smooth' });
   flechaDer.onclick = () => panel.scrollBy({ left: 200, behavior: 'smooth' });
 
@@ -1046,7 +1008,6 @@ function girarCard(elemento) {
 }
 
 function mostrarToast(mensaje) {
-  // Eliminar toast anterior si existe
   const toastAnterior = document.querySelector('.toast-notificacion');
   if (toastAnterior) toastAnterior.remove();
 
@@ -1072,7 +1033,6 @@ function mostrarToast(mensaje) {
   `;
   document.body.appendChild(toast);
 
-  // Forzar reflow para activar la transición
   toast.offsetHeight;
   toast.style.transform = 'translateX(0)';
 
@@ -1092,8 +1052,6 @@ function mostrarTodos() {
     if (!panelSub.classList.contains('oculta')) {
         panelSub.classList.add('oculta');
     }
-
-    // Actualizamos flechas de ambos
     gestionarFlechas('panelGrupos');
     gestionarFlechas('panelSubcategorias');
     ajustarPosicionesPaneles();
@@ -1144,49 +1102,41 @@ function ajustarPosicionesPaneles() {
 
   if (!panelGrupos || !panelSub) return;
 
-  // Altura de la barra de navegación
   let alturaBarra = barraNav ? barraNav.offsetHeight : 0;
-  
-  // Altura del panel de grupos (solo si está visible)
+
   let alturaGrupos = 0;
   if (!panelGrupos.classList.contains('oculta')) {
     alturaGrupos = panelGrupos.offsetHeight;
   }
 
-  // ----- Panel de grupos -----
   const contenedorGrupos = panelGrupos.parentElement;
   const flechaIzqGrupos = contenedorGrupos.querySelector('.flecha-izq');
   const flechaDerGrupos = contenedorGrupos.querySelector('.flecha-der');
 
   if (!panelGrupos.classList.contains('oculta')) {
-    // Posicionar el panel
     panelGrupos.style.top = alturaBarra + 'px';
     panelGrupos.style.position = 'fixed';
     panelGrupos.style.left = '0';
     panelGrupos.style.right = '0';
 
-    // Posicionar flechas (con un pequeño offset de 2px para que bajen)
     if (flechaIzqGrupos) {
       flechaIzqGrupos.style.top = (alturaBarra + 2) + 'px';
-      flechaIzqGrupos.style.display = 'flex'; // Asegurar que sean visibles
+      flechaIzqGrupos.style.display = 'flex'; 
     }
     if (flechaDerGrupos) {
       flechaDerGrupos.style.top = (alturaBarra + 2) + 'px';
       flechaDerGrupos.style.display = 'flex';
     }
   } else {
-    // Si el panel está oculto, ocultar también sus flechas
     if (flechaIzqGrupos) flechaIzqGrupos.style.display = 'none';
     if (flechaDerGrupos) flechaDerGrupos.style.display = 'none';
   }
 
-  // ----- Panel de subcategorías -----
   const contenedorSub = panelSub.parentElement;
   const flechaIzqSub = contenedorSub.querySelector('.flecha-izq');
   const flechaDerSub = contenedorSub.querySelector('.flecha-der');
 
   if (!panelSub.classList.contains('oculta')) {
-    // Cálculo de la posición (igual que antes)
     const margenAdicional = 19;
     const desplazamientoArriba = -20;
     const topCalc = alturaBarra + alturaGrupos + margenAdicional + desplazamientoArriba;
@@ -1196,7 +1146,6 @@ function ajustarPosicionesPaneles() {
     panelSub.style.left = '0';
     panelSub.style.right = '0';
 
-    // Posicionar flechas (con offset)
     if (flechaIzqSub) {
       flechaIzqSub.style.top = (topCalc + 2) + 'px';
       flechaIzqSub.style.display = 'flex';
@@ -1206,20 +1155,18 @@ function ajustarPosicionesPaneles() {
       flechaDerSub.style.display = 'flex';
     }
   } else {
-    // Ocultar flechas si el panel está oculto
     if (flechaIzqSub) flechaIzqSub.style.display = 'none';
     if (flechaDerSub) flechaDerSub.style.display = 'none';
   }
 
-  // Después de posicionar, actualizar la visibilidad por scroll
   gestionarFlechas('panelGrupos');
   gestionarFlechas('panelSubcategorias');
 }
 
 function getItemsPorPagina() {
-    if (isMobile && window.modoAdmin) return 4; // Modo admin en móvil
-    if (isMobile) return 5; // Móvil normal
-    return 12; // Desktop
+    if (isMobile && window.modoAdmin) return 4; 
+    if (isMobile) return 5; 
+    return 12; 
 }
 
 function mostrarFormulario() {
@@ -1248,7 +1195,6 @@ function mostrarFormulario() {
     }, 100);
 }
   
-
 function ocultarFormulario() {
     const datosCliente = document.getElementById('datosCliente');
     if (datosCliente) {
@@ -1332,7 +1278,6 @@ function setupEnhancedLazyLoading() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Eventos de cards
   document.querySelectorAll('.card-giratoria').forEach(card => {
     card.addEventListener('mouseenter', () => {
       card.style.transition = 'transform 0.5s ease, box-shadow 0.3s ease';
@@ -1381,11 +1326,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (window.modoAdmin) cargarMercadoPagoJS();
 
-  // Lazy loading de imágenes
   setTimeout(loadVisibleImagesFirst, 300);
   setTimeout(setupEnhancedLazyLoading, 800);
 
-  // Listener unificado de scroll
   window.addEventListener('scroll', () => {
     if (!isScrolling) {
       isScrolling = true;
@@ -1407,7 +1350,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, { passive: true });
 
-  // Click en botones girar/reversa
   document.addEventListener('click', (e) => {
     if (e.target.classList.contains('btn-girar') || e.target.classList.contains('btn-reversa')) {
       const card = e.target.closest('.card-giratoria');
@@ -1424,7 +1366,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Gestión de paneles
   window.addEventListener("load", ajustarPosicionesPaneles);
   window.addEventListener("resize", ajustarPosicionesPaneles);
 
@@ -1437,7 +1378,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Cambio de talles (evento delegado)
   document.addEventListener('change', (e) => {
     if (e.target.id && e.target.id.startsWith('talle_')) {
       const idProducto = e.target.id.replace('talle_', '');
@@ -1446,7 +1386,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Botón subcategorías (si existe)
   const btnSubcategorias = document.getElementById("btnSubcategorias");
   if (btnSubcategorias) {
     btnSubcategorias.addEventListener("click", () => {
@@ -1455,7 +1394,6 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(ajustarPosicionesPaneles, 0);
     });
   }
-
 
 function cargarMercadoPagoJS() {
   return new Promise((resolve, reject) => {
@@ -1480,7 +1418,6 @@ document.getElementById('btnPagarFinal')?.addEventListener('click', async () => 
 });
 
   document.addEventListener("click", (e) => {
-    // Cerrar carrito
     const carritoDiv = document.getElementById("carrito");
     const toggleBtn = document.getElementById("toggleCarrito");
     if (carritoDiv && toggleBtn) {
@@ -1489,7 +1426,6 @@ document.getElementById('btnPagarFinal')?.addEventListener('click', async () => 
       if (visible && clicFueraCarrito) carritoDiv.style.display = "none";
     }
 
-    // Cerrar paneles
     const panelGrupos = document.getElementById("panelGrupos");
     const panelSub = document.getElementById("panelSubcategorias");
     if (panelGrupos && panelSub) {
@@ -1511,7 +1447,6 @@ document.getElementById('btnPagarFinal')?.addEventListener('click', async () => 
     }
   });
 
-  // Ordenar por precio
   const ordenSelect = document.getElementById("ordenPrecio");
   if (ordenSelect) {
     ordenSelect.addEventListener("change", (e) => {
@@ -1549,8 +1484,7 @@ document.getElementById('loginToggleBtn').onclick = () => {
     const form = document.getElementById('loginFloatingForm');
     if (form) {
         form.style.display = form.style.display === 'none' ? 'block' : 'none';
-        
-        // Si el formulario se va a mostrar, cargamos admin.js en ese instante
+ 
         if (form.style.display === 'block' && !window.adminScriptCargado) {
             const script = document.createElement('script');
             script.src = 'static/js/admin.js';
@@ -1560,7 +1494,6 @@ document.getElementById('loginToggleBtn').onclick = () => {
     }
 };
 
-  // Evento especial del logo
   document.querySelector('.logo').addEventListener('click', function() {
     const logo = this;
     logo.style.pointerEvents = 'none';
