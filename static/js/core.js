@@ -1415,9 +1415,17 @@ function cargarMercadoPagoJS() {
   });
 }
 
+let pagando = false;
+
 document.getElementById('btnPagarFinal')?.addEventListener('click', async () => {
-  await cargarMercadoPagoJS();
-  window.pagarTodoJunto(); 
+  if (pagando) return;
+  pagando = true;
+  try {
+    await cargarMercadoPagoJS();
+    await window.pagarTodoJunto();
+  } finally {
+    pagando = false;
+  }
 });
 
   document.addEventListener("click", (e) => {
@@ -1547,6 +1555,7 @@ document.getElementById('loginToggleBtn').onclick = () => {
     }, 400);
   });
 });
+
 
 
 
