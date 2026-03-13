@@ -34,9 +34,11 @@
           href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Raleway&display=swap">
   </noscript>
 
-  <link rel="stylesheet" href="static/css/bootstrap.min.css">
+  <link rel="preload" href="static/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet" href="static/css/bootstrap.min.css">
+  </noscript>
   <link rel="stylesheet" href="static/css/estilos.min.css">
-  
   <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/img/faviconmovil.png">
