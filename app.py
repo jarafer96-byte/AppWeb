@@ -1753,6 +1753,7 @@ def pagar():
                     talle = item.get('talle', '')
                     color = item.get('color', '')
                     id_base = item.get('id_base', '')
+                    imagen_url = item.get("imagen_url", "")
                     
                     titulo = nombre
                     if talle:
