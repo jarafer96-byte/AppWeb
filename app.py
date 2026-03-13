@@ -667,67 +667,43 @@ def api_productos():
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
-        # 1. Verificar que haya sesión activa con email
-        email = session.get('email')
-        if not email:
-            return jsonify({"ok": False, "error": "No hay sesión activa. Por favor, vuelve a step1."}), 403
-
-        # 2. Sanitizar email para usarlo como carpeta en GCS
-        email_safe = email.replace('@', '_at_').replace('.', '_dot_')
-
-        # 3. Inicializar lista en sesión si no existe
-        if 'imagenes_step0' not in session:
-            session['imagenes_step0'] = []
-
+        email = session.get("email", "anonimo")
         imagenes = request.files.getlist('imagenes')
+
         if not imagenes:
             return jsonify({"ok": False, "error": "No se recibieron imágenes"}), 400
 
+        if 'imagenes_step0' not in session:
+            session['imagenes_step0'] = []
+
         urls = []
-        errores = []
+        for idx, img in enumerate(imagenes, start=1):
+            if img and img.filename:
+                try:
+                    contenido_bytes = img.read()
+                    ext = os.path.splitext(img.filename)[1].lower() or ".webp"
+                    filename = f"{uuid.uuid4().hex}{ext}"
 
-        for img in imagenes:
-            if not img or not img.filename:
-                continue
-            try:
-                contenido_bytes = img.read()
-                ext = os.path.splitext(img.filename)[1].lower() or ".webp"
-                filename = f"{uuid.uuid4().hex}{ext}"
+                    blob_path = f"{email}/{filename}"
+                    blob = bucket.blob(blob_path)
 
-                # Ruta: usuarios/email_safe/uuid.webp
-                blob_path = f"usuarios/{email_safe}/{filename}"
-                blob = bucket.blob(blob_path)
+                    blob.upload_from_string(contenido_bytes, content_type="image/webp")
+                    blob.cache_control = "public, max-age=31536000"
+                    blob.patch()
 
-                blob.upload_from_string(contenido_bytes, content_type="image/webp")
-                blob.cache_control = "public, max-age=31536000"
-                blob.patch()
-    
-                ruta_publica = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
-                urls.append(ruta_publica)
-                session['imagenes_step0'].append(ruta_publica)
-                session.modified = True  # Forzar guardado
+                    ruta_publica = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
 
-                print(f"✅ [UPLOAD] Subida exitosa: {filename} para {email}")
+                    urls.append(ruta_publica)
+                    session['imagenes_step0'].append(ruta_publica)
 
-            except Exception as e:
-                error_msg = f"Error con {img.filename}: {str(e)}"
-                print(f"❌ [UPLOAD] {error_msg}")
-                errores.append(error_msg)
-                continue
+                except Exception as e:
+                    return jsonify({"ok": False, "error": str(e)}), 500
 
-        return jsonify({
-            "ok": True,
-            "imagenes": urls,
-            "errores": errores,
-            "total": len(urls),
-            "mensaje": f"Se subieron {len(urls)} imágenes correctamente. {len(errores)} fallos."
-        })
+        return jsonify({"ok": True, "imagenes": urls})
 
     except Exception as e:
-        print(f"💥 Error general en /upload-image: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
+
 
 def subir_iconos_png(repo):
     carpeta = os.path.join("static", "img")
