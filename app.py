@@ -581,26 +581,52 @@ def subir_foto():
         if not allowed_file(file.filename):
             return jsonify({"ok": False, "error": "Formato inválido. Usa png/jpg/jpeg/webp"}), 400
 
-        file.seek(0, 2)
-        size = file.tell()
-        file.seek(0)
-
-        if size > MAX_IMAGE_SIZE_BYTES:
+        # Leer el contenido completo
+        contenido_bytes = file.read()
+        if len(contenido_bytes) > MAX_IMAGE_SIZE_BYTES:
             return jsonify({"ok": False, "error": "Imagen excede 3 MB"}), 413
 
-        original_name = secure_filename(file.filename)
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        filename = f"{timestamp}_{original_name}"
+        # Abrir la imagen con Pillow
+        imagen_original = Image.open(BytesIO(contenido_bytes)).convert('RGB')
 
-        email_path = email.replace("@", "_at_").replace(".", "_dot_")
-        blob_path = f"usuarios/{email_path}/imagenes/{filename}"
+        # Generar un UUID base para los nombres
+        base_uuid = uuid.uuid4().hex
+        email_safe = email.replace('@', '_at_').replace('.', '_dot_')
 
-        blob = bucket.blob(blob_path)
-        blob.upload_from_file(file, content_type=file.content_type or "image/jpeg")
+        # Función auxiliar para redimensionar y subir una versión
+        def subir_version(tamaño, sufijo):
+            img_copy = imagen_original.copy()
+            img_copy.thumbnail((tamaño, tamaño), Image.Resampling.LANCZOS)
+            # Crear canvas cuadrado
+            canvas = Image.new('RGB', (tamaño, tamaño), (0, 0, 0))
+            offset = ((tamaño - img_copy.width) // 2, (tamaño - img_copy.height) // 2)
+            canvas.paste(img_copy, offset)
+            buffer = BytesIO()
+            canvas.save(buffer, format='WEBP', quality=80)
+            buffer.seek(0)
+            filename = f"{base_uuid}_{sufijo}.webp"
+            blob_path = f"usuarios/{email_safe}/{filename}"
+            blob = bucket.blob(blob_path)
+            blob.upload_from_string(
+                buffer.read(),
+                content_type="image/webp",
+                headers={"Cache-Control": "public, max-age=31536000"}
+            )
+            return f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
 
-        public_url = f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
+        # Subir las tres versiones
+        url_500 = subir_version(500, '500')
+        url_180 = subir_version(180, '180')
+        url_58  = subir_version(58, '58')
 
-        return jsonify({"ok": True, "url": public_url, "path": blob_path, "size": size})
+        # Devolver la URL grande (el frontend espera 'url')
+        return jsonify({
+            "ok": True,
+            "url": url_500,
+            "url_180": url_180,
+            "url_58": url_58,
+            "size": len(contenido_bytes)
+        })
 
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
