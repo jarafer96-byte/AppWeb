@@ -1507,18 +1507,15 @@ def webhook_mp():
         
         if estado == "approved":
             email_vendedor = orden_data.get("email_vendedor")
-            
             if email_vendedor:
                 if not orden_data.get("comprobante_enviado", False):
-                    try:
-                        enviar_comprobante(email_vendedor, external_ref)
-                        
+                    if enviar_comprobante(email_vendedor, external_ref):
                         doc_ref.update({
                             "comprobante_enviado": True,
                             "comprobante_enviado_fecha": firestore.SERVER_TIMESTAMP
                         })
-                    except Exception:
-                        pass
+                    else:
+                        print(f"Fallo al enviar comprobante para {external_ref}")
         
         return jsonify({"ok": True})
         
