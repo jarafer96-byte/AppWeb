@@ -1,3 +1,49 @@
+.admin-card .previewFoto {
+  max-height: 150px;
+  width: auto;
+  object-fit: contain;
+  margin: 0 auto 0.5rem auto; 
+  display: block; 
+}
+#formsList {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr); 
+  gap: 1rem;
+  max-height: 800px; 
+  overflow-y: auto;
+  padding-right: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #888 #333;
+}
+#formsList .admin-card {
+  width: 100%;
+  margin: 0; 
+  box-sizing: border-box;
+}
+#formList .admin-card {
+  display: block !important; 
+}
+@media (min-width: 576px) {
+  #formsList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 992px) {
+  #formsList {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+#formsList::-webkit-scrollbar {
+  width: 8px;
+}
+#formsList::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 4px;
+}
+#formsList::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
 #paginacion button.active {
   background-color: #007bff;
   color: white;
