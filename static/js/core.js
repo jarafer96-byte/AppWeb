@@ -377,7 +377,7 @@ function renderProducto(p, esLCP = false) {
     <label class="mb-0"><strong>Talle:</strong></label>
     <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto"
             onchange="actualizarStockPorTalle('${p.id_base}', this.value)"
-            style="min-width: 80px; max-width: 160px;"
+            style="min-width: 160px; max-width: 180px;"
             aria-label="Seleccionar talle para ${p.nombre}">
       <option value="">-</option>
       ${opcionesTalles}
