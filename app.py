@@ -794,9 +794,9 @@ def upload_image():
 
         return jsonify({
             "ok": True,
-            "imagenes": urls_grandes,      // para el modal (500x500)
-            "mediums": urls_medianas,      // para las cards (180x180)
-            "thumbs": urls_miniaturas,     // para miniaturas (58x58)
+            "imagenes": urls_grandes,     
+            "mediums": urls_medianas,      
+            "thumbs": urls_miniaturas,    
             "errores": errores,
             "total": len(urls_grandes),
             "mensaje": f"Se subieron {len(urls_grandes)} imágenes. {len(errores)} fallos."
