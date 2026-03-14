@@ -38,23 +38,53 @@
   <noscript>
     <link rel="stylesheet" href="static/css/bootstrap.min.css">
   </noscript>
-  <link rel="stylesheet" href="static/css/estilos.min.css">
+  
   <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/img/faviconmovil.png">
 
 <style>
-  
 html, body { background-color: #64636d; min-height: 100vh; overflow-x: hidden; }
-
+body.container.modo-oscuro { position: relative !important; border-radius: 40px !important; padding: 40px !important; margin: 0 auto !important; width: 100% !important; max-width: 1300px !important; box-sizing: border-box !important; }
+body.container.modo-oscuro::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%),
+    radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.2) 0%, transparent 30%),
+    radial-gradient(circle at 85% 85%, rgba(14, 165, 233, 0.2) 0%, transparent 30%);
+  backdrop-filter: blur(40px) saturate(220%) brightness(1.2);
+  border-radius: 40px;
+  z-index: -1;
+}
+body.container.py-5.modo-oscuro {
+  box-shadow: 
+    0 50px 120px rgba(0, 0, 0, 0.8),
+    0 0 0 2px rgba(255, 255, 255, 0.2),
+    inset 0 4px 30px rgba(255, 255, 255, 0.1),
+    inset 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+.card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1); contain: content; padding: 12px; }
+.btn, .panel-grupos, .panel-subcategorias { contain: content; }
+.logo, .card img { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
+.modo-oscuro { color: white; isolation: isolate; }
+.barra-navegacion { position: fixed; padding: 8px 10px; gap: 8px; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); display: flex; justify-content: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
+.barra-navegacion button { font-family: 'Raleway', sans-serif; font-weight: 600; font-size: 14px; padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); transition: all 0.3s ease; }
+.panel-grupos { scrollbar-width: none; overflow-x: auto; white-space: nowrap; max-height: 50vh; overflow-y: auto; z-index: 999; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
+.panel-grupos button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
+#carrito { position: fixed; bottom: 80px; right: 20px; padding: 15px; border-radius: 10px; width: 320px; z-index: 999; display: none; }
+.card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; padding: 15px; background-color: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }  
 h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
-
 .logo-wrapper {  width: 100%; max-width: 230px;  height: min(80vw, 230px); margin: 2rem auto !important; display: flex !important; align-items: center !important; justify-content: center !important; contain: layout style paint !important; }
-
 .logo { width: 80% !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 10px violet); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
-  
+ 
 </style>
-  
+<link rel="preload" href="static/css/estilos.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="static/css/estilos.min.css"></noscript>  
 <script>
     (function() {
       window.cliente = {
