@@ -763,11 +763,10 @@ def upload_image():
                     filename = f"{base_uuid}_{sufijo}.webp"
                     blob_path = f"{email}/{filename}"
                     blob = bucket.blob(blob_path)
-                    blob.upload_from_string(
-                        buffer.read(),
-                        content_type='image/webp',
-                        headers={"Cache-Control": "public, max-age=31536000"}
-                    )
+                    blob = bucket.blob(blob_path)
+                    blob.upload_from_string(buffer.read(), content_type='image/webp')
+                    blob.cache_control = 'public, max-age=31536000'
+                    blob.patch()
                     return f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
 
                 # Subir las tres versiones
