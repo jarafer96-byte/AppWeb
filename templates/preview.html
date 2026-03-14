@@ -132,34 +132,25 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
         mercado_pago: "{{ config.mercado_pago }}"
       };
       
-      window.URL_BACKEND = "https://mpagina.onrender.com"; 
+     window.URL_BACKEND = "https://mpagina.onrender.com";
       window.carrito = [];
-
+      
       const urlParams = new URLSearchParams(window.location.search);
       window.modoAdmin = urlParams.has("token");
       window.tokenAdmin = urlParams.get("token");
- 
+      
       const style = document.createElement('style');
       style.textContent = '#productos { min-height: 500px; }';
       document.head.appendChild(style);
-      
-      if (window.modoAdmin) {
-        document.addEventListener('DOMContentLoaded', function() {
-          const adminCard = document.getElementById('adminCard');
-          const configMP = document.getElementById('configurarMP');
-          const logoutWrapper = document.getElementById('logoutAdminWrapper');
-          if (adminCard) adminCard.classList.remove('d-none');
-          if (configMP) configMP.classList.remove('d-none');
-          if (logoutWrapper) logoutWrapper.style.display = 'block';
-        });
 
+      if (window.modoAdmin) {
         const script = document.createElement('script');
         script.src = 'static/js/admin.js';
         script.defer = true;
         document.head.appendChild(script);
       }
     })();
-</script>      
+</script>  
 </head>
 <body class="container modo-oscuro">
   
@@ -227,54 +218,65 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 
 <div id="contenedor-grupos"></div>
   
-<div id="adminCard" class="card producto-card admin-card d-none">
-  <div class="card-body">
-
-    <img id="previewFoto" src="" alt="Sin foto" class="d-none w-100 mb-2">
-    <input type="file" id="inputFoto" accept="image/*" class="form-control mb-2">
-    <button id="btnQuitarFoto" type="button" class="btn btn-danger mb-2 d-none">❌ Quitar foto</button>
-
-    <div class="mb-2">
-      <label class="form-label">Fotos adicionales (opcional)</label>
-      <input type="file" id="fotosAdicionales" accept="image/*" 
-             class="form-control" multiple>
-      <small class="text-muted">Puedes seleccionar varias fotos</small>
-      <div id="previewFotosAdicionales" class="mt-2"></div>
+<div id="adminFormsContainer" class="d-none">
+  <div class="d-flex justify-content-between mb-3">
+    <h5>Gestión de productos</h5>
+    <div>
+      <button id="nuevoFormBtn" class="btn btn-sm btn-success">➕ Nuevo producto</button>
+      <button id="guardarTodosBtn" class="btn btn-sm btn-primary">💾 Guardar todos</button>
     </div>
-    
-    <input type="text" id="nombreProd" placeholder="Nombre producto *" class="form-control mb-2">
-    <input type="number" id="precioProd" placeholder="Precio *" class="form-control mb-2">
-    
-    <textarea id="descripcionProd" placeholder="Descripción del producto (opcional)" 
-          class="form-control mb-2 preservar-saltos" rows="3"></textarea>
-    
-    <input type="text" id="tallesProd" placeholder="Talles (S,M,L)" class="form-control mb-2">
-
-    <div id="stockSimple" class="mb-2">
-      <input type="number" id="stockGeneral" placeholder="Stock inicial" min="0" value="0" class="form-control">
-    </div>
-    
-    <div id="stockPorTalleContainer" class="mb-2" style="display:none;">
-      <label class="form-label">Stock por talle (ej: S:5, M:3, L:2)</label>
-      <input type="text" id="stockPorTalle" placeholder="S:5, M:3, L:2" class="form-control">
-      <small class="text-muted">Separar por comas: talle:cantidad</small>
-    </div>
-
-    <input type="text" id="grupoProd" list="grupos-sugeridos" placeholder="Grupo *" class="form-control mb-2">
-    <datalist id="grupos-sugeridos">
-    </datalist>
-
-    <input type="text" id="subgrupoProd" list="subgrupos-sugeridos" placeholder="Subgrupo *" class="form-control mb-2">
-    <datalist id="subgrupos-sugeridos">
-    </datalist>
-
-    <button id="btnConfirmarProd" class="btn btn-success">✅ Confirmar</button>
-    
-    <button id="btnCancelarEdicion" class="btn btn-secondary mt-2" onclick="resetearFormularioAdmin()" style="display:none;">
-      ❌ Cancelar edición
-    </button>
   </div>
+  <div id="formsList" class="flex-column gap-3"></div>
 </div>
+<datalist id="grupos-sugeridos"></datalist>
+<datalist id="subgrupos-sugeridos"></datalist>
+<template id="productFormTemplate">
+  <div class="card producto-card admin-card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between mb-2">
+        <div>
+          <button type="button" class="btn btn-sm btn-info duplicar-btn" style="background-color: #dfba03; border-color: #dfba03;">
+           📋 Duplicar
+          </button>
+          <button type="button" class="btn btn-sm btn-danger eliminar-btn">🗑️ Eliminar</button>
+        </div>
+      </div>
+
+      <img class="previewFoto d-none w-100 mb-2" src="" alt="Sin foto">
+      <input type="file" class="inputFoto form-control mb-2" accept="image/*">
+      <button type="button" class="btnQuitarFoto btn btn-danger mb-2 d-none">❌ Quitar foto</button>
+
+      <div class="mb-2">
+        <label class="form-label">Fotos adicionales (opcional)</label>
+        <input type="file" class="fotosAdicionales form-control" accept="image/*" multiple>
+        <small class="text-muted">Puedes seleccionar varias fotos</small>
+        <div class="previewFotosAdicionales mt-2"></div>
+      </div>
+
+      <input type="text" class="nombreProd form-control mb-2" placeholder="Nombre producto *">
+      <input type="number" class="precioProd form-control mb-2" placeholder="Precio *">
+      <textarea class="descripcionProd form-control mb-2 preservar-saltos" rows="3" placeholder="Descripción del producto (opcional)"></textarea>
+      <input type="text" class="tallesProd form-control mb-2" placeholder="Talles (S,M,L)">
+
+      <div class="stockSimple mb-2">
+        <input type="number" class="stockGeneral form-control" placeholder="Stock inicial" min="0" value="0">
+      </div>
+
+      <div class="stockPorTalleContainer mb-2" style="display:none;">
+        <label class="form-label">Stock por talle (ej: S:5, M:3, L:2)</label>
+        <input type="text" class="stockPorTalle form-control" placeholder="S:5, M:3, L:2">
+        <small class="text-muted">Separar por comas: talle:cantidad</small>
+      </div>
+
+      <input type="text" class="grupoProd form-control mb-2" list="grupos-sugeridos" placeholder="Grupo *">
+      <input type="text" class="subgrupoProd form-control mb-2" list="subgrupos-sugeridos" placeholder="Subgrupo *">
+ 
+      <div class="mt-2">
+        <button type="button" class="btn btn-success btn-sm guardar-this">✅ Guardar este</button>
+      </div>
+    </div>
+  </div>
+</template>
   
 <div id="paginacion" class="text-center mt-3"></div>
 
