@@ -364,7 +364,7 @@ function crearAdmin(event) {
   // ⏳ bloquear botón mientras se procesa
   if (btnAdmin) btnAdmin.disabled = true;
 
-  fetch("/crear-admin", {
+  fetch("https://m-page.prueba20.workers.dev/crear-admin", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ usuario, clave })
