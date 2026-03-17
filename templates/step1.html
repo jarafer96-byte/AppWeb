@@ -323,7 +323,7 @@ async function crearRepositorio() {
   try {
     if (btnRepo) btnRepo.disabled = true; // ⏳ bloquear mientras se procesa
 
-    const res = await fetch("/crear-repo", {
+   fetch("https://m-page.prueba20.workers.dev/crear-repo",
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email })
