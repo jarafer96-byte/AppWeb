@@ -1,7 +1,7 @@
 console.log = function() {};
 const configWhatsApp = window.cliente?.whatsapp;
 const email = window.cliente?.email;
-const URL_BACKEND = "https://mpagina.onrender.com";
+const URL_BACKEND = "https://m-page.prueba20.workers.dev";
 const usarFirestore = false;
 
 let cargaCompleta = false;
