@@ -413,7 +413,87 @@ def generate_code_verifier():
 def generate_code_challenge(verifier):
     digest = hashlib.sha256(verifier.encode()).digest()
     return base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
-    
+
+@app.route('/verificar-stock', methods=['POST'])
+def verificar_stock():
+    try:
+        data = request.get_json(force=True) or {}
+        carrito = data.get('carrito', [])
+        email_vendedor = data.get('email_vendedor')
+
+        if not email_vendedor:
+            return jsonify({'ok': False, 'error': 'Falta email del vendedor'}), 400
+        if not carrito:
+            return jsonify({'ok': False, 'error': 'Carrito vacío'}), 400
+
+        faltantes = []
+        stock_actualizado = {}  # Para devolver el stock actual si queremos actualizar la UI
+
+        for item in carrito:
+            id_base = item.get('id_base')
+            talle = item.get('talle', 'unico')
+            cantidad_solicitada = item.get('cantidad', 1)
+
+            if not id_base:
+                continue
+
+            # Buscar el producto en Firestore
+            prod_ref = db.collection('usuarios').document(email_vendedor)\
+                         .collection('productos').where('id_base', '==', id_base).limit(1).get()
+            
+            if not prod_ref:
+                faltantes.append({
+                    'id_base': id_base,
+                    'nombre': item.get('nombre', 'Producto'),
+                    'error': 'Producto no encontrado'
+                })
+                continue
+
+            prod_data = prod_ref[0].to_dict()
+            
+            # Obtener stock disponible según el talle
+            stock_disponible = 0
+            if prod_data.get('tiene_variantes'):
+                variantes = prod_data.get('variantes', {})
+                # Buscar por talle+color (simplificado: solo talle)
+                for key, var in variantes.items():
+                    if var.get('talle') == talle:
+                        stock_disponible = var.get('stock', 0)
+                        break
+            elif prod_data.get('stock_por_talle'):
+                stock_por_talle = prod_data.get('stock_por_talle', {})
+                stock_disponible = stock_por_talle.get(talle, 0)
+            else:
+                stock_disponible = prod_data.get('stock', 0)
+
+            stock_actualizado[f"{id_base}_{talle}"] = stock_disponible
+
+            if stock_disponible < cantidad_solicitada:
+                faltantes.append({
+                    'id_base': id_base,
+                    'nombre': item.get('nombre', 'Producto'),
+                    'talle': talle,
+                    'solicitado': cantidad_solicitada,
+                    'disponible': stock_disponible
+                })
+
+        if faltantes:
+            return jsonify({
+                'ok': False,
+                'error': 'Stock insuficiente',
+                'faltantes': faltantes,
+                'stock_actualizado': stock_actualizado
+            }), 200  # Usamos 200 para que el frontend pueda leer el mensaje
+
+        return jsonify({
+            'ok': True,
+            'mensaje': 'Stock verificado correctamente',
+            'stock_actualizado': stock_actualizado
+        })
+
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
 @app.route("/authorize")
 def authorize():
     flow = build_flow()
