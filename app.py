@@ -279,88 +279,30 @@ def subir_a_firestore(producto, email, es_edicion=False):
         except Exception:
             orden = 999
 
-        talles = producto.get("talles") or []
-        if isinstance(talles, str):
-            talles = [t.strip() for t in talles.split(',') if t.strip()]
+        # Datos de entrada desde el frontend
+        talles_input = producto.get("talles") or []
+        if isinstance(talles_input, str):
+            talles_input = [t.strip() for t in talles_input.split(',') if t.strip()]
         
-        colores = producto.get("colores") or []
-        if isinstance(colores, str):
-            colores = [c.strip() for c in colores.split(',') if c.strip()]
+        colores_input = producto.get("colores") or []
+        if isinstance(colores_input, str):
+            colores_input = [c.strip() for c in colores_input.split(',') if c.strip()]
         
-        variantes = {}
         variantes_raw = producto.get("variantes") or {}
+        stock_por_talle_input = producto.get("stock_por_talle") or {}
         
-        usar_variantes = False
-        
-        if isinstance(variantes_raw, dict) and variantes_raw:
-            usar_variantes = True
-            
-            for key, variante in variantes_raw.items():
-                try:
-                    variante_stock = variante.get("stock", 0)
-                    if isinstance(variante_stock, str):
-                        variante_stock = int(variante_stock.strip() or 0)
-                    
-                    variantes[key] = {
-                        "talle": variante.get("talle", ""),
-                        "color": variante.get("color", ""),
-                        "stock": max(0, variante_stock),
-                        "imagen_url": variante.get("imagen_url", "")
-                    }
-                except Exception:
-                    continue
-        
-        # Si no hay variantes explícitas pero hay talles y colores, crear variantes automáticamente
-        elif talles and colores:
-            usar_variantes = True
+        # Banderas de modo (enviadas por el frontend)
+        tiene_variantes_input = producto.get("tiene_variantes", False)
+        tiene_stock_por_talle_input = producto.get("tiene_stock_por_talle", False)
 
-            num_variantes = len(talles) * len(colores)
-            if num_variantes > 0:
-                stock_por_variante = 0
-                
-                for talle in talles:
-                    for color in colores:
-                        key = f"{talle}_{color}".replace(" ", "_")
-                        variantes[key] = {
-                            "talle": talle,
-                            "color": color,
-                            "stock": stock_por_variante,
-                            "imagen_url": ""
-                        }
-
-        stock_por_talle_directo = producto.get("stock_por_talle", {})
-        stock_total = 0
-        
-        if stock_por_talle_directo:
-            stock_total = sum(stock_por_talle_directo.values())
-            tiene_stock_por_talle = True
-        elif usar_variantes and variantes:
-            stock_total = sum(v.get('stock', 0) for v in variantes.values())
-            tiene_stock_por_talle = False
-        else:
-            stock_raw = producto.get("stock", 0)
-            try:
-                if isinstance(stock_raw, str):
-                    stock_total = int(stock_raw.strip() or 0)
-                else:
-                    stock_total = int(stock_raw or 0)
-                
-                if stock_total < 0:
-                    stock_total = 0
-                tiene_stock_por_talle = False
-            except (ValueError, TypeError):
-                stock_total = 0
-                tiene_stock_por_talle = False
-
-        producto["id_base"] = custom_id
-
+        # Construir la URL de imagen si no viene
         imagen_url = producto.get("imagen_url")
         if not imagen_url:
             imagen_nombre = f"{custom_id}.webp"
             email_encoded = email.replace("@", "%40")
             imagen_url = f"https://storage.googleapis.com/mpagina/{email_encoded}/{imagen_nombre}"
 
-        # Construir documento con fotos_adicionales y precio anterior
+        # Documento base
         doc = {
             "nombre": producto.get("nombre", "").strip(),
             "id_base": custom_id,
@@ -372,21 +314,61 @@ def subir_a_firestore(producto, email, es_edicion=False):
             "imagen_url": imagen_url,
             "fotos_adicionales": fotos_adicionales,
             "orden": orden,
-            "talles": talles,
-            "colores": colores,
-            "variantes": variantes,
-            "tiene_variantes": usar_variantes,
-            "timestamp": firestore.SERVER_TIMESTAMP,
-            "email_vendedor": email
+            "email_vendedor": email,
+            "timestamp": firestore.SERVER_TIMESTAMP
         }
 
-        if stock_por_talle_directo:
-            doc["stock_por_talle"] = stock_por_talle_directo
-            doc["tiene_stock_por_talle"] = True
-
-        ruta = f"usuarios/{email}/productos/{custom_id}"
+        # --- Asignar según el modo (variantes, stock_por_talle o stock simple) ---
+        if tiene_variantes_input:
+            # Modo variantes (talles + colores)
+            variantes = {}
+            for key, var in variantes_raw.items():
+                variantes[key] = {
+                    "talle": var.get("talle", ""),
+                    "color": var.get("color", ""),
+                    "stock": int(var.get("stock", 0)),
+                    "imagen_url": var.get("imagen_url", "")
+                }
+            # Si no hay variantes pero sí talles y colores, generarlas (fallback)
+            if not variantes and talles_input and colores_input:
+                for talle in talles_input:
+                    for color in colores_input:
+                        key = f"{talle}_{color}".replace(" ", "_")
+                        variantes[key] = {"talle": talle, "color": color, "stock": 0, "imagen_url": ""}
+            
+            doc["tiene_variantes"] = True
+            doc["variantes"] = variantes
+            doc["talles"] = talles_input
+            doc["colores"] = colores_input
+            # Limpiar campos de stock_por_talle
+            doc["tiene_stock_por_talle"] = False
+            doc["stock_por_talle"] = {}
+            # Stock total (suma de todas las variantes)
+            doc["stock"] = sum(v.get('stock', 0) for v in variantes.values())
         
-        # Si es edición, usar set() con merge=True para actualizar
+        elif tiene_stock_por_talle_input:
+            # Modo stock_por_talle (solo talles, sin colores)
+            doc["tiene_stock_por_talle"] = True
+            doc["stock_por_talle"] = stock_por_talle_input
+            doc["talles"] = talles_input
+            # Limpiar campos de variantes
+            doc["tiene_variantes"] = False
+            doc["variantes"] = {}
+            doc["colores"] = []
+            doc["stock"] = sum(stock_por_talle_input.values())
+        
+        else:
+            # Modo stock simple (sin talles ni colores)
+            doc["stock"] = int(producto.get("stock", 0))
+            doc["tiene_variantes"] = False
+            doc["variantes"] = {}
+            doc["tiene_stock_por_talle"] = False
+            doc["stock_por_talle"] = {}
+            doc["talles"] = []
+            doc["colores"] = []
+
+        # Guardar en Firestore
+        ruta = f"usuarios/{email}/productos/{custom_id}"
         if es_edicion:
             db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc, merge=True)
         else:
@@ -396,8 +378,8 @@ def subir_a_firestore(producto, email, es_edicion=False):
             "status": "ok", 
             "ok": True, 
             "id_base": custom_id, 
-            "tiene_variantes": usar_variantes, 
-            "tiene_stock_por_talle": bool(stock_por_talle_directo),
+            "tiene_variantes": doc["tiene_variantes"], 
+            "tiene_stock_por_talle": doc["tiene_stock_por_talle"],
             "es_edicion": es_edicion,
             "fotos_adicionales_count": len(fotos_adicionales),
             "precio_anterior": precio_anterior,
@@ -724,6 +706,55 @@ def api_productos():
         for doc in docs:
             data = doc.to_dict() or {}
             
+            # ----- TRANSFORMACIÓN A ESTRUCTURA UNIFICADA (variantes) -----
+            # Si el producto ya tiene variantes, lo dejamos como está
+            if data.get("tiene_variantes", False):
+                pass
+            # Si tiene stock_por_talle (antiguo modelo) lo convertimos a variantes
+            elif data.get("tiene_stock_por_talle", False):
+                stock_pt = data.get("stock_por_talle", {})
+                if "unico" in stock_pt:
+                    # Producto sin talles (stock simple)
+                    variantes = {"unico_unico": {
+                        "talle": "unico",
+                        "color": "unico",
+                        "stock": stock_pt["unico"],
+                        "imagen_url": ""
+                    }}
+                    talles = ["unico"]
+                    colores = ["unico"]
+                else:
+                    # Producto con talles pero sin colores → usamos color "General"
+                    variantes = {}
+                    talles = list(stock_pt.keys())
+                    colores = ["General"]
+                    for talle, stock in stock_pt.items():
+                        key = f"{talle}_General".replace(" ", "_")
+                        variantes[key] = {
+                            "talle": talle,
+                            "color": "General",
+                            "stock": stock,
+                            "imagen_url": ""
+                        }
+                data["tiene_variantes"] = True
+                data["variantes"] = variantes
+                data["talles"] = talles
+                data["colores"] = colores
+            else:
+                # Producto con stock simple (solo campo "stock")
+                stock_simple = data.get("stock", 0)
+                variantes = {"unico_unico": {
+                    "talle": "unico",
+                    "color": "unico",
+                    "stock": stock_simple,
+                    "imagen_url": ""
+                }}
+                data["tiene_variantes"] = True
+                data["variantes"] = variantes
+                data["talles"] = ["unico"]
+                data["colores"] = ["unico"]
+            # ----- Fin transformación -----
+
             talles_originales = data.get("talles", [])
             if isinstance(talles_originales, str):
                 talles_originales = [t.strip() for t in talles_originales.split(",") if t.strip()]
@@ -734,52 +765,25 @@ def api_productos():
             if not isinstance(fotos_adicionales, list):
                 fotos_adicionales = []
             
-            tiene_stock_por_talle = data.get("tiene_stock_por_talle", False)
-            stock_por_talle_completo = data.get("stock_por_talle", {})
-            
+            # Construir stock_por_talle para las tarjetas a partir de las variantes
+            variantes = data.get("variantes", {})
             stock_por_talle_filtrado = {}
-            
-            # 🔥 CORRECCIÓN: Primero verificar si es producto sin talles (clave "unico")
-            if tiene_stock_por_talle and stock_por_talle_completo:
-                if "unico" in stock_por_talle_completo:
-                    # Producto sin talles: usar la clave "unico"
-                    stock_disponible = stock_por_talle_completo.get("unico", 0)
-                    stock_por_talle_filtrado = {"unico": stock_disponible}
-                    sistema = "stock_por_talle_unico"
-                elif talles_originales:
-                    # Producto con talles: filtrar solo los talles definidos
-                    for talle in talles_originales:
-                        stock_por_talle_filtrado[talle] = stock_por_talle_completo.get(talle, 0)
-                    stock_disponible = sum(stock_por_talle_filtrado.values())
-                    sistema = "stock_por_talle_filtrado"
+            stock_disponible = 0
+            for var in variantes.values():
+                talle = var.get("talle")
+                if talle:
+                    stock = var.get("stock", 0)
+                    stock_por_talle_filtrado[talle] = stock_por_talle_filtrado.get(talle, 0) + stock
+                    stock_disponible += stock
                 else:
-                    # Caso improbable: tiene stock_por_talle pero no talles ni unico
-                    stock_disponible = 0
-                    stock_por_talle_filtrado = {}
-                    sistema = "stock_por_talle_vacio"
-            elif data.get("tiene_variantes", False):
-                variantes = data.get("variantes", {})
+                    stock_disponible += var.get("stock", 0)
+            
+            # Si el producto no tiene talles (por ejemplo, "unico"), lo dejamos con la clave "unico"
+            if len(stock_por_talle_filtrado) == 1 and "unico" in stock_por_talle_filtrado:
+                pass
+            elif len(stock_por_talle_filtrado) == 0:
+                stock_por_talle_filtrado = {"unico": 0}
                 stock_disponible = 0
-                stock_por_talle_filtrado = {}
-                talles_set = set()
-                for var in variantes.values():
-                    talle = var.get("talle")
-                    if talle:
-                        talles_set.add(talle)
-                        stock_var = var.get("stock", 0)
-                        stock_por_talle_filtrado[talle] = stock_por_talle_filtrado.get(talle, 0) + stock_var
-                        stock_disponible += stock_var
-                    else:
-                        # fallback: usar stock de la variante sin talle (no debería ocurrir)
-                        stock_disponible += var.get("stock", 0)
-                sistema = "variantes"
-                # Si no había talles originales pero encontramos talles en las variantes, actualizamos
-                if not talles_originales and talles_set:
-                    talles_originales = list(talles_set)
-            else:
-                stock_disponible = data.get("stock", 0)
-                sistema = "general"
-                stock_por_talle_filtrado = {}
             
             disponible = stock_disponible > 0
             
@@ -800,10 +804,10 @@ def api_productos():
                 "orden": data.get("orden"),
                 "talles": talles_originales,
                 "colores": data.get("colores", []),
-                "variantes": data.get("variantes", {}),
-                "tiene_variantes": data.get("tiene_variantes", False),
-                "tiene_stock_por_talle": tiene_stock_por_talle,
-                "sistema_stock": sistema,
+                "variantes": variantes,
+                "tiene_variantes": data.get("tiene_variantes", True),
+                "tiene_stock_por_talle": False,  # ya no usamos este campo en el frontend
+                "sistema_stock": "variantes_unificado",
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
             })
 
