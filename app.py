@@ -759,9 +759,23 @@ def api_productos():
                     sistema = "stock_por_talle_vacio"
             elif data.get("tiene_variantes", False):
                 variantes = data.get("variantes", {})
-                stock_disponible = sum(v.get('stock', 0) for v in variantes.values())
-                sistema = "variantes"
+                stock_disponible = 0
                 stock_por_talle_filtrado = {}
+                talles_set = set()
+                for var in variantes.values():
+                    talle = var.get("talle")
+                    if talle:
+                        talles_set.add(talle)
+                        stock_var = var.get("stock", 0)
+                        stock_por_talle_filtrado[talle] = stock_por_talle_filtrado.get(talle, 0) + stock_var
+                        stock_disponible += stock_var
+                    else:
+                        # fallback: usar stock de la variante sin talle (no debería ocurrir)
+                        stock_disponible += var.get("stock", 0)
+                sistema = "variantes"
+                # Si no había talles originales pero encontramos talles en las variantes, actualizamos
+                if not talles_originales and talles_set:
+                    talles_originales = list(talles_set)
             else:
                 stock_disponible = data.get("stock", 0)
                 sistema = "general"
