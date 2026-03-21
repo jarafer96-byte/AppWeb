@@ -485,7 +485,7 @@ def authorize():
     auth_url, _ = flow.authorization_url(
         prompt="consent",
         code_challenge=code_challenge,
-        code_challenge_method='S256'
+        code_challenge_method='S256',
         access_type='offline'  
     )
     return redirect(auth_url)
