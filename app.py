@@ -486,6 +486,7 @@ def authorize():
         prompt="consent",
         code_challenge=code_challenge,
         code_challenge_method='S256'
+        access_type='offline'  
     )
     return redirect(auth_url)
 
