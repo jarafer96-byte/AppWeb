@@ -65,6 +65,11 @@
                                 Talle: {{ p.talle }}
                             </span>
                             {% endif %}
+                            {% if p.color and p.color != 'unico' %}
+                            <span style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; display: inline-block; margin-left: 8px;">
+                                Color: {{ p.color }}
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
                     
