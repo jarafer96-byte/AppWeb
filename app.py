@@ -1189,7 +1189,7 @@ def comprobante(orden_id):
             
             # 4. Buscar talle
             talle = p.get("talle") or p.get("size") or ""
-            
+            color = p.get("color") or p.get("colour") or ""
             # 5. Buscar imagen_url - MÉTODO MEJORADO
             imagen_url = None
             
@@ -1251,6 +1251,7 @@ def comprobante(orden_id):
                 "precio": precio,
                 "subtotal": subtotal,
                 "imagen_url": imagen_url,
+                "color": color, 
                 "talle": talle
             }
             
@@ -1366,7 +1367,7 @@ def enviar_comprobante(email_vendedor, orden_id):
                         cantidad = 1
             
             talle = p.get("talle") or p.get("size") or ""
-            
+            color = p.get("color") or p.get("colour") or ""
             imagen_url = p.get("imagen_url") or p.get("image_url") or ""
             
             if imagen_url and ("?" not in imagen_url or ("width=" not in imagen_url and "height=" not in imagen_url)):
@@ -1387,6 +1388,7 @@ def enviar_comprobante(email_vendedor, orden_id):
                 "quantity": cantidad,
                 "subtotal": subtotal,
                 "talle": talle,
+                "color": color, 
                 "imagen_url": imagen_url
             }
             
