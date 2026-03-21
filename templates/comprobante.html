@@ -280,6 +280,9 @@
             {% if p.talle %}
               <span class="talle-badge">Talle: {{ p.talle }}</span>
             {% endif %}
+            {% if p.color and p.color != 'unico' %}
+              <span class="talle-badge" style="background: rgba(124, 58, 237, 0.2); color: #c4b5fd;">Color: {{ p.color }}</span>
+            {% endif %}
           </div>
           
           <div class="row g-0">
