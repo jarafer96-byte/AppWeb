@@ -1,7 +1,7 @@
 console.log = function() {};
 const configWhatsApp = window.cliente?.whatsapp;
 const email = window.cliente?.email;
-const URL_BACKEND = "https://m-page.prueba20.workers.dev";
+const URL_BACKEND = "https://mpagina.onrender.com";
 const usarFirestore = false;
 
 let cargaCompleta = false;
@@ -10,8 +10,8 @@ let productosFiltradosActuales = [];
 let isMobile = window.matchMedia("(max-width: 767px)").matches;
 let scrollTimer;
 let isScrolling = false;
-window.stockPorTalleData = {};
 let urlProductos = `https://mpagina.onrender.com/api/productos?usuario=${encodeURIComponent(email)}`;
+
 
 if (window.modoAdmin && window.tokenAdmin) {
   urlProductos += `&token=${encodeURIComponent(window.tokenAdmin)}`;
@@ -26,6 +26,7 @@ function getVersionUrl(originalUrl, size) {
     const base = originalUrl.substring(0, lastDot);
     return base + `_${size}.webp`;
 }
+
 
 renderPagina(1, null);
 fetch(urlProductos)
@@ -135,6 +136,7 @@ fetch(urlProductos)
     if (cont) cont.innerHTML = "<p class='text-danger text-center'>Error al cargar productos. Intenta de nuevo.</p>";
   });
 
+
 function renderPagina(pagina, productos) {
   const cont = document.getElementById("productos");
   if (!cont) return;
@@ -160,6 +162,7 @@ function renderPagina(pagina, productos) {
   });
 }
 
+
 function crearSkeletonCard() {
   const div = document.createElement('div');
   div.className = 'col-lg-4 col-md-6 col-sm-12 mb-4';
@@ -173,6 +176,7 @@ function crearSkeletonCard() {
   `;
   return div;
 }
+
 
 function renderPaginacion(productosFiltrados) {
   const pagDiv = document.getElementById("paginacion");
@@ -198,6 +202,7 @@ function renderPaginacion(productosFiltrados) {
   }
 }
 
+
 function renderProducto(p, esLCP = false) {
   const card = document.createElement("div");
   card.className = "col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder card-producto";
@@ -205,84 +210,87 @@ function renderProducto(p, esLCP = false) {
   card.dataset.precio = p.precio;
 
   const precioActual = parseFloat(p.precio) || 0;
-  const precioAnterior = parseFloat(p.precio_anterior) || 0;
+  let precioAnterior = parseFloat(p.precio_anterior) || 0;
 
-  const esOferta = precioAnterior > 0 && precioAnterior > precioActual;
-  const descuentoPorcentaje = esOferta ? 
+  let esOferta = precioAnterior > 0 && precioAnterior > precioActual;
+  let descuentoPorcentaje = esOferta ? 
     Math.round(((precioAnterior - precioActual) / precioAnterior) * 100) : 0;
 
-  if (!esOferta && window.todosLosProductos) {
-    const productoCompleto = window.todosLosProductos.find(prod => prod.id_base === p.id_base);
-    if (productoCompleto) {
-      if (productoCompleto.precio_anterior && productoCompleto.precio_anterior > precioActual) {
-        precioAnterior = parseFloat(productoCompleto.precio_anterior) || 0;
-        esOferta = precioAnterior > 0 && precioAnterior > precioActual;
-      }
-    }
-  }
-  
-  const tieneStockPorTalle = p.stock_por_talle && Object.keys(p.stock_por_talle).length > 0;
-  
-  let stockData = {};
-  let opcionesTalles = "";
-  let talleInicial = "";
-  let stockInicial = 0;
-  
-  if (tieneStockPorTalle) {
-    stockData = p.stock_por_talle;
-    window[`stock_por_talle_${p.id_base}`] = stockData;
+  const variantes = p.variantes || {};
+  const colores = p.colores || [];
+  const tallesUnicos = p.talles || [];
 
-    const tallesDisponibles = Object.keys(stockData);
-    
-    tallesDisponibles.forEach(talle => {
-      const stock = stockData[talle] || 0;
-      
-      const opcion = stock > 0 ? 
-        `<option value="${talle}">${talle} (${stock} disponible${stock > 1 ? 's' : ''})</option>` :
-        `<option value="${talle}" disabled>${talle} (Agotado)</option>`;
-      opcionesTalles += opcion;
-    
-      if (stockInicial === 0 && stock > 0) {
-        stockInicial = stock;
-        talleInicial = talle;
-      }
+  const tieneColores = colores.length > 0 && !(colores.length === 1 && colores[0] === "unico");
+
+  const tallesPorColor = {};
+  colores.forEach(color => {
+    tallesPorColor[color] = {};
+  });
+  Object.values(variantes).forEach(v => {
+    const color = v.color;
+    const talle = v.talle;
+    if (color && talle && tallesPorColor[color]) {
+      tallesPorColor[color][talle] = v.stock;
+    }
+  });
+
+  if (!tieneColores) {
+    const talles = tallesUnicos.length ? tallesUnicos : ["unico"];
+    const stockMap = p.stock_por_talle || {};
+    tallesPorColor["unico"] = {};
+    talles.forEach(t => {
+      tallesPorColor["unico"][t] = stockMap[t] || 0;
     });
-
-    if (stockInicial === 0 && tallesDisponibles.length > 0) {
-      talleInicial = tallesDisponibles[0];
-      stockInicial = stockData[talleInicial] || 0;
-    }
-  } else {
-    let stockGeneral = 0;
-    if (p.stock_por_talle && p.stock_por_talle["unico"] !== undefined) {
-        stockGeneral = p.stock_por_talle["unico"];
-    } else if (p.stock) {
-        stockGeneral = p.stock;
-    }
-    stockData = { "unico": stockGeneral };
-    window[`stock_por_talle_${p.id_base}`] = stockData;
-    stockInicial = stockGeneral;
+    colores.push("unico"); 
   }
-  
-  const mostrarStock = stockInicial > 0 ? stockInicial : "Sin stock";
-  const claseStock = stockInicial > 0 ? "" : "text-danger";
+
+  const colorInicial = colores[0];
+  const tallesIniciales = tallesPorColor[colorInicial] || {};
+  const opcionesTallesIniciales = Object.entries(tallesIniciales).map(([t, stock]) => {
+    const opcion = stock > 0 ? 
+      `<option value="${t}">${t} (${stock} disponible${stock !== 1 ? 's' : ''})</option>` :
+      `<option value="${t}" disabled>${t} (Agotado)</option>`;
+    return opcion;
+  }).join('');
+
+  let primerTalleConStock = Object.entries(tallesIniciales).find(([_, stock]) => stock > 0)?.[0] || "";
+  let stockInicial = primerTalleConStock ? tallesIniciales[primerTalleConStock] : 0;
+
+  let selectoresHTML = "";
+  if (tieneColores) {
+    // Selector de color
+    selectoresHTML += `
+      <div class="mb-2 d-flex align-items-center gap-2">
+        <label class="mb-0"><strong>Color:</strong></label>
+        <select id="color_${p.id_base}" class="form-select form-select-sm w-auto" style="min-width: 190px;">
+          ${colores.map(color => `<option value="${color}">${color}</option>`).join('')}
+        </select>
+      </div>
+    `;
+  }
+  selectoresHTML += `
+    <div class="mb-2 d-flex align-items-center gap-2">
+      <label class="mb-0"><strong>Talle:</strong></label>
+      <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto" style="min-width: 190px;">
+        ${opcionesTallesIniciales || '<option>Sin talles disponibles</option>'}
+      </select>
+    </div>
+  `;
 
   const nombreEscapado = p.nombre.replace(/'/g, "\\'").replace(/"/g, '\\"');
-  const descripcionEscapada = (p.descripcion || "").replace(/'/g, "\\'").replace(/"/g, '\\"');
   const imagenGrande = p.imagen_url || '/static/img/fallback.webp';
   const imagenGrandeEscapada = imagenGrande.replace(/'/g, "\\'");
   const grupoEscapado = (p.grupo || "").replace(/'/g, "\\'");
   const subgrupoEscapado = (p.subgrupo || "").replace(/'/g, "\\'");
   const imagenCard = getVersionUrl(imagenGrande, '180');
-  
+
   const fotosAdicionalesSeguras = (p.fotos_adicionales || []).map(foto => 
     foto.replace(/'/g, "\\'").replace(/"/g, '\\"')
   );
-  
-  const onclickAgregar = `agregarAlCarritoDOM('${nombreEscapado}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${grupoEscapado}', '${subgrupoEscapado}', '${imagenGrandeEscapada}')`;
-  
+
+  const onclickAgregar = `agregarAlCarritoConColor('${nombreEscapado}', 'precio_${p.id_base}', 'cantidad_${p.id_base}', '${p.id_base}', '${grupoEscapado}', '${subgrupoEscapado}', '${imagenGrandeEscapada}', 'color_${p.id_base}', 'talle_${p.id_base}')`;
+
   let whatsappUrl = configWhatsApp;
-  
   if (configWhatsApp && configWhatsApp.includes("wa.me")) {
     const mensaje = encodeURIComponent(`Hola! Me interesa el producto: "${p.nombre}" - Precio: $${p.precio}\n\n¿Podrías darme más información?`);
     const match = configWhatsApp.match(/wa\.me\/(\d+)/);
@@ -309,18 +317,18 @@ function renderProducto(p, esLCP = false) {
       </div>
     </div>
   ` : '';
-  
+
   let imgAttributes = `src="${imagenCard}"`;
   if (!esLCP) {
       imgAttributes += ` data-src="${imagenCard}" loading="lazy"`;
   } else {
       imgAttributes += ` loading="eager" fetchpriority="high"`;
   }
-  
+
   card.innerHTML = `
   <div class="card-giratoria">
     <div class="card-contenedor">
-      <!-- FRENTE (COMPLETO) -->
+      <!-- FRENTE -->
       <div class="card-front">
         ${esOferta ? `
           <div class="oferta-badge" style="
@@ -345,10 +353,7 @@ function renderProducto(p, esLCP = false) {
           </div>
         ` : ''}
         
-        <!-- Botón para girar -->
-        <button class="btn-girar" onclick="girarCard(this)">
-          🔄
-        </button>
+        <button class="btn-girar" onclick="girarCard(this)">🔄</button>
         
         <img ${imgAttributes}
              alt="${p.nombre}"
@@ -358,7 +363,7 @@ function renderProducto(p, esLCP = false) {
              class="lazy-image"
              onload="this.style.opacity='1'"
              onclick="openModal('${imagenGrandeEscapada}')">
-        <div class="card-body">
+        <div class="card-body" style="padding-top: 1rem;">
           <h5 class="card-title" style="font-size: 1.1rem !important;">${p.nombre}</h5>
           
           <p class="mb-2">
@@ -372,18 +377,7 @@ function renderProducto(p, esLCP = false) {
             ${esOferta ? `<small style="color: #20c997; font-weight: bold; margin-left: 5px;">Ahorras $${(precioAnterior - precioActual).toFixed(2)}</small>` : ''}
           </p>
           
-          ${Object.keys(stockData).length > 0 && Object.keys(stockData)[0] !== "unico" ? `
-  <div class="mb-2 d-flex align-items-center gap-2">
-    <label class="mb-0"><strong>Talle:</strong></label>
-    <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto"
-            onchange="actualizarStockPorTalle('${p.id_base}', this.value)"
-            style="min-width: 160px; max-width: 180px;"
-            aria-label="Seleccionar talle para ${p.nombre}">
-      <option value="">-</option>
-      ${opcionesTalles}
-    </select>
-  </div>
-` : ""}
+          ${selectoresHTML}
           
           <div class="mt-3 d-flex align-items-center gap-2">
             <input type="number" min="1" max="${stockInicial > 0 ? stockInicial : 1}" value="1"
@@ -412,17 +406,13 @@ function renderProducto(p, esLCP = false) {
         </div>
       </div>
       
-      <!-- REVERSO (SOLO DESCRIPCIÓN) -->
+      <!-- REVERSO (solo descripción) -->
       <div class="card-back" style="display: flex; flex-direction: column; height: 100%;">
-        <!-- Botón para volver al frente (arriba a la derecha) -->
-        <button class="btn-reversa" onclick="girarCard(this)" style="position: absolute; top: 10px; right: 10px;">
-          ↩️
-        </button>
+        <button class="btn-reversa" onclick="girarCard(this)" style="position: absolute; top: 10px; right: 10px;">↩️</button>
         
-        <!-- ÁREA DE DESCRIPCIÓN (OCUPA TODO EL ESPACIO DISPONIBLE) -->
         <div class="descripcion-area" style="
           flex: 1;
-          padding: 80px 80px 80px 80px;
+          padding: 10px 80px 80px 80px;
           overflow-y: auto;
           text-align: center;
           flex-direction: column;
@@ -455,13 +445,12 @@ function renderProducto(p, esLCP = false) {
           </div>
         </div>
         
-        <!-- SECCIÓN INFERIOR (FUERA DEL ÁREA DE DESCRIPCIÓN) -->
         <div class="card-back-footer" style="
           padding: 15px;
           border-top: 1px solid rgba(255,255,255,0.1);
           background: rgba(0,0,0,0.2);
         ">
-          ${Object.keys(stockData).length > 0 && Object.keys(stockData)[0] !== "unico" ? `
+          ${tieneColores ? `
             <div class="mb-2" style="
               background: rgba(255,255,255,0.05);
               padding: 8px 12px;
@@ -469,7 +458,19 @@ function renderProducto(p, esLCP = false) {
               font-size: 0.9rem;
               color: #dee2e6;
             ">
-              <strong>Talles:</strong> ${Object.keys(stockData).join(", ")}
+              <strong>Colores:</strong> ${colores.join(", ")}
+            </div>
+          ` : ""}
+          
+          ${tallesUnicos.length > 0 && tallesUnicos[0] !== "unico" ? `
+            <div class="mb-2" style="
+              background: rgba(255,255,255,0.05);
+              padding: 8px 12px;
+              border-radius: 6px;
+              font-size: 0.9rem;
+              color: #dee2e6;
+            ">
+              <strong>Talles:</strong> ${tallesUnicos.join(", ")}
             </div>
           ` : ""}
           
@@ -478,34 +479,73 @@ function renderProducto(p, esLCP = false) {
               🔄 Volver al frente
             </button>
           </div>
-          
-          ${window.modoAdmin ? `
-  <div class="mt-2 d-flex gap-2">
-    <button type="button" class="btn btn-info btn-sm flex-fill" style="background-color: azure;" onclick="duplicarProductoDesdeCard('${p.id_base}')">
-      📋 Duplicar
-    </button>
-    <button type="button" class="btn btn-warning btn-sm flex-fill"
-      onclick="editarProductoDesdeCard('${p.id_base}')">
-      ✏️ Editar
-    </button>
-    <button type="button" class="btn btn-danger btn-sm flex-fill"
-      onclick="eliminarProducto('${p.id_base}')">
-      🗑️ Eliminar
-    </button>
-  </div>
-` : ""}
         </div>
       </div>
     </div>
   </div>
 `;
 
-  if (talleInicial) {
+  if (tieneColores) {
+    const colorSelect = card.querySelector(`#color_${p.id_base}`);
+    const talleSelect = card.querySelector(`#talle_${p.id_base}`);
+    const cantidadInput = card.querySelector(`#cantidad_${p.id_base}`);
+    const agregarBtn = card.querySelector(`#btn_agregar_${p.id_base}`);
+
+    const actualizarTallesPorColor = (color) => {
+      const tallesDelColor = tallesPorColor[color] || {};
+      const opciones = Object.entries(tallesDelColor).map(([t, stock]) => {
+        return stock > 0 ? 
+          `<option value="${t}">${t} (${stock} disponible${stock !== 1 ? 's' : ''})</option>` :
+          `<option value="${t}" disabled>${t} (Agotado)</option>`;
+      }).join('');
+      talleSelect.innerHTML = opciones || '<option>Sin talles disponibles</option>';
+      
+      const primerTalleConStock = Object.entries(tallesDelColor).find(([_, stock]) => stock > 0)?.[0] || "";
+      if (primerTalleConStock) {
+        talleSelect.value = primerTalleConStock;
+        const stockDisponible = tallesDelColor[primerTalleConStock];
+        cantidadInput.max = stockDisponible;
+        cantidadInput.disabled = stockDisponible <= 0;
+        cantidadInput.value = Math.min(parseInt(cantidadInput.value) || 1, stockDisponible);
+        agregarBtn.disabled = stockDisponible <= 0;
+        agregarBtn.textContent = stockDisponible > 0 ? "Agregar al carrito" : "❌ Sin stock";
+      } else {
+        cantidadInput.disabled = true;
+        agregarBtn.disabled = true;
+        agregarBtn.textContent = "❌ Sin stock";
+      }
+    };
+
+    colorSelect.addEventListener('change', (e) => {
+      actualizarTallesPorColor(e.target.value);
+    });
+
+    talleSelect.addEventListener('change', (e) => {
+      const color = colorSelect.value;
+      const talle = e.target.value;
+      const stockDisponible = tallesPorColor[color]?.[talle] || 0;
+      cantidadInput.max = stockDisponible;
+      cantidadInput.disabled = stockDisponible <= 0;
+      cantidadInput.value = Math.min(parseInt(cantidadInput.value) || 1, stockDisponible);
+      agregarBtn.disabled = stockDisponible <= 0;
+      agregarBtn.textContent = stockDisponible > 0 ? "Agregar al carrito" : "❌ Sin stock";
+    });
+
+    actualizarTallesPorColor(colorInicial);
+  } else {
+
     setTimeout(() => {
-      const talleSelect = document.getElementById(`talle_${p.id_base}`);
+      const talleSelect = card.querySelector(`#talle_${p.id_base}`);
       if (talleSelect) {
-        talleSelect.value = talleInicial;
-        actualizarStockPorTalle(p.id_base, talleInicial);
+        const tallesMap = p.stock_por_talle || {};
+        talleSelect.addEventListener('change', (e) => {
+          actualizarStockPorTalle(p.id_base, e.target.value);
+        });
+        const primerTalle = Object.keys(tallesMap).find(t => tallesMap[t] > 0);
+        if (primerTalle) {
+          talleSelect.value = primerTalle;
+          actualizarStockPorTalle(p.id_base, primerTalle);
+        }
       }
     }, 100);
   }
@@ -515,6 +555,7 @@ function renderProducto(p, esLCP = false) {
 
   return card;
 }
+
 
 (function() {
   if (!document.getElementById('oferta-animacion-css')) {
@@ -532,12 +573,10 @@ function renderProducto(p, esLCP = false) {
         }
       }
       
-      /* Estilo para productos en oferta */
       .card-producto.oferta {
         border-left: 4px solid #ff4757;
       }
       
-      /* Destacar precio en oferta */
       .precio-oferta {
         color: #ff4757 !important;
         font-weight: bold !important;
@@ -551,7 +590,6 @@ function renderProducto(p, esLCP = false) {
         margin-right: 5px;
       }
       
-      /* Para ofertas especiales (descuento > 20%) */
       .oferta-especial {
         background: linear-gradient(45deg, #ff9500, #ff5e3a) !important;
       }
@@ -561,18 +599,21 @@ function renderProducto(p, esLCP = false) {
   }
 })();
 
+
 function openModal(src) {
   const modal = document.getElementById("imgModal");
   document.getElementById("modal-img").src = src;
   modal.style.display = "flex";
   setTimeout(() => modal.classList.add("show"), 10); 
 }
-    
+   
+
 function closeModal() {
   const modal = document.getElementById("imgModal");
   modal.classList.remove("show");
   setTimeout(() => modal.style.display = "none", 300);
 }
+
 
 function mostrarGrupo(nombre, event, auto = false) {
   const grupoCanon = String(nombre || "").trim();
@@ -629,8 +670,8 @@ function mostrarGrupo(nombre, event, auto = false) {
   }, 0);
   setTimeout(() => window.scrollTo({ top: 0, behavior: 'auto' }), 0);
 }
-
 window.mostrarGrupo = mostrarGrupo;
+
 
 function filtrarSubcategoria(grupo, subgrupo) {
   const cont = document.getElementById("productos");
@@ -668,6 +709,7 @@ function filtrarSubcategoria(grupo, subgrupo) {
   setTimeout(() => window.scrollTo({ top: 0, behavior: 'auto' }), 0);
 }
 window.filtrarSubcategoria = filtrarSubcategoria;
+
 
 (function setupImmediate() {
   const panelSubcategorias = document.getElementById('panelSubcategorias');
@@ -714,6 +756,7 @@ function mostrarSubgrupo(subgrupo, event) {
 }
 window.mostrarSubgrupo = mostrarSubgrupo;
 
+
 function sincronizarPreciosDelCarrito() {
   window.carrito.forEach(item => {
     const idPrecio = "precio_" + (item.id_base || item.nombre.replace(/ /g, "_"));
@@ -726,6 +769,7 @@ function sincronizarPreciosDelCarrito() {
     }
   });
 }
+
 
 function actualizarCarrito(conAnimacion = false) {
   sincronizarPreciosDelCarrito();
@@ -749,16 +793,23 @@ function actualizarCarrito(conAnimacion = false) {
   }
 
   const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
   const escape = str => (str || '').replace(/'/g, "\\'");
 
   window.carrito.forEach(item => {
     const subtotal = item.precio * item.cantidad;
     suma += subtotal;
-    
+
     let descripcion = item.nombre;
-    if (item.talle) descripcion += ` (Talle: ${item.talle})`;
-    if (item.color) descripcion += ` (Color: ${item.color})`;
+    const tieneColor = item.color && item.color !== "unico";
+    const tieneTalle = item.talle && item.talle !== "unico";
+
+    if (tieneColor && tieneTalle) {
+      descripcion += ` (Color: ${item.color} - Talle: ${item.talle})`;
+    } else if (tieneColor) {
+      descripcion += ` (Color: ${item.color})`;
+    } else if (tieneTalle) {
+      descripcion += ` (Talle: ${item.talle})`;
+    }
 
     lista.insertAdjacentHTML("beforeend", `
       <li style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -790,6 +841,93 @@ function actualizarCarrito(conAnimacion = false) {
   }
 }
 
+
+function agregarAlCarritoConColor(nombre, idPrecioSpan, idCantidad, id_base, grupo, subgrupo, imagenUrl, idColorSelect, idTalleSelect) {
+  const cantidadInput = document.getElementById(idCantidad);
+  const precioSpan = document.getElementById(idPrecioSpan);
+  const colorSelect = document.getElementById(idColorSelect);
+  const talleSelect = document.getElementById(idTalleSelect);
+
+  if (!cantidadInput || !precioSpan) {
+    alert("❌ Error: No se pudieron obtener los datos del producto");
+    return;
+  }
+
+  const colorElegido = colorSelect ? colorSelect.value : "unico";
+  const talleElegido = talleSelect ? talleSelect.value : "unico";
+
+  if (colorSelect && !colorElegido) {
+    alert("❌ Debes seleccionar un color");
+    return;
+  }
+  if (talleSelect && !talleElegido) {
+    alert("❌ Debes seleccionar un talle");
+    return;
+  }
+
+  const productoOriginal = window.todosLosProductos.find(p => p.id_base === id_base);
+  if (!productoOriginal) {
+    alert("❌ Producto no encontrado");
+    return;
+  }
+
+  const variantes = productoOriginal.variantes || {};
+  let stockDisponible = 0;
+  for (const key in variantes) {
+    const varObj = variantes[key];
+    if (varObj.talle === talleElegido && varObj.color === colorElegido) {
+      stockDisponible = varObj.stock;
+      break;
+    }
+  }
+
+  if (stockDisponible <= 0) {
+    alert(`❌ No hay stock disponible para ${colorElegido} - ${talleElegido}`);
+    return;
+  }
+
+  const cantidad = parseInt(cantidadInput.value) || 1;
+  if (cantidad > stockDisponible) {
+    alert(`❌ Solo hay ${stockDisponible} unidades disponibles para ${colorElegido} - ${talleElegido}`);
+    cantidadInput.value = stockDisponible;
+    return;
+  }
+
+  const precio = parseFloat(precioSpan.textContent.replace("$", "").replace(",", "")) || 0;
+
+  const existente = window.carrito.find(item => 
+    item.id_base === id_base && 
+    item.talle === talleElegido && 
+    item.color === colorElegido
+  );
+
+  if (existente) {
+    const nuevoTotal = existente.cantidad + cantidad;
+    if (nuevoTotal > stockDisponible) {
+      alert(`❌ No puedes llevar más de ${stockDisponible} unidades de ${colorElegido} - ${talleElegido}`);
+      return;
+    }
+    existente.cantidad = nuevoTotal;
+  } else {
+    const nuevoItem = {
+      nombre,
+      precio,
+      cantidad,
+      id_base,
+      talle: talleElegido,
+      color: colorElegido,
+      grupo,
+      subgrupo,
+      imagen_url: imagenUrl
+    };
+    window.carrito.push(nuevoItem);
+  }
+
+  actualizarCarrito(true);
+  mostrarToast(`✅ ${nombre} (${colorElegido} - ${talleElegido}) agregado al carrito`);
+}
+
+
 function actualizarStockPorTalle(idProducto, talleSeleccionado) {
   console.log(`📊 [actualizarStockPorTalle] id: ${idProducto}, talle: ${talleSeleccionado}`);
   
@@ -804,12 +942,8 @@ function actualizarStockPorTalle(idProducto, talleSeleccionado) {
   let stockDisponible = 0;
   const stockPorTalle = window[`stock_por_talle_${idProducto}`];
   
-  if (stockPorTalle && stockPorTalle[talleSeleccionado] !== undefined) {
-    stockDisponible = stockPorTalle[talleSeleccionado];
-    console.log(`✅ Stock obtenido: ${stockDisponible} para talle ${talleSeleccionado}`);
-  } else {
-    console.warn(`⚠️ Talle ${talleSeleccionado} no encontrado en stock_por_talle`);
-    stockDisponible = 0;
+  if (stockPorTalle) {
+    stockDisponible = stockPorTalle[talleSeleccionado] ?? 0;
   }
 
   cantidadInput.max = stockDisponible;
@@ -828,6 +962,7 @@ function actualizarStockPorTalle(idProducto, talleSeleccionado) {
     agregarBtn.textContent = "❌ Sin stock";
   }
 }
+
 
 function habilitarScrollHorizontal(selector) {
   const panel = document.querySelector(selector);
@@ -870,8 +1005,10 @@ function habilitarScrollHorizontal(selector) {
   });
 }
 
+
 habilitarScrollHorizontal('.panel-grupos');
 habilitarScrollHorizontal('.panel-subcategorias');
+
 
 isMobile = window.matchMedia("(max-width: 767px)").matches;
 window.matchMedia("(max-width: 767px)").addEventListener('change', (e) => {
@@ -896,8 +1033,12 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
     alert("❌ Error: No se pudieron obtener los datos del producto");
     return;
   }
-  
-  const talleElegido = talleSelect?.value || "unico";
+  const talleElegido = talleSelect ? talleSelect.value : "unico";
+
+  if (talleSelect && !talleElegido) {
+    alert("❌ Debes seleccionar un talle");
+    return;
+  }
   
   let stockDisponible = 0;
   const stockPorTalle = window[`stock_por_talle_${id_base}`];
@@ -921,7 +1062,6 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
   
   const precio = parseFloat(precioSpan.textContent.replace("$", "").replace(",", "")) || 0;
   
-  // Buscar en window.carrito
   const existente = window.carrito.find(item => 
     item.id_base === id_base && 
     item.talle === talleElegido
@@ -945,7 +1085,7 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
       talle: talleElegido,
       grupo, 
       subgrupo, 
-      imagen_url: imagenUrl   // ← ahora imagenUrl está definida
+      imagen_url: imagenUrl
     };
     window.carrito.push(nuevoItem);
   }
@@ -967,11 +1107,13 @@ function agregarAlCarritoDOM(nombre, idPrecioSpan, idCantidad, id_base, grupo = 
   mostrarToast(`✅ ${nombre} agregado al carrito`);
 }
 
+
 function vaciarCarrito() {
     window.carrito = [];
     actualizarCarrito();
     ocultarFormulario(); 
 }
+
 
 function eliminarDelCarrito(id_base, talle, event) {
   if (event?.stopPropagation) event.stopPropagation();
@@ -988,6 +1130,7 @@ function eliminarDelCarrito(id_base, talle, event) {
 
   actualizarCarrito();
 }
+
 
 function gestionarFlechas(panelId) {
   const panel = document.getElementById(panelId);
@@ -1020,6 +1163,7 @@ function gestionarFlechas(panelId) {
   actualizarVisibilidad();
 }
 
+
 function girarCard(elemento) {
   const cardContenedor = elemento.closest('.card-contenedor');
   if (cardContenedor) {
@@ -1027,6 +1171,7 @@ function girarCard(elemento) {
     cardContenedor.style.transform = estaGirada ? 'rotateY(0deg)' : 'rotateY(180deg)';
   }
 }
+
 
 function mostrarToast(mensaje) {
   const toastAnterior = document.querySelector('.toast-notificacion');
@@ -1063,6 +1208,7 @@ function mostrarToast(mensaje) {
   }, 2000);
 }
 
+
 function mostrarTodos() {
     const panelGrupos = document.getElementById('panelGrupos');
     const panelSub = document.getElementById('panelSubcategorias');
@@ -1077,6 +1223,7 @@ function mostrarTodos() {
     gestionarFlechas('panelSubcategorias');
     ajustarPosicionesPaneles();
 }
+
 
 function actualizarUIStock(idProducto, stockDisponible, talleSeleccionado) {
   const stockSpan = document.getElementById(`stock_${idProducto}`);
@@ -1115,6 +1262,7 @@ function actualizarUIStock(idProducto, stockDisponible, talleSeleccionado) {
   
   console.log(`✅ Stock actualizado: Talle ${talleSeleccionado} → ${stockDisponible} unidades`);
 }
+
 
 function ajustarPosicionesPaneles() {
   const panelGrupos = document.getElementById('panelGrupos');
@@ -1184,11 +1332,13 @@ function ajustarPosicionesPaneles() {
   gestionarFlechas('panelSubcategorias');
 }
 
+
 function getItemsPorPagina() {
     if (isMobile && window.modoAdmin) return 4; 
     if (isMobile) return 5; 
     return 12; 
 }
+
 
 function mostrarFormulario() {
     console.log("📝 Mostrando formulario de datos del cliente");
@@ -1234,11 +1384,13 @@ function ocultarFormulario() {
     }
 }
 
+
 function irAContacto() {
   const contacto = document.getElementById('ubicacion');
   if (contacto) contacto.scrollIntoView({ behavior: 'smooth' });
 }
 window.irAContacto = irAContacto; 
+
 
 function loadVisibleImagesFirst() {
   const lazyImages = document.querySelectorAll('.card-giratoria img[data-src]');
@@ -1263,6 +1415,7 @@ function loadVisibleImagesFirst() {
   });
   if (loadedCount > 0) console.log(`🖼️ Lazy: Cargadas ${loadedCount} imágenes en cards`);
 }
+
 
 function setupEnhancedLazyLoading() {
   const lazyImages = document.querySelectorAll('.card-giratoria img[data-src]');
@@ -1298,6 +1451,7 @@ function setupEnhancedLazyLoading() {
     console.log(`👁️ Observando ${lazyImages.length} imágenes en cards`);
   }
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.card-giratoria').forEach(card => {
@@ -1424,7 +1578,7 @@ function cargarMercadoPagoJS() {
     const cargar = () => {
       const script = document.createElement('script');
       script.src = 'static/js/mercadopago.js';
-      script.async = true; // No bloquea el renderizado
+      script.async = true; 
       script.onload = async () => {
         window.mercadoPagoCargado = true;
         resolve();
@@ -1433,16 +1587,15 @@ function cargarMercadoPagoJS() {
       document.head.appendChild(script);
     };
 
-    // Diferir la carga a un momento de inactividad
     if ('requestIdleCallback' in window) {
       requestIdleCallback(cargar, { timeout: 2000 });
     } else {
-      setTimeout(cargar, 1000); // fallback para navegadores antiguos
+      setTimeout(cargar, 1000); 
     }
   });
 }
-
 let pagando = false;
+
 
 document.getElementById('btnPagarFinal')?.addEventListener('click', async () => {
   if (pagando) return;
