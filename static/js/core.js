@@ -261,7 +261,7 @@ function renderProducto(p, esLCP = false) {
     // Selector de color
     selectoresHTML += `
       <div class="mb-2 d-flex align-items-center gap-2">
-        <label class="mb-0"><strong>Color:</strong></label>
+        <label for="color_${p.id_base}" class="mb-0"><strong>Color:</strong></label>
         <select id="color_${p.id_base}" class="form-select form-select-sm w-auto" style="min-width: 190px;">
           ${colores.map(color => `<option value="${color}">${color}</option>`).join('')}
         </select>
@@ -270,7 +270,7 @@ function renderProducto(p, esLCP = false) {
   }
   selectoresHTML += `
     <div class="mb-2 d-flex align-items-center gap-2">
-      <label class="mb-0"><strong>Talle:</strong></label>
+      <label for="talle_${p.id_base}" class="mb-0"><strong>Talle:</strong></label>
       <select id="talle_${p.id_base}" class="form-select form-select-sm w-auto" style="min-width: 190px;">
         ${opcionesTallesIniciales || '<option>Sin talles disponibles</option>'}
       </select>
