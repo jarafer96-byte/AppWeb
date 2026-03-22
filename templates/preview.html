@@ -45,7 +45,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/static/img/faviconmovil.png">
 
 <style>
-html, body { background-color: #64636d; min-height: 100vh; overflow-x: hidden; }
+html, body { position: relative; background-color: #64636d; min-height: 100vh; overflow-x: hidden; }
 body.container.modo-oscuro { position: relative !important; border-radius: 40px !important; padding: 40px !important; margin: 0 auto !important; width: 100% !important; max-width: 1300px !important; box-sizing: border-box !important; }
 body.container.modo-oscuro::before {
   content: '';
@@ -58,7 +58,7 @@ body.container.modo-oscuro::before {
     linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%),
     radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.2) 0%, transparent 30%),
     radial-gradient(circle at 85% 85%, rgba(14, 165, 233, 0.2) 0%, transparent 30%);
-  backdrop-filter: blur(40px) saturate(220%) brightness(1.2);
+  
   border-radius: 40px;
   z-index: -1;
 }
@@ -75,8 +75,45 @@ body.container.py-5.modo-oscuro {
 .modo-oscuro { color: white; isolation: isolate; }
 .barra-navegacion { position: fixed; padding: 8px 10px; gap: 8px; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); display: flex; justify-content: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
 .barra-navegacion button { font-family: 'Raleway', sans-serif; font-weight: 600; font-size: 14px; padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); transition: all 0.3s ease; }
-.panel-grupos { scrollbar-width: none; overflow-x: auto; white-space: nowrap; max-height: 50vh; overflow-y: auto; z-index: 999; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); padding: 1px 0; text-align: center; box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
-.panel-grupos button { font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 600; margin: 6px; padding: 1px 6px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); cursor: pointer; transition: all 0.3s ease; }
+.barra-navegacion button:hover { background-color: #fff; color: #333; transform: scale(1.05);}
+.panel-grupos,
+.panel-subcategorias {
+  scrollbar-width: none;
+  overflow-x: auto;
+  white-space: nowrap;
+  max-height: 50vh;
+  overflow-y: auto;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  padding: 1px 0;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  scroll-behavior: smooth;
+}
+.panel-grupos button,
+.panel-subcategorias button {
+  font-family: 'Raleway', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 6px;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.panel-grupos button:hover,
+.panel-subcategorias button:hover {
+  background-color: #fff;
+  color: #333;
+  transform: scale(1.05);
+  box-shadow: 0 0 8px none;
+}
 #carrito { position: fixed; bottom: 80px; right: 20px; padding: 15px; border-radius: 10px; width: 320px; z-index: 999; display: none; }
 .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; padding: 15px; background-color: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }  
 h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
@@ -107,8 +144,6 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 .form-select {
   display: block;
   width: 100%;
-  padding: 0.375rem 0.75rem;
-  font-size: 1rem;
   font-weight: 400;
   line-height: 1.5;
   color: #212529;
@@ -120,7 +155,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
   border: 1px solid #ced4da;
   border-radius: 0.25rem;
   appearance: none;
-}   
+}  
 </style>
 <link rel="preload" href="static/css/estilos.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="static/css/estilos.min.css"></noscript>  
@@ -219,64 +254,11 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 <div id="contenedor-grupos"></div>
   
 <div id="adminFormsContainer" class="d-none">
-  <div class="d-flex justify-content-between mb-3">
-    <h5>Gestión de productos</h5>
-    <div>
-      <button id="nuevoFormBtn" class="btn btn-sm btn-success">➕ Nuevo producto</button>
-      <button id="guardarTodosBtn" class="btn btn-sm btn-primary">💾 Guardar todos</button>
-    </div>
-  </div>
-  <div id="formsList" class="flex-column gap-3"></div>
+
+  <div id="tableView"></div>
 </div>
 <datalist id="grupos-sugeridos"></datalist>
 <datalist id="subgrupos-sugeridos"></datalist>
-<template id="productFormTemplate">
-  <div class="card producto-card admin-card">
-    <div class="card-body">
-      <div class="d-flex justify-content-between mb-2">
-        <div>
-          <button type="button" class="btn btn-sm btn-info duplicar-btn" style="background-color: #dfba03; border-color: #dfba03;">
-           📋 Duplicar
-          </button>
-          <button type="button" class="btn btn-sm btn-danger eliminar-btn">🗑️ Eliminar</button>
-        </div>
-      </div>
-
-      <img class="previewFoto d-none w-100 mb-2" src="" alt="Sin foto">
-      <input type="file" class="inputFoto form-control mb-2" accept="image/*">
-      <button type="button" class="btnQuitarFoto btn btn-danger mb-2 d-none">❌ Quitar foto</button>
-
-      <div class="mb-2">
-        <label class="form-label">Fotos adicionales (opcional)</label>
-        <input type="file" class="fotosAdicionales form-control" accept="image/*" multiple>
-        <small class="text-muted">Puedes seleccionar varias fotos</small>
-        <div class="previewFotosAdicionales mt-2"></div>
-      </div>
-
-      <input type="text" class="nombreProd form-control mb-2" placeholder="Nombre producto *">
-      <input type="number" class="precioProd form-control mb-2" placeholder="Precio *">
-      <textarea class="descripcionProd form-control mb-2 preservar-saltos" rows="3" placeholder="Descripción del producto (opcional)"></textarea>
-      <input type="text" class="tallesProd form-control mb-2" placeholder="Talles (S,M,L)">
-
-      <div class="stockSimple mb-2">
-        <input type="number" class="stockGeneral form-control" placeholder="Stock inicial" min="0" value="0">
-      </div>
-
-      <div class="stockPorTalleContainer mb-2" style="display:none;">
-        <label class="form-label">Stock por talle (ej: S:5, M:3, L:2)</label>
-        <input type="text" class="stockPorTalle form-control" placeholder="S:5, M:3, L:2">
-        <small class="text-muted">Separar por comas: talle:cantidad</small>
-      </div>
-
-      <input type="text" class="grupoProd form-control mb-2" list="grupos-sugeridos" placeholder="Grupo *">
-      <input type="text" class="subgrupoProd form-control mb-2" list="subgrupos-sugeridos" placeholder="Subgrupo *">
- 
-      <div class="mt-2">
-        <button type="button" class="btn btn-success btn-sm guardar-this">✅ Guardar este</button>
-      </div>
-    </div>
-  </div>
-</template>
   
 <div id="paginacion" class="text-center mt-3"></div>
 
