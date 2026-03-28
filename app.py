@@ -896,44 +896,38 @@ def upload_image():
                 continue
             try:
                 contenido_bytes = img.read()
-                # Abrir la imagen con Pillow
                 imagen_original = Image.open(BytesIO(contenido_bytes)).convert('RGB')
-
-                # UUID base para los nombres
                 base_uuid = uuid.uuid4().hex
 
-                # Función auxiliar para redimensionar y subir
                 def subir_version(tamaño, sufijo):
                     img_copy = imagen_original.copy()
                     img_copy.thumbnail((tamaño, tamaño), Image.Resampling.LANCZOS)
-                    # Crear canvas cuadrado
                     canvas = Image.new('RGB', (tamaño, tamaño), (0, 0, 0))
                     offset = ((tamaño - img_copy.width) // 2, (tamaño - img_copy.height) // 2)
                     canvas.paste(img_copy, offset)
                     buffer = BytesIO()
                     canvas.save(buffer, format='WEBP', quality=80)
                     buffer.seek(0)
-                    filename = f"{base_uuid}_{sufijo}.webp"
-                    blob_path = f"{email}/{filename}"
-                    blob = bucket.blob(blob_path)
-                    blob = bucket.blob(blob_path)
-                    blob.upload_from_string(buffer.read(), content_type='image/webp')
-                    blob.cache_control = 'public, max-age=31536000'
-                    blob.patch()
-                    return f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
 
-                # Subir las tres versiones
+                    key = f"{email}/{base_uuid}_{sufijo}.webp"
+                    s3_client.put_object(
+                        Bucket=os.getenv('R2_BUCKET_NAME'),
+                        Key=key,
+                        Body=buffer.getvalue(),
+                        ContentType='image/webp',
+                        CacheControl='public, max-age=31536000'
+                    )
+                    endpoint = os.getenv('R2_ENDPOINT_URL').replace('https://', '')
+                    return f"https://{os.getenv('R2_BUCKET_NAME')}.{endpoint}/{key}"
+
                 url_500 = subir_version(500, '500')
                 url_180 = subir_version(180, '180')
                 url_58  = subir_version(58, '58')
 
-                # Guardar las URLs en las listas correspondientes
                 urls_grandes.append(url_500)
                 urls_medianas.append(url_180)
                 urls_miniaturas.append(url_58)
 
-                # Para mantener compatibilidad con step3 (que espera una sola URL por imagen)
-                # guardamos la grande en la sesión
                 session['imagenes_step0'].append(url_500)
                 session.modified = True
 
@@ -946,9 +940,9 @@ def upload_image():
 
         return jsonify({
             "ok": True,
-            "imagenes": urls_grandes,     
-            "mediums": urls_medianas,      
-            "thumbs": urls_miniaturas,    
+            "imagenes": urls_grandes,
+            "mediums": urls_medianas,
+            "thumbs": urls_miniaturas,
             "errores": errores,
             "total": len(urls_grandes),
             "mensaje": f"Se subieron {len(urls_grandes)} imágenes. {len(errores)} fallos."
@@ -959,6 +953,7 @@ def upload_image():
         import traceback
         traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
+        
 
 
 def subir_iconos_png(repo):
