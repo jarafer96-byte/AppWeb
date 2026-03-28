@@ -200,6 +200,26 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_email_from_token():
+    # Buscar token en header Authorization o en query string
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+    else:
+        token = request.args.get('token')  # fallback para compatibilidad
+
+    if not token:
+        return None
+    try:
+        data = jwt.decode(token, app.secret_key, algorithms=['HS256'])
+        return data['email']
+    except jwt.ExpiredSignatureError:
+        print("[JWT] Token expirado")
+        return None
+    except Exception as e:
+        print(f"[JWT] Error decodificando: {e}")
+        return None
+
 def subir_a_firestore(producto, email, es_edicion=False):
     try:
         if not isinstance(producto, dict):
