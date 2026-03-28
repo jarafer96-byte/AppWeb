@@ -171,11 +171,6 @@ firebase_config = {
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
 ###################
-# Inicialización de Google Cloud Storage
-key_json = os.environ.get("GOOGLE_CLOUD_KEY")
-if not key_json:
-    raise RuntimeError("Falta la variable GOOGLE_CLOUD_KEY en Render")
-
 # Convertir el JSON pegado en dict
 creds_dict = json.loads(key_json)
 
