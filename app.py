@@ -2149,6 +2149,9 @@ def debug_mp():
         print(f"[DEBUG-MP] Error leyendo Firestore: {e}")
         return jsonify({'error': 'Error interno', 'message': str(e)}), 500
 
+import jwt
+from datetime import datetime, timedelta
+
 @app.route('/login-admin', methods=['POST'])
 def login_admin():
     data = request.get_json(silent=True) or {}
@@ -2171,10 +2174,13 @@ def login_admin():
         clave_guardada = doc.to_dict().get("clave_admin")
 
         if clave_guardada == clave_ingresada:
-            # 🔑 generar token único
-            token = secrets.token_urlsafe(32)
-
-            # 👉 devolver email y token al frontend
+            # 🔐 Generar JWT con expiración (ej: 7 días)
+            expiration = datetime.utcnow() + timedelta(days=7)
+            token = jwt.encode(
+                {"email": usuario, "exp": expiration},
+                app.secret_key,
+                algorithm="HS256"
+            )
             return jsonify({
                 'status': 'ok',
                 'token': token,
