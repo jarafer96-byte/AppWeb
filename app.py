@@ -1833,10 +1833,6 @@ def guardar_talles_stock():
         id_base = data.get('id') or data.get('id_base')
         stock_por_talle = data.get('stock_por_talle')
         email = data.get('email')
-
-        email_from_token = get_email_from_token()
-        if not email_from_token or email_from_token != email:
-            return jsonify({"status": "error", "error": "No autorizado"}), 401
         
         if not all([id_base, stock_por_talle, email]):
             return jsonify({'error': 'Faltan datos'}), 400
