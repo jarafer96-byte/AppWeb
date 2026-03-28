@@ -2813,10 +2813,6 @@ def conectar_mp():
     url_retorno = request.args.get("url_retorno")
     print(f"[MP-CONNECT] Email recibido: {email}, url_retorno={url_retorno}")
 
-    email_from_token = get_email_from_token()
-    if not email_from_token or email_from_token != email:
-        return jsonify({"status": "error", "error": "No autorizado"}), 401
-
     if not email:
         print("[MP-CONNECT] ❌ Falta email en la query")
         return "Error: falta email", 403
