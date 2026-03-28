@@ -127,7 +127,8 @@ csp = {
         "https://raw.githubusercontent.com", 
         "https://*.cloudinary.com",        
         "https://*.fbcdn.net",            
-        "https://*.instagram.com"          
+        "https://*.instagram.com",
+        "https://*.r2.cloudflarestorage.com",
     ],
     'font-src': [
         "'self'",
@@ -139,6 +140,7 @@ csp = {
         "https://api.mercadopago.com",     
         "https://storage.googleapis.com",  
         "https://cdn.jsdelivr.net", 
+        "https://*.r2.cloudflarestorage.com",
         "https://*.onrender.com" 
     ],
     'frame-src': [
