@@ -23,6 +23,8 @@ import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask_cors import CORS, cross_origin
+from google.cloud import storage
+from google.oauth2 import service_account
 import secrets
 import smtplib
 from email.mime.text import MIMEText
@@ -34,6 +36,7 @@ from google.cloud.firestore import ArrayUnion
 from flask_talisman import Talisman
 from google.auth.transport.requests import Request
 import builtins
+
 # builtins.print = lambda *args, **kwargs: None
 ##################
 # 🔐 Inicialización segura de Firebase con logs
