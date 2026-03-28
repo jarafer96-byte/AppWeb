@@ -189,9 +189,8 @@ function duplicarProductoDesdeCard(id_base) {
 
 
 function abrirConfigMercadoPago() {
-  console.log("⚙️ Redirigiendo a configuración de Mercado Pago...");
   const urlRetorno = window.location.href;
-  const configUrl = `${window.URL_BACKEND}/conectar_mp?email=${encodeURIComponent(window.cliente.email)}&url_retorno=${encodeURIComponent(urlRetorno)}`;
+  const configUrl = `${window.URL_BACKEND}/conectar_mp?email=${encodeURIComponent(window.cliente.email)}&url_retorno=${encodeURIComponent(urlRetorno)}&token=${encodeURIComponent(window.tokenAdmin)}`;
   window.location.href = configUrl;
 }
 
