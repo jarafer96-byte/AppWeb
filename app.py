@@ -1776,6 +1776,8 @@ def actualizar_stock_talle():
             'actualizado': firestore.SERVER_TIMESTAMP,
             'tiene_stock_por_talle': True  # Marcar que usa stock_por_talle
         })
+
+        update_products_last_modified(email)
         
         print(f"[ACTUALIZAR-STOCK-TALLE] ✅ Actualizado: talle={talle}, stock={nuevo_stock}, total={stock_total}")
         
@@ -1869,6 +1871,8 @@ def guardar_talles_stock():
         
         # Actualizar en Firestore
         producto_ref.update(update_data)
+
+        update_products_last_modified(email)
         
         print(f"[GUARDAR-TALLES-STOCK] ✅ Actualizado: talles={talles_actualizados}, total={stock_total}")
         
