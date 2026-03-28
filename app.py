@@ -2360,10 +2360,6 @@ def eliminar_producto():
         data = request.get_json(force=True) or {}
         email = data.get("email")
         id_base = data.get("id_base")
-
-        email_from_token = get_email_from_token()
-        if not email_from_token or email_from_token != email:
-            return jsonify({"status": "error", "error": "No autorizado"}), 401
             
         if not email or not id_base:
             return jsonify({"status": "error", "error": "Faltan datos"}), 400
