@@ -9,6 +9,8 @@ import gc
 import hashlib
 import pandas as pd
 import traceback
+import boto3
+from botocore.config import Config
 from werkzeug.utils import secure_filename
 from zipfile import ZipFile
 from io import BytesIO
@@ -84,6 +86,15 @@ else:
 token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 ACCESS_TOKEN = os.getenv("WHATSAPP_TOKEN")
+
+s3_client = boto3.client(
+    's3',
+    endpoint_url=os.getenv('R2_ENDPOINT_URL'),
+    aws_access_key_id=os.getenv('R2_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('R2_SECRET_ACCESS_KEY'),
+    config=Config(signature_version='s3v4'),
+    region_name='auto'
+)
 
 app = Flask(__name__)
 CORS(app)
