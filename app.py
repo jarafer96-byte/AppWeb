@@ -2352,6 +2352,7 @@ def eliminar_producto():
         doc = query[0]
         doc.reference.delete()
         print(f"[ELIMINAR_PRODUCTO] ✅ Eliminado en Firestore → Usuario={email}, id_base={id_base}")
+        update_products_last_modified(email)
         return jsonify({"status": "ok", "id_base": id_base})
 
     except Exception as e:
