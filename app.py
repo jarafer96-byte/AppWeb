@@ -373,7 +373,9 @@ def subir_a_firestore(producto, email, es_edicion=False):
             db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc, merge=True)
         else:
             db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc)
-
+            
+        update_products_last_modified(email)
+        
         return {
             "status": "ok", 
             "ok": True, 
