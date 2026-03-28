@@ -2254,10 +2254,6 @@ def guardar_producto():
         data = request.get_json(force=True) or {}
         email = data.get("email")
         producto = data.get("producto")
-
-        email_from_token = get_email_from_token()
-        if not email_from_token or email_from_token != email:
-            return jsonify({"status": "error", "error": "No autorizado"}), 401
             
         if not email:
             return jsonify({"status": "error", "error": "Falta email"}), 403
