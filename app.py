@@ -170,10 +170,6 @@ firebase_config = {
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
-###################
-# Convertir el JSON pegado en dict
-creds_dict = json.loads(key_json)
-
 # Crear credenciales desde el dict
 credentials = service_account.Credentials.from_service_account_info(creds_dict)
 
