@@ -33,7 +33,6 @@ from googleapiclient.discovery import build
 from urllib.parse import urlencode, quote, unquote
 from google.cloud.firestore import ArrayUnion
 from flask_talisman import Talisman
-from flask_cors import CORS
 from google.auth.transport.requests import Request
 import builtins
 # builtins.print = lambda *args, **kwargs: None
