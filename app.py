@@ -640,10 +640,6 @@ def subir_foto():
         file = request.files.get("file")
         email = request.form.get("email")
 
-        email_from_token = get_email_from_token()
-        if not email_from_token or email_from_token != email:
-            return jsonify({"status": "error", "error": "No autorizado"}), 401
-
         if not file or not email:
             return jsonify({"ok": False, "error": "Falta archivo o email"}), 400
 
