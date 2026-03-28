@@ -702,12 +702,50 @@ def subir_foto():
 
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
-        
+
+
+
+def update_products_last_modified(email):
+    """Actualiza la fecha de última modificación de productos para un usuario."""
+    try:
+        doc_ref = db.collection('usuarios').document(email).collection('metadata').document('productos')
+        doc_ref.set({'last_updated': firestore.SERVER_TIMESTAMP}, merge=True)
+    except Exception as e:
+        print(f"Error updating last_modified for {email}: {e}")
+
+
+
+def get_products_etag(email):
+    """Devuelve un string que representa la última modificación de productos."""
+    try:
+        doc = db.collection('usuarios').document(email).collection('metadata').document('productos').get()
+        if doc.exists:
+            data = doc.to_dict()
+            ts = data.get('last_updated')
+            if ts:
+                # Si es datetime (Firestore timestamp), convertimos a segundos desde epoch
+                if hasattr(ts, 'timestamp'):
+                    return str(ts.timestamp())
+                return str(ts)
+    except Exception as e:
+        print(f"Error getting etag for {email}: {e}")
+    return None
+
+
 @app.route("/api/productos")
 def api_productos():
     email = session.get("email") or request.args.get("usuario")
     if not email:
         return jsonify({"error": "No se especificó usuario"}), 403
+
+    # Obtener ETag basado en última modificación
+    etag = get_products_etag(email)
+
+    # Si el cliente envió If-None-Match y coincide, responder 304
+    if etag:
+        if_none_match = request.headers.get('If-None-Match')
+        if if_none_match and if_none_match == f'"{etag}"':
+            return '', 304
 
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
@@ -824,10 +862,14 @@ def api_productos():
 
         productos = sorted(productos, key=lambda p: p.get("orden") or 0)
 
-        return jsonify(productos)
+        response = jsonify(productos)
+        if etag:
+            response.set_etag(etag)
+        return response
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+        
         
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
