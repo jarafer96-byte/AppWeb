@@ -191,9 +191,6 @@ MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024
 # Generación de referencia corta (sirve para IDs temporales)
 ext_ref = shortuuid.uuid()[:8]
 ###################
-# Carga alternativa de credenciales (si se usa otra variable de entorno)
-creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
-###################
 # Configuración de Gmail API
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
