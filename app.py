@@ -1771,14 +1771,10 @@ def webhook_mp():
 def actualizar_stock_talle():
     try:
         data = request.json
-        id_base = data.get('id') or data.get('id_base')  # 🔥 Aceptar ambos
+        id_base = data.get('id') or data.get('id_base') 
         talle = data.get('talle')
         nuevo_stock = data.get('stock')
-        email = data.get('email')  # 🔥 Cambiado de email_vendedor a email
-
-        email_from_token = get_email_from_token()
-        if not email_from_token or email_from_token != email:
-            return jsonify({"status": "error", "error": "No autorizado"}), 401
+        email = data.get('email')  
         
         if not all([id_base, talle, nuevo_stock is not None, email]):
             return jsonify({'error': 'Faltan datos'}), 400
