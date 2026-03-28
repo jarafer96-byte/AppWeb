@@ -258,7 +258,6 @@ function renderProducto(p, esLCP = false) {
 
   let selectoresHTML = "";
   if (tieneColores) {
-    // Selector de color
     selectoresHTML += `
       <div class="mb-2 d-flex align-items-center gap-2">
         <label for="color_${p.id_base}" class="mb-0"><strong>Color:</strong></label>
