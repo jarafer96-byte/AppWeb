@@ -9,6 +9,7 @@ import gc
 import hashlib
 import pandas as pd
 import traceback
+import jwt
 from werkzeug.utils import secure_filename
 from zipfile import ZipFile
 from io import BytesIO
