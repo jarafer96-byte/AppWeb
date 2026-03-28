@@ -424,6 +424,10 @@ def verificar_stock():
         carrito = data.get('carrito', [])
         email_vendedor = data.get('email_vendedor')
 
+        email_from_token = get_email_from_token()
+        if not email_from_token or email_from_token != email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 401
+
         if not email_vendedor:
             return jsonify({'ok': False, 'error': 'Falta email del vendedor'}), 400
         if not carrito:
@@ -659,6 +663,10 @@ def subir_foto():
         file = request.files.get("file")
         email = request.form.get("email")
 
+        email_from_token = get_email_from_token()
+        if not email_from_token or email_from_token != email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 401
+
         if not file or not email:
             return jsonify({"ok": False, "error": "Falta archivo o email"}), 400
 
@@ -845,6 +853,10 @@ def upload_image():
     try:
         email = session.get("email", "anonimo")
         imagenes = request.files.getlist('imagenes')
+
+        mail_from_token = get_email_from_token()
+        if not email_from_token or email_from_token != email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 401
 
         if not imagenes:
             return jsonify({"ok": False, "error": "No se recibieron imágenes"}), 400
@@ -1740,6 +1752,10 @@ def actualizar_stock_talle():
         talle = data.get('talle')
         nuevo_stock = data.get('stock')
         email = data.get('email')  # 🔥 Cambiado de email_vendedor a email
+
+        email_from_token = get_email_from_token()
+        if not email_from_token or email_from_token != email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 401
         
         if not all([id_base, talle, nuevo_stock is not None, email]):
             return jsonify({'error': 'Faltan datos'}), 400
@@ -1804,6 +1820,10 @@ def guardar_talles_stock():
         id_base = data.get('id') or data.get('id_base')
         stock_por_talle = data.get('stock_por_talle')
         email = data.get('email')
+
+        email_from_token = get_email_from_token()
+        if not email_from_token or email_from_token != email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 401
         
         if not all([id_base, stock_por_talle, email]):
             return jsonify({'error': 'Faltan datos'}), 400
@@ -2224,6 +2244,10 @@ def guardar_producto():
         email = data.get("email")
         producto = data.get("producto")
 
+        email_from_token = get_email_from_token()
+        if not email_from_token or email_from_token != email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 401
+            
         if not email:
             return jsonify({"status": "error", "error": "Falta email"}), 403
         if not producto:
@@ -2330,6 +2354,10 @@ def eliminar_producto():
         email = data.get("email")
         id_base = data.get("id_base")
 
+        email_from_token = get_email_from_token()
+        if not email_from_token or email_from_token != email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 401
+            
         if not email or not id_base:
             return jsonify({"status": "error", "error": "Faltan datos"}), 400
 
@@ -2780,6 +2808,10 @@ def conectar_mp():
     email = request.args.get("email")
     url_retorno = request.args.get("url_retorno")
     print(f"[MP-CONNECT] Email recibido: {email}, url_retorno={url_retorno}")
+
+    email_from_token = get_email_from_token()
+        if not email_from_token or email_from_token != email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 401
 
     if not email:
         print("[MP-CONNECT] ❌ Falta email en la query")
