@@ -84,15 +84,6 @@ token = os.getenv("GITHUB_TOKEN")
 GITHUB_USERNAME = "jarafer96-byte"
 ACCESS_TOKEN = os.getenv("WHATSAPP_TOKEN")
 
-s3_client = boto3.client(
-    's3',
-    endpoint_url=os.getenv('R2_ENDPOINT_URL'),
-    aws_access_key_id=os.getenv('R2_ACCESS_KEY_ID'),
-    aws_secret_access_key=os.getenv('R2_SECRET_ACCESS_KEY'),
-    config=Config(signature_version='s3v4'),
-    region_name='auto'
-)
-
 app = Flask(__name__)
 CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
@@ -125,9 +116,9 @@ csp = {
         "https://storage.googleapis.com",  
         "https://raw.githubusercontent.com", 
         "https://*.cloudinary.com",        
-        "https://*.fbcdn.net",            
-        "https://*.instagram.com",
+        "https://*.fbcdn.net",        
         "https://*.r2.cloudflarestorage.com",
+        "https://*.instagram.com"          
     ],
     'font-src': [
         "'self'",
@@ -170,12 +161,24 @@ firebase_config = {
     "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
     "appId": os.getenv("FIREBASE_APP_ID"),
 }
+###################
+# Inicialización de Google Cloud Storage
+key_json = os.environ.get("GOOGLE_CLOUD_KEY")
+if not key_json:
+    raise RuntimeError("Falta la variable GOOGLE_CLOUD_KEY en Render")
+
+# Convertir el JSON pegado en dict
+creds_dict = json.loads(key_json)
+
 # Crear credenciales desde el dict
 credentials = service_account.Credentials.from_service_account_info(creds_dict)
 
 # Inicializar cliente con tu Project ID
 client = storage.Client(credentials=credentials, project="arcane-sentinel-479319-g0")
 
+# Bucket donde se guardan las imágenes
+bucket = client.bucket("mpagina")
+###################
 # Configuración de subida de imágenes
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -186,6 +189,9 @@ MAX_IMAGE_SIZE_BYTES = 3 * 1024 * 1024
 ###################
 # Generación de referencia corta (sirve para IDs temporales)
 ext_ref = shortuuid.uuid()[:8]
+###################
+# Carga alternativa de credenciales (si se usa otra variable de entorno)
+creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
 ###################
 # Configuración de Gmail API
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
