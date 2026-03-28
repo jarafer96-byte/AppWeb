@@ -121,6 +121,7 @@ csp = {
         "https://*.cloudinary.com",        
         "https://*.fbcdn.net",        
         "https://*.r2.cloudflarestorage.com",
+        "https://pub-*.r2.dev",
         "https://*.instagram.com"          
     ],
     'font-src': [
@@ -134,6 +135,7 @@ csp = {
         "https://storage.googleapis.com",  
         "https://cdn.jsdelivr.net", 
         "https://*.r2.cloudflarestorage.com",
+        "https://pub-*.r2.dev",
         "https://*.onrender.com" 
     ],
     'frame-src': [
@@ -679,8 +681,8 @@ def subir_foto():
                 CacheControl='public, max-age=31536000'
             )
             # Construir URL pública
-            endpoint = os.getenv('R2_ENDPOINT_URL').replace('https://', '')
-            return f"https://{os.getenv('R2_BUCKET_NAME')}.{endpoint}/{key}"
+            public_url = os.getenv('R2_PUBLIC_URL')
+            return f"{public_url}/{key}"
 
         url_500 = subir_version(500, '500')
         url_180 = subir_version(180, '180')
@@ -910,9 +912,9 @@ def upload_image():
                         ContentType='image/webp',
                         CacheControl='public, max-age=31536000'
                     )
-                    endpoint = os.getenv('R2_ENDPOINT_URL').replace('https://', '')
-                    return f"https://{os.getenv('R2_BUCKET_NAME')}.{endpoint}/{key}"
-
+                    public_url = os.getenv('R2_PUBLIC_URL')
+                    return f"{public_url}/{key}"
+                    
                 url_500 = subir_version(500, '500')
                 url_180 = subir_version(180, '180')
                 url_58  = subir_version(58, '58')
