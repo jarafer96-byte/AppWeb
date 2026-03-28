@@ -645,6 +645,7 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         print(traceback.format_exc())
         return {"ok": False, "error": str(e)}
 
+
 @app.route("/subir-foto", methods=["POST"])
 def subir_foto():
     try:
@@ -657,44 +658,41 @@ def subir_foto():
         if not allowed_file(file.filename):
             return jsonify({"ok": False, "error": "Formato inválido. Usa png/jpg/jpeg/webp"}), 400
 
-        # Leer el contenido completo
         contenido_bytes = file.read()
         if len(contenido_bytes) > MAX_IMAGE_SIZE_BYTES:
             return jsonify({"ok": False, "error": "Imagen excede 3 MB"}), 413
 
-        # Abrir la imagen con Pillow
+        # Abrir imagen
         imagen_original = Image.open(BytesIO(contenido_bytes)).convert('RGB')
-
-        # Generar un UUID base para los nombres
         base_uuid = uuid.uuid4().hex
         email_safe = email.replace('@', '_at_').replace('.', '_dot_')
 
-        # Función auxiliar para redimensionar y subir una versión
         def subir_version(tamaño, sufijo):
             img_copy = imagen_original.copy()
             img_copy.thumbnail((tamaño, tamaño), Image.Resampling.LANCZOS)
-            # Crear canvas cuadrado
             canvas = Image.new('RGB', (tamaño, tamaño), (0, 0, 0))
             offset = ((tamaño - img_copy.width) // 2, (tamaño - img_copy.height) // 2)
             canvas.paste(img_copy, offset)
             buffer = BytesIO()
             canvas.save(buffer, format='WEBP', quality=80)
             buffer.seek(0)
-            filename = f"{base_uuid}_{sufijo}.webp"
-            blob_path = f"usuarios/{email_safe}/{filename}"
-            blob = bucket.blob(blob_path)
-            blob = bucket.blob(blob_path)
-            blob.upload_from_string(buffer.read(), content_type='image/webp')
-            blob.cache_control = 'public, max-age=31536000'
-            blob.patch()
-            return f"https://storage.googleapis.com/{bucket.name}/{blob_path}"
 
-        # Subir las tres versiones
+            key = f"usuarios/{email_safe}/{base_uuid}_{sufijo}.webp"
+            s3_client.put_object(
+                Bucket=os.getenv('R2_BUCKET_NAME'),
+                Key=key,
+                Body=buffer.getvalue(),
+                ContentType='image/webp',
+                CacheControl='public, max-age=31536000'
+            )
+            # Construir URL pública
+            endpoint = os.getenv('R2_ENDPOINT_URL').replace('https://', '')
+            return f"https://{os.getenv('R2_BUCKET_NAME')}.{endpoint}/{key}"
+
         url_500 = subir_version(500, '500')
         url_180 = subir_version(180, '180')
         url_58  = subir_version(58, '58')
 
-        # Devolver la URL grande (el frontend espera 'url')
         return jsonify({
             "ok": True,
             "url": url_500,
