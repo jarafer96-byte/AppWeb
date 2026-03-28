@@ -2328,7 +2328,7 @@ def guardar_producto():
                     datos_actualizar['stock'] = producto.get('stock')
                 
                 doc_ref.update(datos_actualizar)
-                
+                update_products_last_modified(email)
                 resultado = {
                     'id_base': id_base,
                     'accion': 'actualizado',
