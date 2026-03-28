@@ -180,9 +180,6 @@ credentials = service_account.Credentials.from_service_account_info(creds_dict)
 # Inicializar cliente con tu Project ID
 client = storage.Client(credentials=credentials, project="arcane-sentinel-479319-g0")
 
-# Bucket donde se guardan las imágenes
-bucket = client.bucket("mpagina")
-###################
 # Configuración de subida de imágenes
 UPLOAD_FOLDER = 'static/img'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
