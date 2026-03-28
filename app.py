@@ -2810,8 +2810,8 @@ def conectar_mp():
     print(f"[MP-CONNECT] Email recibido: {email}, url_retorno={url_retorno}")
 
     email_from_token = get_email_from_token()
-        if not email_from_token or email_from_token != email:
-            return jsonify({"status": "error", "error": "No autorizado"}), 401
+    if not email_from_token or email_from_token != email:
+        return jsonify({"status": "error", "error": "No autorizado"}), 401
 
     if not email:
         print("[MP-CONNECT] ❌ Falta email en la query")
@@ -2836,10 +2836,6 @@ def conectar_mp():
 
     redirect_uri = url_for("callback_mp", _external=True)
     print(f"[MP-CONNECT] Redirect URI generada: {redirect_uri}")
-
-    # 🔴 PROBLEMA: NO usar quote() aquí, solo JSON
-    # Mercado Pago espera un string simple, no un JSON codificado
-    # Si queremos pasar email y url_retorno, mejor usar un separador simple
     state_data = f"{email}|{url_retorno or ''}"
     
     query = urlencode({
