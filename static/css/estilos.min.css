@@ -1,3 +1,8 @@
+.subgrupo-btn.active {
+  background-color: #007bff !important;
+  color: white !important;
+  border-color: #007bff !important;
+}
 .fondo {
   position: fixed;
   top: 0;
