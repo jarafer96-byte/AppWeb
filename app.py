@@ -23,7 +23,6 @@ import base64
 import firebase_admin
 from firebase_admin import credentials, firestore
 from flask_cors import CORS, cross_origin
-from google.oauth2 import service_account
 import secrets
 import smtplib
 from email.mime.text import MIMEText
