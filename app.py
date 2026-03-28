@@ -866,13 +866,11 @@ def api_productos():
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
-        email = session.get("email", "anonimo")
+        email = session.get("email")
+        if not email:
+            return jsonify({"ok": False, "error": "No se ha iniciado sesión"}), 401
+
         imagenes = request.files.getlist('imagenes')
-
-        mail_from_token = get_email_from_token()
-        if not email_from_token or email_from_token != email:
-            return jsonify({"status": "error", "error": "No autorizado"}), 401
-
         if not imagenes:
             return jsonify({"ok": False, "error": "No se recibieron imágenes"}), 400
 
