@@ -202,12 +202,11 @@ function salirAdmin() {
   window.tokenAdmin = null;
   history.replaceState(null, "", window.location.pathname);
 
-  // Ocultar elementos de administración
   const adminContainer = document.getElementById('adminFormsContainer');
   if (adminContainer) adminContainer.classList.add('d-none');
 
   const formsList = document.getElementById('formsList');
-  if (formsList) formsList.style.display = 'block'; // restaurar lista original (si existe)
+  if (formsList) formsList.style.display = 'block'; 
 
   const logoutWrapper = document.getElementById('logoutAdminWrapper');
   if (logoutWrapper) logoutWrapper.style.display = 'none';
@@ -215,11 +214,9 @@ function salirAdmin() {
   const configurarMP = document.getElementById('configurarMP');
   if (configurarMP) configurarMP.classList.add('d-none');
 
-  // Mostrar nuevamente el botón de login flotante
   const loginToggleBtn = document.getElementById('loginToggleBtn');
   if (loginToggleBtn) loginToggleBtn.style.display = 'block';
 
-  // Restaurar la vista normal de productos
   if (window.currentGrupo) {
     const btnGrupo = Array.from(document.querySelectorAll('.btn-grupo'))
       .find(b => b.textContent.trim().toLowerCase() === window.currentGrupo.toLowerCase());
@@ -692,15 +689,6 @@ function filtrarProductos(grupo, subgrupo = null) {
     }
   });
 
-  const subgrupoBtns = document.querySelectorAll('.subgrupo-btn');
-  subgrupoBtns.forEach(btn => {
-    if (btn.dataset.grupo === grupo && btn.dataset.subgrupo === subgrupo) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-
   if (grupo && grupo !== 'todos') {
     const subgrupos = [...new Set(
       window.todosLosProductos.filter(p => p.grupo === grupo)
@@ -715,6 +703,18 @@ function filtrarProductos(grupo, subgrupo = null) {
   } else {
     ocultarSubgrupos();
   }
+
+  const subgrupoBtns = document.querySelectorAll('.subgrupo-btn');
+  subgrupoBtns.forEach(btn => {
+    if (btn.dataset.grupo === grupo && btn.dataset.subgrupo === subgrupo) {
+      btn.classList.add('active');
+      console.log(`[FILTRAR] Activando subgrupo: ${btn.dataset.subgrupo}`);
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+
+  window.currentAdminSubgrupo = subgrupo;
 }
 
 
@@ -820,26 +820,43 @@ function getCurrentSelectedGroup() {
 
 
 async function agregarNuevoProducto() {
-  const grupoActual = getCurrentSelectedGroup();
+  const grupoBtnActivo = document.querySelector('.grupo-btn.active');
+  const grupoActual = grupoBtnActivo ? grupoBtnActivo.dataset.grupo : null;
+
   if (!grupoActual) {
     alert('Selecciona un grupo específico (no "Todos") para crear un producto en ese grupo, o crea un grupo primero.');
     return;
   }
+
+  const subgrupoBtnActivo = document.querySelector('#adminSubgruposBar .subgrupo-btn.active');
+  let subgrupoActual = '';
+
+  if (subgrupoBtnActivo) {
+    subgrupoActual = subgrupoBtnActivo.dataset.subgrupo;
+    console.log(`[Nuevo producto] Subgrupo desde botón activo: ${subgrupoActual}`);
+  } else if (window.currentAdminSubgrupo) {
+    subgrupoActual = window.currentAdminSubgrupo;
+    console.log(`[Nuevo producto] Subgrupo desde respaldo: ${subgrupoActual}`);
+  } else {
+    console.log('[Nuevo producto] No hay subgrupo activo (vista general del grupo)');
+  }
+
+  console.log(`[Nuevo producto] Creando en grupo=${grupoActual}, subgrupo=${subgrupoActual}`);
+
   const tempId = 'nuevo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
   const nuevoProducto = {
     id_base: tempId,
     nombre: '',
     precio: 0,
     grupo: grupoActual,
-    subgrupo: '',
+    subgrupo: subgrupoActual,
     descripcion: '',
     imagen_url: '',
     fotos_adicionales: [],
   };
+
   window.todosLosProductos.push(nuevoProducto);
-  const grupoFiltro = grupoActual;
-  const subgrupoFiltro = window.currentSub;
-  filtrarProductos(grupoFiltro, subgrupoFiltro);
+  filtrarProductos(grupoActual, subgrupoActual);
 }
 
 
@@ -860,7 +877,7 @@ async function guardarTodosProductos() {
   for (const producto of productosAGuardar) {
     try {
       const formDiv = { dataset: { idBase: producto.id_base } };
-      const resultado = await guardarProducto(producto, formDiv, true); // skipReload = true
+      const resultado = await guardarProducto(producto, formDiv, true); 
       if (resultado) guardados++;
     } catch (error) {
       console.error('Error guardando producto:', producto.nombre, error);
@@ -868,7 +885,6 @@ async function guardarTodosProductos() {
     }
   }
 
-  // Después de guardar todos, recargar una sola vez y refrescar la vista
   await recargarProductos();
   renderTablaProductos();
 
@@ -922,7 +938,6 @@ if (window.modoAdmin) {
   const tableView = document.getElementById('tableView');
   if (tableView) tableView.style.display = 'block';
 
-  // Cargar productos y renderizar tabla
   recargarProductos().then(() => {
     renderTablaProductos();
     setTimeout(() => {
@@ -933,46 +948,38 @@ if (window.modoAdmin) {
     }, 50);
   });
 
-  // ✅ Mostrar botón de logout si hay token
   const logoutWrapper = document.getElementById('logoutAdminWrapper');
   if (logoutWrapper) logoutWrapper.style.display = 'block';
 
-  // ✅ Mostrar botón de configurar Mercado Pago
   const configurarMP = document.getElementById('configurarMP');
   if (configurarMP) configurarMP.classList.remove('d-none');
 
-  // ✅ Ocultar botón de login flotante (ya no es necesario)
   const loginToggleBtn = document.getElementById('loginToggleBtn');
   if (loginToggleBtn) loginToggleBtn.style.display = 'none';
 
-  // --- LISTENER DELEGADO ÚNICO ---
   const adminContainer = document.getElementById('adminFormsContainer');
   if (adminContainer) {
     adminContainer.addEventListener('click', async (e) => {
       const target = e.target;
 
-      // Botón: Guardar todos
       if (target.id === 'guardarTodosTablaBtn') {
         e.preventDefault();
         await guardarTodosProductos();
         return;
       }
 
-      // Botón: Nuevo producto
       if (target.id === 'btnNuevoProductoTabla') {
         e.preventDefault();
         agregarNuevoProducto();
         return;
       }
 
-      // Botón: Nuevo grupo (barra horizontal)
       if (target.id === 'adminBtnNuevoGrupo') {
         e.preventDefault();
         agregarNuevoGrupo();
         return;
       }
 
-      // Botón: Nuevo subgrupo (dinámico)
       if (target.classList.contains('agregar-subgrupo-btn')) {
         e.preventDefault();
         const grupo = target.dataset.grupo;
@@ -980,7 +987,6 @@ if (window.modoAdmin) {
         return;
       }
 
-      // Botón: Guardar producto individual
       if (target.classList.contains('guardar-producto')) {
         e.preventDefault();
         const idBase = target.dataset.id;
@@ -992,7 +998,6 @@ if (window.modoAdmin) {
         return;
       }
 
-      // Botón: Duplicar producto
       if (target.classList.contains('duplicar-producto')) {
         e.preventDefault();
         const idBase = target.dataset.id;
@@ -1000,7 +1005,6 @@ if (window.modoAdmin) {
         return;
       }
 
-      // Botón: Eliminar producto
       if (target.classList.contains('eliminar-producto')) {
         e.preventDefault();
         const idBase = target.dataset.id;
@@ -1010,14 +1014,12 @@ if (window.modoAdmin) {
         return;
       }
 
-      // Agregar fila de color
       if (target.classList.contains('agregar-fila-color')) {
         e.preventDefault();
         agregarFilaColor(target);
         return;
       }
 
-      // Eliminar foto extra
       if (target.classList.contains('eliminar-foto-extra')) {
         e.preventDefault();
         const idBase = target.dataset.id;
@@ -1026,21 +1028,18 @@ if (window.modoAdmin) {
         return;
       }
 
-      // Agregar foto extra
       if (target.classList.contains('agregar-foto-extra')) {
         e.preventDefault();
         agregarFotoExtra(target);
         return;
       }
 
-      // Cambiar imagen principal
       if (target.classList.contains('agregar-imagen-principal')) {
         e.preventDefault();
         agregarImagenPrincipal(target);
         return;
       }
 
-      // Eliminar color de una fila (dentro de colores-stock)
       if (target.classList.contains('eliminar-color') || target.classList.contains('eliminar-fila-color')) {
         e.preventDefault();
         const filaColor = target.closest('.fila-color');
@@ -1048,7 +1047,6 @@ if (window.modoAdmin) {
         return;
       }
 
-      // Botones de grupo (seleccionar grupo)
       if (target.classList.contains('grupo-btn')) {
         e.preventDefault();
         const grupo = target.dataset.grupo;
@@ -1056,7 +1054,6 @@ if (window.modoAdmin) {
         return;
       }
 
-      // Botón toggle de subgrupos (▼)
       if (target.classList.contains('subgrupo-toggle-btn')) {
         e.preventDefault();
         const grupo = target.dataset.grupo;
@@ -1072,7 +1069,6 @@ if (window.modoAdmin) {
         return;
       }
 
-      // Botón de subgrupo (seleccionar)
       if (target.classList.contains('subgrupo-btn')) {
         e.preventDefault();
         const grupo = target.dataset.grupo;
@@ -1083,7 +1079,6 @@ if (window.modoAdmin) {
     });
   }
 
-  // Manejar cambios en los toggles de talle (evento change)
   adminContainer.addEventListener('change', (e) => {
     const target = e.target;
     if (target.classList.contains('talle-toggle')) {
