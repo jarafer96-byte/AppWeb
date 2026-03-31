@@ -297,10 +297,10 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
   </div>
 {% endif %}
   
-<div id="loginFloatingForm" style="position:fixed; bottom:70px; left:50%; transform:translateX(-50%); z-index:999; display:none; background:rgba(0,0,0,0.9); padding:15px; border-radius:10px; width:250px;">
+<div id="loginFloatingForm" style="...">
   <form onsubmit="loginAdmin(event)">
-    <input type="text" id="usuario_login" placeholder="Usuario" required class="form-control mb-2">
-    <input type="password" id="clave_login" placeholder="Contraseña" required class="form-control mb-2">
+    <input type="text" id="usuario_login" placeholder="Usuario" required class="form-control mb-2" autocomplete="username">
+    <input type="password" id="clave_login" placeholder="Contraseña" required class="form-control mb-2" autocomplete="current-password">
     <button type="submit" class="btn-grupo w-100">Entrar</button>
   </form>
 </div>
@@ -318,12 +318,12 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
         <ul id="listaCarrito"></ul>
         <p><strong>Total:</strong> $<span id="totalCarrito">0</span></p>
         
-        <form id="datosCliente" style="display: none;">
+        <form id="datosCliente" style="display: none;" autocomplete="on">
           <h4>📝 Tus datos</h4>
-          <input type="text" name="nombre" placeholder="Nombre" class="form-control mb-2" required>
-          <input type="text" name="apellido" placeholder="Apellido" class="form-control mb-2" required>
-          <input type="email" name="email" placeholder="Email" class="form-control mb-2" required>
-          <input type="tel" name="telefono" placeholder="Teléfono" class="form-control mb-2">
+          <input type="text" name="nombre" placeholder="Nombre" class="form-control mb-2" required autocomplete="given-name">
+          <input type="text" name="apellido" placeholder="Apellido" class="form-control mb-2" required autocomplete="family-name">
+          <input type="email" name="email" placeholder="Email" class="form-control mb-2" required autocomplete="email">
+          <input type="tel" name="telefono" placeholder="Teléfono" class="form-control mb-2" autocomplete="tel">
         </form>
         
         <div class="d-grid gap-2 mt-3">
