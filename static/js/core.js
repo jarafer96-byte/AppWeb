@@ -197,6 +197,7 @@ function renderPaginacion(productosFiltrados) {
       paginaActual = i;
       renderPagina(i, productosFiltrados);
       renderPaginacion(productosFiltrados);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     pagDiv.appendChild(btn);
   }
@@ -647,6 +648,7 @@ function mostrarGrupo(nombre, event, auto = false) {
     panel.appendChild(btn);
   });
 
+  paginaActual = 1;
   renderPagina(1, productosGrupo);
   renderPaginacion(productosGrupo);
 
@@ -701,7 +703,8 @@ function filtrarSubcategoria(grupo, subgrupo) {
       String(p.grupo || "").toLowerCase() === grupoCanon
     );
   }
-    
+
+  paginaActual = 1;
   renderPagina(1, productosFiltrados);
   renderPaginacion(productosFiltrados);
 
