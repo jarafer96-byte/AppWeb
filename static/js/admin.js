@@ -25,7 +25,7 @@ async function guardarProducto(producto, formDiv, skipReload = false) {
   }
 
   try {
-    const resp = await fetch("https://mpagina.onrender.com/guardar-producto", {
+    const resp = await fetch("/guardar-producto", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -79,7 +79,7 @@ async function eliminarProducto(id_base) {
   }
 
   try {
-    const resp = await fetch("https://mpagina.onrender.com/eliminar-producto", {
+    const resp = await fetch("/eliminar-producto", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id_base, email: window.cliente.email })
@@ -139,7 +139,7 @@ async function subirImagen(blob) {
   const formData = new FormData();
   formData.append('file', blob, 'imagen.webp');
   formData.append('email', window.cliente.email);
-  const resp = await fetch('https://mpagina.onrender.com/subir-foto', {
+  const resp = await fetch('/subir-foto', {
     method: 'POST',
     body: formData
   });
@@ -190,7 +190,7 @@ function duplicarProductoDesdeCard(id_base) {
 
 function abrirConfigMercadoPago() {
   const urlRetorno = window.location.href;
-  const configUrl = `${window.URL_BACKEND}/conectar_mp?email=${encodeURIComponent(window.cliente.email)}&url_retorno=${encodeURIComponent(urlRetorno)}&token=${encodeURIComponent(window.tokenAdmin)}`;
+  const configUrl = `/conectar_mp?email=${encodeURIComponent(window.cliente.email)}&url_retorno=${encodeURIComponent(urlRetorno)}&token=${encodeURIComponent(window.tokenAdmin)}`;
   window.location.href = configUrl;
 }
 
@@ -262,7 +262,7 @@ function loginAdmin(event) {
     btn.textContent = 'Entrando...';
   }
 
-  fetch("https://mpagina.onrender.com/login-admin", {
+  fetch("/login-admin", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ usuario, clave })
@@ -800,7 +800,7 @@ async function recargarProductos() {
   try {
     const email = window.cliente?.email;
     if (!email) return;
-    const resp = await fetch(`https://mpagina.onrender.com/api/productos?usuario=${encodeURIComponent(email)}`);
+    const resp = await fetch(`/api/productos?usuario=${encodeURIComponent(email)}`);
     const data = await resp.json();
     window.todosLosProductos = Array.isArray(data) ? data : [];
   } catch (err) {
