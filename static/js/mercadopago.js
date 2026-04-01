@@ -15,7 +15,7 @@
   async function initMercadoPago() {
     try {
       await cargarSDK();
-      const resp = await fetch(`${window.URL_BACKEND}/api/mp_public_key?email=${encodeURIComponent(window.cliente.email)}`);
+      const resp = await fetch(`/api/mp_public_key?email=${encodeURIComponent(window.cliente.email)}`);
       const data = await resp.json();
       if (data.public_key) {
         window.mp = new window.MercadoPago(data.public_key, { locale: 'es-AR' });
@@ -115,7 +115,7 @@
     }
 
     try {
-      const verifyResp = await fetch(`${window.URL_BACKEND}/verificar-stock`, {
+      const verifyResp = await fetch(`/verificar-stock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -211,7 +211,7 @@
 
       await cargarSDK();
 
-      const response = await fetch(`${window.URL_BACKEND}/pagar`, {
+      const response = await fetch(`/pagar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
