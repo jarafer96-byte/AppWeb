@@ -685,84 +685,40 @@ function agregarFilaImportada(nombre, descripcion, precio, grupo, subgrupo, tall
     }
     
 function cargarImagenesDesdeIndexedDB(done) {
-  console.log("🚀 [IndexedDB] Iniciando carga de imágenes desde IndexedDB");
+  console.log("🚀 [Step3] Cargando imágenes desde imagenes_step0");
 
-  ensureDB(db => {
-    const tx = db.transaction("imagenes", "readonly");
-    const store = tx.objectStore("imagenes");
-    const lista = JSON.parse(localStorage.getItem("imagenesLista") || "[]");
-    console.log("📌 [IndexedDB] Lista de nombres en localStorage.imagenesLista:", lista);
+  const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+  console.log("📦 [Step3] imagenes_step0:", rutasStep0.length, "imágenes");
 
-    let first = true, buffer = [];
-    let count = 0;
+  if (!Array.isArray(rutasStep0) || rutasStep0.length === 0) {
+    console.warn("⚠️ [Step3] No hay imágenes en imagenes_step0");
+    done(0);
+    return;
+  }
 
-    lista.forEach(nombreOriginal => {
-      console.log("➡️ [IndexedDB] Procesando nombre:", nombreOriginal);
-      const getReq = store.get(nombreOriginal);
+  let first = true;
+  let buffer = [];
+  let count = 0;
 
-      getReq.onsuccess = e => {
-        const blob = e.target.result;
-        if (blob) {
-          console.log("✅ [IndexedDB] Blob encontrado para:", nombreOriginal);
+  rutasStep0.forEach(imagen_url => {
+    if (!imagen_url) return;
+    const nombreGenerado = imagen_url.split("/").pop(); // UUID.webp
+    buffer.push({ nombre: nombreGenerado, imagen_url });
+    count++;
 
-          // 🔑 Usar mapping para obtener nombre final (UUID.webp)
-          const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
-          const nombreGenerado = mapping[nombreOriginal];
-          console.log("📌 [IndexedDB] Mapping lookup:", nombreOriginal, "→", nombreGenerado);
-
-          let imagen_url;
-          if (nombreGenerado && nombreGenerado !== nombreOriginal) {
-            // ✅ Construir URL pública de GCS con email codificado
-            const bucket = "mpagina";
-            const email = localStorage.getItem("email") || "anonimo";
-            const email_encoded = email.replace("@", "%40");
-            console.log("📌 [IndexedDB] Email usado para URL:", email_encoded);
-            imagen_url = `https://storage.googleapis.com/${bucket}/${email_encoded}/${nombreGenerado}`;
-            console.log("🔗 [IndexedDB] URL construida con UUID:", imagen_url);
-
-            buffer.push({ nombre: nombreGenerado, imagen_url });
-          } else {
-            // ⚠️ Mapping no tiene UUID → intentar usar rutas finales de step0
-            const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
-            const rutaUUID = rutasStep0.find(r => r.includes(nombreOriginal.split(".")[0])) || null;
-
-            if (rutaUUID) {
-              const basename = rutaUUID.split("/").pop();
-              console.log("🔄 [IndexedDB] Fallback a imagenes_step0:", rutaUUID);
-              buffer.push({ nombre: basename, imagen_url: rutaUUID });
-            } else {
-              imagen_url = "/static/img/fallback.webp";
-              console.warn("⚠️ [IndexedDB] No se encontró UUID para", nombreOriginal, "→ usando fallback genérico");
-              buffer.push({ nombre: nombreOriginal, imagen_url });
-            }
-          }
-
-          count++;
-          console.log("📦 [IndexedDB] Buffer actualizado:", buffer);
-
-          if (buffer.length === 8) {
-            agregarSlide(buffer, first);
-            console.log("🖼️ [IndexedDB] Slide agregado con 8 imágenes");
-            first = false;
-            buffer = [];
-          }
-        } else {
-          console.warn("⚠️ [IndexedDB] No se encontró blob para:", nombreOriginal);
-        }
-      };
-
-      getReq.onerror = err => console.error("❌ [IndexedDB] Error leyendo imagen:", nombreOriginal, err.target.error);
-    });
-
-    tx.oncomplete = () => {
-      if (buffer.length) {
-        agregarSlide(buffer, first);
-        console.log("🖼️ [IndexedDB] Slide final agregado con", buffer.length, "imágenes");
-      }
-      console.log("📊 [IndexedDB] Total imágenes cargadas:", count);
-      done(count); // cantidad cargada desde IndexedDB
-    };
+    if (buffer.length === 8) {
+      agregarSlide(buffer, first);
+      first = false;
+      buffer = [];
+    }
   });
+
+  if (buffer.length) {
+    agregarSlide(buffer, first);
+  }
+
+  console.log(`📊 [Step3] ${count} imágenes cargadas desde imagenes_step0`);
+  done(count);
 }
   
 function crearSubgrupo(btn) {
