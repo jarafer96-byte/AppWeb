@@ -983,6 +983,9 @@ if (window.modoAdmin) {
   const formsList = document.getElementById('formsList');
   if (formsList) formsList.style.display = 'none';
 
+  const configurarCA = document.getElementById('configurarCA');
+  if (configurarCA) configurarCA.classList.remove('d-none');
+
   const tableView = document.getElementById('tableView');
   if (tableView) tableView.style.display = 'block';
 
