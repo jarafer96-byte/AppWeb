@@ -125,7 +125,7 @@ csp = {
         "https://*.cloudinary.com",        
         "https://*.fbcdn.net",        
         "https://*.r2.cloudflarestorage.com",
-        ""https://*.r2.dev",
+        "https://*.r2.dev",
         "https://*.instagram.com"          
     ],
     'font-src': [
