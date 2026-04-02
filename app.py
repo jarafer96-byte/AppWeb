@@ -1669,49 +1669,46 @@ def webhook_mp():
         
         orden_data = doc.to_dict()
         
+        # Obtener items del carrito (independientemente del estado)
+        todos_items = orden_data.get("carrito") or orden_data.get("items_mp") or orden_data.get("items") or []
+        
+        # Solo si el pago fue aprobado, descontamos stock, creamos envío y enviamos comprobante
         if estado == "approved":
             email_vendedor = orden_data.get("email_vendedor")
+            cliente_nombre = orden_data.get("cliente_nombre", "")
+            total_final = orden_data.get("total", 0)
+            cliente_direccion = orden_data.get("cliente_direccion", {})
             
             if email_vendedor:
-                todos_items = orden_data.get("carrito") or []
-                
-                if not todos_items:
-                    todos_items = orden_data.get("items_mp") or orden_data.get("items") or []
-                
+                # 1. Descontar stock (código existente)
                 for item in todos_items:
                     try:
                         if not isinstance(item, dict):
                             continue
                             
                         producto_id = item.get("id_base")
-                        
                         if not producto_id:
                             continue
                         
                         cantidad = int(item.get("cantidad", 1))
-                        
                         talle = item.get("talle", "")
                         color = item.get("color", "")
                         
+                        # Extraer talle/color del título si es necesario
                         if not talle and not color:
                             title = item.get("title", "") or item.get("nombre", "") or ""
-                            
                             import re
-                            
                             talle_match = re.search(r"[Tt]alle[:\s]*([A-Za-z0-9]+)", title)
                             color_match = re.search(r"[Cc]olor[:\s]*([A-Za-z\s]+)", title)
-                            
                             if talle_match:
                                 talle = talle_match.group(1).strip()
                             if color_match:
                                 color = color_match.group(1).strip()
-                            
                             if not talle and not color:
                                 parts = title.split('-')
                                 if len(parts) >= 3:
                                     talle = parts[-2].strip()
                                     color = parts[-1].strip()
-                            
                             if not talle:
                                 talle = item.get("metadata", {}).get("talle", "") or item.get("metadata", {}).get("size", "")
                             if not color:
@@ -1726,14 +1723,12 @@ def webhook_mp():
                         
                         if prod_doc.exists:
                             data = prod_doc.to_dict()
-                            
                             tiene_variantes = data.get("tiene_variantes", False)
                             variantes = data.get("variantes", {})
                             
                             if tiene_variantes and variantes and talle and color:
                                 variante_encontrada = None
                                 variante_key_encontrada = None
-                                
                                 variante_key_exacta = f"{talle}_{color}".replace(" ", "_")
                                 if variante_key_exacta in variantes:
                                     variante_encontrada = variantes[variante_key_exacta]
@@ -1751,15 +1746,13 @@ def webhook_mp():
                                 if variante_encontrada and variante_key_encontrada:
                                     stock_variante = variante_encontrada.get("stock", 0)
                                     nuevo_stock_variante = max(0, stock_variante - cantidad)
-                                    
                                     prod_ref.update({
                                         f"variantes.{variante_key_encontrada}.stock": nuevo_stock_variante
                                     })
-                                    
+                                    # Historial
                                     historial_ref = db.collection("usuarios").document(email_vendedor)\
                                                        .collection("productos").document(producto_id)\
                                                        .collection("stock_historial").document(f"{external_ref}_{variante_key_encontrada}")
-                                    
                                     historial_ref.set({
                                         "orden_id": external_ref,
                                         "fecha": firestore.SERVER_TIMESTAMP,
@@ -1777,11 +1770,9 @@ def webhook_mp():
                                     stock_actual = data.get("stock", 0)
                                     nuevo_stock = max(0, stock_actual - cantidad)
                                     prod_ref.update({"stock": nuevo_stock})
-                                    
                                     historial_ref = db.collection("usuarios").document(email_vendedor)\
                                                        .collection("productos").document(producto_id)\
                                                        .collection("stock_historial").document(external_ref)
-                                    
                                     historial_ref.set({
                                         "orden_id": external_ref,
                                         "fecha": firestore.SERVER_TIMESTAMP,
@@ -1798,11 +1789,9 @@ def webhook_mp():
                                 stock_actual = data.get("stock", 0)
                                 nuevo_stock = max(0, stock_actual - cantidad)
                                 prod_ref.update({"stock": nuevo_stock})
-                                
                                 historial_ref = db.collection("usuarios").document(email_vendedor)\
                                                    .collection("productos").document(producto_id)\
                                                    .collection("stock_historial").document(external_ref)
-                                
                                 historial_ref.set({
                                     "orden_id": external_ref,
                                     "fecha": firestore.SERVER_TIMESTAMP,
@@ -1816,39 +1805,101 @@ def webhook_mp():
                                     "nombre_producto": data.get("nombre", "")
                                 })
                             
+                            # Actualizar stock total si hay variantes
                             try:
                                 prod_doc_actualizado = prod_ref.get()
                                 if prod_doc_actualizado.exists:
                                     data_actualizado = prod_doc_actualizado.to_dict()
                                     variantes_actualizadas = data_actualizado.get("variantes", {})
-                                    
                                     if variantes_actualizadas:
                                         stock_total_actualizado = sum(v.get('stock', 0) for v in variantes_actualizadas.values())
                                         prod_ref.update({"stock": stock_total_actualizado})
                             except Exception:
                                 pass
-                            
                         else:
+                            # Buscar por nombre
                             nombre_producto = item.get("nombre") or item.get("title", "")
                             if nombre_producto:
                                 try:
                                     query = db.collection("usuarios").document(email_vendedor)\
                                               .collection("productos").where("nombre", "==", nombre_producto).get()
-                                    if query:
-                                        for prod_doc in query:
-                                            prod_data = prod_doc.to_dict()
-                                            producto_id_real = prod_doc.id
-                                            stock_actual_real = prod_data.get("stock", 0)
-                                            nuevo_stock_real = max(0, stock_actual_real - cantidad)
-                                            
-                                            prod_doc.reference.update({"stock": nuevo_stock_real})
-                                            break
+                                    for prod_doc in query:
+                                        prod_data = prod_doc.to_dict()
+                                        stock_actual_real = prod_data.get("stock", 0)
+                                        nuevo_stock_real = max(0, stock_actual_real - cantidad)
+                                        prod_doc.reference.update({"stock": nuevo_stock_real})
+                                        break
                                 except Exception:
                                     pass
-                            
-                    except Exception:
+                    except Exception as e:
+                        print(f"❌ Error procesando item en webhook: {e}")
                         continue
+                
+                # 2. CREAR ORDEN EN CORREO ARGENTINO
+                try:
+                    # Obtener datos del remitente desde Firestore
+                    remitente_data = obtener_datos_remitente(email_vendedor, db)
+                    
+                    # Construir dirección del destinatario
+                    destinatario_data = {
+                        "name": cliente_nombre,
+                        "address": {
+                            "streetName": cliente_direccion.get("calle", ""),
+                            "streetNumber": cliente_direccion.get("numero", ""),
+                            "cityName": cliente_direccion.get("localidad", ""),
+                            "state": cliente_direccion.get("provincia_codigo", ""),
+                            "zipCode": cliente_direccion.get("codigo_postal", "")
+                        }
+                    }
+                    
+                    # Calcular peso total (si no hay peso, usar 500g por defecto)
+                    peso_total = 0
+                    for item in todos_items:
+                        peso_item = item.get("peso_gramos", 500)
+                        try:
+                            peso_total += int(peso_item) * int(item.get("cantidad", 1))
+                        except:
+                            peso_total += 500 * int(item.get("cantidad", 1))
+                    
+                    # Dimensiones por defecto (ajustable)
+                    orden_ca = {
+                        "sellerId": email_vendedor,
+                        "order": {
+                            "senderData": remitente_data,
+                            "shippingData": destinatario_data,
+                            "parcels": [{
+                                "dimensions": {"height": "10", "width": "15", "depth": "20"},
+                                "productWeight": str(peso_total),
+                                "declaredValue": str(total_final)
+                            }],
+                            "deliveryType": "homeDelivery",
+                            "saleDate": datetime.now().strftime("%Y-%m-%dT%H:%M:%S-03:00"),
+                            "serviceType": "CP"
+                        }
+                    }
+                    
+                    success_ca, tn, msg_ca, _ = crear_orden(email_vendedor, db, orden_ca)
+                    if success_ca:
+                        doc_ref.update({
+                            "correo_argentino_tracking": tn,
+                            "correo_argentino_creado": True,
+                            "correo_argentino_respuesta": msg_ca
+                        })
+                        print(f"✅ Orden CA creada: {tn}")
+                    else:
+                        print(f"❌ Error al crear orden CA: {msg_ca}")
+                        doc_ref.update({
+                            "correo_argentino_error": msg_ca,
+                            "correo_argentino_intento": firestore.SERVER_TIMESTAMP
+                        })
+                except Exception as e:
+                    print(f"⚠️ No se pudo crear orden en Correo Argentino: {e}")
+                    doc_ref.update({
+                        "correo_argentino_error": str(e),
+                        "correo_argentino_intento": firestore.SERVER_TIMESTAMP
+                    })
         
+        # Actualizar estado de la orden (siempre)
         update_data = {
             "estado": estado,
             "payment_id": payment_id,
@@ -1867,22 +1918,48 @@ def webhook_mp():
         
         doc_ref.update(update_data)
         
+        # Enviar comprobante al vendedor solo si pago aprobado y no se había enviado
         if estado == "approved":
             email_vendedor = orden_data.get("email_vendedor")
-            if email_vendedor:
-                if not orden_data.get("comprobante_enviado", False):
-                    if enviar_comprobante(email_vendedor, external_ref):
-                        doc_ref.update({
-                            "comprobante_enviado": True,
-                            "comprobante_enviado_fecha": firestore.SERVER_TIMESTAMP
-                        })
-                    else:
-                        print(f"Fallo al enviar comprobante para {external_ref}")
+            if email_vendedor and not orden_data.get("comprobante_enviado", False):
+                if enviar_comprobante(email_vendedor, external_ref):
+                    doc_ref.update({
+                        "comprobante_enviado": True,
+                        "comprobante_enviado_fecha": firestore.SERVER_TIMESTAMP
+                    })
+                else:
+                    print(f"⚠️ Fallo al enviar comprobante para {external_ref}")
         
         return jsonify({"ok": True})
         
-    except Exception:
+    except Exception as e:
+        print(f"💥 Error en webhook_mp: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"ok": False}), 500
+
+
+def obtener_datos_remitente(email, db):
+    """Obtiene los datos del remitente desde Firestore."""
+    doc = db.collection("usuarios").document(email).collection("config").document("remitente").get()
+    if not doc.exists:
+        raise ValueError(f"Faltan datos del remitente para {email}. Configúralos en el panel.")
+    data = doc.to_dict()
+    # Validar campos obligatorios
+    required = ["nombre", "calle", "altura", "localidad", "provincia_codigo", "codigo_postal"]
+    for field in required:
+        if not data.get(field):
+            raise ValueError(f"Falta el campo '{field}' en los datos del remitente")
+    return {
+        "name": data["nombre"],
+        "address": {
+            "streetName": data["calle"],
+            "streetNumber": data["altura"],
+            "cityName": data["localidad"],
+            "state": data["provincia_codigo"],
+            "zipCode": data["codigo_postal"]
+        }
+    }
 
 
 @app.route('/actualizar-stock-talle', methods=['POST'])
