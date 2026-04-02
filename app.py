@@ -214,13 +214,99 @@ creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS_JSON"])
 # Configuración de Gmail API
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 
+# 🔧 Configuración de la API de Correo Argentino (MiCorreo)
+CA_MICORREO_TEST_URL = os.getenv("CA_MICORREO_TEST_URL", "https://apitest.correoargentino.com.ar/micorreo/v1")
+CA_MICORREO_PROD_URL = os.getenv("CA_MICORREO_PROD_URL", "https://api.correoargentino.com.ar/micorreo/v1")
+
+# Inicializar un diccionario para cachear el token en memoria (opcional)
+ca_token_cache = {
+    "token": None,
+    "expires_at": None
+}
+
 # Validación de archivos permitidos
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 
+def obtener_token_micorreo(email_vendedor):
+    """
+    Obtiene un token JWT válido para la API de MiCorreo.
+    Busca las credenciales en Firestore, las valida y maneja la caché del token.
+    """
+    # 1. Obtener las credenciales del vendedor desde Firestore
+    creds_doc = db.collection("usuarios").document(email_vendedor)\
+                  .collection("config").document("correo_argentino").get()
+    
+    if not creds_doc.exists:
+        raise ValueError(f"El vendedor {email_vendedor} no ha configurado sus credenciales de Correo Argentino.")
+    
+    creds = creds_doc.to_dict()
+    micorreo_user = creds.get("micorreo_user")
+    micorreo_password = creds.get("micorreo_password")
+    test_mode = creds.get("test_mode", True)
 
+    if not micorreo_user or not micorreo_password:
+        raise ValueError("Faltan el usuario o contraseña de MiCorreo en la configuración del vendedor.")
+
+    # 2. Determinar la URL base según el modo (test o producción)
+    base_url = CA_MICORREO_TEST_URL if test_mode else CA_MICORREO_PROD_URL
+    token_url = f"{base_url}/token"
+
+    # 3. Verificar si tenemos un token válido en caché para este vendedor
+    #    (Usamos el email como parte de la clave de caché para evitar mezclar tokens)
+    cache_key = f"{email_vendedor}_token"
+    cached_token = ca_token_cache.get(cache_key)
+    
+    if cached_token and cached_token.get("expires_at") > datetime.now():
+        print(f"[CA_TOKEN] Usando token en caché para {email_vendedor}")
+        return cached_token["token"]
+
+    # 4. Si no hay token o expiró, solicitar uno nuevo
+    print(f"[CA_TOKEN] Solicitando nuevo token para {email_vendedor}")
+    
+    try:
+        # Realizar la petición POST con Basic Auth
+        response = requests.post(
+            token_url,
+            auth=(micorreo_user, micorreo_password),
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            token_data = response.json()
+            new_token = token_data.get("token")
+            expires_str = token_data.get("expires")
+            
+            if not new_token:
+                raise Exception("La respuesta de la API no contenía el campo 'token'")
+            
+            # Parsear la fecha de expiración (formato esperado: "YYYY-MM-DD HH:MM:SS")
+            try:
+                expires_at = datetime.strptime(expires_str, "%Y-%m-%d %H:%M:%S")
+            except:
+                # Si no se puede parsear, asumir 30 minutos de validez
+                expires_at = datetime.now() + timedelta(minutes=30)
+            
+            # Guardar en caché
+            ca_token_cache[cache_key] = {
+                "token": new_token,
+                "expires_at": expires_at
+            }
+            
+            print(f"[CA_TOKEN] Token obtenido exitosamente. Expira: {expires_at}")
+            return new_token
+        else:
+            # Manejar errores de autenticación
+            error_msg = f"Error al obtener token: {response.status_code} - {response.text}"
+            print(f"[CA_TOKEN] {error_msg}")
+            raise Exception(error_msg)
+            
+    except requests.exceptions.RequestException as e:
+        print(f"[CA_TOKEN] Error de red: {e}")
+        raise Exception(f"No se pudo conectar con la API de MiCorreo: {e}")
+    
 @app.route('/ca/guardar-remitente', methods=['POST'])
 def ca_guardar_remitente():
     data = request.get_json()
