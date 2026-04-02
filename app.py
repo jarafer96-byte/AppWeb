@@ -418,21 +418,22 @@ def generate_code_challenge(verifier):
 def purge_cache():
     data = request.get_json(force=True) or {}
     email = data.get('email')
-    dominio = data.get('dominio')  # ej: "fer.pages.dev"
+    dominio = data.get('dominio')
     if not email or not dominio:
         return jsonify({'error': 'Faltan email o dominio'}), 400
 
-    # Construir la URL exacta que se cacheó en Cloudflare
+    # Construir la URL a purgar
     url_to_purge = f"https://{dominio}/api/productos?usuario={email}"
     
-    # Configuración de Cloudflare (variables de entorno)
-    zone_id = os.getenv('CLOUDFLARE_ZONE_ID')
+    # Credenciales de Cloudflare (variables de entorno)
+    account_id = os.getenv('CLOUDFLARE_ACCOUNT_ID')
     api_token = os.getenv('CLOUDFLARE_API_TOKEN')
     
-    if not zone_id or not api_token:
+    if not account_id or not api_token:
         return jsonify({'error': 'Cloudflare no configurado'}), 500
 
-    purge_api = f"https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache"
+    # Endpoint de purga por cuenta (no por zona)
+    purge_api = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/purge_cache"
     headers = {
         'Authorization': f'Bearer {api_token}',
         'Content-Type': 'application/json'
