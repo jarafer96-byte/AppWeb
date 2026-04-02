@@ -36,6 +36,10 @@ from google.cloud.firestore import ArrayUnion
 from flask_talisman import Talisman
 from google.auth.transport.requests import Request
 import builtins
+from correo_argentino import (
+    validar_credenciales, crear_orden, cancelar_orden,
+    obtener_rotulos, consultar_historial, obtener_sucursales
+)
 
 # builtins.print = lambda *args, **kwargs: None
 ##################
@@ -213,6 +217,102 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 # Validación de archivos permitidos
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route('/ca/validar', methods=['POST'])
+def ca_validar():
+    """Valida las credenciales de Correo Argentino para el vendedor logueado."""
+    data = request.get_json(silent=True) or {}
+    email = data.get('email') or session.get('email')
+    if not email:
+        return jsonify({'error': 'No se especificó email'}), 400
+
+    ok, msg = validar_credenciales(email, db)
+    if ok:
+        return jsonify({'status': 'ok', 'message': msg}), 200
+    else:
+        return jsonify({'status': 'error', 'message': msg}), 401
+
+@app.route('/ca/crear-orden', methods=['POST'])
+def ca_crear_orden():
+    """Crea una orden de envío en Correo Argentino."""
+    data = request.get_json(force=True)
+    email = data.get('email') or session.get('email')
+    if not email:
+        return jsonify({'error': 'Falta email'}), 400
+
+    # El cuerpo debe contener la estructura completa de la orden (ver PDF)
+    orden_data = data.get('orden_data')
+    if not orden_data:
+        return jsonify({'error': 'Falta orden_data'}), 400
+
+    success, tn, msg, status = crear_orden(email, db, orden_data)
+    if success:
+        return jsonify({'status': 'ok', 'trackingNumber': tn, 'message': msg}), 200
+    else:
+        return jsonify({'status': 'error', 'message': msg}), status
+
+@app.route('/ca/cancelar-orden', methods=['POST'])
+def ca_cancelar_orden():
+    data = request.get_json(force=True)
+    email = data.get('email') or session.get('email')
+    tn = data.get('trackingNumber')
+    if not email or not tn:
+        return jsonify({'error': 'Faltan email o trackingNumber'}), 400
+
+    success, msg, status = cancelar_orden(email, db, tn)
+    return jsonify({'status': 'ok' if success else 'error', 'message': msg}), status
+
+@app.route('/ca/rotulos', methods=['POST'])
+def ca_rotulos():
+    data = request.get_json(force=True)
+    email = data.get('email') or session.get('email')
+    pedidos = data.get('pedidos')  # lista de {sellerId, trackingNumber}
+    label_format = data.get('labelFormat')  # "10x15" o "label"
+    if not email or not pedidos:
+        return jsonify({'error': 'Faltan datos'}), 400
+
+    success, result, status = obtener_rotulos(email, db, pedidos, label_format)
+    if success:
+        return jsonify(result), 200
+    else:
+        return jsonify({'error': result}), status
+
+@app.route('/ca/historial', methods=['POST'])  # Usamos POST por la inconsistencia
+def ca_historial():
+    data = request.get_json(force=True)
+    email = data.get('email') or session.get('email')
+    tracking_numbers = data.get('trackingNumbers')  # lista
+    ext_client = data.get('extClient')
+    if not email or not tracking_numbers:
+        return jsonify({'error': 'Faltan datos'}), 400
+
+    success, result, status = consultar_historial(email, db, tracking_numbers, ext_client)
+    if success:
+        return jsonify(result), 200
+    else:
+        return jsonify({'error': result}), status
+
+@app.route('/ca/sucursales', methods=['GET'])
+def ca_sucursales():
+    email = request.args.get('email') or session.get('email')
+    if not email:
+        return jsonify({'error': 'Falta email'}), 400
+
+    state_id = request.args.get('stateId')
+    pickup = request.args.get('pickup_availability')
+    if pickup is not None:
+        pickup = pickup.lower() == 'true'
+    package = request.args.get('package_reception')
+    if package is not None:
+        package = package.lower() == 'true'
+
+    success, result, status = obtener_sucursales(email, db, state_id, pickup, package)
+    if success:
+        return jsonify(result), 200
+    else:
+        return jsonify({'error': result}), status
+        
 
 def subir_a_firestore(producto, email, es_edicion=False):
     try:
