@@ -982,8 +982,8 @@ function seleccionarImagen(img) {
 }
   
 function confirmarImagen() {
-  console.log("🟢 [Step3] confirmarImagen → seleccionada:", window.imagenSeleccionada, 
-              "url:", window.imagenSeleccionadaUrl, 
+  console.log("🟢 [Step3] confirmarImagen → seleccionada:", window.imagenSeleccionada,
+              "url:", window.imagenSeleccionadaUrl,
               "filaActual:", filaActual);
 
   if (!window.imagenSeleccionada || !window.imagenSeleccionadaUrl || !filaActual) {
@@ -998,23 +998,17 @@ function confirmarImagen() {
   let imagenFinal = window.imagenSeleccionadaUrl;
   const basename = window.imagenSeleccionada;
 
-  // 🔎 Normalizar: si la URL es blob, reemplazar por ruta real usando mapping
+  // 🔎 Si la URL es blob, buscar la URL real en imagenes_step0 (R2)
   if (imagenFinal.startsWith("blob:")) {
-    const mapping = JSON.parse(localStorage.getItem("imagenes_mapping") || "{}");
-    const nombreGenerado = mapping[basename];
-
-    console.log("🔎 [Step3] Buscando basename en mapping:", basename, "→", nombreGenerado);
-
-    if (nombreGenerado) {
-      // ✅ Construir URL pública de GCS
-      const bucket = "mpagina"; // tu bucket
-      const email = localStorage.getItem("email") || "anonimo";
-      console.log("📌 [Step3] Email usado para construir URL:", email);
-      imagenFinal = `https://storage.googleapis.com/${bucket}/${email}/${nombreGenerado}`;
-      console.log("🔄 [Step3] Blob reemplazado usando mapping:", basename, "→", imagenFinal);
+    const rutasStep0 = JSON.parse(localStorage.getItem("imagenes_step0") || "[]");
+    // Buscar la URL que contenga el basename (UUID.webp) o el nombre original
+    const urlReal = rutasStep0.find(r => r.includes(basename) || r.includes(window.imagenSeleccionada));
+    if (urlReal) {
+      imagenFinal = urlReal;
+      console.log("🔄 [Step3] Blob reemplazado por URL real de R2:", imagenFinal);
     } else {
-      console.error("❌ [Step3] No se encontró mapping para basename", basename);
-      imagenFinal = "/static/img/fallback.webp"; // fallback seguro
+      console.error("❌ [Step3] No se encontró URL real para", basename);
+      imagenFinal = "/static/img/fallback.webp";
     }
   }
 
@@ -1045,7 +1039,7 @@ function confirmarImagen() {
     `<img src="${imagenFinal}" style="width:80px;height:60px;object-fit:contain;border:1px solid #ccc;border-radius:4px;">`;
   console.log("🖼️ [Step3] Preview actualizada con:", imagenFinal);
 
-  // 📌 Marcar como usada y persistir GLOBAL (siempre basename)
+  // 📌 Marcar como usada
   let imagenesUsadas = JSON.parse(localStorage.getItem("imagenesUsadas") || "[]");
   if (!Array.isArray(imagenesUsadas)) imagenesUsadas = [];
 
@@ -1067,7 +1061,7 @@ function confirmarImagen() {
   } else {
     console.warn("⚠️ [Step3] No se encontró instancia de modalCarrusel");
   }
-  console.log("💾 [Step3] Estado guardado (debounced). localStorage.email:", localStorage.getItem("email"));
+  console.log("💾 [Step3] Estado guardado. localStorage.email:", localStorage.getItem("email"));
 }
   
 console.log("📌 [Template] sessionEmail recibido desde Flask:", "{{ email }}");
