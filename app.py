@@ -1669,10 +1669,10 @@ def webhook_mp():
         
         orden_data = doc.to_dict()
         
-        # Obtener items del carrito (independientemente del estado)
+        # Obtener items del carrito
         todos_items = orden_data.get("carrito") or orden_data.get("items_mp") or orden_data.get("items") or []
         
-        # Solo si el pago fue aprobado, descontamos stock, creamos envío y enviamos comprobante
+        # Solo si el pago fue aprobado
         if estado == "approved":
             email_vendedor = orden_data.get("email_vendedor")
             cliente_nombre = orden_data.get("cliente_nombre", "")
@@ -1680,7 +1680,7 @@ def webhook_mp():
             cliente_direccion = orden_data.get("cliente_direccion", {})
             
             if email_vendedor:
-                # 1. Descontar stock (código existente)
+                # ---------- 1. Descontar stock (código existente) ----------
                 for item in todos_items:
                     try:
                         if not isinstance(item, dict):
@@ -1749,7 +1749,6 @@ def webhook_mp():
                                     prod_ref.update({
                                         f"variantes.{variante_key_encontrada}.stock": nuevo_stock_variante
                                     })
-                                    # Historial
                                     historial_ref = db.collection("usuarios").document(email_vendedor)\
                                                        .collection("productos").document(producto_id)\
                                                        .collection("stock_historial").document(f"{external_ref}_{variante_key_encontrada}")
@@ -1817,7 +1816,6 @@ def webhook_mp():
                             except Exception:
                                 pass
                         else:
-                            # Buscar por nombre
                             nombre_producto = item.get("nombre") or item.get("title", "")
                             if nombre_producto:
                                 try:
@@ -1835,7 +1833,7 @@ def webhook_mp():
                         print(f"❌ Error procesando item en webhook: {e}")
                         continue
                 
-                # 2. CREAR ORDEN EN CORREO ARGENTINO
+                # ---------- 2. CREAR ORDEN EN CORREO ARGENTINO (NUEVO) ----------
                 try:
                     # Obtener datos del remitente desde Firestore
                     remitente_data = obtener_datos_remitente(email_vendedor, db)
@@ -1861,7 +1859,7 @@ def webhook_mp():
                         except:
                             peso_total += 500 * int(item.get("cantidad", 1))
                     
-                    # Dimensiones por defecto (ajustable)
+                    # Dimensiones por defecto (ajustable según tus productos)
                     orden_ca = {
                         "sellerId": email_vendedor,
                         "order": {
