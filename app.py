@@ -36,7 +36,6 @@ from google.cloud.firestore import ArrayUnion
 from flask_talisman import Talisman
 from google.auth.transport.requests import Request
 import builtins
-from flask import current_app
 from correo_argentino import (
     validar_credenciales, crear_orden, cancelar_orden,
     obtener_rotulos, consultar_historial, obtener_sucursales
