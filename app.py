@@ -413,6 +413,42 @@ def generate_code_challenge(verifier):
     digest = hashlib.sha256(verifier.encode()).digest()
     return base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
 
+
+@app.route('/purge-cache', methods=['POST'])
+def purge_cache():
+    data = request.get_json(force=True) or {}
+    email = data.get('email')
+    dominio = data.get('dominio')  # ej: "fer.pages.dev"
+    if not email or not dominio:
+        return jsonify({'error': 'Faltan email o dominio'}), 400
+
+    # Construir la URL exacta que se cacheó en Cloudflare
+    url_to_purge = f"https://{dominio}/api/productos?usuario={email}"
+    
+    # Configuración de Cloudflare (variables de entorno)
+    zone_id = os.getenv('CLOUDFLARE_ZONE_ID')
+    api_token = os.getenv('CLOUDFLARE_API_TOKEN')
+    
+    if not zone_id or not api_token:
+        return jsonify({'error': 'Cloudflare no configurado'}), 500
+
+    purge_api = f"https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache"
+    headers = {
+        'Authorization': f'Bearer {api_token}',
+        'Content-Type': 'application/json'
+    }
+    payload = {'files': [url_to_purge]}
+    
+    try:
+        resp = requests.post(purge_api, headers=headers, json=payload, timeout=10)
+        if resp.status_code == 200:
+            return jsonify({'status': 'ok', 'message': 'Cache purged'})
+        else:
+            return jsonify({'status': 'error', 'message': resp.text}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @app.route('/verificar-stock', methods=['POST'])
 def verificar_stock():
     try:
