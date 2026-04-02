@@ -311,7 +311,7 @@ function toggleInfoMapa() {
 async function crearRepositorio() {
   const email = document.getElementById("email").value.trim();
   const msgRepo = document.getElementById("msg-repo");
-  const btnRepo = document.getElementById("btn-repo"); // tu botón Paso 2
+  const btnRepo = document.getElementById("btn-repo");
   msgRepo.textContent = "";
 
   if (!email) {
@@ -321,9 +321,10 @@ async function crearRepositorio() {
   }
 
   try {
-    if (btnRepo) btnRepo.disabled = true; // ⏳ bloquear mientras se procesa
+    if (btnRepo) btnRepo.disabled = true;
 
-   fetch("https://mpagina.onrender.com/crear-repo",
+    // ✅ Corrección aquí
+    const res = await fetch("https://mpagina.onrender.com/crear-repo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email })
@@ -342,7 +343,7 @@ async function crearRepositorio() {
     msgRepo.textContent = "❌ Error al crear repositorio.";
     msgRepo.style.color = "#f00";
   } finally {
-    if (btnRepo) btnRepo.disabled = false; // 🔓 volver a habilitar
+    if (btnRepo) btnRepo.disabled = false;
   }
 }
 
