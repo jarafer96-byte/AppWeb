@@ -56,6 +56,92 @@ async function guardarProducto(producto, formDiv, skipReload = false) {
   }
 }
 
+function abrirConfigCorreoArgentino() {
+  const modal = document.getElementById('modalConfigCA');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function cerrarModalConfigCA() {
+  const modal = document.getElementById('modalConfigCA');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Manejar el envío del formulario
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('formConfigCA');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = window.cliente?.email;
+      if (!email) {
+        alert("No se detectó el email del vendedor. Inicia sesión nuevamente.");
+        return;
+      }
+      
+      // Recoger valores
+      const agreement = document.getElementById('ca_agreement').value.trim();
+      const api_key = document.getElementById('ca_api_key').value.trim();
+      const micorreo_user = document.getElementById('ca_micorreo_user').value.trim();
+      const micorreo_password = document.getElementById('ca_micorreo_password').value.trim();
+      const test_mode = document.getElementById('ca_test_mode').checked;
+      
+      const nombre = document.getElementById('ca_nombre').value.trim();
+      const calle = document.getElementById('ca_calle').value.trim();
+      const altura = document.getElementById('ca_altura').value.trim();
+      const localidad = document.getElementById('ca_localidad').value.trim();
+      const provincia_codigo = document.getElementById('ca_provincia_codigo').value.trim();
+      const codigo_postal = document.getElementById('ca_codigo_postal').value.trim();
+      
+      if (!agreement || !api_key || !micorreo_user || !micorreo_password ||
+          !nombre || !calle || !altura || !localidad || !provincia_codigo || !codigo_postal) {
+        alert("Por favor completa todos los campos.");
+        return;
+      }
+      
+      // Mostrar loading (opcional)
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerText;
+      submitBtn.innerText = "Guardando...";
+      submitBtn.disabled = true;
+      
+      try {
+        // 1. Guardar credenciales de CA
+        const credRes = await fetch("/ca/guardar-credenciales", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agreement, api_key, micorreo_user, micorreo_password, test_mode })
+        });
+        const credData = await credRes.json();
+        if (credData.status !== "ok") throw new Error(credData.error || "Error guardando credenciales");
+        
+        // 2. Guardar datos del remitente
+        const remRes = await fetch("/ca/guardar-remitente", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre, calle, altura, localidad, provincia_codigo, codigo_postal })
+        });
+        const remData = await remRes.json();
+        if (remData.status !== "ok") throw new Error(remData.error || "Error guardando remitente");
+        
+        alert("✅ Configuración de Correo Argentino guardada correctamente.");
+        cerrarModalConfigCA();
+        
+        // Opcional: limpiar formulario
+        form.reset();
+      } catch (err) {
+        alert("❌ Error: " + err.message);
+      } finally {
+        submitBtn.innerText = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+  }
+});
 
 async function eliminarProducto(id_base) {
   console.log("[ELIMINAR_PRODUCTO] 🔔 Click en botón eliminar → id_base:", id_base);
