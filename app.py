@@ -229,7 +229,89 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-
+@app.route('/ca/cotizar', methods=['POST'])
+def ca_cotizar():
+    """
+    Calcula el costo de envío usando la API de MiCorreo.
+    Espera recibir: { "email_vendedor": "...", "codigo_postal_destino": "...", "peso_kg": 1.5, "alto_cm": 10, "ancho_cm": 15, "largo_cm": 20 }
+    """
+    data = request.get_json(force=True)
+    email_vendedor = data.get('email_vendedor') or session.get('email')
+    if not email_vendedor:
+        return jsonify({'error': 'Falta email del vendedor'}), 400
+    
+    codigo_postal_destino = data.get('codigo_postal_destino')
+    peso_kg = data.get('peso_kg')
+    alto_cm = data.get('alto_cm')
+    ancho_cm = data.get('ancho_cm')
+    largo_cm = data.get('largo_cm')
+    
+    # Validaciones básicas
+    if not all([codigo_postal_destino, peso_kg, alto_cm, ancho_cm, largo_cm]):
+        return jsonify({'error': 'Faltan datos para la cotización'}), 400
+    
+    try:
+        # 1. Obtener datos del remitente (origen)
+        remitente_data = obtener_datos_remitente(email_vendedor, db)
+        codigo_postal_origen = remitente_data["address"]["zipCode"]
+        
+        # 2. Obtener el token de autenticación
+        token = obtener_token_micorreo(email_vendedor)
+        
+        # 3. Obtener la configuración del vendedor (modo test/prod)
+        creds_doc = db.collection("usuarios").document(email_vendedor)\
+                      .collection("config").document("correo_argentino").get()
+        test_mode = creds_doc.to_dict().get("test_mode", True) if creds_doc.exists else True
+        base_url = CA_MICORREO_TEST_URL if test_mode else CA_MICORREO_PROD_URL
+        
+        # 4. Calcular peso volumétrico
+        peso_volumetrico = (alto_cm * ancho_cm * largo_cm) / 5000
+        peso_efectivo = max(peso_kg, peso_volumetrico)
+        
+        # 5. Llamar al endpoint de cotización /rates
+        rates_url = f"{base_url}/rates"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "postalCodeOrigin": codigo_postal_origen,
+            "postalCodeDestination": codigo_postal_destino,
+            "deliveredType": "D",  # "D" para domicilio, "S" para sucursal
+            "dimensions": {
+                "weight": int(peso_efectivo * 1000),  # La API espera el peso en gramos
+                "height": alto_cm,
+                "width": ancho_cm,
+                "length": largo_cm
+            }
+        }
+        
+        print(f"[CA_COTIZAR] Solicitando cotización: {payload}")
+        response = requests.post(rates_url, json=payload, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            data_response = response.json()
+            # Asumiendo que la respuesta contiene un array 'rates' con el precio
+            rates = data_response.get('rates', [])
+            if rates:
+                # Tomamos la primera tarifa (Correo Argentino Clásico)
+                costo = rates[0].get('price')
+                return jsonify({
+                    'ok': True,
+                    'costo': costo,
+                    'detalle': data_response
+                })
+            else:
+                return jsonify({'ok': False, 'error': 'No se encontraron tarifas para los datos proporcionados'}), 400
+        else:
+            error_msg = f"Error en la API de MiCorreo: {response.status_code} - {response.text}"
+            print(f"[CA_COTIZAR] {error_msg}")
+            return jsonify({'ok': False, 'error': error_msg}), response.status_code
+            
+    except Exception as e:
+        print(f"[CA_COTIZAR] Error: {e}")
+        return jsonify({'ok': False, 'error': str(e)}), 500
+        
 def obtener_token_micorreo(email_vendedor):
     """
     Obtiene un token JWT válido para la API de MiCorreo.
