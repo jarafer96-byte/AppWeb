@@ -370,7 +370,7 @@ def ca_guardar_credenciales():
         'agreement': agreement,
         'api_key': api_key,
         'test_mode': test_mode,
-        'updated_at': SERVER_TIMESTAMP
+        'updated_at': firestore.SERVER_TIMESTAMP
     }, merge=True)
     return jsonify({'status': 'ok'})
         
