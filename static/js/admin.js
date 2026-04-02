@@ -455,6 +455,7 @@ function renderTablaProductos() {
           <div>
             <button id="btnNuevoProductoTabla" class="btn btn-sm btn-success">➕ Nuevo producto</button>
             <button id="guardarTodosTablaBtn" class="btn btn-sm btn-primary">💾 Guardar todos</button>
+            <button class="btn btn-sm btn-warning" onclick="limpiarCache()">🗑️ Publicar cambios</button>
           </div>
         </div>
         <div style="overflow-x: auto;">
