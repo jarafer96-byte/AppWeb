@@ -221,6 +221,20 @@ def allowed_file(filename: str) -> bool:
 
 
 
+
+@app.route('/ca/guardar-remitente', methods=['POST'])
+def ca_guardar_remitente():
+    data = request.get_json()
+    email = session.get('email')
+    if not email:
+        return jsonify({'error': 'No autenticado'}), 401
+    required = ['nombre', 'calle', 'altura', 'localidad', 'provincia_codigo', 'codigo_postal']
+    for field in required:
+        if not data.get(field):
+            return jsonify({'error': f'Falta {field}'}), 400
+    db.collection('usuarios').document(email).collection('config').document('remitente').set(data, merge=True)
+    return jsonify({'status': 'ok'})
+    
 def cotizar_envio(codigo_postal_origen, codigo_postal_destino, peso_kg, alto_cm, ancho_cm, largo_cm):
     # 1. Obtener token JWT (almacenar en caché para no pedirlo en cada cotización)
     token = obtener_token_micorreo()
