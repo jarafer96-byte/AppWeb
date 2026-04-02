@@ -36,6 +36,7 @@ from google.cloud.firestore import ArrayUnion
 from flask_talisman import Talisman
 from google.auth.transport.requests import Request
 import builtins
+from flask import current_app
 from correo_argentino import (
     validar_credenciales, crear_orden, cancelar_orden,
     obtener_rotulos, consultar_historial, obtener_sucursales
@@ -219,6 +220,33 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+
+def cotizar_envio(codigo_postal_origen, codigo_postal_destino, peso_kg, alto_cm, ancho_cm, largo_cm):
+    # 1. Obtener token JWT (almacenar en caché para no pedirlo en cada cotización)
+    token = obtener_token_micorreo()
+    
+    # 2. Calcular peso volumétrico (coeficiente de aforo 5000)
+    peso_volumetrico = (alto_cm * ancho_cm * largo_cm) / 5000
+    peso_efectivo = max(peso_kg, peso_volumetrico)
+    
+    # 3. Llamar a la API de cotización
+    url = "https://api.correoargentino.com.ar/micorreo/v1/quote"
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {
+        "origin_zipcode": codigo_postal_origen,
+        "destination_zipcode": codigo_postal_destino,
+        "weight": peso_efectivo,
+        "service_type": "paq.ar",  # o "clasico", "express", etc.
+        "delivery_type": "homeDelivery"
+    }
+    
+    response = requests.post(url, json=payload, headers=headers)
+    if response.status_code == 200:
+        return response.json().get("total_price")
+    else:
+        # Manejar error (log, fallback a tarifa manual, etc.)
+        return None
+        
 @app.route('/ca/validar', methods=['POST'])
 def ca_validar():
     """Valida las credenciales de Correo Argentino para el vendedor logueado."""
