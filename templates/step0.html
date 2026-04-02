@@ -928,7 +928,7 @@ async function enviarOptimizado(batchSize = 5) {
     batch.forEach(img => formData.append("imagenes", img.blob, img.name));
 
     try {
-      const resp = await fetch("https://m-page.prueba20.workers.dev/upload-image", { method: "POST", body: formData });
+      const resp = await fetch("https://mpagina.onrender.com/upload-image", { method: "POST", body: formData });
       if (!resp.ok) {
         failCount += batch.length;
         console.warn("⚠️ [FRONT] Fallo en respuesta HTTP para batch:", batch.map(b => b.name));
