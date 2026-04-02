@@ -2341,9 +2341,16 @@ def pagar():
         cliente_nombre = data.get('cliente_nombre')
         cliente_email = data.get('cliente_email')
         cliente_telefono = data.get('cliente_telefono', '')
+        cliente_direccion = data.get('cliente_direccion', {})  # 🔥 NUEVO: dirección del comprador
         orden_id = data.get('orden_id')
         total_recibido = data.get('total', 0)
         url_retorno = data.get('url_retorno')
+        costo_envio = data.get('costo_envio', 0)  # 🔥 NUEVO: costo de envío (opcional, ya incluido en total)
+        
+        # Validaciones mínimas de dirección (si se requiere envío a domicilio)
+        if not cliente_direccion.get('codigo_postal'):
+            # No es obligatorio si el deliveryType no es homeDelivery, pero lo dejamos como opcional
+            print("[PAGAR] ⚠️ El cliente no envió código postal, se guardará vacío")
         
         if not email_vendedor:
             return jsonify({'error': 'Falta email del vendedor'}), 400
@@ -2363,6 +2370,7 @@ def pagar():
         
         sdk = mercadopago.SDK(access_token.strip())
         
+        # Procesar items_mp o carrito (igual que antes)
         if items_mp and len(items_mp) > 0:
             items_para_mp = items_mp
             for item in items_para_mp:
@@ -2454,6 +2462,7 @@ def pagar():
             return jsonify({'error': 'No se pudieron procesar los productos para el pago'}), 400
         
         total_calculado = sum(item.get('unit_price', 0) * item.get('quantity', 1) for item in items_para_mp)
+        # Si se recibió un total que ya incluye envío, usarlo; sino usar el calculado
         total_final = max(total_calculado, float(total_recibido or 0))
         
         base_url = "https://mpagina.onrender.com"
@@ -2475,6 +2484,7 @@ def pagar():
                 "cliente_nombre": cliente_nombre,
                 "cliente_email": cliente_email,
                 "cliente_telefono": cliente_telefono,
+                "cliente_direccion": cliente_direccion,  # 🔥 NUEVO
                 "url_retorno": url_retorno,
                 "debug_items": len(items_para_mp)
             }
@@ -2486,16 +2496,19 @@ def pagar():
         if not preference.get("id"):
             return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
         
+        # 🔥 DOCUMENTO DE ORDEN CON DIRECCIÓN DEL CLIENTE
         orden_doc = {
             "email_vendedor": email_vendedor,
             "numero_vendedor": numero_vendedor,
             "cliente_nombre": cliente_nombre,
             "cliente_email": cliente_email,
             "cliente_telefono": cliente_telefono,
+            "cliente_direccion": cliente_direccion,  # 🔥 AGREGADO
             "carrito": carrito,
             "items_mp": items_para_mp,
             "items": items_para_mp,
             "total": total_final,
+            "costo_envio": costo_envio,  # 🔥 AGREGADO (opcional)
             "estado": "pendiente",
             "preference_id": preference.get("id"),
             "external_reference": external_ref,
@@ -2520,9 +2533,11 @@ def pagar():
             "cliente_nombre": cliente_nombre,
             "cliente_email": cliente_email,
             "cliente_telefono": cliente_telefono,
+            "cliente_direccion": cliente_direccion,  # 🔥 AGREGADO
             "carrito": carrito,
             "items_mp": items_para_mp,
             "total": total_final,
+            "costo_envio": costo_envio,
             "estado": "pendiente",
             "preference_id": preference.get("id"),
             "external_reference": external_ref,
@@ -2554,11 +2569,15 @@ def pagar():
         return jsonify(response_data)
 
     except Exception as e:
+        print(f"❌ Error en /pagar: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'error': 'Error interno al generar el pago',
             'message': str(e),
             'detalle': 'Revisa los logs del servidor'
         }), 500
+        
         
 @app.route('/crear-admin', methods=['POST'])
 def crear_admin():
