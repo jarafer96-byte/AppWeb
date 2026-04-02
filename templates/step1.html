@@ -323,7 +323,7 @@ async function crearRepositorio() {
   try {
     if (btnRepo) btnRepo.disabled = true; // ⏳ bloquear mientras se procesa
 
-   fetch("https://m-page.prueba20.workers.dev/crear-repo",
+   fetch("https://mpagina.onrender.com/crear-repo",
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email })
@@ -364,7 +364,7 @@ function crearAdmin(event) {
   // ⏳ bloquear botón mientras se procesa
   if (btnAdmin) btnAdmin.disabled = true;
 
-  fetch("https://m-page.prueba20.workers.dev/crear-admin", {
+  fetch("https://mpagina.onrender.com/crear-admin", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ usuario, clave })
