@@ -280,55 +280,6 @@ function abrirConfigMercadoPago() {
   window.location.href = configUrl;
 }
 
-function abrirConfigCorreoArgentino() {
-  const email = window.cliente?.email;
-  if (!email) {
-    alert("No se detectó el email del vendedor. Inicia sesión nuevamente.");
-    return;
-  }
-  // Muestra un modal o un formulario flotante con los campos
-  const datos = promptConfiguracionCA(); // tu lógica para capturar datos
-  if (!datos) return;
-
-  // 1. Guardar credenciales (agreement, api_key, micorreo_user, micorreo_password)
-  fetch("/ca/guardar-credenciales", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      agreement: datos.agreement,
-      api_key: datos.api_key,
-      micorreo_user: datos.micorreo_user,
-      micorreo_password: datos.micorreo_password,
-      test_mode: datos.test_mode
-    })
-  }).then(res => res.json()).then(res => {
-    if (res.status === "ok") {
-      // 2. Guardar datos del remitente
-      return fetch("/ca/guardar-remitente", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombre: datos.nombre,
-          calle: datos.calle,
-          altura: datos.altura,
-          localidad: datos.localidad,
-          provincia_codigo: datos.provincia_codigo,
-          codigo_postal: datos.codigo_postal
-        })
-      });
-    } else {
-      throw new Error(res.error || "Error guardando credenciales");
-    }
-  }).then(res => res.json()).then(res => {
-    if (res.status === "ok") {
-      alert("✅ Configuración de Correo Argentino guardada correctamente.");
-    } else {
-      alert("❌ Error guardando datos del remitente: " + res.error);
-    }
-  }).catch(err => {
-    alert("Error: " + err.message);
-  });
-}
 
 function salirAdmin() {
   console.log("🚪 Saliendo de modo admin, limpiando token...");
