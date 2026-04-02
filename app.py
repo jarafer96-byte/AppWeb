@@ -312,6 +312,25 @@ def ca_sucursales():
         return jsonify(result), 200
     else:
         return jsonify({'error': result}), status
+
+@app.route('/ca/guardar-credenciales', methods=['POST'])
+def ca_guardar_credenciales():
+    data = request.get_json()
+    email = session.get('email')
+    if not email:
+        return jsonify({'error': 'No autenticado'}), 401
+    agreement = data.get('agreement')
+    api_key = data.get('api_key')
+    test_mode = data.get('test_mode', True)
+    if not agreement or not api_key:
+        return jsonify({'error': 'Faltan campos'}), 400
+    db.collection('usuarios').document(email).collection('config').document('correo_argentino').set({
+        'agreement': agreement,
+        'api_key': api_key,
+        'test_mode': test_mode,
+        'updated_at': SERVER_TIMESTAMP
+    }, merge=True)
+    return jsonify({'status': 'ok'})
         
 
 def subir_a_firestore(producto, email, es_edicion=False):
