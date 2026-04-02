@@ -1019,7 +1019,7 @@ def subir_foto():
             canvas.save(buffer, format='WEBP', quality=80)
             buffer.seek(0)
 
-            key = f"usuarios/{email_safe}/{base_uuid}_{sufijo}.webp"
+            key = f"mpage-db/usuarios/{email_safe}/{base_uuid}_{sufijo}.webp"
             s3_client.put_object(
                 Bucket=os.getenv('R2_BUCKET_NAME'),
                 Key=key,
