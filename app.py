@@ -1299,15 +1299,18 @@ def upload_image():
         
 
 
-def subir_iconos_png(repo):
+def subir_iconos_webp(repo):
     carpeta = os.path.join("static", "img")
-    for nombre_archivo in os.listdir(carpeta):
-        if nombre_archivo.lower().endswith(".png"):
-            ruta_local = os.path.join(carpeta, nombre_archivo)
+    iconos_webp = ["facebook.webp", "instagram.webp", "whatsapp.webp", "tik-tok.webp", "mercadopago.webp", "map.webp"]
+    for nombre_archivo in iconos_webp:
+        ruta_local = os.path.join(carpeta, nombre_archivo)
+        if os.path.exists(ruta_local):
             ruta_remota = f"static/img/{nombre_archivo}"
             with open(ruta_local, "rb") as f:
                 contenido = f.read()
             subir_archivo(repo, contenido, ruta_remota)
+        else:
+            print(f"⚠️ No se encontró {ruta_local}, se omitirá")
 
 def generar_nombre_repo(email):
     base = email.replace("@", "_at_").replace(".", "_")
