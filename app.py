@@ -3095,6 +3095,13 @@ def step3():
             else:
                 subir_archivo(repo_name, b"User-agent: *\nDisallow:\n", 'robots.txt')
 
+            middleware_path = os.path.join(app.root_path, 'functions', '_middleware.js')
+            if os.path.exists(middleware_path):
+                with open(middleware_path, 'rb') as f:
+                    subir_archivo(repo_name, f.read(), 'functions/_middleware.js')
+                else:
+                subir_archivo(repo_name, b'export async function onRequest(context) { return await context.next(); }', 'functions/_middleware.js')
+
             core_js_path = os.path.join(app.root_path, 'static', 'js', 'core.js')
             if os.path.exists(core_js_path):
                 with open(core_js_path, 'rb') as f:
