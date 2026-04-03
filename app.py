@@ -27,6 +27,7 @@ from google.cloud import storage
 from google.oauth2 import service_account
 import secrets
 import smtplib
+import jwt
 from email.mime.text import MIMEText
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
@@ -2820,7 +2821,7 @@ def step3():
             if os.path.exists(middleware_path):
                 with open(middleware_path, 'rb') as f:
                     subir_archivo(repo_name, f.read(), 'functions/_middleware.js')
-                else:
+            else:
                 subir_archivo(repo_name, b'export async function onRequest(context) { return await context.next(); }', 'functions/_middleware.js')
 
             core_js_path = os.path.join(app.root_path, 'static', 'js', 'core.js')
