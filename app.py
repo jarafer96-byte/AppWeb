@@ -347,26 +347,7 @@ def ca_guardar_remitente():
     db.collection('usuarios').document(email).collection('config').document('remitente').set(data, merge=True)
     return jsonify({'status': 'ok'})
     
-def cotizar_envio(codigo_postal_origen, codigo_postal_destino, peso_kg, alto_cm, ancho_cm, largo_cm):
-    token = obtener_token_micorreo()
-    peso_volumetrico = (alto_cm * ancho_cm * largo_cm) / 5000
-    peso_efectivo = max(peso_kg, peso_volumetrico)
-    url = "https://api.correoargentino.com.ar/micorreo/v1/quote"
-    headers = {"Authorization": f"Bearer {token}"}
-    payload = {
-        "origin_zipcode": codigo_postal_origen,
-        "destination_zipcode": codigo_postal_destino,
-        "weight": peso_efectivo,
-        "service_type": "paq.ar",  
-        "delivery_type": "homeDelivery"
-    }
-    
-    response = requests.post(url, json=payload, headers=headers)
-    if response.status_code == 200:
-        return response.json().get("total_price")
-    else:
-        return None
-        
+
 @app.route('/ca/validar', methods=['POST'])
 def ca_validar():
     """Valida las credenciales de Correo Argentino para el vendedor logueado."""
