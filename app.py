@@ -3121,7 +3121,7 @@ def step3():
                 pass
     
             try:
-                subir_iconos_png(repo_name)
+                subir_iconos_webp(repo_name)
             except Exception:
                 pass
 
