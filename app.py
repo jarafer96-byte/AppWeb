@@ -41,7 +41,6 @@ from correo_argentino import (
     obtener_rotulos, consultar_historial, obtener_sucursales
 )
 
-# builtins.print = lambda *args, **kwargs: None
 ##################
 # 🔐 Inicialización segura de Firebase con logs
 db = None
