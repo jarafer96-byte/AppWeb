@@ -2906,10 +2906,9 @@ def get_mp_public_key(email: str):
                 data = snap.to_dict()
                 pk = data.get("public_key")
                 if pk and isinstance(pk, str) and pk.strip():
-                    print(f"[MP-HELPER] Firestore public_key OK para {email}")
                     return pk.strip()
                 else:
-                    print(f"[MP-HELPER] Firestore public_key vacío para {email}, intentando recuperar en vivo...")
+                    pass
     except Exception as e:
         pass
 
@@ -2917,7 +2916,7 @@ def get_mp_public_key(email: str):
     try:
         access_token = get_mp_token(email)
     except Exception as e:
-        print(f"[MP-HELPER] Error obteniendo access_token: {e}")
+        pass
 
     public_key = None
     if access_token and isinstance(access_token, str):
