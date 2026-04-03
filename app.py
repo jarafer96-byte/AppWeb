@@ -2098,6 +2098,7 @@ def pagar():
         costo_envio = data.get('costo_envio', 0)  
 
         if not cliente_direccion.get('codigo_postal'):
+            pass
         
         if not email_vendedor:
             return jsonify({'error': 'Falta email del vendedor'}), 400
