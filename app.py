@@ -941,7 +941,7 @@ def get_products_etag(email):
                     return str(ts.timestamp())
                 return str(ts)
     except Exception as e:
-    return None
+        return None
 
 
 @app.route("/api/productos")
