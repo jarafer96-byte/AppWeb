@@ -3088,7 +3088,13 @@ def step3():
             except Exception:
                 pass
 
-            # Subir core.js (nuevo)
+            robots_path = os.path.join(app.root_path, 'templates', 'robots.txt')
+            if os.path.exists(robots_path):
+                with open(robots_path, 'rb') as f:
+                    subir_archivo(repo_name, f.read(), 'robots.txt')
+            else:
+                subir_archivo(repo_name, b"User-agent: *\nDisallow:\n", 'robots.txt')
+
             core_js_path = os.path.join(app.root_path, 'static', 'js', 'core.js')
             if os.path.exists(core_js_path):
                 with open(core_js_path, 'rb') as f:
@@ -3096,7 +3102,6 @@ def step3():
             else:
                 print("⚠️ No se encontró core.js")
 
-            # Subir admin.js (nuevo)
             admin_js_path = os.path.join(app.root_path, 'static', 'js', 'admin.js')
             if os.path.exists(admin_js_path):
                 with open(admin_js_path, 'rb') as f:
@@ -3104,7 +3109,6 @@ def step3():
             else:
                 print("⚠️ No se encontró admin.js")
 
-            # Subir mercadopago.js (nuevo)
             mercadopago_js_path = os.path.join(app.root_path, 'static', 'js', 'mercadopago.js')
             if os.path.exists(mercadopago_js_path):
                 with open(mercadopago_js_path, 'rb') as f:
