@@ -47,44 +47,31 @@ from correo_argentino import (
 db = None
 try:
     cred_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
-    print(f"[Firebase] Variable FIREBASE_CREDENTIALS_JSON encontrada: {bool(cred_json)}")
 
     if cred_json:
         cred_dict = json.loads(cred_json)
-        print(f"[Firebase] Claves disponibles en cred_dict: {list(cred_dict.keys())}")
 
         cred = credentials.Certificate(cred_dict)
         firebase_admin.initialize_app(cred)
         db = firestore.client()
-        print(f"✅ Firebase inicializado correctamente con app: {firebase_admin.get_app().name}")
-    else:
-        print("⚠️ FIREBASE_CREDENTIALS_JSON no configurado en entorno")
 
 except Exception as e:
-    print("❌ Error al inicializar Firebase:", e)
     import traceback
-    print(traceback.format_exc())
     db = None
 ###################
 # Verificación final del cliente Firestore
 if db:
     try:
-        test_doc = db.collection("_debug").document("conexion").get()
-        print(f"[Firebase] Conexión Firestore OK, doc.exists={test_doc.exists}")
-    except Exception as e:
-        print("💥 Error verificando conexión Firestore:", e)
-else:
-    print("⚠️ Firestore client no disponible (db=None)")
-
+        db.collection("_debug").document("conexion").get()
+    except Exception:
+        pass
 ####################
 # 🔑 Inicialización segura de Mercado Pago
 access_token = os.getenv("MERCADO_PAGO_TOKEN")
 if access_token and isinstance(access_token, str):
     sdk = mercadopago.SDK(access_token.strip())
-    print("✅ SDK de Mercado Pago inicializado globalmente")
 else:
     sdk = None
-    print("⚠️ MERCADO_PAGO_TOKEN no configurado, SDK no inicializado")
 ####################
 # Configuración de GitHub, Flask y sesiones
 token = os.getenv("GITHUB_TOKEN")
@@ -224,17 +211,12 @@ ca_token_cache = {
     "expires_at": None
 }
 
-# Validación de archivos permitidos
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route('/ca/cotizar', methods=['POST'])
 def ca_cotizar():
-    """
-    Calcula el costo de envío usando la API de MiCorreo.
-    Espera recibir: { "email_vendedor": "...", "codigo_postal_destino": "...", "peso_kg": 1.5, "alto_cm": 10, "ancho_cm": 15, "largo_cm": 20 }
-    """
     data = request.get_json(force=True)
     email_vendedor = data.get('email_vendedor') or session.get('email')
     if not email_vendedor:
@@ -245,30 +227,20 @@ def ca_cotizar():
     alto_cm = data.get('alto_cm')
     ancho_cm = data.get('ancho_cm')
     largo_cm = data.get('largo_cm')
-    
-    # Validaciones básicas
+
     if not all([codigo_postal_destino, peso_kg, alto_cm, ancho_cm, largo_cm]):
         return jsonify({'error': 'Faltan datos para la cotización'}), 400
     
     try:
-        # 1. Obtener datos del remitente (origen)
         remitente_data = obtener_datos_remitente(email_vendedor, db)
         codigo_postal_origen = remitente_data["address"]["zipCode"]
-        
-        # 2. Obtener el token de autenticación
         token = obtener_token_micorreo(email_vendedor)
-        
-        # 3. Obtener la configuración del vendedor (modo test/prod)
         creds_doc = db.collection("usuarios").document(email_vendedor)\
                       .collection("config").document("correo_argentino").get()
         test_mode = creds_doc.to_dict().get("test_mode", True) if creds_doc.exists else True
         base_url = CA_MICORREO_TEST_URL if test_mode else CA_MICORREO_PROD_URL
-        
-        # 4. Calcular peso volumétrico
         peso_volumetrico = (alto_cm * ancho_cm * largo_cm) / 5000
         peso_efectivo = max(peso_kg, peso_volumetrico)
-        
-        # 5. Llamar al endpoint de cotización /rates
         rates_url = f"{base_url}/rates"
         headers = {
             "Authorization": f"Bearer {token}",
@@ -277,24 +249,20 @@ def ca_cotizar():
         payload = {
             "postalCodeOrigin": codigo_postal_origen,
             "postalCodeDestination": codigo_postal_destino,
-            "deliveredType": "D",  # "D" para domicilio, "S" para sucursal
+            "deliveredType": "D",  
             "dimensions": {
-                "weight": int(peso_efectivo * 1000),  # La API espera el peso en gramos
+                "weight": int(peso_efectivo * 1000),  
                 "height": alto_cm,
                 "width": ancho_cm,
                 "length": largo_cm
             }
         }
-        
-        print(f"[CA_COTIZAR] Solicitando cotización: {payload}")
         response = requests.post(rates_url, json=payload, headers=headers, timeout=30)
         
         if response.status_code == 200:
             data_response = response.json()
-            # Asumiendo que la respuesta contiene un array 'rates' con el precio
             rates = data_response.get('rates', [])
             if rates:
-                # Tomamos la primera tarifa (Correo Argentino Clásico)
                 costo = rates[0].get('price')
                 return jsonify({
                     'ok': True,
@@ -305,19 +273,12 @@ def ca_cotizar():
                 return jsonify({'ok': False, 'error': 'No se encontraron tarifas para los datos proporcionados'}), 400
         else:
             error_msg = f"Error en la API de MiCorreo: {response.status_code} - {response.text}"
-            print(f"[CA_COTIZAR] {error_msg}")
             return jsonify({'ok': False, 'error': error_msg}), response.status_code
             
     except Exception as e:
-        print(f"[CA_COTIZAR] Error: {e}")
         return jsonify({'ok': False, 'error': str(e)}), 500
         
 def obtener_token_micorreo(email_vendedor):
-    """
-    Obtiene un token JWT válido para la API de MiCorreo.
-    Busca las credenciales en Firestore, las valida y maneja la caché del token.
-    """
-    # 1. Obtener las credenciales del vendedor desde Firestore
     creds_doc = db.collection("usuarios").document(email_vendedor)\
                   .collection("config").document("correo_argentino").get()
     
@@ -332,24 +293,15 @@ def obtener_token_micorreo(email_vendedor):
     if not micorreo_user or not micorreo_password:
         raise ValueError("Faltan el usuario o contraseña de MiCorreo en la configuración del vendedor.")
 
-    # 2. Determinar la URL base según el modo (test o producción)
     base_url = CA_MICORREO_TEST_URL if test_mode else CA_MICORREO_PROD_URL
     token_url = f"{base_url}/token"
-
-    # 3. Verificar si tenemos un token válido en caché para este vendedor
-    #    (Usamos el email como parte de la clave de caché para evitar mezclar tokens)
     cache_key = f"{email_vendedor}_token"
     cached_token = ca_token_cache.get(cache_key)
     
     if cached_token and cached_token.get("expires_at") > datetime.now():
-        print(f"[CA_TOKEN] Usando token en caché para {email_vendedor}")
         return cached_token["token"]
-
-    # 4. Si no hay token o expiró, solicitar uno nuevo
-    print(f"[CA_TOKEN] Solicitando nuevo token para {email_vendedor}")
     
     try:
-        # Realizar la petición POST con Basic Auth
         response = requests.post(
             token_url,
             auth=(micorreo_user, micorreo_password),
@@ -363,30 +315,23 @@ def obtener_token_micorreo(email_vendedor):
             
             if not new_token:
                 raise Exception("La respuesta de la API no contenía el campo 'token'")
-            
-            # Parsear la fecha de expiración (formato esperado: "YYYY-MM-DD HH:MM:SS")
+
             try:
                 expires_at = datetime.strptime(expires_str, "%Y-%m-%d %H:%M:%S")
             except:
-                # Si no se puede parsear, asumir 30 minutos de validez
                 expires_at = datetime.now() + timedelta(minutes=30)
-            
-            # Guardar en caché
+
             ca_token_cache[cache_key] = {
                 "token": new_token,
                 "expires_at": expires_at
             }
-            
-            print(f"[CA_TOKEN] Token obtenido exitosamente. Expira: {expires_at}")
+
             return new_token
         else:
-            # Manejar errores de autenticación
             error_msg = f"Error al obtener token: {response.status_code} - {response.text}"
-            print(f"[CA_TOKEN] {error_msg}")
             raise Exception(error_msg)
             
     except requests.exceptions.RequestException as e:
-        print(f"[CA_TOKEN] Error de red: {e}")
         raise Exception(f"No se pudo conectar con la API de MiCorreo: {e}")
     
 @app.route('/ca/guardar-remitente', methods=['POST'])
@@ -403,21 +348,16 @@ def ca_guardar_remitente():
     return jsonify({'status': 'ok'})
     
 def cotizar_envio(codigo_postal_origen, codigo_postal_destino, peso_kg, alto_cm, ancho_cm, largo_cm):
-    # 1. Obtener token JWT (almacenar en caché para no pedirlo en cada cotización)
     token = obtener_token_micorreo()
-    
-    # 2. Calcular peso volumétrico (coeficiente de aforo 5000)
     peso_volumetrico = (alto_cm * ancho_cm * largo_cm) / 5000
     peso_efectivo = max(peso_kg, peso_volumetrico)
-    
-    # 3. Llamar a la API de cotización
     url = "https://api.correoargentino.com.ar/micorreo/v1/quote"
     headers = {"Authorization": f"Bearer {token}"}
     payload = {
         "origin_zipcode": codigo_postal_origen,
         "destination_zipcode": codigo_postal_destino,
         "weight": peso_efectivo,
-        "service_type": "paq.ar",  # o "clasico", "express", etc.
+        "service_type": "paq.ar",  
         "delivery_type": "homeDelivery"
     }
     
@@ -425,7 +365,6 @@ def cotizar_envio(codigo_postal_origen, codigo_postal_destino, peso_kg, alto_cm,
     if response.status_code == 200:
         return response.json().get("total_price")
     else:
-        # Manejar error (log, fallback a tarifa manual, etc.)
         return None
         
 @app.route('/ca/validar', methods=['POST'])
@@ -444,13 +383,11 @@ def ca_validar():
 
 @app.route('/ca/crear-orden', methods=['POST'])
 def ca_crear_orden():
-    """Crea una orden de envío en Correo Argentino."""
     data = request.get_json(force=True)
     email = data.get('email') or session.get('email')
     if not email:
         return jsonify({'error': 'Falta email'}), 400
 
-    # El cuerpo debe contener la estructura completa de la orden (ver PDF)
     orden_data = data.get('orden_data')
     if not orden_data:
         return jsonify({'error': 'Falta orden_data'}), 400
@@ -476,8 +413,8 @@ def ca_cancelar_orden():
 def ca_rotulos():
     data = request.get_json(force=True)
     email = data.get('email') or session.get('email')
-    pedidos = data.get('pedidos')  # lista de {sellerId, trackingNumber}
-    label_format = data.get('labelFormat')  # "10x15" o "label"
+    pedidos = data.get('pedidos') 
+    label_format = data.get('labelFormat') 
     if not email or not pedidos:
         return jsonify({'error': 'Faltan datos'}), 400
 
@@ -487,7 +424,7 @@ def ca_rotulos():
     else:
         return jsonify({'error': result}), status
 
-@app.route('/ca/historial', methods=['POST'])  # Usamos POST por la inconsistencia
+@app.route('/ca/historial', methods=['POST']) 
 def ca_historial():
     data = request.get_json(force=True)
     email = data.get('email') or session.get('email')
@@ -559,14 +496,12 @@ def subir_a_firestore(producto, email, es_edicion=False):
         if not producto.get("nombre") or not producto.get("grupo") or not producto.get("precio"):
             return {"status": "error", "error": "Faltan campos obligatorios: nombre/grupo/precio"}
 
-        # Si es edición y ya tiene id_base, usar ese
         id_base_existente = producto.get("id_base")
         
         if es_edicion and id_base_existente:
             custom_id = id_base_existente
             fecha = "EDITADO"
         else:
-            # Solo generar nuevo ID si es creación
             grupo_original = producto["grupo"].strip()
             subgrupo_original = (producto.get("subgrupo", "") or "").strip() or f"General_{grupo_original}"
             nombre_original = producto["nombre"].strip()
@@ -577,7 +512,6 @@ def subir_a_firestore(producto, email, es_edicion=False):
             sufijo = uuid.uuid4().hex[:6]
             custom_id = f"{nombre_id}_{fecha}_{subgrupo_id}_{sufijo}"
 
-        # Procesar precio anterior
         precio_anterior = 0
         if "precio_anterior" in producto:
             try:
@@ -598,7 +532,6 @@ def subir_a_firestore(producto, email, es_edicion=False):
             except Exception:
                 precio_anterior = 0
 
-        # Validación lógica de precio anterior
         precio_actual = 0
         try:
             precio_raw = producto["precio"]
@@ -615,11 +548,9 @@ def subir_a_firestore(producto, email, es_edicion=False):
         except Exception as e:
             return {"status": "error", "error": f"Formato de precio inválido: '{price_str}' -> '{price_clean}'", "detail": str(e)}
 
-        # Validar que el precio anterior sea mayor que el actual (oferta válida)
         if precio_anterior > 0 and precio_anterior <= precio_actual:
             precio_anterior = 0
 
-        # Obtener fotos_adicionales
         fotos_adicionales = producto.get("fotos_adicionales", [])
         if not isinstance(fotos_adicionales, list):
             fotos_adicionales = []
@@ -631,7 +562,6 @@ def subir_a_firestore(producto, email, es_edicion=False):
         except Exception:
             orden = 999
 
-        # Datos de entrada desde el frontend
         talles_input = producto.get("talles") or []
         if isinstance(talles_input, str):
             talles_input = [t.strip() for t in talles_input.split(',') if t.strip()]
@@ -642,19 +572,16 @@ def subir_a_firestore(producto, email, es_edicion=False):
         
         variantes_raw = producto.get("variantes") or {}
         stock_por_talle_input = producto.get("stock_por_talle") or {}
-        
-        # Banderas de modo (enviadas por el frontend)
+
         tiene_variantes_input = producto.get("tiene_variantes", False)
         tiene_stock_por_talle_input = producto.get("tiene_stock_por_talle", False)
 
-        # Construir la URL de imagen si no viene
         imagen_url = producto.get("imagen_url")
         if not imagen_url:
             imagen_nombre = f"{custom_id}.webp"
             email_encoded = email.replace("@", "%40")
             imagen_url = f"https://storage.googleapis.com/mpagina/{email_encoded}/{imagen_nombre}"
 
-        # Documento base
         doc = {
             "nombre": producto.get("nombre", "").strip(),
             "id_base": custom_id,
@@ -670,9 +597,7 @@ def subir_a_firestore(producto, email, es_edicion=False):
             "timestamp": firestore.SERVER_TIMESTAMP
         }
 
-        # --- Asignar según el modo (variantes, stock_por_talle o stock simple) ---
         if tiene_variantes_input:
-            # Modo variantes (talles + colores)
             variantes = {}
             for key, var in variantes_raw.items():
                 variantes[key] = {
@@ -681,7 +606,6 @@ def subir_a_firestore(producto, email, es_edicion=False):
                     "stock": int(var.get("stock", 0)),
                     "imagen_url": var.get("imagen_url", "")
                 }
-            # Si no hay variantes pero sí talles y colores, generarlas (fallback)
             if not variantes and talles_input and colores_input:
                 for talle in talles_input:
                     for color in colores_input:
@@ -692,25 +616,20 @@ def subir_a_firestore(producto, email, es_edicion=False):
             doc["variantes"] = variantes
             doc["talles"] = talles_input
             doc["colores"] = colores_input
-            # Limpiar campos de stock_por_talle
             doc["tiene_stock_por_talle"] = False
             doc["stock_por_talle"] = {}
-            # Stock total (suma de todas las variantes)
             doc["stock"] = sum(v.get('stock', 0) for v in variantes.values())
         
         elif tiene_stock_por_talle_input:
-            # Modo stock_por_talle (solo talles, sin colores)
             doc["tiene_stock_por_talle"] = True
             doc["stock_por_talle"] = stock_por_talle_input
             doc["talles"] = talles_input
-            # Limpiar campos de variantes
             doc["tiene_variantes"] = False
             doc["variantes"] = {}
             doc["colores"] = []
             doc["stock"] = sum(stock_por_talle_input.values())
         
         else:
-            # Modo stock simple (sin talles ni colores)
             doc["stock"] = int(producto.get("stock", 0))
             doc["tiene_variantes"] = False
             doc["variantes"] = {}
@@ -719,7 +638,6 @@ def subir_a_firestore(producto, email, es_edicion=False):
             doc["talles"] = []
             doc["colores"] = []
 
-        # Guardar en Firestore
         ruta = f"usuarios/{email}/productos/{custom_id}"
         if es_edicion:
             db.collection("usuarios").document(email).collection("productos").document(custom_id).set(doc, merge=True)
@@ -764,7 +682,7 @@ def verificar_stock():
             return jsonify({'ok': False, 'error': 'Carrito vacío'}), 400
 
         faltantes = []
-        stock_actualizado = {}  # Para devolver el stock actual si queremos actualizar la UI
+        stock_actualizado = {} 
 
         for item in carrito:
             id_base = item.get('id_base')
@@ -774,7 +692,6 @@ def verificar_stock():
             if not id_base:
                 continue
 
-            # Buscar el producto en Firestore
             prod_ref = db.collection('usuarios').document(email_vendedor)\
                          .collection('productos').where('id_base', '==', id_base).limit(1).get()
             
@@ -787,12 +704,10 @@ def verificar_stock():
                 continue
 
             prod_data = prod_ref[0].to_dict()
-            
-            # Obtener stock disponible según el talle
+
             stock_disponible = 0
             if prod_data.get('tiene_variantes'):
                 variantes = prod_data.get('variantes', {})
-                # Buscar por talle+color (simplificado: solo talle)
                 for key, var in variantes.items():
                     if var.get('talle') == talle:
                         stock_disponible = var.get('stock', 0)
@@ -820,7 +735,7 @@ def verificar_stock():
                 'error': 'Stock insuficiente',
                 'faltantes': faltantes,
                 'stock_actualizado': stock_actualizado
-            }), 200  # Usamos 200 para que el frontend pueda leer el mensaje
+            }), 200 
 
         return jsonify({
             'ok': True,
@@ -847,7 +762,6 @@ def authorize():
 
 @app.route("/oauth2callback")
 def oauth2callback():
-    print("\n[OAUTH] 📥 Callback recibido con URL:", request.url)
     try:
         flow = build_flow()
         code_verifier = session.get('code_verifier')
@@ -858,48 +772,34 @@ def oauth2callback():
             code_verifier=code_verifier
         )
         creds = flow.credentials
-        print("[OAUTH] ✅ Token obtenido correctamente")
-        # Guardar token en Firestore (igual que antes)
         token_data = creds.to_json()
         db.collection("_tokens").document("gmail").set({
             "token": token_data,
             "actualizado": firestore.SERVER_TIMESTAMP
         })
-        print("[OAUTH] ✅ Token guardado en Firestore")
         return "✅ Autorización completada y token guardado en Firestore"
     except Exception as e:
         import traceback
         tb = traceback.format_exc()
-        print("[OAUTH] ❌ Error:", e)
-        print(tb)
         return f"❌ Error: {e}<br><pre>{tb}</pre>", 500
 
 def get_gmail_service():
-    print("\n[GMAIL] 🔎 Intentando recuperar token desde Firestore...")
     doc = db.collection("_tokens").document("gmail").get()
     if not doc.exists:
-        print("[GMAIL] ❌ No se encontró token en Firestore")
         raise RuntimeError("No hay token guardado en Firestore")
 
     creds_json = doc.to_dict()["token"]
     creds = Credentials.from_authorized_user_info(json.loads(creds_json), SCOPES)
 
-    # Si el token expiró y tenemos refresh_token, lo refrescamos
     if creds.expired and creds.refresh_token:
-        print("[GMAIL] 🔄 Token expirado, refrescando...")
         try:
             creds.refresh(Request())
-            # Guardar el nuevo token en Firestore
             db.collection("_tokens").document("gmail").set({
                 "token": creds.to_json(),
                 "actualizado": firestore.SERVER_TIMESTAMP
             })
-            print("[GMAIL] ✅ Token refrescado y guardado")
         except Exception as e:
-            print(f"[GMAIL] ❌ Error al refrescar token: {e}")
             raise
-
-    print("[GMAIL] ✅ Cliente Gmail inicializado correctamente")
     return build("gmail", "v1", credentials=creds)
     
 def build_flow():
@@ -914,7 +814,6 @@ def build_flow():
     
 @app.route("/img/<short_id>")
 def redirect_image(short_id):
-    # Buscar la URL larga en Firestore
     doc = db.collection("short_links").document(short_id).get()
     if doc.exists:
         url_larga = doc.to_dict().get("url")
@@ -923,13 +822,8 @@ def redirect_image(short_id):
         return "Link no encontrado", 404
         
 def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
-    """
-    Subida de archivo a GitHub con logs detallados.
-    Retorna dict con estado y URLs.
-    """
     github_token = os.getenv("GITHUB_TOKEN")
     if not github_token:
-        print("[GITHUB] ❌ Token de GitHub no disponible")
         return {"ok": False, "error": "Token de GitHub no disponible"}
 
     url = f"https://api.github.com/repos/{GITHUB_USERNAME}/{repo}/contents/{ruta_remota}"
@@ -937,23 +831,12 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
         "Authorization": f"token {github_token}",
         "Accept": "application/vnd.github+json"
     }
-
-    print(f"[GITHUB] 🚀 Iniciando subida de archivo")
-    print(f"[GITHUB] Repo={repo}, Ruta remota={ruta_remota}, Branch={branch}")
-    print(f"[GITHUB] URL destino: {url}")
-
-    # Obtener SHA si el archivo ya existe
     sha = None
     try:
         r_get = requests.get(url, headers=headers, timeout=10)
-        print(f"[GITHUB] GET status={r_get.status_code}")
         if r_get.status_code == 200:
             sha = r_get.json().get("sha")
-            print(f"[GITHUB] Archivo existente, SHA={sha}")
-        else:
-            print(f"[GITHUB] Archivo no existe aún en repo (status={r_get.status_code})")
     except Exception as e:
-        print(f"[GITHUB] ⚠️ Error obteniendo SHA: {e}")
         sha = None
 
     data = {
@@ -963,15 +846,12 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
     }
     if sha:
         data["sha"] = sha
-        print(f"[GITHUB] Incluyendo SHA en payload para actualizar archivo")
 
     try:
         r = requests.put(url, headers=headers, json=data, timeout=10)
-        print(f"[GITHUB] PUT status={r.status_code}")
         if r.status_code in (200, 201):
             raw_url = f"https://raw.githubusercontent.com/{GITHUB_USERNAME}/{repo}/{branch}/{ruta_remota}"
             html_url = r.json().get("content", {}).get("html_url")
-            print(f"[GITHUB] ✅ Subida exitosa: html_url={html_url}, raw_url={raw_url}")
             return {
                 "ok": True,
                 "url": html_url,
@@ -979,12 +859,9 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
                 "status": r.status_code
             }
         else:
-            print(f"[GITHUB] ❌ Error en subida: status={r.status_code}, error={r.text}")
             return {"ok": False, "status": r.status_code, "error": r.text}
     except Exception as e:
-        print(f"[GITHUB] 💥 Excepción en PUT: {e}")
         import traceback
-        print(traceback.format_exc())
         return {"ok": False, "error": str(e)}
 
 
@@ -1004,7 +881,6 @@ def subir_foto():
         if len(contenido_bytes) > MAX_IMAGE_SIZE_BYTES:
             return jsonify({"ok": False, "error": "Imagen excede 3 MB"}), 413
 
-        # Abrir imagen
         imagen_original = Image.open(BytesIO(contenido_bytes)).convert('RGB')
         base_uuid = uuid.uuid4().hex
         email_safe = email.replace('@', '_at_').replace('.', '_dot_')
@@ -1027,7 +903,6 @@ def subir_foto():
                 ContentType='image/webp',
                 CacheControl='public, max-age=31536000'
             )
-            # Construir URL pública
             public_url = os.getenv('R2_PUBLIC_URL')
             return f"{public_url}/{key}"
 
@@ -1049,29 +924,24 @@ def subir_foto():
 
 
 def update_products_last_modified(email):
-    """Actualiza la fecha de última modificación de productos para un usuario."""
     try:
         doc_ref = db.collection('usuarios').document(email).collection('metadata').document('productos')
         doc_ref.set({'last_updated': firestore.SERVER_TIMESTAMP}, merge=True)
     except Exception as e:
-        print(f"Error updating last_modified for {email}: {e}")
-
+        pass
 
 
 def get_products_etag(email):
-    """Devuelve un string que representa la última modificación de productos."""
     try:
         doc = db.collection('usuarios').document(email).collection('metadata').document('productos').get()
         if doc.exists:
             data = doc.to_dict()
             ts = data.get('last_updated')
             if ts:
-                # Si es datetime (Firestore timestamp), convertimos a segundos desde epoch
                 if hasattr(ts, 'timestamp'):
                     return str(ts.timestamp())
                 return str(ts)
     except Exception as e:
-        print(f"Error getting etag for {email}: {e}")
     return None
 
 
@@ -1081,10 +951,8 @@ def api_productos():
     if not email:
         return jsonify({"error": "No se especificó usuario"}), 403
 
-    # Obtener ETag basado en última modificación
     etag = get_products_etag(email)
 
-    # Si el cliente envió If-None-Match y coincide, responder 304
     if etag:
         if_none_match = request.headers.get('If-None-Match')
         if if_none_match and if_none_match == f'"{etag}"':
@@ -1097,16 +965,12 @@ def api_productos():
         productos = []
         for doc in docs:
             data = doc.to_dict() or {}
-            
-            # ----- TRANSFORMACIÓN A ESTRUCTURA UNIFICADA (variantes) -----
-            # Si el producto ya tiene variantes, lo dejamos como está
+
             if data.get("tiene_variantes", False):
                 pass
-            # Si tiene stock_por_talle (antiguo modelo) lo convertimos a variantes
             elif data.get("tiene_stock_por_talle", False):
                 stock_pt = data.get("stock_por_talle", {})
                 if "unico" in stock_pt:
-                    # Producto sin talles (stock simple)
                     variantes = {"unico_unico": {
                         "talle": "unico",
                         "color": "unico",
@@ -1116,7 +980,6 @@ def api_productos():
                     talles = ["unico"]
                     colores = ["unico"]
                 else:
-                    # Producto con talles pero sin colores → usamos color "General"
                     variantes = {}
                     talles = list(stock_pt.keys())
                     colores = ["General"]
@@ -1133,7 +996,6 @@ def api_productos():
                 data["talles"] = talles
                 data["colores"] = colores
             else:
-                # Producto con stock simple (solo campo "stock")
                 stock_simple = data.get("stock", 0)
                 variantes = {"unico_unico": {
                     "talle": "unico",
@@ -1145,7 +1007,6 @@ def api_productos():
                 data["variantes"] = variantes
                 data["talles"] = ["unico"]
                 data["colores"] = ["unico"]
-            # ----- Fin transformación -----
 
             talles_originales = data.get("talles", [])
             if isinstance(talles_originales, str):
@@ -1156,8 +1017,7 @@ def api_productos():
             fotos_adicionales = data.get("fotos_adicionales", [])
             if not isinstance(fotos_adicionales, list):
                 fotos_adicionales = []
-            
-            # Construir stock_por_talle para las tarjetas a partir de las variantes
+
             variantes = data.get("variantes", {})
             stock_por_talle_filtrado = {}
             stock_disponible = 0
@@ -1169,8 +1029,7 @@ def api_productos():
                     stock_disponible += stock
                 else:
                     stock_disponible += var.get("stock", 0)
-            
-            # Si el producto no tiene talles (por ejemplo, "unico"), lo dejamos con la clave "unico"
+
             if len(stock_por_talle_filtrado) == 1 and "unico" in stock_por_talle_filtrado:
                 pass
             elif len(stock_por_talle_filtrado) == 0:
@@ -1198,7 +1057,7 @@ def api_productos():
                 "colores": data.get("colores", []),
                 "variantes": variantes,
                 "tiene_variantes": data.get("tiene_variantes", True),
-                "tiene_stock_por_talle": False,  # ya no usamos este campo en el frontend
+                "tiene_stock_por_talle": False, 
                 "sistema_stock": "variantes_unificado",
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
             })
@@ -1228,9 +1087,9 @@ def upload_image():
         if 'imagenes_step0' not in session:
             session['imagenes_step0'] = []
 
-        urls_grandes = []      # 500x500
-        urls_medianas = []     # 180x180
-        urls_miniaturas = []   # 58x58
+        urls_grandes = []  
+        urls_medianas = []     
+        urls_miniaturas = []   
         errores = []
 
         for img in imagenes:
@@ -1251,7 +1110,7 @@ def upload_image():
                     canvas.save(buffer, format='WEBP', quality=80)
                     buffer.seek(0)
                     
-                    email_safe = email.replace('@', '_at_').replace('.', '_dot_')  # ← agregar esta línea
+                    email_safe = email.replace('@', '_at_').replace('.', '_dot_')  
                     key = f"usuarios/{email_safe}/{base_uuid}_{sufijo}.webp"
                     s3_client.put_object(
                         Bucket=os.getenv('R2_BUCKET_NAME'),
@@ -1274,11 +1133,8 @@ def upload_image():
                 session['imagenes_step0'].append(url_500)
                 session.modified = True
 
-                print(f"✅ [UPLOAD] Subidas: {url_500}, {url_180}, {url_58}")
-
             except Exception as e:
                 errores.append(f"Error con {img.filename}: {str(e)}")
-                print(f"❌ [UPLOAD] {errores[-1]}")
                 continue
 
         return jsonify({
@@ -1292,7 +1148,6 @@ def upload_image():
         })
 
     except Exception as e:
-        print(f"💥 Error general en /upload-image: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -1309,8 +1164,6 @@ def subir_iconos_webp(repo):
             with open(ruta_local, "rb") as f:
                 contenido = f.read()
             subir_archivo(repo, contenido, ruta_remota)
-        else:
-            print(f"⚠️ No se encontró {ruta_local}, se omitirá")
 
 def generar_nombre_repo(email):
     base = email.replace("@", "_at_").replace(".", "_")
@@ -1356,15 +1209,10 @@ def limpiar_imagenes_usuario():
 
 @app.route('/step0', methods=['GET'])
 def step0():
-    """
-    Step0 ahora solo muestra el formulario para seleccionar y optimizar imágenes.
-    La subida se hace exclusivamente vía /upload-image desde el frontend.
-    """
     return render_template('step0.html')
 
 
 def get_mp_token(email: str):
-    """Obtiene el access_token de Mercado Pago desde Firestore o Render, con fallback a refresh_token."""
     try:
         if email:
             doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
@@ -1375,7 +1223,6 @@ def get_mp_token(email: str):
                 if token and isinstance(token, str) and token.strip():
                     return token.strip()
 
-                # Fallback: intentar refrescar con refresh_token
                 refresh_token = data.get("refresh_token")
                 if refresh_token:
                     client_id = os.getenv("MP_CLIENT_ID")
@@ -1393,16 +1240,13 @@ def get_mp_token(email: str):
                             new_data = resp.json()
                             new_token = new_data.get("access_token")
                             if new_token:
-                                # Guardar el nuevo token en Firestore
                                 doc_ref.set({"access_token": new_token}, merge=True)
-                                print("[MP-HELPER] ✅ Token refrescado y guardado")
                                 return new_token.strip()
                     except Exception as e:
-                        print(f"[MP-HELPER] Error refrescando token: {e}")
+                        pass
     except Exception as e:
-        print("❌ Error al leer token de Firestore:", e)
+        pass
 
-    # Fallback global
     token = os.getenv("MERCADO_PAGO_TOKEN")
     if token and isinstance(token, str):
         return token.strip()
@@ -1415,24 +1259,19 @@ def pago_success():
     url_retorno = request.args.get('retorno')
     email_vendedor = request.args.get('email')
     
-    print(f"[SUCCESS] ✅ Pago aprobado para orden: {orden_id}")
-    print(f"[SUCCESS] 📍 URL de retorno: {url_retorno}")
-    print(f"[SUCCESS] 👤 Email vendedor: {email_vendedor}")
-    
     if url_retorno:
         try:
-            url_retorno_decoded = unquote(url_retorno)  # 👈 CAMBIADO: solo unquote()
+            url_retorno_decoded = unquote(url_retorno) 
             params = f"pago=success&orden_id={orden_id}"
             if email_vendedor:
                 params += f"&email={email_vendedor}"
             
             separator = '&' if '?' in url_retorno_decoded else '?'
             redirect_url = f"{url_retorno_decoded}{separator}{params}"
-            
-            print(f"[SUCCESS] ➡️ Redirigiendo a: {redirect_url}")
+
             return redirect(redirect_url)
         except Exception as e:
-            print(f"[SUCCESS] ❌ Error procesando URL de retorno: {e}")
+            pass
     
     if email_vendedor:
         return redirect(f"/preview?email={email_vendedor}&pago=success&orden_id={orden_id}")
@@ -1444,25 +1283,20 @@ def failure():
     orden_id = request.args.get('orden_id')
     url_retorno = request.args.get('retorno')
     email_vendedor = request.args.get('email')
-    
-    print(f"[FAILURE] ❌ Pago fallido para orden: {orden_id}")
-    print(f"[FAILURE] 📍 URL de retorno: {url_retorno}")
-    print(f"[FAILURE] 👤 Email vendedor: {email_vendedor}")
-    
+ 
     if url_retorno:
         try:
-            url_retorno_decoded = unquote(url_retorno)  # 👈 CAMBIADO: solo unquote()
+            url_retorno_decoded = unquote(url_retorno)  
             params = f"pago=failure&orden_id={orden_id}"
             if email_vendedor:
                 params += f"&email={email_vendedor}"
             
             separator = '&' if '?' in url_retorno_decoded else '?'
             redirect_url = f"{url_retorno_decoded}{separator}{params}"
-            
-            print(f"[FAILURE] ➡️ Redirigiendo a: {redirect_url}")
+
             return redirect(redirect_url)
         except Exception as e:
-            print(f"[FAILURE] ❌ Error procesando URL de retorno: {e}")
+            pass
     
     if email_vendedor:
         return redirect(f"/preview?email={email_vendedor}&pago=failure&orden_id={orden_id}")
@@ -1474,25 +1308,20 @@ def pending():
     orden_id = request.args.get('orden_id')
     url_retorno = request.args.get('retorno')
     email_vendedor = request.args.get('email')
-    
-    print(f"[PENDING] ⏳ Pago pendiente para orden: {orden_id}")
-    print(f"[PENDING] 📍 URL de retorno: {url_retorno}")
-    print(f"[PENDING] 👤 Email vendedor: {email_vendedor}")
-    
+
     if url_retorno:
         try:
-            url_retorno_decoded = unquote(url_retorno)  # 👈 CAMBIADO: solo unquote()
+            url_retorno_decoded = unquote(url_retorno) 
             params = f"pago=pending&orden_id={orden_id}"
             if email_vendedor:
                 params += f"&email={email_vendedor}"
             
             separator = '&' if '?' in url_retorno_decoded else '?'
             redirect_url = f"{url_retorno_decoded}{separator}{params}"
-            
-            print(f"[PENDING] ➡️ Redirigiendo a: {redirect_url}")
+
             return redirect(redirect_url)
         except Exception as e:
-            print(f"[PENDING] ❌ Error procesando URL de retorno: {e}")
+            pass
     
     if email_vendedor:
         return redirect(f"/preview?email={email_vendedor}&pago=pending&orden_id={orden_id}")
@@ -1501,11 +1330,9 @@ def pending():
 
 @app.route("/comprobante/<orden_id>")
 def comprobante(orden_id):
-    """Renderizar comprobante con TODOS los datos unificados - VERSIÓN MEJORADA"""
     import json
     from datetime import datetime
-    
-    # Buscar en la colección global
+
     doc = db.collection("ordenes").document(orden_id).get()
     
     if not doc.exists:
@@ -1517,11 +1344,8 @@ def comprobante(orden_id):
     cliente_email = data.get("cliente_email", "Sin email").strip()
     cliente_telefono = data.get("cliente_telefono", "Sin teléfono").strip()
     email_vendedor = data.get("email_vendedor")
-    
-    # Obtener productos usando la misma lógica que enviar_comprobante
     productos_data = data.get("carrito") or data.get("items") or data.get("items_mp") or []
-    
-    # Si productos_data es string, convertirlo a lista
+
     if isinstance(productos_data, str):
         try:
             productos_data = json.loads(productos_data)
@@ -1533,28 +1357,21 @@ def comprobante(orden_id):
     
     for idx, p in enumerate(productos_data):
         try:
-            # Verificar que sea un diccionario
             if not isinstance(p, dict):
                 continue
-            
-            # Extraer datos con múltiples intentos
-            # 1. Buscar nombre/title
+
             nombre = p.get("title") or p.get("nombre") or p.get("name") or f"Producto {idx+1}"
-            
-            # 2. Buscar precio
             precio_raw = None
             for key in ["unit_price", "precio", "price", "unit_price"]:
                 if key in p:
                     precio_raw = p[key]
                     break
-            
-            # Convertir precio a float
+
             precio = 0.0
             if precio_raw is not None:
                 if isinstance(precio_raw, (int, float)):
                     precio = float(precio_raw)
                 elif isinstance(precio_raw, str):
-                    # Limpiar string: quitar $, comas, espacios
                     limpio = precio_raw.replace('$', '').replace(',', '.').strip()
                     try:
                         precio = float(limpio)
@@ -1562,15 +1379,13 @@ def comprobante(orden_id):
                         precio = 0.0
             else:
                 precio = 0.0
-            
-            # 3. Buscar cantidad
+
             cantidad_raw = None
             for key in ["quantity", "cantidad", "qty"]:
                 if key in p:
                     cantidad_raw = p[key]
                     break
-            
-            # Convertir cantidad a int
+
             cantidad = 1
             if cantidad_raw is not None:
                 if isinstance(cantidad_raw, (int, float)):
@@ -1582,22 +1397,17 @@ def comprobante(orden_id):
                         cantidad = 1
             else:
                 cantidad = 1
-            
-            # 4. Buscar talle
+
             talle = p.get("talle") or p.get("size") or ""
             color = p.get("color") or p.get("colour") or ""
-            # 5. Buscar imagen_url - MÉTODO MEJORADO
             imagen_url = None
-            
-            # Intentar múltiples fuentes para la imagen
+
             for key in ["imagen_url", "image_url", "picture_url", "img_url"]:
                 if key in p and p[key]:
                     imagen_url = p[key]
                     break
-            
-            # Si no encontramos imagen en los datos del producto, buscar en Firestore
+
             if not imagen_url and email_vendedor:
-                # Buscar por id_base
                 id_base = p.get("id_base") or p.get("id") or p.get("product_id")
                 if id_base:
                     try:
@@ -1608,11 +1418,9 @@ def comprobante(orden_id):
                             imagen_url = prod_data.get("imagen_url")
                     except Exception:
                         pass
-            
-            # Si aún no hay imagen, intentar con nombre
+
             if not imagen_url and email_vendedor and nombre:
                 try:
-                    # Buscar producto por nombre (aproximado)
                     productos_ref = db.collection("usuarios").document(email_vendedor)\
                                       .collection("productos")
                     query = productos_ref.where("nombre", "==", nombre).limit(1).get()
@@ -1621,23 +1429,17 @@ def comprobante(orden_id):
                         imagen_url = prod_data.get("imagen_url")
                 except Exception:
                     pass
-            
-            # Optimizar imagen si es de Cloudinary o Firebase
+
             if imagen_url:
-                # Cloudinary: optimizar a tamaño razonable
                 if "cloudinary" in imagen_url or "res.cloudinary.com" in imagen_url:
                     if "/image/upload/" in imagen_url:
                         parts = imagen_url.split("/image/upload/")
                         if len(parts) == 2:
                             imagen_url = f"{parts[0]}/image/upload/w_300,h_180,c_fill/{parts[1]}"
-                
-                # Firebase Storage: agregar parámetro de tamaño
+
                 elif "firebasestorage.googleapis.com" in imagen_url:
-                    # Para Firebase, podemos usar parámetros de transformación si están habilitados
-                    # O simplemente usar la URL base
                     imagen_url = f"{imagen_url}?alt=media"
             
-            # Calcular subtotal
             subtotal = precio * cantidad
             total += subtotal
             
@@ -1655,17 +1457,14 @@ def comprobante(orden_id):
             
         except Exception:
             continue
-    
-    # Usar el total de la orden si lo tenemos, o usar el calculado
+
     orden_total = data.get("total")
     if orden_total:
         try:
             total = float(orden_total)
         except Exception:
             pass
-    # else mantener el total calculado
-    
-    # Verificar si hay productos procesados
+
     if len(productos) == 0:
         productos.append({
             "nombre": "Productos varios",
@@ -1675,8 +1474,7 @@ def comprobante(orden_id):
             "imagen_url": "",
             "talle": ""
         })
-    
-    # Obtener fecha
+
     fecha_creacion = data.get("fecha_creacion") or data.get("timestamp") or datetime.now()
     if isinstance(fecha_creacion, datetime):
         fecha_str = fecha_creacion.strftime("%d/%m/%Y %H:%M")
@@ -1692,7 +1490,7 @@ def comprobante(orden_id):
                           total=total,
                           fecha=fecha_str)
 
-# Enviar comprobante por correo - VERSIÓN MEJORADA
+
 def enviar_comprobante(email_vendedor, orden_id):
     import json
     from datetime import datetime
@@ -1890,11 +1688,9 @@ def webhook_mp():
             return jsonify({"ok": False}), 404
         
         orden_data = doc.to_dict()
-        
-        # Obtener items del carrito
+
         todos_items = orden_data.get("carrito") or orden_data.get("items_mp") or orden_data.get("items") or []
-        
-        # Solo si el pago fue aprobado
+
         if estado == "approved":
             email_vendedor = orden_data.get("email_vendedor")
             cliente_nombre = orden_data.get("cliente_nombre", "")
@@ -1902,7 +1698,6 @@ def webhook_mp():
             cliente_direccion = orden_data.get("cliente_direccion", {})
             
             if email_vendedor:
-                # ---------- 1. Descontar stock (código existente) ----------
                 for item in todos_items:
                     try:
                         if not isinstance(item, dict):
@@ -1915,8 +1710,7 @@ def webhook_mp():
                         cantidad = int(item.get("cantidad", 1))
                         talle = item.get("talle", "")
                         color = item.get("color", "")
-                        
-                        # Extraer talle/color del título si es necesario
+
                         if not talle and not color:
                             title = item.get("title", "") or item.get("nombre", "") or ""
                             import re
@@ -2026,7 +1820,6 @@ def webhook_mp():
                                     "nombre_producto": data.get("nombre", "")
                                 })
                             
-                            # Actualizar stock total si hay variantes
                             try:
                                 prod_doc_actualizado = prod_ref.get()
                                 if prod_doc_actualizado.exists:
@@ -2052,15 +1845,10 @@ def webhook_mp():
                                 except Exception:
                                     pass
                     except Exception as e:
-                        print(f"❌ Error procesando item en webhook: {e}")
                         continue
-                
-                # ---------- 2. CREAR ORDEN EN CORREO ARGENTINO (NUEVO) ----------
                 try:
-                    # Obtener datos del remitente desde Firestore
+
                     remitente_data = obtener_datos_remitente(email_vendedor, db)
-                    
-                    # Construir dirección del destinatario
                     destinatario_data = {
                         "name": cliente_nombre,
                         "address": {
@@ -2072,7 +1860,6 @@ def webhook_mp():
                         }
                     }
                     
-                    # Calcular peso total (si no hay peso, usar 500g por defecto)
                     peso_total = 0
                     for item in todos_items:
                         peso_item = item.get("peso_gramos", 500)
@@ -2080,8 +1867,7 @@ def webhook_mp():
                             peso_total += int(peso_item) * int(item.get("cantidad", 1))
                         except:
                             peso_total += 500 * int(item.get("cantidad", 1))
-                    
-                    # Dimensiones por defecto (ajustable según tus productos)
+
                     orden_ca = {
                         "sellerId": email_vendedor,
                         "order": {
@@ -2105,21 +1891,17 @@ def webhook_mp():
                             "correo_argentino_creado": True,
                             "correo_argentino_respuesta": msg_ca
                         })
-                        print(f"✅ Orden CA creada: {tn}")
                     else:
-                        print(f"❌ Error al crear orden CA: {msg_ca}")
                         doc_ref.update({
                             "correo_argentino_error": msg_ca,
                             "correo_argentino_intento": firestore.SERVER_TIMESTAMP
                         })
                 except Exception as e:
-                    print(f"⚠️ No se pudo crear orden en Correo Argentino: {e}")
                     doc_ref.update({
                         "correo_argentino_error": str(e),
                         "correo_argentino_intento": firestore.SERVER_TIMESTAMP
                     })
-        
-        # Actualizar estado de la orden (siempre)
+
         update_data = {
             "estado": estado,
             "payment_id": payment_id,
@@ -2137,8 +1919,7 @@ def webhook_mp():
                 update_data["items_procesados_fecha"] = firestore.SERVER_TIMESTAMP
         
         doc_ref.update(update_data)
-        
-        # Enviar comprobante al vendedor solo si pago aprobado y no se había enviado
+
         if estado == "approved":
             email_vendedor = orden_data.get("email_vendedor")
             if email_vendedor and not orden_data.get("comprobante_enviado", False):
@@ -2148,24 +1929,23 @@ def webhook_mp():
                         "comprobante_enviado_fecha": firestore.SERVER_TIMESTAMP
                     })
                 else:
-                    print(f"⚠️ Fallo al enviar comprobante para {external_ref}")
+                    pass
         
         return jsonify({"ok": True})
         
     except Exception as e:
-        print(f"💥 Error en webhook_mp: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"ok": False}), 500
 
 
 def obtener_datos_remitente(email, db):
-    """Obtiene los datos del remitente desde Firestore."""
+
     doc = db.collection("usuarios").document(email).collection("config").document("remitente").get()
     if not doc.exists:
         raise ValueError(f"Faltan datos del remitente para {email}. Configúralos en el panel.")
     data = doc.to_dict()
-    # Validar campos obligatorios
+
     required = ["nombre", "calle", "altura", "localidad", "provincia_codigo", "codigo_postal"]
     for field in required:
         if not data.get(field):
@@ -2193,46 +1973,29 @@ def actualizar_stock_talle():
         
         if not all([id_base, talle, nuevo_stock is not None, email]):
             return jsonify({'error': 'Faltan datos'}), 400
-        
-        print(f"[ACTUALIZAR-STOCK-TALLE] 🔍 Buscando: email={email}, id_base={id_base}")
-        
-        # 🔥 CAMBIADO: Buscar en la ruta correcta de usuarios
+
         producto_ref = db.collection('usuarios').document(email).collection('productos').document(id_base)
         producto = producto_ref.get()
         
         if not producto.exists:
-            print(f"[ACTUALIZAR-STOCK-TALLE] ❌ Producto no encontrado: {email}/{id_base}")
             return jsonify({'error': 'Producto no encontrado'}), 404
         
         producto_data = producto.to_dict()
-        print(f"[ACTUALIZAR-STOCK-TALLE] 📊 Producto encontrado: {producto_data.get('nombre')}")
-        
-        # 🔥 INICIALIZAR O ACTUALIZAR SOLO STOCK_POR_TALLE
         stock_por_talle = producto_data.get('stock_por_talle', {})
-        
-        # Si el producto no tenía stock_por_talle pero tiene talles, inicializar
+
         if not stock_por_talle and producto_data.get('talles'):
-            print(f"[ACTUALIZAR-STOCK-TALLE] ⚠️ Inicializando stock_por_talle para talles: {producto_data.get('talles')}")
             for t in producto_data.get('talles', []):
                 stock_por_talle[t] = 0
-        
-        # Actualizar stock del talle específico
+
         stock_por_talle[talle] = nuevo_stock
-        
-        # 🔥 CALCULAR STOCK TOTAL (SUMA DE TODOS LOS TALLES)
         stock_total = sum(stock_por_talle.values())
-        
-        # 🔥 ACTUALIZAR EN FIRESTORE SOLO STOCK_POR_TALLE
         producto_ref.update({
             'stock_por_talle': stock_por_talle,
-            # 🔥 IMPORTANTE: No actualizamos el campo 'stock'
             'actualizado': firestore.SERVER_TIMESTAMP,
-            'tiene_stock_por_talle': True  # Marcar que usa stock_por_talle
+            'tiene_stock_por_talle': True 
         })
 
         update_products_last_modified(email)
-        
-        print(f"[ACTUALIZAR-STOCK-TALLE] ✅ Actualizado: talle={talle}, stock={nuevo_stock}, total={stock_total}")
         
         return jsonify({
             'status': 'ok',
@@ -2244,7 +2007,6 @@ def actualizar_stock_talle():
         })
         
     except Exception as e:
-        print(f"[ACTUALIZAR-STOCK-TALLE] ❌ Error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -2259,27 +2021,18 @@ def guardar_talles_stock():
         
         if not all([id_base, stock_por_talle, email]):
             return jsonify({'error': 'Faltan datos'}), 400
-        
-        # 🔥 VALIDACIÓN: Asegurar que stock_por_talle sea un diccionario
+
         if not isinstance(stock_por_talle, dict):
-            print(f"[GUARDAR-TALLES-STOCK] ❌ stock_por_talle no es dict: {type(stock_por_talle)}")
             return jsonify({'error': 'stock_por_talle debe ser un objeto JSON'}), 400
-        
-        print(f"[GUARDAR-TALLES-STOCK] 🔍 Buscando: email={email}, id_base={id_base}")
-        print(f"[GUARDAR-TALLES-STOCK] 📊 stock_por_talle recibido: {stock_por_talle}")
-        
-        # Buscar producto
+
         producto_ref = db.collection('usuarios').document(email).collection('productos').document(id_base)
         producto = producto_ref.get()
         
         if not producto.exists:
-            print(f"[GUARDAR-TALLES-STOCK] ❌ Producto no encontrado: {email}/{id_base}")
             return jsonify({'error': 'Producto no encontrado'}), 404
         
         producto_data = producto.to_dict()
-        print(f"[GUARDAR-TALLES-STOCK] 📊 Producto encontrado: {producto_data.get('nombre')}")
         
-        # 🔥 CORRECCIÓN: Calcular stock total correctamente
         stock_total = 0
         stock_por_talle_validado = {}
         
@@ -2293,37 +2046,23 @@ def guardar_talles_stock():
                     stock_por_talle_validado[talle_limpio] = stock_int
                     stock_total += stock_int
                 except (ValueError, TypeError) as e:
-                    print(f"[GUARDAR-TALLES-STOCK] ⚠️ Error con talle {talle}: {e}")
-        
-        print(f"[GUARDAR-TALLES-STOCK] 📊 Stock total calculado: {stock_total}")
-        print(f"[GUARDAR-TALLES-STOCK] 📊 Stock por talle validado: {stock_por_talle_validado}")
-        
-        # 🔥 CORRECCIÓN: Actualizar también el campo 'talles' con las claves
+                    pass
+
         talles_actualizados = list(stock_por_talle_validado.keys())
-        
-        # 🔥 PREPARAR DATOS DE ACTUALIZACIÓN SOLO CON STOCK_POR_TALLE
         update_data = {
             'stock_por_talle': stock_por_talle_validado,
             'talles': talles_actualizados,
             'actualizado': firestore.SERVER_TIMESTAMP,
-            'tiene_stock_por_talle': True  # 🔥 Marcar que usa stock_por_talle
+            'tiene_stock_por_talle': True 
         }
         
-        # 🔥 CORRECCIÓN: Si el producto tenía variantes, desactivarlas
-        # porque ahora estamos usando stock_por_talle
         if producto_data.get('tiene_variantes'):
             update_data['tiene_variantes'] = False
-            update_data['variantes'] = {}  # Limpiar variantes
-            print(f"[GUARDAR-TALLES-STOCK] ⚠️ Desactivando variantes para usar stock_por_talle")
-        
-        # 🔥 NO ACTUALIZAMOS EL CAMPO 'stock'
-        
-        # Actualizar en Firestore
+            update_data['variantes'] = {}  
+
         producto_ref.update(update_data)
 
         update_products_last_modified(email)
-        
-        print(f"[GUARDAR-TALLES-STOCK] ✅ Actualizado: talles={talles_actualizados}, total={stock_total}")
         
         return jsonify({
             'status': 'ok',
@@ -2334,7 +2073,6 @@ def guardar_talles_stock():
         })
         
     except Exception as e:
-        print(f"[GUARDAR-TALLES-STOCK] ❌ Error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -2354,16 +2092,13 @@ def pagar():
         cliente_nombre = data.get('cliente_nombre')
         cliente_email = data.get('cliente_email')
         cliente_telefono = data.get('cliente_telefono', '')
-        cliente_direccion = data.get('cliente_direccion', {})  # 🔥 NUEVO: dirección del comprador
+        cliente_direccion = data.get('cliente_direccion', {})  
         orden_id = data.get('orden_id')
         total_recibido = data.get('total', 0)
         url_retorno = data.get('url_retorno')
-        costo_envio = data.get('costo_envio', 0)  # 🔥 NUEVO: costo de envío (opcional, ya incluido en total)
-        
-        # Validaciones mínimas de dirección (si se requiere envío a domicilio)
+        costo_envio = data.get('costo_envio', 0)  
+
         if not cliente_direccion.get('codigo_postal'):
-            # No es obligatorio si el deliveryType no es homeDelivery, pero lo dejamos como opcional
-            print("[PAGAR] ⚠️ El cliente no envió código postal, se guardará vacío")
         
         if not email_vendedor:
             return jsonify({'error': 'Falta email del vendedor'}), 400
@@ -2382,8 +2117,7 @@ def pagar():
             return jsonify({'error': 'Vendedor sin credenciales MP válidas'}), 400
         
         sdk = mercadopago.SDK(access_token.strip())
-        
-        # Procesar items_mp o carrito (igual que antes)
+
         if items_mp and len(items_mp) > 0:
             items_para_mp = items_mp
             for item in items_para_mp:
@@ -2475,7 +2209,6 @@ def pagar():
             return jsonify({'error': 'No se pudieron procesar los productos para el pago'}), 400
         
         total_calculado = sum(item.get('unit_price', 0) * item.get('quantity', 1) for item in items_para_mp)
-        # Si se recibió un total que ya incluye envío, usarlo; sino usar el calculado
         total_final = max(total_calculado, float(total_recibido or 0))
         
         base_url = "https://mpagina.onrender.com"
@@ -2497,7 +2230,7 @@ def pagar():
                 "cliente_nombre": cliente_nombre,
                 "cliente_email": cliente_email,
                 "cliente_telefono": cliente_telefono,
-                "cliente_direccion": cliente_direccion,  # 🔥 NUEVO
+                "cliente_direccion": cliente_direccion, 
                 "url_retorno": url_retorno,
                 "debug_items": len(items_para_mp)
             }
@@ -2508,20 +2241,19 @@ def pagar():
         
         if not preference.get("id"):
             return jsonify({'error': 'No se pudo generar la preferencia de pago'}), 500
-        
-        # 🔥 DOCUMENTO DE ORDEN CON DIRECCIÓN DEL CLIENTE
+
         orden_doc = {
             "email_vendedor": email_vendedor,
             "numero_vendedor": numero_vendedor,
             "cliente_nombre": cliente_nombre,
             "cliente_email": cliente_email,
             "cliente_telefono": cliente_telefono,
-            "cliente_direccion": cliente_direccion,  # 🔥 AGREGADO
+            "cliente_direccion": cliente_direccion,  
             "carrito": carrito,
             "items_mp": items_para_mp,
             "items": items_para_mp,
             "total": total_final,
-            "costo_envio": costo_envio,  # 🔥 AGREGADO (opcional)
+            "costo_envio": costo_envio, 
             "estado": "pendiente",
             "preference_id": preference.get("id"),
             "external_reference": external_ref,
@@ -2546,7 +2278,7 @@ def pagar():
             "cliente_nombre": cliente_nombre,
             "cliente_email": cliente_email,
             "cliente_telefono": cliente_telefono,
-            "cliente_direccion": cliente_direccion,  # 🔥 AGREGADO
+            "cliente_direccion": cliente_direccion,  
             "carrito": carrito,
             "items_mp": items_para_mp,
             "total": total_final,
@@ -2582,7 +2314,6 @@ def pagar():
         return jsonify(response_data)
 
     except Exception as e:
-        print(f"❌ Error en /pagar: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({
@@ -2624,10 +2355,9 @@ def debug_mp():
         doc = db.collection("usuarios").document(email).collection("config").document("mercado_pago").get()
         if doc.exists:
             data = doc.to_dict() or {}
-            # 🔎 Filtrar campos sensibles si no querés exponerlos en frontend
             safe_data = {
                 "public_key": data.get("public_key"),
-                "access_token": bool(data.get("access_token")),  # solo indicar si existe
+                "access_token": bool(data.get("access_token")),  
                 "refresh_token": bool(data.get("refresh_token")),
                 "created_at": data.get("created_at"),
                 "updated_at": data.get("updated_at"),
@@ -2639,11 +2369,8 @@ def debug_mp():
         else:
             return jsonify({'error': 'no encontrado'}), 404
     except Exception as e:
-        print(f"[DEBUG-MP] Error leyendo Firestore: {e}")
         return jsonify({'error': 'Error interno', 'message': str(e)}), 500
 
-import jwt
-from datetime import datetime, timedelta
 
 @app.route('/login-admin', methods=['POST'])
 def login_admin():
@@ -2667,7 +2394,6 @@ def login_admin():
         clave_guardada = doc.to_dict().get("clave_admin")
 
         if clave_guardada == clave_ingresada:
-            # 🔐 Generar JWT con expiración (ej: 7 días)
             expiration = datetime.utcnow() + timedelta(days=7)
             token = jwt.encode(
                 {"email": usuario, "exp": expiration},
@@ -2810,19 +2536,16 @@ def eliminar_producto():
         query = productos_ref.where("id_base", "==", id_base).limit(1).get()
 
         if not query:
-            print(f"[ELIMINAR_PRODUCTO] ⚠️ No encontrado → Usuario={email}, id_base={id_base}")
             return jsonify({"status": "not_found", "id_base": id_base}), 404
 
         doc = query[0]
         doc.reference.delete()
-        print(f"[ELIMINAR_PRODUCTO] ✅ Eliminado en Firestore → Usuario={email}, id_base={id_base}")
         update_products_last_modified(email)
         return jsonify({"status": "ok", "id_base": id_base})
 
     except Exception as e:
         import traceback
         tb = traceback.format_exc()
-        print("[ELIMINAR_PRODUCTO] 💥 Error inesperado:", e)
         return jsonify({"status": "error", "error": str(e), "trace": tb}), 500
         
 @app.route('/', methods=['GET', 'POST'])
@@ -2842,9 +2565,8 @@ def step1():
         email = request.form.get('email')
         if email:
             session['email'] = email.strip()
-            print(f"✅ Email guardado en sesión: {session['email']}")
         else:
-            print("⚠️ No se recibió email en step1")
+            pass
             
         mercado_pago = request.form.get('mercado_pago')
         if mercado_pago and mercado_pago.startswith("APP_USR-"):
@@ -2890,7 +2612,7 @@ def step2_5():
                 grupo = request.form.get(f"grupo_{idx}", "").strip()
                 subgrupo = request.form.get(f"subgrupo_{idx}", "").strip()
                 cantidad = int(request.form.get(f"filas_{idx}", "0"))
-                talles = request.form.get(f"talles_{idx}", "").strip()  # ✅ nuevo campo
+                talles = request.form.get(f"talles_{idx}", "").strip() 
 
                 if grupo and subgrupo and cantidad > 0:
                     for n in range(1, cantidad+1):
@@ -2901,7 +2623,6 @@ def step2_5():
                             "Talles": talles
                         })
 
-        # Crear Excel en memoria
         df = pd.DataFrame(filas, columns=["Grupo","Subgrupo","Producto","Talles"])
         output = BytesIO()
         df.to_excel(output, index=False, engine="openpyxl")
@@ -3107,21 +2828,28 @@ def step3():
                 with open(core_js_path, 'rb') as f:
                     subir_archivo(repo_name, f.read(), 'static/js/core.js')
             else:
-                print("⚠️ No se encontró core.js")
+                pass
+        
+            bootstrap_css_path = os.path.join(app.root_path, 'static', 'css', 'bootstrap.min.css')
+            if os.path.exists(bootstrap_css_path):
+                with open(bootstrap_css_path, 'rb') as f:
+                    subir_archivo(repo_name, f.read(), 'static/css/bootstrap.min.css')
+            else:
+                pass
 
             admin_js_path = os.path.join(app.root_path, 'static', 'js', 'admin.js')
             if os.path.exists(admin_js_path):
                 with open(admin_js_path, 'rb') as f:
                     subir_archivo(repo_name, f.read(), 'static/js/admin.js')
             else:
-                print("⚠️ No se encontró admin.js")
+                pass
 
             mercadopago_js_path = os.path.join(app.root_path, 'static', 'js', 'mercadopago.js')
             if os.path.exists(mercadopago_js_path):
                 with open(mercadopago_js_path, 'rb') as f:
                     subir_archivo(repo_name, f.read(), 'static/js/mercadopago.js')
             else:
-                print("⚠️ No se encontró mercadopago.js")
+                pass
 
             try:
                 css_path = os.path.join(app.root_path, 'static', 'css', 'estilos.min.css')
@@ -3171,16 +2899,6 @@ def step3():
     )
 
 def get_mp_public_key(email: str):
-    """
-    Obtiene la public_key de Mercado Pago para el vendedor.
-    - 1) Intenta leerla de Firestore.
-    - 2) Si está en null o vacía, intenta recuperarla en vivo usando el access_token del vendedor:
-         a) /v1/account/credentials
-         b) Fallback: /users/me
-    - 3) Si la obtiene, la guarda en Firestore y la retorna.
-    - 4) Si todo falla, usa env MP_PUBLIC_KEY (fallback global).
-    """
-    # 1) Leer desde Firestore
     try:
         if email:
             doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
@@ -3194,9 +2912,8 @@ def get_mp_public_key(email: str):
                 else:
                     print(f"[MP-HELPER] Firestore public_key vacío para {email}, intentando recuperar en vivo...")
     except Exception as e:
-        print(f"[MP-HELPER] Error leyendo Firestore: {e}")
+        pass
 
-    # 2) Recuperar en vivo con access_token del vendedor
     access_token = None
     try:
         access_token = get_mp_token(email)
@@ -3205,21 +2922,18 @@ def get_mp_public_key(email: str):
 
     public_key = None
     if access_token and isinstance(access_token, str):
-        # a) Intento con /v1/account/credentials
         try:
             resp = requests.get(
                 "https://api.mercadopago.com/v1/account/credentials",
                 headers={"Authorization": f"Bearer {access_token.strip()}"},
                 timeout=10
             )
-            print(f"[MP-HELPER] credentials status={resp.status_code}")
             if resp.status_code == 200:
                 data = resp.json() or {}
                 public_key = (data.get("public_key") or data.get("web", {}).get("public_key") or "").strip()
         except Exception as e:
-            print(f"[MP-HELPER] Error en credentials: {e}")
+            pass
 
-        # b) Fallback /users/me
         if not public_key:
             try:
                 resp = requests.get(
@@ -3227,68 +2941,51 @@ def get_mp_public_key(email: str):
                     headers={"Authorization": f"Bearer {access_token.strip()}"},
                     timeout=10
                 )
-                print(f"[MP-HELPER] users/me status={resp.status_code}")
                 if resp.status_code == 200:
                     data = resp.json() or {}
                     public_key = (data.get("public_key") or "").strip()
             except Exception as e:
-                print(f"[MP-HELPER] Error en users/me: {e}")
+                pass
 
-        # 3) Guardar si existe
         if public_key:
             try:
                 db.collection("usuarios").document(email).collection("config").document("mercado_pago").set({
                     "public_key": public_key,
                     "updated_at": datetime.now().isoformat()
                 }, merge=True)
-                print(f"[MP-HELPER] ✅ public_key recuperada y guardada para {email}")
                 return public_key
             except Exception as e:
-                print(f"[MP-HELPER] Error guardando public_key en Firestore: {e}")
-        else:
-            print("[MP-HELPER] ❌ No se pudo recuperar public_key en vivo")
-    else:
-        print("[MP-HELPER] ❌ No hay access_token del vendedor para recuperar public_key")
+                pass
 
-    # 4) Fallback de entorno
     pk_env = os.getenv("MP_PUBLIC_KEY")
     if pk_env and isinstance(pk_env, str) and pk_env.strip():
-        print(f"[MP-HELPER] Usando MP_PUBLIC_KEY del entorno")
         return pk_env.strip()
 
     return None
 
 @app.route('/conectar_mp', methods=["GET"])
 def conectar_mp():
-    print("\n[MP-CONNECT] 🚀 Nueva petición de conexión a Mercado Pago")
-
     email = request.args.get("email")
     url_retorno = request.args.get("url_retorno")
-    print(f"[MP-CONNECT] Email recibido: {email}, url_retorno={url_retorno}")
 
     if not email:
-        print("[MP-CONNECT] ❌ Falta email en la query")
         return "Error: falta email", 403
 
-    # 🔑 Validar que el usuario exista en Firestore
     try:
         doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
         snap = doc_ref.get()
         if not snap.exists:
-            print(f"[MP-CONNECT] ⚠️ No existe config de Mercado Pago para {email} (se creará en callback)")
+            pass
         else:
-            print(f"[MP-CONNECT] ✅ Config de Mercado Pago encontrada para {email}")
+            pass
     except Exception as e:
-        print(f"[MP-CONNECT] 💥 Error validando usuario en Firestore: {e}")
         return "Error interno", 500
 
     client_id = os.getenv("MP_CLIENT_ID")
     if not client_id:
-        print("[MP-CONNECT] ❌ Falta configurar MP_CLIENT_ID en entorno")
         return "❌ Falta configurar MP_CLIENT_ID en entorno", 500
 
     redirect_uri = url_for("callback_mp", _external=True)
-    print(f"[MP-CONNECT] Redirect URI generada: {redirect_uri}")
     state_data = f"{email}|{url_retorno or ''}"
     
     query = urlencode({
@@ -3296,54 +2993,34 @@ def conectar_mp():
         "response_type": "code",
         "redirect_uri": redirect_uri,
         "scope": "read write offline_access",
-        "state": state_data  # 👈 String simple, no JSON codificado
+        "state": state_data  
     })
     auth_url = f"https://auth.mercadopago.com/authorization?{query}"
-
-    print(f"[MP-CONNECT] 🔗 URL de autorización construida: {auth_url}")
-    print(f"[MP-CONNECT] 🔗 State enviado: {state_data}")
     return redirect(auth_url)
 
 @app.route('/callback_mp')
 def callback_mp():
-    print("\n[MP-CALLBACK] 🚀 Callback de Mercado Pago recibido")
-
-    # 🔑 Validar credenciales recibidas en query
     code = request.args.get('code')
-    state_data = request.args.get('state')  # Ahora es un string simple
-
-    print(f"[MP-CALLBACK] Parámetros recibidos → code={code}, state={state_data}")
+    state_data = request.args.get('state')
 
     if not state_data:
-        print("[MP-CALLBACK] ❌ Falta parámetro state")
         return "Error: falta parámetro state", 403
     if not code:
-        print("[MP-CALLBACK] ❌ No se recibió código de autorización")
         return "❌ No se recibió código de autorización", 400
 
-    # Parsear el state simple: "email|url_retorno"
     parts = state_data.split('|')
     email = parts[0] if len(parts) > 0 else ""
     url_retorno = parts[1] if len(parts) > 1 else None
 
-    # Si url_retorno está vacío, usar None
     if url_retorno == "":
         url_retorno = None
 
-    print(f"[MP-CALLBACK] Email obtenido: {email}")
-    print(f"[MP-CALLBACK] URL retorno obtenida: {url_retorno}")
-
     if not email:
-        print("[MP-CALLBACK] ❌ No se pudo obtener email del state")
         return "❌ Error: email no encontrado en state", 400
 
     client_id = os.getenv("MP_CLIENT_ID")
     client_secret = os.getenv("MP_CLIENT_SECRET")
     redirect_uri = url_for('callback_mp', _external=True)
-
-    print(f"[MP-CALLBACK] Procesando para email: {email}")
-    print(f"[MP-CALLBACK] URL de retorno: {url_retorno}")
-
     token_url = "https://api.mercadopago.com/oauth/token"
     payload = {
         "client_id": client_id,
@@ -3354,20 +3031,16 @@ def callback_mp():
     }
 
     try:
-        print(f"[MP-CALLBACK] 📡 Enviando payload a {token_url}")
         response = requests.post(token_url, data=payload, timeout=10)
         response.raise_for_status()
         data = response.json()
-        print(f"[MP-CALLBACK] ✅ Token obtenido exitosamente")
 
         access_token = data.get("access_token")
         refresh_token = data.get("refresh_token")
 
         if not access_token:
-            print("[MP-CALLBACK] ❌ No se obtuvo access_token")
             return "❌ Error al obtener token de Mercado Pago", 400
 
-        # ✅ Obtener la public_key
         public_key = data.get("public_key")
         if not public_key:
             try:
@@ -3389,13 +3062,11 @@ def callback_mp():
                         user_data = user_resp.json() or {}
                         public_key = user_data.get("public_key")
             except Exception as e:
-                print("[MP-CALLBACK] 💥 Error al obtener public_key:", e)
+                pass
 
         if public_key and isinstance(public_key, str):
             public_key = public_key.strip()
-            print(f"[MP-CALLBACK] ✅ Public key obtenida: {public_key[:30]}...")
 
-        # ✅ Guardar credenciales en Firestore
         doc_data = {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -3410,33 +3081,24 @@ def callback_mp():
         db.collection("usuarios").document(email).collection("config").document("mercado_pago").set(
             doc_data, merge=True
         )
-        print(f"[MP-CALLBACK] ✅ Credenciales guardadas en Firestore para {email}")
 
-        # 🔄 Redirigir al dominio del usuario si vino en state
         if url_retorno:
-            # Asegurar que la URL tenga el parámetro de configuración exitosa
             destino = url_retorno.rstrip("/")
-            
-            # Construir URL con parámetros
+
             if "?" in destino:
                 redirect_url = f"{destino}&mp_configurado=true&email={email}"
             else:
                 redirect_url = f"{destino}?mp_configurado=true&email={email}"
-            
-            print(f"[MP-CALLBACK] ➡️ Redirigiendo a la página del usuario: {redirect_url}")
+
             return redirect(redirect_url)
         else:
-            # fallback: preview interno
             preview_url = f"https://mpagina.onrender.com/preview?email={email}&mp_configurado=true"
-            print(f"[MP-CALLBACK] ➡️ Redirigiendo a preview interno: {preview_url}")
             return redirect(preview_url)
 
     except Exception as e:
-        print("[MP-CALLBACK] 💥 Error general en callback_mp:", e)
         import traceback
         traceback.print_exc()
-        
-        # Intentar redirigir de todos modos con mensaje de error
+
         if url_retorno:
             error_url = f"{url_retorno}?mp_error=1&email={email}"
             return redirect(error_url)
@@ -3457,36 +3119,25 @@ def api_mp_public_key():
         
 @app.route('/preview', methods=["GET"])
 def preview():
-    print("\n🚀 [Preview] Entrando a /preview")
-
-    # 📧 Obtener email desde query o sesión
     email = request.args.get('email') or session.get("email")
     orden_id = request.args.get("orden_id")
-    print(f"[Preview] Email recibido: {email}, orden_id={orden_id}")
     if not email:
-        print("[Preview] ❌ Falta email en query o sesión")
         return "Error: falta email", 400
 
-    # 🎨 Config visual desde Firestore
     try:
         config_doc = db.collection("usuarios").document(email).collection("config").document("general").get()
         config_data = config_doc.to_dict() if config_doc.exists else {}
-        print(f"[Preview] Config visual obtenida: {config_data}")
     except Exception as e:
-        print(f"[Preview] 💥 Error leyendo config visual: {e}")
         config_data = {}
 
     estilo_visual = config_data.get("estilo_visual", "claro_moderno")
-    print(f"[Preview] Estilo visual: {estilo_visual}")
 
-    # 📦 Productos
     productos = []
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         for doc in productos_ref.stream():
             data = doc.to_dict()
-            
-            # Calcular disponibilidad
+
             tiene_variantes = data.get('tiene_variantes', False)
             variantes = data.get('variantes', {})
             
@@ -3497,32 +3148,24 @@ def preview():
                 stock_total = data.get('stock', 0)
                 disponible = stock_total > 0
             
-            # Agregar campos calculados
             data['stock_total'] = stock_total
             data['disponible'] = disponible
             
             productos.append(data)
             
         productos = sorted(productos, key=lambda p: p.get('orden', 0))
-        print(f"[Preview] Productos cargados: {len(productos)}")
     except Exception as e:
-        print(f"[Preview] 💥 Error leyendo productos: {e}")
+        pass
 
-    # 🧱 Agrupar productos por grupo/subgrupo
     grupos_dict = {}
     for p in productos:
         grupo = (p.get('grupo') or 'General').strip().title()
         subgrupo = (p.get('subgrupo') or 'Sin Subgrupo').strip().title()
         grupos_dict.setdefault(grupo, {}).setdefault(subgrupo, []).append(p)
-    print(f"[Preview] Grupos generados: {list(grupos_dict.keys())}")
 
-    # 💳 Credenciales de Mercado Pago
     mercado_pago_token = get_mp_token(email)
     public_key = (get_mp_public_key(email) or "").strip()
-    print(f"[Preview] Mercado Pago token presente: {bool(mercado_pago_token)}")
-    print(f"[Preview] Public key obtenida: '{public_key}'")
 
-    # ⚙️ Configuración final que se pasa al template
     config = {
         **config_data,
         'email': email,
@@ -3533,9 +3176,7 @@ def preview():
         'productos': productos,
         'usarFirestore': True
     }
-    print(f"[Preview] Config final enviada al template: {list(config.keys())}")
 
-    # ✅ Renderizar template
     return render_template(
         'preview.html',
         config=config,
@@ -3551,23 +3192,19 @@ def descargar():
 
     estilo_visual = session.get('estilo_visual') or 'claro_moderno'
 
-    # Obtener productos del usuario
     try:
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         productos_docs = productos_ref.stream()
         productos = [doc.to_dict() for doc in productos_docs]
     except Exception as e:
-        print(f"[DESCARGAR] Error leyendo productos: {e}")
         productos = []
 
-    # Agrupar por grupo/subgrupo
     grupos = {}
     for producto in productos:
         grupo = (producto.get('grupo', 'General').strip().title())
         subgrupo = (producto.get('subgrupo', 'Sin subgrupo').strip().title())
         grupos.setdefault(grupo, {}).setdefault(subgrupo, []).append(producto)
 
-    # Configuración visual
     config = {
         'tipo_web': session.get('tipo_web'),
         'ubicacion': session.get('ubicacion'),
@@ -3588,42 +3225,34 @@ def descargar():
         'bloques': []
     }
 
-    # Renderizar HTML
     html = render_template('preview.html', config=config, grupos=grupos)
 
-    # Crear ZIP en memoria
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w') as zip_file:
         zip_file.writestr('index.html', html)
-
-        # Fondo
         fondo = f"{estilo_visual}.jpeg"
         fondo_path = os.path.join(app.config['UPLOAD_FOLDER'], fondo)
         if os.path.exists(fondo_path):
             zip_file.write(fondo_path, arcname='img/' + fondo)
 
-        # Imágenes de productos
         for producto in productos:
             imagen_url = producto.get('imagen_github')
             if not imagen_url:
                 continue
 
-            if imagen_url.startswith("http"):  # caso GitHub raw_url
+            if imagen_url.startswith("http"):  
                 try:
                     r = requests.get(imagen_url, timeout=10)
                     if r.status_code == 200:
                         filename = os.path.basename(imagen_url)
                         zip_file.writestr("img/" + filename, r.content)
-                        print(f"✅ [DESCARGAR] Imagen incluida desde GitHub: {filename}")
                 except Exception as e:
-                    print(f"⚠️ [DESCARGAR] Error descargando {imagen_url}: {e}")
-            else:  # fallback local
+                    pass
+            else:  
                 imagen_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(imagen_url))
                 if os.path.exists(imagen_path):
                     zip_file.write(imagen_path, arcname="img/" + os.path.basename(imagen_url))
-                    print(f"✅ [DESCARGAR] Imagen incluida desde local: {imagen_url}")
 
-        # Logo
         logo = config.get("logo")
         if logo:
             logo_path = os.path.join(app.config['UPLOAD_FOLDER'], logo)
