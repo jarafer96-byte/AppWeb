@@ -1111,7 +1111,7 @@ function ajustarPosicionesPaneles() {
 
 function getItemsPorPagina() {
     if (isMobile && window.modoAdmin) return 4; 
-    if (isMobile) return 5; 
+    if (isMobile) return 6; 
     return 12; 
 }
 
