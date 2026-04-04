@@ -1,3 +1,17 @@
+.oferta-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: #ff4757;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 20px;
+    z-index: 5;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    animation: pulseOferta 1.5s infinite; 
+}
 .card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1); contain: content; padding: 12px; }
 .btn, .panel-grupos, .panel-subcategorias { contain: content; }
 .logo, .card img { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
