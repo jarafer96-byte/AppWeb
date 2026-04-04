@@ -485,36 +485,28 @@ function agregarFilaColor(btn) {
     <input type="number" class="form-control form-control-sm stock-input" placeholder="Stock" style="flex: 1;">
     <button class="btn btn-sm btn-outline-danger eliminar-color" title="Eliminar color">✖</button>
   `;
-  
-  // Insertar antes del botón "Agregar color"
   contenedor.insertBefore(nuevaFila, btn);
-  
-  // Asignar evento al botón eliminar
   const eliminarBtn = nuevaFila.querySelector('.eliminar-color');
   eliminarBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     nuevaFila.remove();
   });
   
-  // Asignar evento al checkbox para cambiar el tipo de input
   const toggle = nuevaFila.querySelector('.talle-toggle');
-  const input = nuevaFila.querySelector('.stock-input'); // inicialmente es number
+  const input = nuevaFila.querySelector('.stock-input'); 
   toggle.addEventListener('change', function(e) {
     const estaMarcado = this.checked;
     if (estaMarcado) {
-      // Cambiar a modo talles (texto)
       const valorActual = input.value;
       input.type = 'text';
       input.classList.remove('stock-input');
       input.classList.add('talles-input');
       input.placeholder = 'S:30, M:20';
-      input.value = valorActual; // conservar el valor si era un número
+      input.value = valorActual; 
     } else {
-      // Cambiar a modo stock único (number)
       let valorActual = input.value;
       let stock = 0;
       if (input.type === 'text') {
-        // Si estaba en modo talles, intentar extraer stock total o dejar 0
         const tallesObj = parsearTallesStock(valorActual);
         stock = Object.values(tallesObj).reduce((a, b) => a + b, 0);
       } else {
@@ -560,7 +552,6 @@ function renderTablaProductos() {
                 <th style="width: 80px;">Fotos extra</th>
                 <th style="width: 200px;">Producto</th>
                 <th style="width: 80px;">Precio</th>
-                <th style="width: 80px;">Precio anterior</th> 
                 <th style="min-width: 300px;">Colores / Talles / Stock</th>
                 <th style="min-width: 200px;">Descripción</th>
                 <th style="width: 120px;">Acciones</th>
@@ -609,8 +600,7 @@ function renderFilasTabla(productos) {
   return productos.map(p => {
     const idBase = p.id_base || '';
     const nombre = p.nombre || '';
-    const precio = p.precio || 0;
-    const precioAnterior = p.precio_anterior || 0;  
+    const precio = p.precio || 0; 
     const descripcion = p.descripcion || '';
 
     const imagenMiniatura = getVersionUrl(p.imagen_url || '/static/img/fallback.webp', '58');
@@ -709,7 +699,6 @@ function renderFilasTabla(productos) {
          </td>
          <td><input type="text" class="editable-input nombre-input form-control form-control-sm" value="${nombre.replace(/"/g, '&quot;')}" data-id="${idBase}" data-campo="nombre" style="border-color: white;"></td>
          <td><input type="number" class="editable-input precio-input form-control form-control-sm" value="${precio}" data-id="${idBase}" data-campo="precio" step="0.01" min="0" style="width:80px; border-color: white;"></td>
-          <td><input type="number" class="editable-input precio-anterior-input form-control form-control-sm" value="${precioAnterior}" data-id="${idBase}" data-campo="precio_anterior" step="0.01" min="0" style="width:80px; border-color: white;"></td>
           <td>${coloresCellHTML}</td>
           <td>${descripcionHTML}</td>
           <td>
@@ -839,7 +828,6 @@ function obtenerProductoDesdeFila(fila, idBase) {
 
   producto.nombre = fila.querySelector('.nombre-input')?.value || '';
   producto.precio = parseFloat(fila.querySelector('.precio-input')?.value) || 0;
-  producto.precio_anterior = parseFloat(fila.querySelector('.precio-anterior-input')?.value) || 0; 
   producto.descripcion = fila.querySelector('.descripcion-textarea')?.value || '';
 
   const coloresContainer = fila.querySelector('.colores-stock-container');
