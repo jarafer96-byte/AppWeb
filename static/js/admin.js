@@ -560,6 +560,7 @@ function renderTablaProductos() {
                 <th style="width: 80px;">Fotos extra</th>
                 <th style="width: 200px;">Producto</th>
                 <th style="width: 80px;">Precio</th>
+                <th style="width: 80px;">Precio anterior</th> 
                 <th style="min-width: 300px;">Colores / Talles / Stock</th>
                 <th style="min-width: 200px;">Descripción</th>
                 <th style="width: 120px;">Acciones</th>
@@ -609,6 +610,7 @@ function renderFilasTabla(productos) {
     const idBase = p.id_base || '';
     const nombre = p.nombre || '';
     const precio = p.precio || 0;
+    const precioAnterior = p.precio_anterior || 0;  
     const descripcion = p.descripcion || '';
 
     const imagenMiniatura = getVersionUrl(p.imagen_url || '/static/img/fallback.webp', '58');
@@ -707,20 +709,20 @@ function renderFilasTabla(productos) {
          </td>
          <td><input type="text" class="editable-input nombre-input form-control form-control-sm" value="${nombre.replace(/"/g, '&quot;')}" data-id="${idBase}" data-campo="nombre" style="border-color: white;"></td>
          <td><input type="number" class="editable-input precio-input form-control form-control-sm" value="${precio}" data-id="${idBase}" data-campo="precio" step="0.01" min="0" style="width:80px; border-color: white;"></td>
-         <td>${coloresCellHTML}</td>
-         <td>${descripcionHTML}</td>
-         <td>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-warning btn-sm guardar-producto" data-id="${idBase}" title="Guardar">💾</button>
-            <button class="btn btn-info btn-sm duplicar-producto" data-id="${idBase}" style="background-color:azure;" title="Duplicar">📋</button>
-            <button class="btn btn-danger btn-sm eliminar-producto" data-id="${idBase}" title="Eliminar">🗑️</button>
-          </div>
-         </td>
-       </tr>
+          <td><input type="number" class="editable-input precio-anterior-input form-control form-control-sm" value="${precioAnterior}" data-id="${idBase}" data-campo="precio_anterior" step="0.01" min="0" style="width:80px; border-color: white;"></td>
+          <td>${coloresCellHTML}</td>
+          <td>${descripcionHTML}</td>
+          <td>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-warning btn-sm guardar-producto" data-id="${idBase}" title="Guardar">💾</button>
+              <button class="btn btn-info btn-sm duplicar-producto" data-id="${idBase}" style="background-color:azure;" title="Duplicar">📋</button>
+              <button class="btn btn-danger btn-sm eliminar-producto" data-id="${idBase}" title="Eliminar">🗑️</button>
+            </div>
+          </td>
+        </tr>
     `;
   }).join('');
 }
-
 
 function mostrarSubgruposHorizontal(grupo) {
   const productos = window.todosLosProductos || [];
