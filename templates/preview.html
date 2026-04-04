@@ -47,6 +47,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/static/img/faviconmovil.png">
 
 <style>
+  
 html, body { position: relative; background-color: #64636d; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
 body.container.modo-oscuro { position: relative !important; border-radius: 40px !important; padding: 40px !important; margin: 0 auto !important; width: 100% !important; max-width: 1300px !important; box-sizing: border-box !important; }
 body.container.modo-oscuro::before {
@@ -71,10 +72,6 @@ body.container.py-5.modo-oscuro {
     inset 0 4px 30px rgba(255, 255, 255, 0.1),
     inset 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
 }
-.card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1); contain: content; padding: 12px; }
-.btn, .panel-grupos, .panel-subcategorias { contain: content; }
-.logo, .card img { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
-.modo-oscuro { color: white; isolation: isolate; }
 .barra-navegacion { position: fixed; padding: 8px 10px; gap: 8px; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); display: flex; justify-content: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
 .barra-navegacion button { 
   font-family: 'Raleway', sans-serif; 
@@ -86,95 +83,18 @@ body.container.py-5.modo-oscuro {
   background: rgba(255, 255, 255, 0.05); 
   color: white; 
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); 
-  transition: transform 0.3s ease, background-color 0.2s ease, color 0.2s ease; /* ✅ Solo propiedades compostables */
-  will-change: transform; /* Opcional: mejora la anticipación de la GPU */
+  transition: transform 0.3s ease, background-color 0.2s ease, color 0.2s ease;
+  will-change: transform; 
 }
-
-.barra-navegacion button:hover { 
-  background-color: #fff; 
-  color: #333; 
-  transform: scale(1.05);
-}
-.panel-grupos,
-.panel-subcategorias {
-  scrollbar-width: none;
-  overflow-x: auto;
-  white-space: nowrap;
-  max-height: 50vh;
-  overflow-y: auto;
-  z-index: 999;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(6px);
-  padding: 1px 0;
-  text-align: center;
-  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-  scroll-behavior: smooth;
-}
-.panel-grupos button,
-.panel-subcategorias button {
-  font-family: 'Raleway', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  margin: 6px;
-  padding: 1px 6px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.panel-grupos button:hover,
-.panel-subcategorias button:hover {
-  background-color: #fff;
-  color: #333;
-  transform: scale(1.05);
-  box-shadow: 0 0 8px none;
-}
-#carrito { position: fixed; bottom: 80px; right: 20px; padding: 15px; border-radius: 10px; width: 320px; z-index: 999; display: none; }
-.card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; padding: 15px; background-color: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }  
-h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
-.logo-wrapper {  width: 100%; max-width: 230px;  height: min(80vw, 230px); margin: 2rem auto !important; display: flex !important; align-items: center !important; justify-content: center !important; contain: layout style paint !important; }
-.logo { width: 80% !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 10px black); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
 .descripcion-emprendimiento { height: 120px !important; min-height: 120px !important; max-height: 120px !important; margin-left: auto !important; margin-right: auto !important; text-align: center !important; width: fit-content !important; max-width: 90% !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; padding: 15px !important; box-sizing: border-box !important; overflow: hidden !important; contain: layout style paint !important; font-size: 16px !important; line-height: 1.6 !important; background-color: rgba(0, 0, 0, 0.5) !important; color: white !important; border-radius: 10px !important; box-shadow: 0 0 6px rgba(255,255,255,0.3) !important; }
 @media (max-width: 768px) {
   #ubicacion, .bloque-ubicacion { flex-wrap: wrap !important; gap: 5px !important; padding: 10px !important; height: auto !important; min-height: 95px !important; max-width: 95% !important; }
   .descripcion-emprendimiento { height: auto !important; min-height: 100px !important; padding: 12px !important; font-size: 14px !important; line-height: 1.5 !important; max-width: 95% !important; }
 }  
-.text-center { text-align: center; }
-.mt-5 { margin-top: 3rem; }
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-.d-inline-block { display: inline-block; }
-.w-auto { width: auto; }
-.d-none { display: none; }
-.btn-sm {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  border-radius: 0.2rem;
-}
-.btn-primary {
-  color: #fff;
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-.form-select {
-  display: block;
-  width: 100%;
-  font-weight: 400;
-  line-height: 1.5;
-  color: #212529;
-  background-color: #fff;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 16px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 0.25rem;
-  appearance: none;
-}  
+.logo-wrapper {  width: 100%; max-width: 230px;  height: min(80vw, 230px); margin: 2rem auto !important; display: flex !important; align-items: center !important; justify-content: center !important; contain: layout style paint !important; }
+.logo { width: 80% !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 10px black); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
+.barra-navegacion button:hover { background-color: #fff; color: #333; transform: scale(1.05); }  
+  
 </style>
 <link rel="preload" href="static/css/estilos.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="static/css/estilos.min.css"></noscript>  
