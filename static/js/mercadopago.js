@@ -1,5 +1,5 @@
 (function() {
-  let sdkCargado = false;
+  let costoEnvio = 0;
 
   async function cargarSDK() {
     if (window.MercadoPago) return Promise.resolve();
@@ -11,6 +11,14 @@
       document.head.appendChild(script);
     });
   }
+
+  function resetEnvio() {
+    costoEnvio = 0;
+    window.costoEnvio = 0;               // Sincronizar variable global
+    const divCosto = document.getElementById('costoEnvioMostrado');
+    if (divCosto) divCosto.innerHTML = '';
+  }
+  window.resetEnvio = resetEnvio;
 
   async function initMercadoPago() {
     try {
@@ -67,22 +75,120 @@
     }
   }
 
-  async function pagarTodoJunto() {
-    console.log("🛒 Iniciando proceso de pago...");
+  async function calcularEnvio() {
+    const emailVendedor = window.cliente?.email;
+    if (!emailVendedor) {
+      alert("No se pudo identificar al vendedor");
+      return;
+    }
 
+    const codigoPostal = document.getElementById('codigo_postal')?.value.trim();
+    if (!codigoPostal) {
+      alert("Ingresá tu código postal para calcular el envío");
+      return;
+    }
+
+    let pesoTotalKg = 0;
+    for (const item of window.carrito) {
+      const producto = window.todosLosProductos?.find(p => p.id_base === item.id_base);
+      const pesoGramos = producto?.peso_gramos || 500;
+      pesoTotalKg += (pesoGramos * item.cantidad) / 1000;
+    }
+
+    const altoCm = 10, anchoCm = 15, largoCm = 20;
+    const payload = {
+      email_vendedor: emailVendedor,
+      codigo_postal_destino: codigoPostal,
+      peso_kg: pesoTotalKg,
+      alto_cm: altoCm,
+      ancho_cm: anchoCm,
+      largo_cm: largoCm
+    };
+
+    const btnCalcular = document.getElementById('btnCalcularEnvio');
+    if (btnCalcular) {
+      btnCalcular.disabled = true;
+      btnCalcular.textContent = 'Calculando...';
+    }
+
+    try {
+      const resp = await fetch("/ca/cotizar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      if (data.ok && data.costo) {
+        costoEnvio = data.costo;
+        window.costoEnvio = costoEnvio;
+        const divCosto = document.getElementById("costoEnvioMostrado");
+        if (divCosto) divCosto.innerHTML = `<strong>Envío:</strong> $${costoEnvio.toFixed(2)}`;
+        actualizarCarritoConEnvio();
+      } else {
+        alert("No se pudo calcular el envío: " + (data.error || "Error desconocido"));
+        costoEnvio = 0;
+        window.costoEnvio = 0;
+        const divCosto = document.getElementById("costoEnvioMostrado");
+        if (divCosto) divCosto.innerHTML = "";
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error al calcular envío. Verifica tu conexión.");
+      costoEnvio = 0;
+      window.costoEnvio = 0;
+    } finally {
+      if (btnCalcular) {
+        btnCalcular.disabled = false;
+        btnCalcular.textContent = 'Calcular envío';
+      }
+    }
+  }
+
+  function actualizarCarritoConEnvio() {
+    let subtotal = 0;
+    if (window.carrito && window.carrito.length) {
+      subtotal = window.carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+    }
+    const envio = (typeof window.costoEnvio !== 'undefined') ? window.costoEnvio : costoEnvio;
+    let total = subtotal + envio;
+    const totalSpan = document.getElementById('totalCarrito');
+    if (totalSpan) totalSpan.textContent = total.toFixed(2);
+    let envioLinea = document.getElementById('envioLinea');
+    if (!envioLinea && window.carrito.length) {
+      const lista = document.getElementById('listaCarrito');
+      if (lista) {
+        envioLinea = document.createElement('li');
+        envioLinea.id = 'envioLinea';
+        envioLinea.style.listStyle = 'none';
+        envioLinea.style.marginTop = '8px';
+        envioLinea.style.borderTop = '1px solid #ccc';
+        lista.appendChild(envioLinea);
+      }
+    }
+    if (envioLinea) {
+      envioLinea.innerHTML = `<div style="display:flex; justify-content:space-between;">
+        <span>Envío</span>
+        <span>$${envio.toFixed(2)}</span>
+      </div>`;
+    }
+  }
+  window.actualizarCarritoConEnvio = actualizarCarritoConEnvio;
+
+  async function pagarTodoJunto() {
     const carrito = window.carrito || [];
     if (carrito.length === 0) {
       alert("❌ El carrito está vacío");
       return;
     }
 
-    const nombreInput = document.querySelector('input[name="nombre"]');
-    const apellidoInput = document.querySelector('input[name="apellido"]');
-    const emailInput = document.querySelector('input[name="email"]');
-    const telefonoInput = document.querySelector('input[name="telefono"]');
+    // Campos obligatorios siempre
+    const nombreInput = document.getElementById('nombre');
+    const apellidoInput = document.getElementById('apellido');
+    const emailInput = document.getElementById('email_cliente');
+    const telefonoInput = document.getElementById('telefono');
 
     if (!nombreInput || !apellidoInput || !emailInput) {
-      alert("❌ Por favor completa todos los campos obligatorios");
+      alert("❌ Por favor completa nombre, apellido y email");
       return;
     }
 
@@ -102,11 +208,59 @@
       return;
     }
 
-    const itemsVerificar = carrito.map(item => ({
+    // Determinar si hay envío (costo > 0)
+    const tieneEnvio = (window.costoEnvio || costoEnvio) > 0;
+
+    let calle = "", numero = "", localidad = "", provinciaCodigo = "", codigoPostal = "";
+
+    if (tieneEnvio) {
+      const calleInput = document.getElementById('calle');
+      const numeroInput = document.getElementById('numero');
+      const localidadInput = document.getElementById('localidad');
+      const provinciaSelect = document.getElementById('provincia_codigo');
+      const codigoPostalInput = document.getElementById('codigo_postal');
+
+      if (!calleInput || !numeroInput || !localidadInput || !provinciaSelect || !codigoPostalInput) {
+        alert("❌ Error: faltan campos de dirección en el formulario");
+        return;
+      }
+
+      calle = calleInput.value.trim();
+      numero = numeroInput.value.trim();
+      localidad = localidadInput.value.trim();
+      provinciaCodigo = provinciaSelect.value;
+      codigoPostal = codigoPostalInput.value.trim();
+
+      if (!calle || !numero || !localidad || !provinciaCodigo || !codigoPostal) {
+        alert("❌ Para el envío, todos los campos de dirección son obligatorios");
+        return;
+      }
+    }
+
+    // Si no hay envío, aún podemos permitir que el usuario haya ingresado dirección, pero no la usamos.
+    // Para el payload, si no hay envío, enviamos un objeto vacío o null.
+    const clienteDireccion = tieneEnvio ? {
+      calle,
+      numero,
+      localidad,
+      provincia_codigo: provinciaCodigo,
+      codigo_postal: codigoPostal
+    } : {};
+
+    const itemsVerificar = carrito.filter(item => item.id_base).map(item => ({
       id_base: item.id_base,
       talle: item.talle || 'unico',
       cantidad: item.cantidad
     }));
+
+    if (itemsVerificar.length === 0) {
+      alert("❌ El carrito no contiene productos válidos para procesar el pago.");
+      if (btnPagarFinal) {
+        btnPagarFinal.disabled = false;
+        btnPagarFinal.textContent = 'Pagar con Mercado Pago';
+      }
+      return;
+    }
 
     const btnPagarFinal = document.getElementById('btnPagarFinal');
     if (btnPagarFinal) {
@@ -120,7 +274,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email_vendedor: window.cliente.email,
-          items: itemsVerificar
+          carrito: itemsVerificar 
         })
       });
 
@@ -168,13 +322,13 @@
 
       const itemsMP = [];
       const itemsCarrito = [];
-      let totalCalculado = 0;
+      let subtotalProductos = 0;
 
       carrito.forEach(item => {
         const precio = convertirPrecio(item.precio);
         const cantidad = convertirCantidad(item.cantidad);
         const subtotal = precio * cantidad;
-        totalCalculado += subtotal;
+        subtotalProductos += subtotal;
 
         itemsMP.push({
           title: item.nombre + (item.talle ? ` (${item.talle})` : ""),
@@ -195,16 +349,19 @@
         });
       });
 
+      const totalFinal = subtotalProductos + (window.costoEnvio || costoEnvio);
       const orden_id = 'ORD_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
       const payload = {
         email_vendedor: window.cliente.email,
         carrito: itemsCarrito,
         items_mp: itemsMP,
-        total: totalCalculado,
+        total: totalFinal,
+        costo_envio: window.costoEnvio || costoEnvio,
         cliente_nombre: `${nombre} ${apellido}`.trim(),
         cliente_email: emailCliente,
         cliente_telefono: telefono,
+        cliente_direccion: clienteDireccion,
         orden_id: orden_id,
         url_retorno: window.location.href
       };
@@ -231,7 +388,7 @@
         localStorage.setItem('ultima_orden_data', JSON.stringify({
           fecha: new Date().toISOString(),
           items: carrito.length,
-          total: totalCalculado,
+          total: totalFinal,
           cliente: `${nombre} ${apellido}`,
           email: emailCliente
         }));
@@ -243,11 +400,9 @@
           autoOpen: true
         });
       } else {
-        console.warn("Respuesta inesperada:", data);
         alert("⚠️ No se pudo procesar el pago. Intenta de nuevo.");
       }
     } catch (error) {
-      console.error("💥 Error al procesar el pago:", error);
       alert("❌ Error al procesar el pago: " + error.message);
     } finally {
       if (btnPagarFinal) {
@@ -256,6 +411,13 @@
       }
     }
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnCalcular = document.getElementById('btnCalcularEnvio');
+    if (btnCalcular) {
+      btnCalcular.addEventListener('click', calcularEnvio);
+    }
+  });
 
   setTimeout(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -273,4 +435,5 @@
 
   window.initMercadoPago = initMercadoPago;
   window.pagarTodoJunto = pagarTodoJunto;
+  window.calcularEnvio = calcularEnvio;
 })();
