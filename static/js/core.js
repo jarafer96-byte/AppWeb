@@ -493,48 +493,6 @@ function renderProducto(p, esLCP = false) {
   return card;
 }
 
-(function() {
-  if (!document.getElementById('oferta-animacion-css')) {
-    const style = document.createElement('style');
-    style.id = 'oferta-animacion-css';
-    style.textContent = `
-      @keyframes pulseOferta {
-        0%, 100% { 
-          transform: scale(1); 
-          box-shadow: 0 2px 5px rgba(0,0,0,0.3); 
-        }
-        50% { 
-          transform: scale(1.05); 
-          box-shadow: 0 4px 10px rgba(255, 71, 87, 0.5); 
-        }
-      }
-      
-      .card-producto.oferta {
-        border-left: 4px solid #ff4757;
-      }
-      
-      .precio-oferta {
-        color: #ff4757 !important;
-        font-weight: bold !important;
-        font-size: 1.1rem !important;
-      }
-      
-      .precio-anterior-tachado {
-        text-decoration: line-through;
-        color: #999;
-        font-size: 0.9rem;
-        margin-right: 5px;
-      }
-      
-      .oferta-especial {
-        background: linear-gradient(45deg, #ff9500, #ff5e3a) !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-})();
-
-
 function openModal(src) {
   const modal = document.getElementById("imgModal");
   document.getElementById("modal-img").src = src;
