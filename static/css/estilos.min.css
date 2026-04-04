@@ -10,8 +10,24 @@
     border-radius: 20px;
     z-index: 5;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    animation: pulseOferta 1.5s infinite; 
+    animation: pulseOferta 1.5s infinite; /* si quieres la animación que ya definiste */
 }
+.precio-anterior-tachado {
+  text-decoration: line-through;
+  color: #999;
+  font-size: 0.9rem;
+  margin-right: 5px;
+}
+@keyframes pulseOferta {
+  0%, 100% { 
+    transform: scale(1); 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3); 
+  }
+  50% { 
+    transform: scale(1.05); 
+    box-shadow: 0 4px 10px rgba(255, 71, 87, 0.5); 
+  }
+}  
 .card, .card-giratoria { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1); contain: content; padding: 12px; }
 .btn, .panel-grupos, .panel-subcategorias { contain: content; }
 .logo, .card img { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
