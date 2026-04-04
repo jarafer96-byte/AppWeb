@@ -286,6 +286,9 @@ function salirAdmin() {
   const configurarMP = document.getElementById('configurarMP');
   if (configurarMP) configurarMP.classList.add('d-none');
 
+  const configurarCA = document.getElementById('configurarCA');
+  if (configurarCA) configurarCA.classList.add('d-none');
+
   const loginToggleBtn = document.getElementById('loginToggleBtn');
   if (loginToggleBtn) loginToggleBtn.style.display = 'block';
 
@@ -315,6 +318,7 @@ function salirAdmin() {
     const primerGrupo = document.querySelector('.btn-grupo');
     if (primerGrupo) mostrarGrupo(primerGrupo.textContent.trim(), { target: primerGrupo });
   }
+  location.reload();
 }
 
 function loginAdmin(event) {
