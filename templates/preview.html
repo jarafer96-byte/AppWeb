@@ -24,8 +24,9 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://sdk.mercadopago.com">
   <link rel="preconnect" href="https://pub-715efd970fe0495b9f12469499d2ce20.r2.dev" crossorigin>
-
-  <link rel="preload" as="image" href="/static/img/1234.webp" fetchpriority="high">
+  {% if config.logo %}
+  <link rel="preload" as="image" href="{{ url_for('static', filename='img/' + config.logo) }}" fetchpriority="high">
+  {% endif %}
 
   <link rel="stylesheet" 
         href="https://fonts.googleapis.com/css2?family=Roboto&family=Playfair+Display&family=Raleway&display=swap" 
@@ -75,8 +76,25 @@ body.container.py-5.modo-oscuro {
 .logo, .card img { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
 .modo-oscuro { color: white; isolation: isolate; }
 .barra-navegacion { position: fixed; padding: 8px 10px; gap: 8px; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); display: flex; justify-content: center; box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); }
-.barra-navegacion button { font-family: 'Raleway', sans-serif; font-weight: 600; font-size: 14px; padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05); color: white; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); transition: all 0.3s ease; }
-.barra-navegacion button:hover { background-color: #fff; color: #333; transform: scale(1.05);}
+.barra-navegacion button { 
+  font-family: 'Raleway', sans-serif; 
+  font-weight: 600; 
+  font-size: 14px; 
+  padding: 8px 15px; 
+  border-radius: 30px; 
+  border: 1px solid rgba(255, 255, 255, 0.2); 
+  background: rgba(255, 255, 255, 0.05); 
+  color: white; 
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); 
+  transition: transform 0.3s ease, background-color 0.2s ease, color 0.2s ease; /* ✅ Solo propiedades compostables */
+  will-change: transform; /* Opcional: mejora la anticipación de la GPU */
+}
+
+.barra-navegacion button:hover { 
+  background-color: #fff; 
+  color: #333; 
+  transform: scale(1.05);
+}
 .panel-grupos,
 .panel-subcategorias {
   scrollbar-width: none;
@@ -119,7 +137,7 @@ body.container.py-5.modo-oscuro {
 .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; padding: 15px; background-color: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }  
 h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
 .logo-wrapper {  width: 100%; max-width: 230px;  height: min(80vw, 230px); margin: 2rem auto !important; display: flex !important; align-items: center !important; justify-content: center !important; contain: layout style paint !important; }
-.logo { width: 80% !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 10px violet); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
+.logo { width: 80% !important; height: 80% !important;  max-width: 80% !important; max-height: 80% !important; object-fit: contain !important; filter: brightness(1.2) drop-shadow(0 0 10px black); transition: filter 0.3s ease; animation: pulsoLogo 4s ease-in-out infinite; }
 .descripcion-emprendimiento { height: 120px !important; min-height: 120px !important; max-height: 120px !important; margin-left: auto !important; margin-right: auto !important; text-align: center !important; width: fit-content !important; max-width: 90% !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; padding: 15px !important; box-sizing: border-box !important; overflow: hidden !important; contain: layout style paint !important; font-size: 16px !important; line-height: 1.6 !important; background-color: rgba(0, 0, 0, 0.5) !important; color: white !important; border-radius: 10px !important; box-shadow: 0 0 6px rgba(255,255,255,0.3) !important; }
 @media (max-width: 768px) {
   #ubicacion, .bloque-ubicacion { flex-wrap: wrap !important; gap: 5px !important; padding: 10px !important; height: auto !important; min-height: 95px !important; max-width: 95% !important; }
@@ -183,7 +201,7 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
         const script = document.createElement('script');
         script.src = 'static/js/admin.js';
         script.defer = true;
-        document.head.appendChild(script);
+        document.body.appendChild(script);
       }
     })();
 </script>  
@@ -200,7 +218,6 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
          class="img-fluid logo"
          fetchpriority="high"
          decoding="async"
-         importance="high">
   </div>
 {% endif %}
 
@@ -256,49 +273,87 @@ h1, h2, h3, .btn, .card { font-family: 'Raleway', sans-serif; }
   </div>
 </div>
   
-  <div class="text-center mt-5 mb-1">
-    <select id="ordenPrecio" class="form-select w-auto d-inline-block" aria-label="Ordenar productos por precio" style="min-width: 210px;">
-      <option value="asc" selected>Precio: Menor a mayor</option>
-     <option value="desc">Precio: Mayor a menor</option>
-    </select>
-  </div>
+<div class="text-center mt-5 mb-1">
+  <select id="ordenPrecio" class="form-select w-auto d-inline-block" aria-label="Ordenar productos por precio" style="min-width: 210px;">
+    <option value="asc" selected>Precio: Menor a mayor</option>
+    <option value="desc">Precio: Mayor a menor</option>
+  </select>
+</div>
   
-  <div class="barra-wrapper">
-    <nav class="barra-navegacion">
-      <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
-      <button id="btnContacto" onclick="irAContacto()">Contacto</button>
-    </nav>
+<div class="barra-wrapper">
+  <nav class="barra-navegacion">
+    <button id="btnProductos" onclick="mostrarTodos()">Productos</button>
+    <button id="btnContacto" onclick="irAContacto()">Contacto</button>
+  </nav>
     
-    <div class="contenedor-panel">
-        <button class="flecha-scroll flecha-izq" style="display: none;">‹</button>
-        <div id="panelGrupos" class="panel-grupos oculta">
-        </div>
-        <button class="flecha-scroll flecha-der" style="display: none;">›</button>
-    </div>
-
-    <div class="contenedor-panel">
-        <button class="flecha-scroll flecha-izq" style="display: none;">‹</button>
-        <div id="panelSubcategorias" class="panel-subcategorias oculta">
-        </div>
-        <button class="flecha-scroll flecha-der" style="display: none;">›</button>
-     </div>
+  <div class="contenedor-panel">
+      <button class="flecha-scroll flecha-izq" style="display: none;">‹</button>
+      <div id="panelGrupos" class="panel-grupos oculta">
+      </div>
+      <button class="flecha-scroll flecha-der" style="display: none;">›</button>
   </div>
+
+  <div class="contenedor-panel">
+      <button class="flecha-scroll flecha-izq" style="display: none;">‹</button>
+      <div id="panelSubcategorias" class="panel-subcategorias oculta">
+      </div>
+      <button class="flecha-scroll flecha-der" style="display: none;">›</button>
+  </div>
+</div>
 
 <div id="productos" class="row productos-container"></div>
 
+<template id="producto-template">
+  <div class="col-lg-4 col-md-6 col-sm-12 mb-4 fade-reorder card-producto">
+    <div class="card-giratoria">
+      <div class="card-contenedor">
+        <div class="card-front">
+          <div class="oferta-badge" style="display: none;"></div>
+          <button class="btn-girar">🔄</button>
+          <img class="lazy-image" alt="" width="300" height="180" style="width:100%; height:180px; object-fit:contain; border-radius:4px; cursor:pointer;">
+          <div class="card-body" style="padding-top: 1rem;">
+            <h5 class="card-title" style="font-size: 1.1rem !important;"></h5>
+            <p class="mb-2">
+              <span class="precio-anterior-tachado" style="display: none;"></span>
+              $<span class="precio-actual"></span>
+              <small class="ahorro" style="display: none;"></small>
+            </p>
+            <div class="selectores-container"></div>
+            <div class="mt-3 d-flex align-items-center gap-2">
+              <input type="number" min="1" value="1" class="form-control form-control-sm" style="width: 70px;">
+              <button type="button" class="btn btn-secondary btn-sm">Agregar al carrito</button>
+            </div>
+            <div class="fotos-adicionales mt-2"></div>
+            <div class="mt-3 whatsapp-container"></div>
+          </div>
+        </div>
+ 
+        <div class="card-back" style="display: flex; flex-direction: column; height: 100%;">
+          <button class="btn-reversa" style="position: absolute; top: 10px; right: 10px;">↩️</button>
+          <div class="descripcion-area" style="flex:1; padding:10px 80px 80px 80px; overflow-y:auto; text-align:center;">
+            <div class="descripcion-texto"></div>
+          </div>
+          <div class="card-back-footer" style="padding:15px; border-top:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2);">
+            <div class="colores-info" style="display: none;"></div>
+            <div class="talles-info" style="display: none;"></div>
+            <button class="btn btn-secondary btn-sm w-100">🔄 Volver al frente</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+    
+<button id="volverArriba" class="btn btn-volver-arriba" 
+        style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
+  ↑
+</button>
 
-  <button id="volverArriba" class="btn btn-volver-arriba" 
-          style="position: fixed; bottom: 20px; left: 20px; display: none; z-index: 1000;">
-    ↑
-  </button>
-
-  <div id="contenedor-grupos"></div>
+<div id="contenedor-grupos"></div>
     
 <div id="adminFormsContainer" class="d-none" style=" background: linear-gradient(135deg, rgb(255 248 248 / 40%) 0%, rgb(0 0 0 / 60%) 100%), radial-gradient(circle at 15% 15%, rgb(0 0 0) 0%, #00000078 30%), radial-gradient(circle at 85% 85%, rgb(0 0 0 / 54%) 0%, #000000c4 30%);">
   <div id="tableView"></div>
 </div>
-<datalist id="grupos-sugeridos"></datalist>
-<datalist id="subgrupos-sugeridos"></datalist>
   
 <div id="paginacion" class="text-center mt-3"></div>
 
