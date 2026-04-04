@@ -493,26 +493,7 @@ def subir_a_firestore(producto, email, es_edicion=False):
             sufijo = uuid.uuid4().hex[:6]
             custom_id = f"{nombre_id}_{fecha}_{subgrupo_id}_{sufijo}"
 
-        precio_anterior = 0
-        if "precio_anterior" in producto:
-            try:
-                precio_anterior_raw = producto["precio_anterior"]
-                if precio_anterior_raw:
-                    precio_anterior_str = str(precio_anterior_raw).strip()
-                    precio_anterior_clean = re.sub(r"[^\d,\.]", "", precio_anterior_str)
-
-                    if "," in precio_anterior_clean and "." in precio_anterior_clean:
-                        precio_anterior_clean = precio_anterior_clean.replace(".", "").replace(",", ".")
-                    elif "," in precio_anterior_clean and "." not in precio_anterior_clean:
-                        precio_anterior_clean = precio_anterior_clean.replace(",", ".")
-                    
-                    precio_anterior_float = float(precio_anterior_clean)
-                    precio_anterior = int(round(precio_anterior_float))
-                else:
-                    precio_anterior = 0
-            except Exception:
-                precio_anterior = 0
-
+        # Calcular precio actual
         precio_actual = 0
         try:
             precio_raw = producto["precio"]
@@ -529,8 +510,16 @@ def subir_a_firestore(producto, email, es_edicion=False):
         except Exception as e:
             return {"status": "error", "error": f"Formato de precio inválido: '{price_str}' -> '{price_clean}'", "detail": str(e)}
 
-        if precio_anterior > 0 and precio_anterior <= precio_actual:
-            precio_anterior = 0
+        # 🔄 Calcular precio anterior automáticamente si es edición
+        precio_anterior = 0
+        if es_edicion and id_base_existente:
+            existing_doc = db.collection("usuarios").document(email).collection("productos").document(id_base_existente).get()
+            if existing_doc.exists:
+                existing_data = existing_doc.to_dict()
+                precio_guardado = existing_data.get("precio", 0)
+                if precio_actual < precio_guardado:
+                    precio_anterior = precio_guardado
+        # Si no es edición o no hay precio anterior, queda 0
 
         fotos_adicionales = producto.get("fotos_adicionales", [])
         if not isinstance(fotos_adicionales, list):
