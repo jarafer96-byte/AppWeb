@@ -839,6 +839,7 @@ function obtenerProductoDesdeFila(fila, idBase) {
 
   producto.nombre = fila.querySelector('.nombre-input')?.value || '';
   producto.precio = parseFloat(fila.querySelector('.precio-input')?.value) || 0;
+  producto.precio_anterior = parseFloat(fila.querySelector('.precio-anterior-input')?.value) || 0; 
   producto.descripcion = fila.querySelector('.descripcion-textarea')?.value || '';
 
   const coloresContainer = fila.querySelector('.colores-stock-container');
