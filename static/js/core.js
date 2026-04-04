@@ -284,8 +284,6 @@ function renderProducto(p, esLCP = false) {
   if (esOferta) {
     precioAnteriorSpan.style.display = 'inline';
     precioAnteriorSpan.textContent = `$${precioAnterior.toFixed(2)}`;
-    ahorroSmall.style.display = 'inline';
-    ahorroSmall.textContent = ` Ahorras $${(precioAnterior - precioActual).toFixed(2)}`;
     ofertaBadge.style.display = 'block';
     ofertaBadge.textContent = `🔥 OFERTA -${descuentoPorcentaje}%`;
     precioSpan.style.color = '#ff4757';
