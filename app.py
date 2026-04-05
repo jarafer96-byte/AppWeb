@@ -2041,15 +2041,17 @@ def obtener_datos_remitente(email, db):
 def actualizar_stock_talle():
     try:
         data = request.json
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({'error': 'No autenticado'}), 401
+        
+        # Priorizar cabecera X-Vendor-Email
+        vendor_email = request.headers.get('X-Vendor-Email')
+        if vendor_email:
+            email = vendor_email
+        else:
+            session_email = session.get('email')
+            if not session_email:
+                return jsonify({'error': 'No autenticado'}), 401
+            email = session_email
 
-        provided_email = data.get('email')
-        if provided_email and provided_email != session_email:
-            return jsonify({'error': 'No autorizado'}), 403
-
-        email = session_email
         id_base = data.get('id') or data.get('id_base')
         talle = data.get('talle')
         nuevo_stock = data.get('stock')
@@ -2093,20 +2095,23 @@ def actualizar_stock_talle():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+        
 
 @app.route('/guardar-talles-stock', methods=['POST'])
 def guardar_talles_stock():
     try:
         data = request.json
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({'error': 'No autenticado'}), 401
+        
+        # Priorizar cabecera X-Vendor-Email
+        vendor_email = request.headers.get('X-Vendor-Email')
+        if vendor_email:
+            email = vendor_email
+        else:
+            session_email = session.get('email')
+            if not session_email:
+                return jsonify({'error': 'No autenticado'}), 401
+            email = session_email
 
-        provided_email = data.get('email')
-        if provided_email and provided_email != session_email:
-            return jsonify({'error': 'No autorizado'}), 403
-
-        email = session_email
         id_base = data.get('id') or data.get('id_base')
         stock_por_talle = data.get('stock_por_talle')
         
@@ -2167,6 +2172,7 @@ def guardar_talles_stock():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+        
      
 @app.route('/pagar', methods=['POST'])
 def pagar():
