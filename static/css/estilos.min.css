@@ -1,3 +1,62 @@
+.card-front img, .card-back img {
+    border-radius: 16px;
+    object-fit: cover;
+    transition: transform 0.4s ease, filter 0.3s;
+}
+
+.card-front:hover img {
+    transform: scale(1.02);
+    filter: brightness(1.05) contrast(1.02);
+}
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #fff, #ddd);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.precio-actual {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #f8f9fa;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+/* Botón agregar al carrito */
+.btn-secondary.btn-sm {
+    background: linear-gradient(90deg, #2c3e50, #1e2a36);
+    border: none;
+    border-radius: 40px;
+    padding: 8px 16px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+}
+
+.btn-secondary.btn-sm:hover {
+    background: linear-gradient(90deg, #3e5a6c, #2c3e50);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px -8px black;
+}
+
+/* Selectores de color/talle */
+.form-select-sm {
+    border-radius: 30px;
+    background-color: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.form-select-sm option {
+    background-color: #1e1e2f;
+    color: white;
+}
+
 .oferta-badge {
     position: absolute;
     top: 10px;
