@@ -422,15 +422,16 @@ def ca_validar():
 @app.route('/ca/crear-orden', methods=['POST'])
 def ca_crear_orden():
     data = request.get_json(force=True)
-    session_email = session.get('email')
-    if not session_email:
-        return jsonify({'error': 'No autenticado'}), 401
 
-    provided_email = data.get('email')
-    if provided_email and provided_email != session_email:
-        return jsonify({'error': 'No autorizado'}), 403
+    vendor_email = request.headers.get('X-Vendor-Email')
+    if vendor_email:
+        email = vendor_email
+    else:
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({'error': 'No autenticado'}), 401
+        email = session_email
 
-    email = session_email
     orden_data = data.get('orden_data')
     if not orden_data:
         return jsonify({'error': 'Falta orden_data'}), 400
@@ -444,15 +445,16 @@ def ca_crear_orden():
 @app.route('/ca/cancelar-orden', methods=['POST'])
 def ca_cancelar_orden():
     data = request.get_json(force=True)
-    session_email = session.get('email')
-    if not session_email:
-        return jsonify({'error': 'No autenticado'}), 401
+    
+    vendor_email = request.headers.get('X-Vendor-Email')
+    if vendor_email:
+        email = vendor_email
+    else:
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({'error': 'No autenticado'}), 401
+        email = session_email
 
-    provided_email = data.get('email')
-    if provided_email and provided_email != session_email:
-        return jsonify({'error': 'No autorizado'}), 403
-
-    email = session_email
     tn = data.get('trackingNumber')
     if not tn:
         return jsonify({'error': 'Falta trackingNumber'}), 400
@@ -464,15 +466,16 @@ def ca_cancelar_orden():
 @app.route('/ca/rotulos', methods=['POST'])
 def ca_rotulos():
     data = request.get_json(force=True)
-    session_email = session.get('email')
-    if not session_email:
-        return jsonify({'error': 'No autenticado'}), 401
+    
+    vendor_email = request.headers.get('X-Vendor-Email')
+    if vendor_email:
+        email = vendor_email
+    else:
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({'error': 'No autenticado'}), 401
+        email = session_email
 
-    provided_email = data.get('email')
-    if provided_email and provided_email != session_email:
-        return jsonify({'error': 'No autorizado'}), 403
-
-    email = session_email
     pedidos = data.get('pedidos')
     label_format = data.get('labelFormat')
     if not pedidos:
@@ -483,20 +486,22 @@ def ca_rotulos():
         return jsonify(result), 200
     else:
         return jsonify({'error': result}), status
+        
 
 
 @app.route('/ca/historial', methods=['POST'])
 def ca_historial():
     data = request.get_json(force=True)
-    session_email = session.get('email')
-    if not session_email:
-        return jsonify({'error': 'No autenticado'}), 401
+    
+    vendor_email = request.headers.get('X-Vendor-Email')
+    if vendor_email:
+        email = vendor_email
+    else:
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({'error': 'No autenticado'}), 401
+        email = session_email
 
-    provided_email = data.get('email')
-    if provided_email and provided_email != session_email:
-        return jsonify({'error': 'No autorizado'}), 403
-
-    email = session_email
     tracking_numbers = data.get('trackingNumbers')
     ext_client = data.get('extClient')
     if not tracking_numbers:
@@ -507,19 +512,20 @@ def ca_historial():
         return jsonify(result), 200
     else:
         return jsonify({'error': result}), status
+        
 
 
 @app.route('/ca/sucursales', methods=['GET'])
 def ca_sucursales():
-    session_email = session.get('email')
-    if not session_email:
-        return jsonify({'error': 'No autenticado'}), 401
+    vendor_email = request.headers.get('X-Vendor-Email')
+    if vendor_email:
+        email = vendor_email
+    else:
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({'error': 'No autenticado'}), 401
+        email = session_email
 
-    provided_email = request.args.get('email')
-    if provided_email and provided_email != session_email:
-        return jsonify({'error': 'No autorizado'}), 403
-
-    email = session_email
     state_id = request.args.get('stateId')
     pickup = request.args.get('pickup_availability')
     if pickup is not None:
@@ -533,6 +539,8 @@ def ca_sucursales():
         return jsonify(result), 200
     else:
         return jsonify({'error': result}), status
+
+
 
 @app.route('/ca/guardar-credenciales', methods=['POST'])
 def ca_guardar_credenciales():
