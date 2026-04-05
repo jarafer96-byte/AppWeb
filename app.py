@@ -932,18 +932,14 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
 @app.route("/subir-foto", methods=["POST"])
 def subir_foto():
     try:
-        # Verificar autenticación
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({"ok": False, "error": "No autenticado"}), 401
-
-        # Obtener email del formulario y validar
-        form_email = request.form.get("email")
-        if form_email and form_email != session_email:
-            return jsonify({"ok": False, "error": "No autorizado"}), 403
-
-        # Usar el email de sesión para la ruta de almacenamiento
-        email = session_email
+        vendor_email = request.headers.get('X-Vendor-Email')
+        if vendor_email:
+            email = vendor_email
+        else:
+            session_email = session.get('email')
+            if not session_email:
+                return jsonify({"ok": False, "error": "No autenticado"}), 401
+            email = session_email
 
         file = request.files.get("file")
         if not file:
@@ -1004,6 +1000,7 @@ def update_products_last_modified(email):
         doc_ref.set({'last_updated': firestore.SERVER_TIMESTAMP}, merge=True)
     except Exception as e:
         pass
+
 
 
 def get_products_etag(email):
