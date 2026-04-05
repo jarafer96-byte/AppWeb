@@ -3119,15 +3119,18 @@ def callback_mp():
     if not code:
         return "❌ No se recibió código de autorización", 400
 
-    parts = state_data.split('|')
-    email = parts[0] if len(parts) > 0 else ""
-    url_retorno = parts[1] if len(parts) > 1 else None
+    # Descifrar y validar el state (máximo 1 hora de validez)
+    try:
+        data = serializer.loads(state_data, max_age=3600)
+        email = data.get('email')
+        url_retorno = data.get('url_retorno')
+        if not email:
+            raise ValueError("Email no presente en state")
+    except (BadSignature, SignatureExpired, ValueError):
+        return "❌ State inválido o expirado", 400
 
     if url_retorno == "":
         url_retorno = None
-
-    if not email:
-        return "❌ Error: email no encontrado en state", 400
 
     client_id = os.getenv("MP_CLIENT_ID")
     client_secret = os.getenv("MP_CLIENT_SECRET")
@@ -3195,12 +3198,10 @@ def callback_mp():
 
         if url_retorno:
             destino = url_retorno.rstrip("/")
-
             if "?" in destino:
                 redirect_url = f"{destino}&mp_configurado=true&email={email}"
             else:
                 redirect_url = f"{destino}?mp_configurado=true&email={email}"
-
             return redirect(redirect_url)
         else:
             preview_url = f"https://mpagina.onrender.com/preview?email={email}&mp_configurado=true"
@@ -3209,7 +3210,6 @@ def callback_mp():
     except Exception as e:
         import traceback
         traceback.print_exc()
-
         if url_retorno:
             error_url = f"{url_retorno}?mp_error=1&email={email}"
             return redirect(error_url)
