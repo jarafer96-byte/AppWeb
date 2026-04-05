@@ -2486,6 +2486,10 @@ def login_admin():
         clave_guardada = doc.to_dict().get("clave_admin")
 
         if clave_guardada == clave_ingresada:
+            # 🔐 Establecer sesión (importante para la seguridad)
+            session['email'] = usuario
+            session.permanent = True
+
             expiration = datetime.utcnow() + timedelta(days=7)
             token = jwt.encode(
                 {"email": usuario, "exp": expiration},
@@ -2502,7 +2506,7 @@ def login_admin():
 
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
+        
 @app.route('/logout-admin')
 def logout_admin():
     session.pop('modo_admin', None)
