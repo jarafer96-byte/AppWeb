@@ -258,10 +258,18 @@ def get_authenticated_email(request, session, allow_public=False):
 @app.route('/ca/cotizar', methods=['POST'])
 def ca_cotizar():
     data = request.get_json(force=True)
-    email_vendedor = data.get('email_vendedor') or session.get('email')
-    if not email_vendedor:
-        return jsonify({'error': 'Falta email del vendedor'}), 400
-    
+    session_email = session.get('email')
+    provided_email = data.get('email_vendedor')
+
+    if session_email:
+        if provided_email and provided_email != session_email:
+            return jsonify({'error': 'No autorizado'}), 403
+        email_vendedor = session_email
+    else:
+        if not provided_email:
+            return jsonify({'error': 'Falta email del vendedor'}), 400
+        email_vendedor = provided_email
+
     codigo_postal_destino = data.get('codigo_postal_destino')
     peso_kg = data.get('peso_kg')
     alto_cm = data.get('alto_cm')
@@ -270,7 +278,7 @@ def ca_cotizar():
 
     if not all([codigo_postal_destino, peso_kg, alto_cm, ancho_cm, largo_cm]):
         return jsonify({'error': 'Faltan datos para la cotización'}), 400
-    
+
     try:
         remitente_data = obtener_datos_remitente(email_vendedor, db)
         codigo_postal_origen = remitente_data["address"]["zipCode"]
@@ -289,16 +297,16 @@ def ca_cotizar():
         payload = {
             "postalCodeOrigin": codigo_postal_origen,
             "postalCodeDestination": codigo_postal_destino,
-            "deliveredType": "D",  
+            "deliveredType": "D",
             "dimensions": {
-                "weight": int(peso_efectivo * 1000),  
+                "weight": int(peso_efectivo * 1000),
                 "height": alto_cm,
                 "width": ancho_cm,
                 "length": largo_cm
             }
         }
         response = requests.post(rates_url, json=payload, headers=headers, timeout=30)
-        
+
         if response.status_code == 200:
             data_response = response.json()
             rates = data_response.get('rates', [])
@@ -314,7 +322,7 @@ def ca_cotizar():
         else:
             error_msg = f"Error en la API de MiCorreo: {response.status_code} - {response.text}"
             return jsonify({'ok': False, 'error': error_msg}), response.status_code
-            
+
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
         
@@ -392,23 +400,34 @@ def ca_guardar_remitente():
 def ca_validar():
     """Valida las credenciales de Correo Argentino para el vendedor logueado."""
     data = request.get_json(silent=True) or {}
-    email = data.get('email') or session.get('email')
-    if not email:
-        return jsonify({'error': 'No se especificó email'}), 400
+    session_email = session.get('email')
+    if not session_email:
+        return jsonify({'error': 'No autenticado'}), 401
 
+    provided_email = data.get('email')
+    if provided_email and provided_email != session_email:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    email = session_email
     ok, msg = validar_credenciales(email, db)
     if ok:
         return jsonify({'status': 'ok', 'message': msg}), 200
     else:
         return jsonify({'status': 'error', 'message': msg}), 401
 
+
 @app.route('/ca/crear-orden', methods=['POST'])
 def ca_crear_orden():
     data = request.get_json(force=True)
-    email = data.get('email') or session.get('email')
-    if not email:
-        return jsonify({'error': 'Falta email'}), 400
+    session_email = session.get('email')
+    if not session_email:
+        return jsonify({'error': 'No autenticado'}), 401
 
+    provided_email = data.get('email')
+    if provided_email and provided_email != session_email:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    email = session_email
     orden_data = data.get('orden_data')
     if not orden_data:
         return jsonify({'error': 'Falta orden_data'}), 400
@@ -418,26 +437,43 @@ def ca_crear_orden():
         return jsonify({'status': 'ok', 'trackingNumber': tn, 'message': msg}), 200
     else:
         return jsonify({'status': 'error', 'message': msg}), status
-
+        
 @app.route('/ca/cancelar-orden', methods=['POST'])
 def ca_cancelar_orden():
     data = request.get_json(force=True)
-    email = data.get('email') or session.get('email')
+    session_email = session.get('email')
+    if not session_email:
+        return jsonify({'error': 'No autenticado'}), 401
+
+    provided_email = data.get('email')
+    if provided_email and provided_email != session_email:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    email = session_email
     tn = data.get('trackingNumber')
-    if not email or not tn:
-        return jsonify({'error': 'Faltan email o trackingNumber'}), 400
+    if not tn:
+        return jsonify({'error': 'Falta trackingNumber'}), 400
 
     success, msg, status = cancelar_orden(email, db, tn)
     return jsonify({'status': 'ok' if success else 'error', 'message': msg}), status
 
+
 @app.route('/ca/rotulos', methods=['POST'])
 def ca_rotulos():
     data = request.get_json(force=True)
-    email = data.get('email') or session.get('email')
-    pedidos = data.get('pedidos') 
-    label_format = data.get('labelFormat') 
-    if not email or not pedidos:
-        return jsonify({'error': 'Faltan datos'}), 400
+    session_email = session.get('email')
+    if not session_email:
+        return jsonify({'error': 'No autenticado'}), 401
+
+    provided_email = data.get('email')
+    if provided_email and provided_email != session_email:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    email = session_email
+    pedidos = data.get('pedidos')
+    label_format = data.get('labelFormat')
+    if not pedidos:
+        return jsonify({'error': 'Faltan pedidos'}), 400
 
     success, result, status = obtener_rotulos(email, db, pedidos, label_format)
     if success:
@@ -445,14 +481,23 @@ def ca_rotulos():
     else:
         return jsonify({'error': result}), status
 
-@app.route('/ca/historial', methods=['POST']) 
+
+@app.route('/ca/historial', methods=['POST'])
 def ca_historial():
     data = request.get_json(force=True)
-    email = data.get('email') or session.get('email')
-    tracking_numbers = data.get('trackingNumbers')  # lista
+    session_email = session.get('email')
+    if not session_email:
+        return jsonify({'error': 'No autenticado'}), 401
+
+    provided_email = data.get('email')
+    if provided_email and provided_email != session_email:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    email = session_email
+    tracking_numbers = data.get('trackingNumbers')
     ext_client = data.get('extClient')
-    if not email or not tracking_numbers:
-        return jsonify({'error': 'Faltan datos'}), 400
+    if not tracking_numbers:
+        return jsonify({'error': 'Faltan trackingNumbers'}), 400
 
     success, result, status = consultar_historial(email, db, tracking_numbers, ext_client)
     if success:
@@ -460,12 +505,18 @@ def ca_historial():
     else:
         return jsonify({'error': result}), status
 
+
 @app.route('/ca/sucursales', methods=['GET'])
 def ca_sucursales():
-    email = request.args.get('email') or session.get('email')
-    if not email:
-        return jsonify({'error': 'Falta email'}), 400
+    session_email = session.get('email')
+    if not session_email:
+        return jsonify({'error': 'No autenticado'}), 401
 
+    provided_email = request.args.get('email')
+    if provided_email and provided_email != session_email:
+        return jsonify({'error': 'No autorizado'}), 403
+
+    email = session_email
     state_id = request.args.get('stateId')
     pickup = request.args.get('pickup_availability')
     if pickup is not None:
