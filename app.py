@@ -1132,7 +1132,7 @@ def upload_image():
         # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
         session_email = session.get('email')
         if not session_email:
-            return error("Debes iniciar sesión"), 401
+            return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
         if vendor_email and vendor_email != session_email:
@@ -2030,7 +2030,7 @@ def actualizar_stock_talle():
         # Priorizar cabecera X-Vendor-Email
         session_email = session.get('email')
         if not session_email:
-            return error("Debes iniciar sesión"), 401
+            return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
         if vendor_email and vendor_email != session_email:
