@@ -2462,6 +2462,11 @@ def login_admin():
     if not re.match(r"[^@]+@[^@]+\.[^@]+", usuario):
         return jsonify({'status': 'error', 'message': 'El usuario debe tener formato de email'}), 400
 
+    # Validar que el email del sitio (cabecera) coincida con el email que se intenta loguear
+    vendor_email = request.headers.get('X-Vendor-Email')
+    if vendor_email and vendor_email != usuario:
+        return jsonify({'status': 'error', 'message': 'No puedes iniciar sesión con otra cuenta en este sitio'}), 403
+
     try:
         doc_ref = db.collection("usuarios").document(usuario)
         doc = doc_ref.get()
@@ -2492,6 +2497,8 @@ def login_admin():
 
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
         
 @app.route('/logout-admin')
 def logout_admin():
