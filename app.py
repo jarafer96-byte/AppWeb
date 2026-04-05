@@ -3067,6 +3067,12 @@ def get_mp_public_key(email: str):
 
     return None
 
+from itsdangerous import URLSafeTimedSerializer
+
+# El serializer debe definirse después de app.secret_key (por ejemplo, justo después de configurar la clave)
+# serializer = URLSafeTimedSerializer(app.secret_key)
+
+
 @app.route('/conectar_mp', methods=["GET"])
 def conectar_mp():
     # Verificar autenticación
@@ -3088,7 +3094,7 @@ def conectar_mp():
     try:
         doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
         snap = doc_ref.get()
-        # No se necesita hacer nada con snap, solo verificar existencia si se desea
+        # Solo verificamos existencia, no es necesario hacer nada más
     except Exception as e:
         return "Error interno", 500
 
@@ -3097,7 +3103,12 @@ def conectar_mp():
         return "❌ Falta configurar MP_CLIENT_ID en entorno", 500
 
     redirect_uri = url_for("callback_mp", _external=True)
-    state_data = f"{email}|{url_retorno or ''}"
+
+    # 🔐 Generar state firmado (incluye email y url_retorno)
+    state_data = serializer.dumps({
+        'email': email,
+        'url_retorno': url_retorno or ''
+    })
 
     query = urlencode({
         "client_id": client_id,
