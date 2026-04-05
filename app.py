@@ -36,6 +36,7 @@ from urllib.parse import urlencode, quote, unquote
 from google.cloud.firestore import ArrayUnion
 from flask_talisman import Talisman
 from google.auth.transport.requests import Request
+from functools import wraps
 import builtins
 from correo_argentino import (
     validar_credenciales, crear_orden, cancelar_orden,
@@ -213,6 +214,29 @@ ca_token_cache = {
 
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def require_authenticated_email(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({'error': 'No autenticado'}), 401
+        
+        # Verificar email en request si existe
+        req_email = None
+        if request.is_json:
+            data = request.get_json(silent=True) or {}
+            req_email = data.get('email')
+        else:
+            req_email = request.form.get('email') or request.args.get('email')
+        
+        if req_email and req_email != session_email:
+            return jsonify({'error': 'No autorizado'}), 403
+        
+        # Inyectar email autenticado en kwargs
+        kwargs['authenticated_email'] = session_email
+        return f(*args, **kwargs)
+    return decorated_function
 
 def get_authenticated_email(request, session, allow_public=False):
     session_email = session.get('email')
