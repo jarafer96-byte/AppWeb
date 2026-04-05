@@ -36,6 +36,7 @@ from urllib.parse import urlencode, quote, unquote
 from google.cloud.firestore import ArrayUnion
 from flask_talisman import Talisman
 from google.auth.transport.requests import Request
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from functools import wraps
 import builtins
 from correo_argentino import (
@@ -175,6 +176,8 @@ if not key_json:
 
 # Convertir el JSON pegado en dict
 creds_dict = json.loads(key_json)
+
+serializer = URLSafeTimedSerializer(app.secret_key)
 
 # Crear credenciales desde el dict
 credentials = service_account.Credentials.from_service_account_info(creds_dict)
