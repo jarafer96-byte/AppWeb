@@ -362,7 +362,6 @@ def ca_guardar_remitente():
 
 @app.route('/ca/validar', methods=['POST'])
 def ca_validar():
-    """Valida las credenciales de Correo Argentino para el vendedor logueado."""
     data = request.get_json(silent=True) or {}
     session_email = session.get('email')
     if not session_email:
@@ -384,14 +383,15 @@ def ca_validar():
 def ca_crear_orden():
     data = request.get_json(force=True)
 
+    session_email = session.get('email')
+    if not session_email:
+        return error("Debes iniciar sesión"), 401
+
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email:
-        email = vendor_email
-    else:
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({'error': 'No autenticado'}), 401
-        email = session_email
+    if vendor_email and vendor_email != session_email:
+        return error("No autorizado"), 403
+
+    email = session_email   
 
     orden_data = data.get('orden_data')
     if not orden_data:
@@ -407,14 +407,15 @@ def ca_crear_orden():
 def ca_cancelar_orden():
     data = request.get_json(force=True)
     
+    session_email = session.get('email')
+    if not session_email:
+        return error("Debes iniciar sesión"), 401
+
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email:
-        email = vendor_email
-    else:
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({'error': 'No autenticado'}), 401
-        email = session_email
+    if vendor_email and vendor_email != session_email:
+        return error("No autorizado"), 403
+
+    email = session_email   
 
     tn = data.get('trackingNumber')
     if not tn:
@@ -428,14 +429,15 @@ def ca_cancelar_orden():
 def ca_rotulos():
     data = request.get_json(force=True)
     
+    session_email = session.get('email')
+    if not session_email:
+        return error("Debes iniciar sesión"), 401
+
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email:
-        email = vendor_email
-    else:
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({'error': 'No autenticado'}), 401
-        email = session_email
+    if vendor_email and vendor_email != session_email:
+        return error("No autorizado"), 403
+
+    email = session_email   
 
     pedidos = data.get('pedidos')
     label_format = data.get('labelFormat')
@@ -454,14 +456,15 @@ def ca_rotulos():
 def ca_historial():
     data = request.get_json(force=True)
     
+    session_email = session.get('email')
+    if not session_email:
+        return error("Debes iniciar sesión"), 401
+
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email:
-        email = vendor_email
-    else:
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({'error': 'No autenticado'}), 401
-        email = session_email
+    if vendor_email and vendor_email != session_email:
+        return error("No autorizado"), 403
+
+    email = session_email   
 
     tracking_numbers = data.get('trackingNumbers')
     ext_client = data.get('extClient')
@@ -478,14 +481,15 @@ def ca_historial():
 
 @app.route('/ca/sucursales', methods=['GET'])
 def ca_sucursales():
+    session_email = session.get('email')
+    if not session_email:
+        return error("Debes iniciar sesión"), 401
+
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email:
-        email = vendor_email
-    else:
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({'error': 'No autenticado'}), 401
-        email = session_email
+    if vendor_email and vendor_email != session_email:
+        return error("No autorizado"), 403
+
+    email = session_email   
 
     state_id = request.args.get('stateId')
     pickup = request.args.get('pickup_availability')
@@ -901,14 +905,15 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
 @app.route("/subir-foto", methods=["POST"])
 def subir_foto():
     try:
+        session_email = session.get('email')
+        if not session_email:
+            return error("Debes iniciar sesión"), 401
+
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email:
-            email = vendor_email
-        else:
-            session_email = session.get('email')
-            if not session_email:
-                return jsonify({"ok": False, "error": "No autenticado"}), 401
-            email = session_email
+        if vendor_email and vendor_email != session_email:
+            return error("No autorizado"), 403
+
+        email = session_email   
 
         file = request.files.get("file")
         if not file:
@@ -988,15 +993,15 @@ def get_products_etag(email):
 
 @app.route("/api/productos")
 def api_productos():
-    # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
+    session_email = session.get('email')
+    if not session_email:
+        return error("Debes iniciar sesión"), 401
+
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email:
-        email = vendor_email
-    else:
-        # 2. Fallback: usar sesión o parámetro usuario (modo admin desde Render)
-        email = session.get("email") or request.args.get("usuario")
-        if not email:
-            return jsonify({"error": "No se especificó usuario"}), 403
+    if vendor_email and vendor_email != session_email:
+        return error("No autorizado"), 403
+
+    email = session_email   
 
     etag = get_products_etag(email)
 
@@ -1125,15 +1130,15 @@ def api_productos():
 def upload_image():
     try:
         # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
+        session_email = session.get('email')
+        if not session_email:
+            return error("Debes iniciar sesión"), 401
+
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email:
-            email = vendor_email
-        else:
-            # 2. Fallback: usar sesión (modo admin desde Render)
-            session_email = session.get("email")
-            if not session_email:
-                return jsonify({"ok": False, "error": "No se ha iniciado sesión"}), 401
-            email = session_email
+        if vendor_email and vendor_email != session_email:
+            return error("No autorizado"), 403
+
+        email = session_email   
 
         imagenes = request.files.getlist('imagenes')
         if not imagenes:
@@ -2023,14 +2028,15 @@ def actualizar_stock_talle():
         data = request.json
         
         # Priorizar cabecera X-Vendor-Email
+        session_email = session.get('email')
+        if not session_email:
+            return error("Debes iniciar sesión"), 401
+
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email:
-            email = vendor_email
-        else:
-            session_email = session.get('email')
-            if not session_email:
-                return jsonify({'error': 'No autenticado'}), 401
-            email = session_email
+        if vendor_email and vendor_email != session_email:
+            return error("No autorizado"), 403
+
+        email = session_email   
 
         id_base = data.get('id') or data.get('id_base')
         talle = data.get('talle')
@@ -2083,14 +2089,15 @@ def guardar_talles_stock():
         data = request.json
         
         # Priorizar cabecera X-Vendor-Email
+        session_email = session.get('email')
+        if not session_email:
+            return error("Debes iniciar sesión"), 401
+
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email:
-            email = vendor_email
-        else:
-            session_email = session.get('email')
-            if not session_email:
-                return jsonify({'error': 'No autenticado'}), 401
-            email = session_email
+        if vendor_email and vendor_email != session_email:
+            return error("No autorizado"), 403
+
+        email = session_email   
 
         id_base = data.get('id') or data.get('id_base')
         stock_por_talle = data.get('stock_por_talle')
@@ -2511,15 +2518,15 @@ def guardar_producto():
         data = request.get_json(force=True) or {}
         
         # Priorizar cabecera X-Vendor-Email (sitios estáticos)
+        session_email = session.get('email')
+        if not session_email:
+            return error("Debes iniciar sesión"), 401
+
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email:
-            email = vendor_email
-        else:
-            # Fallback: usar sesión (modo admin desde Render)
-            session_email = session.get('email')
-            if not session_email:
-                return jsonify({"status": "error", "error": "No autenticado"}), 401
-            email = session_email
+        if vendor_email and vendor_email != session_email:
+            return error("No autorizado"), 403
+
+        email = session_email   
 
         producto = data.get("producto")
         if not producto:
@@ -2626,15 +2633,15 @@ def eliminar_producto():
         data = request.get_json(force=True) or {}
         
         # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
+        session_email = session.get('email')
+        if not session_email:
+            return error("Debes iniciar sesión"), 401
+
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email:
-            email = vendor_email
-        else:
-            # 2. Fallback: usar sesión (modo admin desde Render)
-            session_email = session.get('email')
-            if not session_email:
-                return jsonify({"status": "error", "error": "No autenticado"}), 401
-            email = session_email
+        if vendor_email and vendor_email != session_email:
+            return error("No autorizado"), 403
+
+        email = session_email   
         
         id_base = data.get("id_base")
         if not id_base:
