@@ -2635,7 +2635,7 @@ def eliminar_producto():
         # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
         session_email = session.get('email')
         if not session_email:
-            return error("Debes iniciar sesión"), 401
+            return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
         if vendor_email and vendor_email != session_email:
