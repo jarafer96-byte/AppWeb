@@ -988,9 +988,15 @@ def get_products_etag(email):
 
 @app.route("/api/productos")
 def api_productos():
-    email = session.get("email") or request.args.get("usuario")
-    if not email:
-        return jsonify({"error": "No se especificó usuario"}), 403
+    # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
+    vendor_email = request.headers.get('X-Vendor-Email')
+    if vendor_email:
+        email = vendor_email
+    else:
+        # 2. Fallback: usar sesión o parámetro usuario (modo admin desde Render)
+        email = session.get("email") or request.args.get("usuario")
+        if not email:
+            return jsonify({"error": "No se especificó usuario"}), 403
 
     etag = get_products_etag(email)
 
@@ -1114,12 +1120,20 @@ def api_productos():
         return jsonify({"error": str(e)}), 500
         
         
+        
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
-        email = session.get("email")
-        if not email:
-            return jsonify({"ok": False, "error": "No se ha iniciado sesión"}), 401
+        # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
+        vendor_email = request.headers.get('X-Vendor-Email')
+        if vendor_email:
+            email = vendor_email
+        else:
+            # 2. Fallback: usar sesión (modo admin desde Render)
+            session_email = session.get("email")
+            if not session_email:
+                return jsonify({"ok": False, "error": "No se ha iniciado sesión"}), 401
+            email = session_email
 
         imagenes = request.files.getlist('imagenes')
         if not imagenes:
