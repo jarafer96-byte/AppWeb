@@ -81,7 +81,7 @@ ACCESS_TOKEN = os.getenv("WHATSAPP_TOKEN")
 app = Flask(__name__)
 CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
-app.secret_key = os.getenv("FLASK_SECRET_KEY") or "clave-secreta-temporal"
+app.secret_key = os.environ["FLASK_SECRET_KEY"]
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
 
 # Mantener las sesiones persistentes por defecto y duración
@@ -214,7 +214,23 @@ ca_token_cache = {
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_authenticated_email(request, session, allow_public=False):
+    session_email = session.get('email')
+    if not session_email and not allow_public:
+        raise PermissionError("No hay sesión activa")
 
+    req_email = None
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        req_email = data.get('email')
+    else:
+        req_email = request.form.get('email') or request.args.get('email')
+    
+    if req_email and session_email and req_email != session_email:
+        raise PermissionError("El email de la sesión no coincide con el email proporcionado")
+    
+    return session_email
+    
 @app.route('/ca/cotizar', methods=['POST'])
 def ca_cotizar():
     data = request.get_json(force=True)
