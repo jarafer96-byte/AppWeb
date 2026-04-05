@@ -929,11 +929,22 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
 @app.route("/subir-foto", methods=["POST"])
 def subir_foto():
     try:
-        file = request.files.get("file")
-        email = request.form.get("email")
+        # Verificar autenticación
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({"ok": False, "error": "No autenticado"}), 401
 
-        if not file or not email:
-            return jsonify({"ok": False, "error": "Falta archivo o email"}), 400
+        # Obtener email del formulario y validar
+        form_email = request.form.get("email")
+        if form_email and form_email != session_email:
+            return jsonify({"ok": False, "error": "No autorizado"}), 403
+
+        # Usar el email de sesión para la ruta de almacenamiento
+        email = session_email
+
+        file = request.files.get("file")
+        if not file:
+            return jsonify({"ok": False, "error": "Falta archivo"}), 400
 
         if not allowed_file(file.filename):
             return jsonify({"ok": False, "error": "Formato inválido. Usa png/jpg/jpeg/webp"}), 400
@@ -3055,19 +3066,26 @@ def get_mp_public_key(email: str):
 
 @app.route('/conectar_mp', methods=["GET"])
 def conectar_mp():
-    email = request.args.get("email")
-    url_retorno = request.args.get("url_retorno")
+    # Verificar autenticación
+    session_email = session.get('email')
+    if not session_email:
+        return "Error: no has iniciado sesión", 401
 
-    if not email:
-        return "Error: falta email", 403
+    email_param = request.args.get("email")
+    if not email_param:
+        return "Error: falta email", 400
+
+    # El email proporcionado debe coincidir con el de la sesión
+    if email_param != session_email:
+        return "Error: no puedes conectar la cuenta de otro vendedor", 403
+
+    email = session_email
+    url_retorno = request.args.get("url_retorno")
 
     try:
         doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
         snap = doc_ref.get()
-        if not snap.exists:
-            pass
-        else:
-            pass
+        # No se necesita hacer nada con snap, solo verificar existencia si se desea
     except Exception as e:
         return "Error interno", 500
 
@@ -3077,13 +3095,13 @@ def conectar_mp():
 
     redirect_uri = url_for("callback_mp", _external=True)
     state_data = f"{email}|{url_retorno or ''}"
-    
+
     query = urlencode({
         "client_id": client_id,
         "response_type": "code",
         "redirect_uri": redirect_uri,
         "scope": "read write offline_access",
-        "state": state_data  
+        "state": state_data
     })
     auth_url = f"https://auth.mercadopago.com/authorization?{query}"
     return redirect(auth_url)
