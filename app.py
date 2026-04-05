@@ -2522,15 +2522,18 @@ def logout_admin():
 def guardar_producto():
     try:
         data = request.get_json(force=True) or {}
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({"status": "error", "error": "No autenticado"}), 401
+        
+        # Priorizar cabecera X-Vendor-Email (sitios estáticos)
+        vendor_email = request.headers.get('X-Vendor-Email')
+        if vendor_email:
+            email = vendor_email
+        else:
+            # Fallback: usar sesión (modo admin desde Render)
+            session_email = session.get('email')
+            if not session_email:
+                return jsonify({"status": "error", "error": "No autenticado"}), 401
+            email = session_email
 
-        provided_email = data.get("email")
-        if provided_email and provided_email != session_email:
-            return jsonify({"status": "error", "error": "No autorizado"}), 403
-
-        email = session_email
         producto = data.get("producto")
         if not producto:
             return jsonify({"status": "error", "error": "Producto inválido"}), 400
@@ -2554,7 +2557,6 @@ def guardar_producto():
                     stock_por_variante = producto.get('stock', 0) // num_variantes
 
         if es_edicion:
-            # CORREGIDO: usar la colección correcta "usuarios" en lugar de "productos"
             productos_ref = db.collection("usuarios").document(email).collection("productos").where('id_base', '==', id_base)
             docs = list(productos_ref.stream())
             
@@ -2612,6 +2614,7 @@ def guardar_producto():
             'error': str(e),
             'detalle': 'Revisa los logs del servidor'
         }), 500
+        
         
 @app.route("/crear-repo", methods=["POST"])
 def crear_repo():
