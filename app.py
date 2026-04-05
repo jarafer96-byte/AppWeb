@@ -2482,11 +2482,16 @@ def logout_admin():
 def guardar_producto():
     try:
         data = request.get_json(force=True) or {}
-        email = data.get("email")
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({"status": "error", "error": "No autenticado"}), 401
+
+        provided_email = data.get("email")
+        if provided_email and provided_email != session_email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 403
+
+        email = session_email
         producto = data.get("producto")
-            
-        if not email:
-            return jsonify({"status": "error", "error": "Falta email"}), 403
         if not producto:
             return jsonify({"status": "error", "error": "Producto inválido"}), 400
 
@@ -2509,7 +2514,8 @@ def guardar_producto():
                     stock_por_variante = producto.get('stock', 0) // num_variantes
 
         if es_edicion:
-            productos_ref = db.collection('productos').where('id_base', '==', id_base).where('email_vendedor', '==', email)
+            # CORREGIDO: usar la colección correcta "usuarios" en lugar de "productos"
+            productos_ref = db.collection("usuarios").document(email).collection("productos").where('id_base', '==', id_base)
             docs = list(productos_ref.stream())
             
             if not docs:
@@ -2588,11 +2594,18 @@ def crear_repo():
 def eliminar_producto():
     try:
         data = request.get_json(force=True) or {}
-        email = data.get("email")
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({"status": "error", "error": "No autenticado"}), 401
+
+        provided_email = data.get("email")
+        if provided_email and provided_email != session_email:
+            return jsonify({"status": "error", "error": "No autorizado"}), 403
+
+        email = session_email
         id_base = data.get("id_base")
-            
-        if not email or not id_base:
-            return jsonify({"status": "error", "error": "Faltan datos"}), 400
+        if not id_base:
+            return jsonify({"status": "error", "error": "Falta id_base"}), 400
 
         productos_ref = db.collection("usuarios").document(email).collection("productos")
         query = productos_ref.where("id_base", "==", id_base).limit(1).get()
