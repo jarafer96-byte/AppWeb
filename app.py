@@ -907,7 +907,7 @@ def subir_foto():
     try:
         session_email = session.get('email')
         if not session_email:
-            return error("Debes iniciar sesión"), 401
+            return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
         if vendor_email and vendor_email != session_email:
@@ -995,7 +995,7 @@ def get_products_etag(email):
 def api_productos():
     session_email = session.get('email')
     if not session_email:
-        return error("Debes iniciar sesión"), 401
+        return jsonify({'error': 'Debes iniciar sesión'}), 401
 
     vendor_email = request.headers.get('X-Vendor-Email')
     if vendor_email and vendor_email != session_email:
