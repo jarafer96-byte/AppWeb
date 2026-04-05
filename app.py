@@ -2027,13 +2027,21 @@ def obtener_datos_remitente(email, db):
 def actualizar_stock_talle():
     try:
         data = request.json
-        id_base = data.get('id') or data.get('id_base') 
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({'error': 'No autenticado'}), 401
+
+        provided_email = data.get('email')
+        if provided_email and provided_email != session_email:
+            return jsonify({'error': 'No autorizado'}), 403
+
+        email = session_email
+        id_base = data.get('id') or data.get('id_base')
         talle = data.get('talle')
         nuevo_stock = data.get('stock')
-        email = data.get('email')  
         
-        if not all([id_base, talle, nuevo_stock is not None, email]):
-            return jsonify({'error': 'Faltan datos'}), 400
+        if not all([id_base, talle, nuevo_stock is not None]):
+            return jsonify({'error': 'Faltan datos (id_base, talle, stock)'}), 400
 
         producto_ref = db.collection('usuarios').document(email).collection('productos').document(id_base)
         producto = producto_ref.get()
@@ -2076,12 +2084,20 @@ def actualizar_stock_talle():
 def guardar_talles_stock():
     try:
         data = request.json
+        session_email = session.get('email')
+        if not session_email:
+            return jsonify({'error': 'No autenticado'}), 401
+
+        provided_email = data.get('email')
+        if provided_email and provided_email != session_email:
+            return jsonify({'error': 'No autorizado'}), 403
+
+        email = session_email
         id_base = data.get('id') or data.get('id_base')
         stock_por_talle = data.get('stock_por_talle')
-        email = data.get('email')
         
-        if not all([id_base, stock_por_talle, email]):
-            return jsonify({'error': 'Faltan datos'}), 400
+        if not all([id_base, stock_por_talle]):
+            return jsonify({'error': 'Faltan datos (id_base, stock_por_talle)'}), 400
 
         if not isinstance(stock_por_talle, dict):
             return jsonify({'error': 'stock_por_talle debe ser un objeto JSON'}), 400
@@ -2106,7 +2122,7 @@ def guardar_talles_stock():
                         stock_int = 0
                     stock_por_talle_validado[talle_limpio] = stock_int
                     stock_total += stock_int
-                except (ValueError, TypeError) as e:
+                except (ValueError, TypeError):
                     pass
 
         talles_actualizados = list(stock_por_talle_validado.keys())
