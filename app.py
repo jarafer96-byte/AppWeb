@@ -2628,15 +2628,18 @@ def crear_repo():
 def eliminar_producto():
     try:
         data = request.get_json(force=True) or {}
-        session_email = session.get('email')
-        if not session_email:
-            return jsonify({"status": "error", "error": "No autenticado"}), 401
-
-        provided_email = data.get("email")
-        if provided_email and provided_email != session_email:
-            return jsonify({"status": "error", "error": "No autorizado"}), 403
-
-        email = session_email
+        
+        # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
+        vendor_email = request.headers.get('X-Vendor-Email')
+        if vendor_email:
+            email = vendor_email
+        else:
+            # 2. Fallback: usar sesión (modo admin desde Render)
+            session_email = session.get('email')
+            if not session_email:
+                return jsonify({"status": "error", "error": "No autenticado"}), 401
+            email = session_email
+        
         id_base = data.get("id_base")
         if not id_base:
             return jsonify({"status": "error", "error": "Falta id_base"}), 400
