@@ -215,6 +215,9 @@ ca_token_cache = {
     "expires_at": None
 }
 
+allowed_origins_cache = {}
+CACHE_TTL = 300
+
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -289,6 +292,50 @@ def ca_cotizar():
 
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+def is_origin_allowed(origin):
+    if not origin:
+        return False
+
+    domain = origin.replace("https://", "").replace("http://", "").rstrip("/")
+
+    now = datetime.now()
+    if domain in allowed_origins_cache and allowed_origins_cache[domain] > now:
+        return True
+
+    users_ref = db.collection("usuarios")
+    query = users_ref.where("frontend_domain", "==", domain).limit(1).get()
+    
+    if query:
+        allowed_origins_cache[domain] = now + timedelta(seconds=CACHE_TTL)
+        return True
+
+    if domain == "mpagina.onrender.com":
+        allowed_origins_cache[domain] = now + timedelta(seconds=CACHE_TTL)
+        return True
+    
+    return False
+        
+
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get('Origin')
+    if origin and is_origin_allowed(origin):
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-Vendor-Email'
+        response.headers['Access-Control-Expose-Headers'] = 'Content-Type, X-Vendor-Email'
+    return response
+    
+
+@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    return '', 200
+
+
         
 def obtener_token_micorreo(email_vendedor):
     creds_doc = db.collection("usuarios").document(email_vendedor)\
