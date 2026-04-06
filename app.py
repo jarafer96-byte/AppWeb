@@ -328,6 +328,15 @@ def is_origin_allowed(origin):
         return True
     
     return False
+
+
+
+@app.route('/api/csrf-token', methods=['GET'])
+def get_csrf_token():
+    # Opcional: verificar autenticación
+    if not session.get('email'):
+        return jsonify({'error': 'No autenticado'}), 401
+    return jsonify({'csrf_token': session.get('csrf_token')})
         
 
 @app.after_request
