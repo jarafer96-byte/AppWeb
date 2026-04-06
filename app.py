@@ -88,7 +88,8 @@ app.secret_key = os.environ["FLASK_SECRET_KEY"]
 app.config.update(
     SESSION_COOKIE_SECURE=True,          # Obligatorio si SameSite=None (HTTPS)
     SESSION_COOKIE_SAMESITE='None',      # Permite enviar la cookie a otro dominio
-    SESSION_COOKIE_HTTPONLY=True,        # Seguridad adicional
+    SESSION_COOKIE_HTTPONLY=True,  
+    SESSION_COOKIE_DOMAIN='.onrender.com',
     SESSION_PERMANENT=True,
     PERMANENT_SESSION_LIFETIME=timedelta(days=7)
 )
