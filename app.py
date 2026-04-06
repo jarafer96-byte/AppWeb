@@ -389,7 +389,7 @@ def ca_crear_orden():
 
     vendor_email = request.headers.get('X-Vendor-Email')
     if vendor_email and vendor_email != session_email:
-        return error("No autorizado"), 403
+        return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
 
@@ -413,7 +413,7 @@ def ca_cancelar_orden():
 
     vendor_email = request.headers.get('X-Vendor-Email')
     if vendor_email and vendor_email != session_email:
-        return error("No autorizado"), 403
+        return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
 
@@ -435,7 +435,7 @@ def ca_rotulos():
 
     vendor_email = request.headers.get('X-Vendor-Email')
     if vendor_email and vendor_email != session_email:
-        return error("No autorizado"), 403
+        return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
 
@@ -462,7 +462,7 @@ def ca_historial():
 
     vendor_email = request.headers.get('X-Vendor-Email')
     if vendor_email and vendor_email != session_email:
-        return error("No autorizado"), 403
+        return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
 
@@ -487,7 +487,7 @@ def ca_sucursales():
 
     vendor_email = request.headers.get('X-Vendor-Email')
     if vendor_email and vendor_email != session_email:
-        return error("No autorizado"), 403
+        return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
 
