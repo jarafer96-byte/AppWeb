@@ -1083,11 +1083,7 @@ def get_products_etag(email):
 
 
 @app.route("/api/productos")
-def api_productos():
-    csrf_error = validate_csrf()
-    if csrf_error:
-        return csrf_error
-        
+def api_productos():        
     session_email = session.get('email')
     if not session_email:
         return jsonify({'error': 'Debes iniciar sesión'}), 401
