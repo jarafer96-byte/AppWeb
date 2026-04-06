@@ -105,6 +105,18 @@ body.container.py-5.modo-oscuro {
         whatsapp: "{{ config.whatsapp }}",
         mercado_pago: "{{ config.mercado_pago }}"
       };
+
+      window.VENDOR_EMAIL = window.cliente.email;
+
+      const originalFetch = window.fetch;
+      window.fetch = function(url, options = {}) {
+        options.headers = options.headers || {};
+        if (window.VENDOR_EMAIL) {
+          options.headers['X-Vendor-Email'] = window.VENDOR_EMAIL;
+        }
+        options.credentials = 'same-origin';
+        return originalFetch(url, options);
+      };
       
       window.URL_BACKEND = "https://mpagina.onrender.com";
       window.carrito = [];
