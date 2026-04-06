@@ -82,7 +82,6 @@ GITHUB_USERNAME = "jarafer96-byte"
 ACCESS_TOKEN = os.getenv("WHATSAPP_TOKEN")
 
 app = Flask(__name__)
-CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
