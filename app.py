@@ -407,6 +407,10 @@ def obtener_token_micorreo(email_vendedor):
     
 @app.route('/ca/guardar-remitente', methods=['POST'])
 def ca_guardar_remitente():
+    csrf_error = validate_csrf()
+    if csrf_error:
+        return csrf_error
+        
     data = request.get_json()
     email = session.get('email')
     if not email:
@@ -440,6 +444,10 @@ def ca_validar():
 
 @app.route('/ca/crear-orden', methods=['POST'])
 def ca_crear_orden():
+    csrf_error = validate_csrf()
+    if csrf_error:
+        return csrf_error
+        
     data = request.get_json(force=True)
 
     session_email = session.get('email')
@@ -464,6 +472,10 @@ def ca_crear_orden():
         
 @app.route('/ca/cancelar-orden', methods=['POST'])
 def ca_cancelar_orden():
+    csrf_error = validate_csrf()
+    if csrf_error:
+        return csrf_error
+        
     data = request.get_json(force=True)
     
     session_email = session.get('email')
@@ -486,6 +498,10 @@ def ca_cancelar_orden():
 
 @app.route('/ca/rotulos', methods=['POST'])
 def ca_rotulos():
+    csrf_error = validate_csrf()
+    if csrf_error:
+        return csrf_error
+        
     data = request.get_json(force=True)
     
     session_email = session.get('email')
@@ -513,6 +529,10 @@ def ca_rotulos():
 
 @app.route('/ca/historial', methods=['POST'])
 def ca_historial():
+    csrf_error = validate_csrf()
+    if csrf_error:
+        return csrf_error
+        
     data = request.get_json(force=True)
     
     session_email = session.get('email')
@@ -540,6 +560,10 @@ def ca_historial():
 
 @app.route('/ca/sucursales', methods=['GET'])
 def ca_sucursales():
+    csrf_error = validate_csrf()
+    if csrf_error:
+        return csrf_error
+        
     session_email = session.get('email')
     if not session_email:
         return jsonify({'error': 'Debes iniciar sesión'}), 401
@@ -568,6 +592,10 @@ def ca_sucursales():
 
 @app.route('/ca/guardar-credenciales', methods=['POST'])
 def ca_guardar_credenciales():
+    csrf_error = validate_csrf()
+    if csrf_error:
+        return csrf_error
+    
     data = request.get_json()
     email = session.get('email')
     if not email:
@@ -964,6 +992,10 @@ def subir_archivo(repo, contenido_bytes, ruta_remota, branch="main"):
 @app.route("/subir-foto", methods=["POST"])
 def subir_foto():
     try:
+        csrf_error = validate_csrf()
+        if csrf_error:
+            return csrf_error
+            
         session_email = session.get('email')
         if not session_email:
             return jsonify({'error': 'Debes iniciar sesión'}), 401
@@ -1052,6 +1084,10 @@ def get_products_etag(email):
 
 @app.route("/api/productos")
 def api_productos():
+    csrf_error = validate_csrf()
+    if csrf_error:
+        return csrf_error
+        
     session_email = session.get('email')
     if not session_email:
         return jsonify({'error': 'Debes iniciar sesión'}), 401
@@ -1188,7 +1224,10 @@ def api_productos():
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     try:
-        # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
+        csrf_error = validate_csrf()
+        if csrf_error:
+            return csrf_error
+
         session_email = session.get('email')
         if not session_email:
             return jsonify({'error': 'Debes iniciar sesión'}), 401
@@ -2059,7 +2098,6 @@ def webhook_mp():
 
 
 def obtener_datos_remitente(email, db):
-
     doc = db.collection("usuarios").document(email).collection("config").document("remitente").get()
     if not doc.exists:
         raise ValueError(f"Faltan datos del remitente para {email}. Configúralos en el panel.")
@@ -2084,6 +2122,9 @@ def obtener_datos_remitente(email, db):
 @app.route('/actualizar-stock-talle', methods=['POST'])
 def actualizar_stock_talle():
     try:
+        csrf_error = validate_csrf()
+        if csrf_error:
+            return csrf_error
         data = request.json
 
         session_email = session.get('email')
@@ -2144,9 +2185,11 @@ def actualizar_stock_talle():
 @app.route('/guardar-talles-stock', methods=['POST'])
 def guardar_talles_stock():
     try:
+        csrf_error = validate_csrf()
+        if csrf_error:
+            return csrf_error
         data = request.json
-        
-        # Priorizar cabecera X-Vendor-Email
+
         session_email = session.get('email')
         if not session_email:
             return jsonify({'error': 'Debes iniciar sesión'}), 401
@@ -2688,6 +2731,9 @@ def crear_repo():
 @app.route("/eliminar-producto", methods=["POST"])
 def eliminar_producto():
     try:
+        csrf_error = validate_csrf()
+        if csrf_error:
+            return csrf_error
         data = request.get_json(force=True) or {}
       
         session_email = session.get('email')
@@ -3147,13 +3193,9 @@ def get_mp_public_key(email: str):
 
 from itsdangerous import URLSafeTimedSerializer
 
-# El serializer debe definirse después de app.secret_key (por ejemplo, justo después de configurar la clave)
-# serializer = URLSafeTimedSerializer(app.secret_key)
-
 
 @app.route('/conectar_mp', methods=["GET"])
 def conectar_mp():
-    # Verificar autenticación
     session_email = session.get('email')
     if not session_email:
         return "Error: no has iniciado sesión", 401
@@ -3162,7 +3204,6 @@ def conectar_mp():
     if not email_param:
         return "Error: falta email", 400
 
-    # El email proporcionado debe coincidir con el de la sesión
     if email_param != session_email:
         return "Error: no puedes conectar la cuenta de otro vendedor", 403
 
@@ -3172,7 +3213,7 @@ def conectar_mp():
     try:
         doc_ref = db.collection("usuarios").document(email).collection("config").document("mercado_pago")
         snap = doc_ref.get()
-        # Solo verificamos existencia, no es necesario hacer nada más
+
     except Exception as e:
         return "Error interno", 500
 
@@ -3182,7 +3223,6 @@ def conectar_mp():
 
     redirect_uri = url_for("callback_mp", _external=True)
 
-    # 🔐 Generar state firmado (incluye email y url_retorno)
     state_data = serializer.dumps({
         'email': email,
         'url_retorno': url_retorno or ''
