@@ -25,6 +25,7 @@ from firebase_admin import credentials, firestore
 from flask_cors import CORS, cross_origin
 from google.cloud import storage
 from google.oauth2 import service_account
+from functools import lru_cache
 import secrets
 import smtplib
 import jwt
