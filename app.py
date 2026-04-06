@@ -1092,16 +1092,13 @@ def get_products_etag(email):
 
 
 @app.route("/api/productos")
-def api_productos():        
-    session_email = session.get('email')
-    if not session_email:
-        return jsonify({'error': 'Debes iniciar sesión'}), 401
-
+def api_productos():
+    # Obtener el email del vendedor desde la cabecera (obligatorio)
     vendor_email = request.headers.get('X-Vendor-Email')
-    if not vendor_email or vendor_email != session_email:
-        return jsonify({"error": "No autorizado"}), 403
+    if not vendor_email:
+        return jsonify({'error': 'Falta cabecera X-Vendor-Email'}), 400
 
-    email = session_email   
+    email = vendor_email  # El email del vendedor que se usará para consultar productos
 
     etag = get_products_etag(email)
 
@@ -1118,6 +1115,7 @@ def api_productos():
         for doc in docs:
             data = doc.to_dict() or {}
 
+            # Transformar datos según el esquema (igual que antes)
             if data.get("tiene_variantes", False):
                 pass
             elif data.get("tiene_stock_por_talle", False):
@@ -1209,7 +1207,7 @@ def api_productos():
                 "colores": data.get("colores", []),
                 "variantes": variantes,
                 "tiene_variantes": data.get("tiene_variantes", True),
-                "tiene_stock_por_talle": False, 
+                "tiene_stock_por_talle": False,
                 "sistema_stock": "variantes_unificado",
                 "timestamp": str(data.get("timestamp")) if data.get("timestamp") else None
             })
