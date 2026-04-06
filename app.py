@@ -447,7 +447,7 @@ def ca_crear_orden():
         return jsonify({'error': 'Debes iniciar sesión'}), 401
 
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email and vendor_email != session_email:
+    if not vendor_email or vendor_email != session_email:
         return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
@@ -471,7 +471,7 @@ def ca_cancelar_orden():
         return jsonify({'error': 'Debes iniciar sesión'}), 401
 
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email and vendor_email != session_email:
+    if not vendor_email or vendor_email != session_email:
         return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
@@ -493,9 +493,9 @@ def ca_rotulos():
         return jsonify({'error': 'Debes iniciar sesión'}), 401
 
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email and vendor_email != session_email:
+    if not vendor_email or vendor_email != session_email:
         return jsonify({"error": "No autorizado"}), 403
-
+        
     email = session_email   
 
     pedidos = data.get('pedidos')
@@ -520,7 +520,7 @@ def ca_historial():
         return jsonify({'error': 'Debes iniciar sesión'}), 401
 
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email and vendor_email != session_email:
+    if not vendor_email or vendor_email != session_email:
         return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
@@ -545,7 +545,7 @@ def ca_sucursales():
         return jsonify({'error': 'Debes iniciar sesión'}), 401
 
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email and vendor_email != session_email:
+    if not vendor_email or vendor_email != session_email:
         return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
@@ -969,7 +969,7 @@ def subir_foto():
             return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email and vendor_email != session_email:
+        if not vendor_email or vendor_email != session_email:
             return jsonify({"error": "No autorizado"}), 403
 
         email = session_email   
@@ -1057,7 +1057,7 @@ def api_productos():
         return jsonify({'error': 'Debes iniciar sesión'}), 401
 
     vendor_email = request.headers.get('X-Vendor-Email')
-    if vendor_email and vendor_email != session_email:
+    if not vendor_email or vendor_email != session_email:
         return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
@@ -1194,9 +1194,9 @@ def upload_image():
             return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email and vendor_email != session_email:
+        if not vendor_email or vendor_email != session_email:
             return jsonify({"error": "No autorizado"}), 403
-
+    
         email = session_email   
 
         imagenes = request.files.getlist('imagenes')
@@ -2085,14 +2085,13 @@ def obtener_datos_remitente(email, db):
 def actualizar_stock_talle():
     try:
         data = request.json
-        
-        # Priorizar cabecera X-Vendor-Email
+
         session_email = session.get('email')
         if not session_email:
             return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email and vendor_email != session_email:
+        if not vendor_email or vendor_email != session_email:
             return jsonify({"error": "No autorizado"}), 403
 
         email = session_email   
@@ -2153,7 +2152,7 @@ def guardar_talles_stock():
             return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email and vendor_email != session_email:
+        if not vendor_email or vendor_email != session_email:
             return jsonify({"error": "No autorizado"}), 403
 
         email = session_email   
@@ -2582,7 +2581,7 @@ def guardar_producto():
             return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email and vendor_email != session_email:
+        if not vendor_email or vendor_email != session_email:
             return jsonify({"error": "No autorizado"}), 403
 
         email = session_email   
@@ -2690,14 +2689,13 @@ def crear_repo():
 def eliminar_producto():
     try:
         data = request.get_json(force=True) or {}
-        
-        # 1. Priorizar cabecera X-Vendor-Email (sitios estáticos)
+      
         session_email = session.get('email')
         if not session_email:
             return jsonify({'error': 'Debes iniciar sesión'}), 401
 
         vendor_email = request.headers.get('X-Vendor-Email')
-        if vendor_email and vendor_email != session_email:
+        if not vendor_email or vendor_email != session_email:
             return jsonify({"error": "No autorizado"}), 403
 
         email = session_email   
