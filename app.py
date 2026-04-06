@@ -3098,14 +3098,12 @@ def step3():
                 subir_archivo(repo_name, contenido, f"static/img/{estilo_visual}.jpeg")
 
         if exitos > 0:
-            # Guardar el dominio frontend en Firestore
             frontend_domain = f"{repo_name}.pages.dev"
             try:
                 db.collection("usuarios").document(email).set({
                     "frontend_domain": frontend_domain
                 }, merge=True)
             except Exception as e:
-                # No fallar la creación del sitio si no se puede guardar el dominio
                 print(f"Error guardando frontend_domain: {e}")
 
             session.pop('imagenes_step0', None)
@@ -3191,7 +3189,7 @@ def get_mp_public_key(email: str):
 
     return None
 
-from itsdangerous import URLSafeTimedSerializer
+
 
 
 @app.route('/conectar_mp', methods=["GET"])
