@@ -86,6 +86,12 @@ app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 app.config['SESSION_COOKIE_SECURE'] = not app.debug
 
+app.config.update(
+    SESSION_COOKIE_SECURE=True,          # Solo HTTPS
+    SESSION_COOKIE_SAMESITE='None',      # Permitir cross-site
+    SESSION_COOKIE_HTTPONLY=True         # Recomendado
+)
+
 # Mantener las sesiones persistentes por defecto y duración
 app.config['SESSION_PERMANENT'] = True
 app.permanent_session_lifetime = timedelta(days=7)
