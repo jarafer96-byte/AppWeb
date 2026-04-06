@@ -911,7 +911,7 @@ def subir_foto():
 
         vendor_email = request.headers.get('X-Vendor-Email')
         if vendor_email and vendor_email != session_email:
-            return error("No autorizado"), 403
+            return jsonify({"error": "No autorizado"}), 403
 
         email = session_email   
 
@@ -999,7 +999,7 @@ def api_productos():
 
     vendor_email = request.headers.get('X-Vendor-Email')
     if vendor_email and vendor_email != session_email:
-        return error("No autorizado"), 403
+        return jsonify({"error": "No autorizado"}), 403
 
     email = session_email   
 
