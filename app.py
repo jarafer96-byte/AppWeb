@@ -222,6 +222,18 @@ CACHE_TTL = 300
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+@app.before_request
+def generate_csrf_token():
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_urlsafe(32)
+
+
+def validate_csrf():
+    token = request.headers.get('X-CSRF-Token')
+    if not token or token != session.get('csrf_token'):
+        return jsonify({'error': 'CSRF token inválido'}), 403
+
     
 @app.route('/ca/cotizar', methods=['POST'])
 def ca_cotizar():
