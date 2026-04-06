@@ -560,10 +560,6 @@ def ca_historial():
 
 @app.route('/ca/sucursales', methods=['GET'])
 def ca_sucursales():
-    csrf_error = validate_csrf()
-    if csrf_error:
-        return csrf_error
-        
     session_email = session.get('email')
     if not session_email:
         return jsonify({'error': 'Debes iniciar sesión'}), 401
