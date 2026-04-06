@@ -84,17 +84,14 @@ ACCESS_TOKEN = os.getenv("WHATSAPP_TOKEN")
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
-app.config['SESSION_COOKIE_SECURE'] = not app.debug
 
 app.config.update(
-    SESSION_COOKIE_SECURE=True,          # Solo HTTPS
-    SESSION_COOKIE_SAMESITE='None',      # Permitir cross-site
-    SESSION_COOKIE_HTTPONLY=True         # Recomendado
+    SESSION_COOKIE_SECURE=True,          # Obligatorio si SameSite=None (HTTPS)
+    SESSION_COOKIE_SAMESITE='None',      # Permite enviar la cookie a otro dominio
+    SESSION_COOKIE_HTTPONLY=True,        # Seguridad adicional
+    SESSION_PERMANENT=True,
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7)
 )
-
-# Mantener las sesiones persistentes por defecto y duración
-app.config['SESSION_PERMANENT'] = True
-app.permanent_session_lifetime = timedelta(days=7)
 ###################
 csp = {
     'default-src': ["'self'"],
